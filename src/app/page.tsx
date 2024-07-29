@@ -1,113 +1,218 @@
-import Image from "next/image";
+"use client";
+import React, { useState, useEffect } from "react";
+import FloorplanCanvas from "@/components/FloorplanCanvas";
+import {
+  startSurvey,
+  getSurveyData,
+  updateIperfServer,
+  updateFloorplanImage,
+  updateDbField,
+} from "@/lib/actions";
+import { Database } from "@/lib/database";
+import { cn } from "@/lib/utils";
+import { Loader2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+
+const Loader = ({ className }: { className?: string }) => {
+  return <Loader2 className={cn("animate-spin", className)} />;
+};
 
 export default function Home() {
+  const [surveyData, setSurveyData] = useState<Database | null>(null);
+  const [status, setStatus] = useState("Ready");
+  const [dbPath, setDbPath] = useState("data/db2.json");
+
+  useEffect(() => {
+    loadSurveyData();
+  }, []);
+
+  const loadSurveyData = async () => {
+    const data = await getSurveyData(dbPath);
+    setSurveyData(data);
+  };
+
+  const handlePointClick = async (x: number, y: number) => {
+    if (!surveyData?.iperfServer) {
+      setStatus("Please set iperf server address");
+      return;
+    }
+
+    if (!surveyData.sudoerPassword) {
+      setStatus("Please set sudoer password so we can run wdutil info command");
+      return;
+    }
+
+    setStatus("Starting survey...");
+    const newPoint = await startSurvey(dbPath, x, y, {
+      testDuration: surveyData.testDuration,
+      sudoerPassword: surveyData.sudoerPassword,
+    });
+    setSurveyData((prev) =>
+      prev
+        ? {
+            ...prev,
+            surveyPoints: [...prev.surveyPoints, newPoint],
+          }
+        : null
+    );
+    setStatus("Survey complete");
+  };
+
+  const handleIperfServerChange = async (server: string) => {
+    await updateIperfServer(dbPath, server);
+    loadSurveyData();
+  };
+
+  const handleFloorplanChange = async (imagePath: string) => {
+    await updateFloorplanImage(dbPath, imagePath);
+    loadSurveyData();
+  };
+
+  const handleApMappingChange = async (apMapping: string) => {
+    await updateDbField(
+      dbPath,
+      "apMapping",
+      apMapping.split("\n").map((line) => {
+        const [apName, macAddress] = line.split(",");
+        return { apName, macAddress };
+      })
+    );
+    loadSurveyData();
+  };
+
+  const handleTestDurationChange = async (testDuration: string) => {
+    await updateDbField(dbPath, "testDuration", parseInt(testDuration));
+    loadSurveyData();
+  };
+
+  if (!surveyData)
+    return (
+      <div className="flex items-center justify-center h-screen">
+        Loading...
+      </div>
+    );
+
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <div className="z-10 w-full max-w-5xl items-center justify-between font-mono text-sm lg:flex">
-        <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto  lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30">
-          Get started by editing&nbsp;
-          <code className="font-mono font-bold">src/app/page.tsx</code>
-        </p>
-        <div className="fixed bottom-0 left-0 flex h-48 w-full items-end justify-center bg-gradient-to-t from-white via-white dark:from-black dark:via-black lg:static lg:size-auto lg:bg-none">
-          <a
-            className="pointer-events-none flex place-items-center gap-2 p-8 lg:pointer-events-auto lg:p-0"
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{" "}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className="dark:invert"
-              width={100}
-              height={24}
-              priority
+    <div className="container mx-auto px-4 py-8">
+      <h1 className="text-3xl font-bold mb-8 text-center text-blue-600">
+        WiFi Heatmap Survey
+      </h1>
+
+      <div className="bg-blue-100 text-blue-700 p-4 rounded-lg mb-6">
+        Status:{" "}
+        <span className="font-semibold">
+          {status}
+          {status === "Starting survey..." && (
+            <Loader className="inline ml-2 animate-spin" />
+          )}
+        </span>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="dbPath">Database Path</Label>
+            <div className="flex">
+              <Input
+                id="dbPath"
+                value={dbPath}
+                onChange={(e) => setDbPath(e.target.value)}
+                placeholder="Database path"
+                className="rounded-r-none h-9"
+              />
+              <Button
+                onClick={() => loadSurveyData()}
+                className="rounded-l-none h-9"
+              >
+                Load
+              </Button>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="iperfServer">iperf3 Server Address</Label>
+            <Input
+              id="iperfServer"
+              value={surveyData.iperfServer}
+              onChange={(e) => handleIperfServerChange(e.target.value)}
+              placeholder="iperf3 server address"
+              className="h-9"
             />
-          </a>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="sudoerPassword">Sudoer Password</Label>
+            <Input
+              id="sudoerPassword"
+              type="password"
+              value={surveyData.sudoerPassword}
+              onChange={(e) => {
+                updateDbField(dbPath, "sudoerPassword", e.target.value);
+                loadSurveyData();
+              }}
+              placeholder="Sudoer password"
+              className="h-9"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="floorplanImage">Floorplan Image Path</Label>
+            <Input
+              id="floorplanImage"
+              value={surveyData.floorplanImage}
+              onChange={(e) => handleFloorplanChange(e.target.value)}
+              placeholder="Floorplan image path"
+              className="h-9"
+            />
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="testDuration">Test Duration (seconds)</Label>
+            <Input
+              id="testDuration"
+              type="number"
+              placeholder="Test duration [s]"
+              value={surveyData.testDuration}
+              min={1}
+              max={999}
+              onChange={(e) => handleTestDurationChange(e.target.value)}
+              className="h-9"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="apMapping">AP Mapping</Label>
+            <Textarea
+              id="apMapping"
+              rows={4}
+              value={
+                surveyData.apMapping
+                  ? surveyData.apMapping
+                      .map((ap) => `${ap.apName},${ap.macAddress}`)
+                      .join("\n")
+                  : ""
+              }
+              onChange={(e) => handleApMappingChange(e.target.value)}
+              placeholder="AP Mapping (apName,macAddress)"
+              className="resize-none"
+            />
+          </div>
         </div>
       </div>
 
-      <div className="relative z-[-1] flex place-items-center before:absolute before:h-[300px] before:w-full before:-translate-x-1/2 before:rounded-full before:bg-gradient-radial before:from-white before:to-transparent before:blur-2xl before:content-[''] after:absolute after:-z-20 after:h-[180px] after:w-full after:translate-x-1/3 after:bg-gradient-conic after:from-sky-200 after:via-blue-200 after:blur-2xl after:content-[''] before:dark:bg-gradient-to-br before:dark:from-transparent before:dark:to-blue-700 before:dark:opacity-10 after:dark:from-sky-900 after:dark:via-[#0141ff] after:dark:opacity-40 sm:before:w-[480px] sm:after:w-[240px] before:lg:h-[360px]">
-        <Image
-          className="relative dark:drop-shadow-[0_0_0.3rem_#ffffff70] dark:invert"
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
+      <div className="bg-white shadow-md rounded-lg p-6">
+        <FloorplanCanvas
+          image={surveyData.floorplanImage}
+          points={surveyData.surveyPoints}
+          apMapping={surveyData.apMapping}
+          onPointClick={handlePointClick}
         />
       </div>
-
-      <div className="mb-32 grid text-center lg:mb-0 lg:w-full lg:max-w-5xl lg:grid-cols-4 lg:text-left">
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Docs{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Find in-depth information about Next.js features and API.
-          </p>
-        </a>
-
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Learn{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Learn about Next.js in an interactive course with&nbsp;quizzes!
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Templates{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Explore starter templates for Next.js.
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Deploy{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-balance text-sm opacity-50">
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
-    </main>
+    </div>
   );
 }
