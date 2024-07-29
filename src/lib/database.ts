@@ -4,7 +4,7 @@ import path from "path";
 export interface SurveyPoint {
   x: number;
   y: number;
-  wifiData: WifiNetwork[];
+  wifiData: WifiNetwork;
   iperfResults: IperfResults;
   timestamp: string;
 }

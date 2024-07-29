@@ -4,7 +4,7 @@ import { WifiNetwork } from "./database";
 
 const execAsync = util.promisify(exec);
 
-export async function scanWifi(sudoerPassword: string): Promise<WifiNetwork[]> {
+export async function scanWifi(sudoerPassword: string): Promise<WifiNetwork> {
   try {
     const [wdutilOutput, ssid, bssid] = await Promise.all([
       execAsync(`echo ${sudoerPassword} | sudo -S wdutil info`),
@@ -16,15 +16,12 @@ export async function scanWifi(sudoerPassword: string): Promise<WifiNetwork[]> {
       ),
     ]);
 
-    const networks = parseWdutilOutput(wdutilOutput.stdout);
+    const network = parseWdutilOutput(wdutilOutput.stdout);
 
-    // Add SSID and BSSID from ioreg commands
-    if (networks.length > 0) {
-      networks[0].ssid = ssid.stdout.trim();
-      networks[0].bssid = bssid.stdout.trim();
-    }
+    network.ssid = ssid.stdout.trim();
+    network.bssid = bssid.stdout.trim();
 
-    return networks;
+    return network;
   } catch (error_) {
     const error = error_ as Error;
     console.error("Error scanning WiFi:", error);
@@ -33,23 +30,21 @@ export async function scanWifi(sudoerPassword: string): Promise<WifiNetwork[]> {
         "This command requires sudo privileges. Please run the application with sudo."
       );
     }
-    return [];
+    throw error;
   }
 }
 
-function parseWdutilOutput(output: string): WifiNetwork[] {
+function parseWdutilOutput(output: string): WifiNetwork {
   const wifiSection = output.split("WIFI")[1].split("BLUETOOTH")[0];
   const lines = wifiSection.split("\n");
 
   let currentNetwork: Partial<WifiNetwork> = {};
-  const networks: WifiNetwork[] = [];
 
   lines.forEach((line) => {
     const [key, value] = line.split(":").map((s) => s.trim());
     switch (key) {
       case "SSID":
         if (Object.keys(currentNetwork).length > 0) {
-          networks.push(currentNetwork as WifiNetwork);
           currentNetwork = {};
         }
         currentNetwork.ssid = value;
@@ -83,9 +78,5 @@ function parseWdutilOutput(output: string): WifiNetwork[] {
     }
   });
 
-  if (Object.keys(currentNetwork).length > 0) {
-    networks.push(currentNetwork as WifiNetwork);
-  }
-
-  return networks;
+  return currentNetwork as WifiNetwork;
 }

@@ -57,6 +57,8 @@ export default function FloorplanCanvas({
     src: string;
     alt: string;
   } | null>(null);
+  const [hoveredPoint, setHoveredPoint] = useState<SurveyPoint | null>(null);
+  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
     if (image) {
@@ -86,8 +88,8 @@ export default function FloorplanCanvas({
           ctx.fill();
 
           // Add text annotation
-          if (point.wifiData && point.wifiData.length > 0) {
-            const wifiInfo = point.wifiData[0]; // Assuming the first entry is the connected network
+          if (point.wifiData) {
+            const wifiInfo = point.wifiData;
             const frequencyBand = wifiInfo.channel > 14 ? "5 GHz" : "2.4 GHz";
             const apLabel =
               apMapping.find((ap) => ap.macAddress === wifiInfo.bssid)
@@ -128,7 +130,7 @@ export default function FloorplanCanvas({
   ): number => {
     switch (metric) {
       case "signalStrength":
-        return Math.max(...point.wifiData.map((network) => network.rssi));
+        return point.wifiData.rssi;
       case "tcpDownload":
       case "tcpUpload":
       case "udpDownload":
@@ -325,11 +327,31 @@ export default function FloorplanCanvas({
     );
   }
 
+  const handleCanvasMouseMove = (
+    event: React.MouseEvent<HTMLCanvasElement>
+  ) => {
+    const canvas = event.currentTarget;
+    const rect = canvas.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+
+    const hoveredPoint = points.find(
+      (point) => Math.sqrt((point.x - x) ** 2 + (point.y - y) ** 2) < 10
+    );
+
+    if (hoveredPoint) {
+      setHoveredPoint(hoveredPoint);
+      setTooltipPosition({ x: event.clientX, y: event.clientY });
+    } else {
+      setHoveredPoint(null);
+    }
+  };
+
   return (
     <div className="space-y-8">
       <div className="bg-white p-6 rounded-lg shadow-md">
         <h2 className="text-2xl font-semibold mb-4 text-gray-800">
-          Clickable Floorplan
+          Interactive Floorplan
         </h2>
         <div className="relative">
           <canvas
@@ -337,11 +359,56 @@ export default function FloorplanCanvas({
             width={dimensions.width}
             height={dimensions.height}
             onClick={handleCanvasClick}
+            onMouseMove={handleCanvasMouseMove}
             className="border border-gray-300 rounded-lg cursor-pointer"
           />
           <div className="absolute top-2 right-2 bg-white bg-opacity-75 p-2 rounded-md text-sm">
             <p>Click to add a survey point</p>
+            <p>Hover over points to see details</p>
           </div>
+          {hoveredPoint && (
+            <div
+              className="absolute bg-white border border-gray-300 p-2 rounded-md shadow-md text-sm"
+              style={{
+                left: tooltipPosition.x + 10,
+                top: tooltipPosition.y + 10,
+                zIndex: 1000,
+              }}
+            >
+              <h3 className="font-bold">Survey Point Data</h3>
+              <p>
+                X: {hoveredPoint.x}, Y: {hoveredPoint.y}
+              </p>
+              {hoveredPoint.wifiData && (
+                <>
+                  <p>Created: {hoveredPoint.timestamp.toLocaleString()}</p>
+                  <p>SSID: {hoveredPoint.wifiData.ssid}</p>
+                  <p>RSSI: {hoveredPoint.wifiData.rssi} dBm</p>
+                  <p>Channel: {hoveredPoint.wifiData.channel}</p>
+                </>
+              )}
+              {hoveredPoint.iperfResults && (
+                <>
+                  <p>
+                    TCP Download:{" "}
+                    {formatValue(
+                      hoveredPoint.iperfResults.tcpDownload.bitsPerSecond,
+                      "tcpDownload",
+                      "bitsPerSecond"
+                    )}
+                  </p>
+                  <p>
+                    TCP Upload:{" "}
+                    {formatValue(
+                      hoveredPoint.iperfResults.tcpUpload.bitsPerSecond,
+                      "tcpUpload",
+                      "bitsPerSecond"
+                    )}
+                  </p>
+                </>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
