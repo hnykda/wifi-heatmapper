@@ -1,5 +1,11 @@
 "use client";
-import React, { useRef, useEffect, useState, useMemo } from "react";
+import React, {
+  useRef,
+  useEffect,
+  useState,
+  useMemo,
+  useCallback,
+} from "react";
 import { SurveyPoint, IperfTest } from "../lib/database";
 import h337 from "heatmap.js";
 import { MetricType } from "@/lib/heatmapGenerator";
@@ -64,17 +70,7 @@ export default function FloorplanCanvas({
     }
   }, [image]);
 
-  useEffect(() => {
-    if (imageLoaded) {
-      drawClickableCanvas();
-      // Delay heatmap generation to ensure DOM is updated
-      setTimeout(() => {
-        generateAllHeatmaps();
-      }, 0);
-    }
-  }, [points, imageLoaded]);
-
-  const drawClickableCanvas = () => {
+  const drawClickableCanvas = useCallback(() => {
     const canvas = clickableCanvasRef.current;
     if (canvas && imageRef.current) {
       const ctx = canvas.getContext("2d");
@@ -112,7 +108,7 @@ export default function FloorplanCanvas({
         });
       }
     }
-  };
+  }, [points, imageRef, apMapping]);
 
   const generateHeatmapData = useMemo(
     () => (metric: MetricType, testType?: keyof IperfTest) => {
@@ -169,114 +165,116 @@ export default function FloorplanCanvas({
     return value.toFixed(2);
   };
 
-  const renderHeatmap = (
-    metric: MetricType,
-    testType?: keyof IperfTest
-  ): Promise<string | null> => {
-    return new Promise((resolve) => {
-      if (!imageLoaded || !imageRef.current) {
-        console.error("Image not loaded");
-        resolve(null);
-        return;
-      }
-
-      const heatmapData = generateHeatmapData(metric, testType);
-      const heatmapContainer = document.createElement("div");
-      heatmapContainer.style.width = `${dimensions.width}px`;
-      heatmapContainer.style.height = `${dimensions.height}px`;
-      heatmapContainer.style.position = "relative";
-
-      document.body.appendChild(heatmapContainer);
-
-      const heatmapInstance = h337.create({
-        container: heatmapContainer,
-        radius: Math.min(dimensions.width, dimensions.height) / 3,
-        maxOpacity: 0.6,
-        minOpacity: 0,
-        blur: 0.95,
-      });
-
-      const max = Math.max(...heatmapData.map((point) => point.value));
-      const min = Math.min(...heatmapData.map((point) => point.value));
-
-      heatmapInstance.setData({
-        max: max,
-        min: min,
-        data: heatmapData,
-      });
-
-      setTimeout(() => {
-        const canvas = document.createElement("canvas");
-        canvas.width = dimensions.width + 100; // Extra width for color bar and labels
-        canvas.height = dimensions.height + 40; // Extra height for top and bottom labels
-        const ctx = canvas.getContext("2d");
-        if (ctx) {
-          ctx.fillStyle = "white";
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-          ctx.drawImage(imageRef.current!, 0, 20); // Move image down by 20px
-          const heatmapCanvas = heatmapContainer.querySelector("canvas");
-          if (heatmapCanvas) {
-            if (heatmapCanvas.width === 0 || heatmapCanvas.height === 0) {
-              console.error("Heatmap canvas has zero width or height");
-              document.body.removeChild(heatmapContainer);
-              resolve(null);
-              return;
-            }
-            ctx.drawImage(heatmapCanvas, 0, 20); // Move heatmap down by 20px
-
-            // Draw color bar
-            const colorBarWidth = 30;
-            const colorBarHeight = dimensions.height;
-            const colorBarX = dimensions.width + 20;
-            const colorBarY = 20;
-
-            const gradient = ctx.createLinearGradient(
-              0,
-              colorBarY + colorBarHeight,
-              0,
-              colorBarY
-            );
-            gradient.addColorStop(0, "blue");
-            gradient.addColorStop(0.5, "green");
-            gradient.addColorStop(1, "red");
-
-            ctx.fillStyle = gradient;
-            ctx.fillRect(colorBarX, colorBarY, colorBarWidth, colorBarHeight);
-
-            // Add labels
-            ctx.fillStyle = "black";
-            ctx.font = "12px Arial";
-            ctx.textAlign = "left";
-            const maxLabel = formatValue(max, metric, testType);
-            const minLabel = formatValue(min, metric, testType);
-            ctx.fillText(maxLabel, colorBarX + colorBarWidth + 5, colorBarY);
-            ctx.fillText(
-              minLabel,
-              colorBarX + colorBarWidth + 5,
-              colorBarY + colorBarHeight + 12
-            );
-
-            // Add metric name
-            ctx.save();
-            ctx.translate(canvas.width - 5, canvas.height / 2);
-            ctx.rotate(-Math.PI / 2);
-            ctx.textAlign = "center";
-            ctx.fillText(testType ? `${metric} - ${testType}` : metric, 0, 0);
-            ctx.restore();
-          } else {
-            console.error("Heatmap canvas not found");
-          }
-        } else {
-          console.error("Failed to get 2D context");
+  const renderHeatmap = useCallback(
+    (
+      metric: MetricType,
+      testType?: keyof IperfTest
+    ): Promise<string | null> => {
+      return new Promise((resolve) => {
+        if (!imageLoaded || !imageRef.current) {
+          console.error("Image not loaded");
+          resolve(null);
+          return;
         }
-        document.body.removeChild(heatmapContainer);
-        resolve(canvas.toDataURL());
-      }, 100);
-    });
-  };
 
-  // ... (rest of the component code remains the same)
-  const generateAllHeatmaps = async () => {
+        const heatmapData = generateHeatmapData(metric, testType);
+        const heatmapContainer = document.createElement("div");
+        heatmapContainer.style.width = `${dimensions.width}px`;
+        heatmapContainer.style.height = `${dimensions.height}px`;
+        heatmapContainer.style.position = "relative";
+
+        document.body.appendChild(heatmapContainer);
+
+        const heatmapInstance = h337.create({
+          container: heatmapContainer,
+          radius: Math.min(dimensions.width, dimensions.height) / 3,
+          maxOpacity: 0.6,
+          minOpacity: 0,
+          blur: 0.95,
+        });
+
+        const max = Math.max(...heatmapData.map((point) => point.value));
+        const min = Math.min(...heatmapData.map((point) => point.value));
+
+        heatmapInstance.setData({
+          max: max,
+          min: min,
+          data: heatmapData,
+        });
+
+        setTimeout(() => {
+          const canvas = document.createElement("canvas");
+          canvas.width = dimensions.width + 100; // Extra width for color bar and labels
+          canvas.height = dimensions.height + 40; // Extra height for top and bottom labels
+          const ctx = canvas.getContext("2d");
+          if (ctx) {
+            ctx.fillStyle = "white";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(imageRef.current!, 0, 20); // Move image down by 20px
+            const heatmapCanvas = heatmapContainer.querySelector("canvas");
+            if (heatmapCanvas) {
+              if (heatmapCanvas.width === 0 || heatmapCanvas.height === 0) {
+                console.error("Heatmap canvas has zero width or height");
+                document.body.removeChild(heatmapContainer);
+                resolve(null);
+                return;
+              }
+              ctx.drawImage(heatmapCanvas, 0, 20); // Move heatmap down by 20px
+
+              // Draw color bar
+              const colorBarWidth = 30;
+              const colorBarHeight = dimensions.height;
+              const colorBarX = dimensions.width + 20;
+              const colorBarY = 20;
+
+              const gradient = ctx.createLinearGradient(
+                0,
+                colorBarY + colorBarHeight,
+                0,
+                colorBarY
+              );
+              gradient.addColorStop(0, "blue");
+              gradient.addColorStop(0.5, "green");
+              gradient.addColorStop(1, "red");
+
+              ctx.fillStyle = gradient;
+              ctx.fillRect(colorBarX, colorBarY, colorBarWidth, colorBarHeight);
+
+              // Add labels
+              ctx.fillStyle = "black";
+              ctx.font = "12px Arial";
+              ctx.textAlign = "left";
+              const maxLabel = formatValue(max, metric, testType);
+              const minLabel = formatValue(min, metric, testType);
+              ctx.fillText(maxLabel, colorBarX + colorBarWidth + 5, colorBarY);
+              ctx.fillText(
+                minLabel,
+                colorBarX + colorBarWidth + 5,
+                colorBarY + colorBarHeight + 12
+              );
+
+              // Add metric name
+              ctx.save();
+              ctx.translate(canvas.width - 5, canvas.height / 2);
+              ctx.rotate(-Math.PI / 2);
+              ctx.textAlign = "center";
+              ctx.fillText(testType ? `${metric} - ${testType}` : metric, 0, 0);
+              ctx.restore();
+            } else {
+              console.error("Heatmap canvas not found");
+            }
+          } else {
+            console.error("Failed to get 2D context");
+          }
+          document.body.removeChild(heatmapContainer);
+          resolve(canvas.toDataURL());
+        }, 100);
+      });
+    },
+    [dimensions, imageRef, imageLoaded, generateHeatmapData]
+  );
+
+  const generateAllHeatmaps = useCallback(async () => {
     const newHeatmaps: { [key: string]: string | null } = {};
     for (const metric of metricTypes) {
       if (metric === "signalStrength") {
@@ -291,7 +289,17 @@ export default function FloorplanCanvas({
       }
     }
     setHeatmaps(newHeatmaps);
-  };
+  }, [renderHeatmap]);
+
+  useEffect(() => {
+    if (imageLoaded) {
+      drawClickableCanvas();
+      // Delay heatmap generation to ensure DOM is updated
+      setTimeout(() => {
+        generateAllHeatmaps();
+      }, 0);
+    }
+  }, [points, imageLoaded, drawClickableCanvas, generateAllHeatmaps]);
 
   const handleCanvasClick = (event: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = event.currentTarget;
