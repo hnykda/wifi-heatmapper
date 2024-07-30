@@ -1,6 +1,6 @@
 # WiFi Heatmapper
 
-This project is a WiFi heatmapper solution for macOS, inspired by [python-wifi-survey-heatmap](https://github.com/jantman/python-wifi-survey-heatmap). I wanted to create a heatmap of my WiFi coverage, but the original project didn't work for me due to being on a Mac.
+This project is a WiFi heatmapper solution for macOS, inspired by [python-wifi-survey-heatmap](https://github.com/jantman/python-wifi-survey-heatmap). I wanted to create a heatmap of my WiFi coverage, but the original project didn't work because I am running on Mac (Apple Sillicon).
 
 ![Screenshot](various/screenshot.jpeg)
 
@@ -35,6 +35,10 @@ This project is a WiFi heatmapper solution for macOS, inspired by [python-wifi-s
 
 5. Follow the on-screen instructions to complete the WiFi survey and generate the heatmap.
 
+## How does this work
+
+It's actually pretty simple. The app is written in Next.js. To get the information, we invoke the `iperf3`, `wdutil` and `ioreg` commands via JS `child_process` and parse the output. The webapp then just stores everything in simple JSON "database" file.
+
 ## Credits
 
 This project was inspired by [python-wifi-survey-heatmap](https://github.com/jantman/python-wifi-survey-heatmap). Special thanks to the original author for their work.
@@ -43,7 +47,7 @@ This project was inspired by [python-wifi-survey-heatmap](https://github.com/jan
 
 Feel free to contribute to this project by opening an issue or submitting a pull request. I am more than happy for that!
 
-Some ideas one could work on:
+### Some ideas one could work on:
 
 1. extend this to work on Windows and Linux
 2. find out how to get RSSI and other stuff from `ioreg` so sudo is not needed (for `wdutil`)
