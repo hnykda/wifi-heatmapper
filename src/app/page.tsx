@@ -22,8 +22,15 @@ const Loader = ({ className }: { className?: string }) => {
 
 export default function Home() {
   const [surveyData, setSurveyData] = useState<Database | null>(null);
-  const [status, setStatus] = useState("Ready");
-  const [dbPath, setDbPath] = useState("data/db2.json");
+  const [status, setStatus] = useState<
+    | "Ready"
+    | "Please set iperf server address"
+    | "Please set sudoer password so we can run wdutil info command"
+    | "Starting survey..."
+    | "Survey complete"
+  >("Ready");
+  const [dbPath, setDbPath] = useState("data/db3.json");
+  const [sudoerPassword, setSudoerPassword] = useState("");
 
   useEffect(() => {
     loadSurveyData();
@@ -40,7 +47,7 @@ export default function Home() {
       return;
     }
 
-    if (!surveyData.sudoerPassword) {
+    if (!sudoerPassword) {
       setStatus("Please set sudoer password so we can run wdutil info command");
       return;
     }
@@ -48,7 +55,7 @@ export default function Home() {
     setStatus("Starting survey...");
     const newPoint = await startSurvey(dbPath, x, y, {
       testDuration: surveyData.testDuration,
-      sudoerPassword: surveyData.sudoerPassword,
+      sudoerPassword,
     });
     setSurveyData((prev) =>
       prev
@@ -148,12 +155,11 @@ export default function Home() {
             <Input
               id="sudoerPassword"
               type="password"
-              value={surveyData.sudoerPassword}
+              value={sudoerPassword}
               onChange={(e) => {
-                updateDbField(dbPath, "sudoerPassword", e.target.value);
-                loadSurveyData();
+                setSudoerPassword(e.target.value);
               }}
-              placeholder="Sudoer password"
+              placeholder="Sudoer password (not saved to file)"
               className="h-9"
             />
           </div>
@@ -207,6 +213,7 @@ export default function Home() {
 
       <div className="bg-white shadow-md rounded-lg p-6">
         <FloorplanCanvas
+          status={status}
           image={surveyData.floorplanImage}
           points={surveyData.surveyPoints}
           apMapping={surveyData.apMapping}

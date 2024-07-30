@@ -44,7 +44,6 @@ export interface Database {
   iperfServer: string;
   testDuration: number;
   apMapping: { apName: string; macAddress: string }[];
-  sudoerPassword: string;
 }
 
 export async function readDatabase(dbPath: string): Promise<Database> {
@@ -59,7 +58,6 @@ export async function readDatabase(dbPath: string): Promise<Database> {
       iperfServer: "",
       apMapping: [],
       testDuration: 10,
-      sudoerPassword: "",
     };
   }
 }

@@ -23,6 +23,7 @@ interface FloorplanCanvasProps {
   points: SurveyPoint[];
   onPointClick: (x: number, y: number) => void;
   apMapping: { apName: string; macAddress: string }[];
+  status: string;
 }
 
 const metricTypes: MetricType[] = [
@@ -45,6 +46,7 @@ export default function FloorplanCanvas({
   points,
   onPointClick,
   apMapping,
+  status,
 }: FloorplanCanvasProps) {
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [imageLoaded, setImageLoaded] = useState(false);
