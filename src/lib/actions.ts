@@ -1,4 +1,6 @@
 "use server";
+import path from "path";
+import fs from "fs/promises";
 
 import { scanWifi } from "./wifiScanner";
 import { runIperfTest } from "./iperfRunner";
@@ -68,3 +70,14 @@ export async function updateDbField(
 ): Promise<void> {
   await updateDatabaseField(dbPath, fieldName, value);
 }
+
+export const uploadImage = async (dbPath: string, formData: FormData) => {
+  const file = formData.get("file") as File;
+  const fileName = file.name;
+  const uploadDir = path.join(process.cwd(), "public", "media");
+  await fs.mkdir(uploadDir, { recursive: true });
+  await fs.writeFile(
+    path.join(uploadDir, fileName),
+    Buffer.from(await file.arrayBuffer())
+  );
+};
