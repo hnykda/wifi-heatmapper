@@ -11,7 +11,7 @@ This project is a WiFi heatmapper solution for macOS, inspired by [python-wifi-s
 
 ## Installation
 
-    ```
+    ```bash
     git clone https://github.com/hnykda/wifi-heatmapper.git
     cd wifi-heatmapper
     npm install
