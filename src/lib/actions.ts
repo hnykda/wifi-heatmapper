@@ -24,13 +24,10 @@ export async function startSurvey(
   const db = await readDatabase(dbPath);
   const iperfServer = db.iperfServer;
 
-  // Perform WiFi scan
   const wifiData = await scanWifi(testConfig.sudoerPassword);
 
-  // Run iperf3 tests
   const iperfResults = await runIperfTest(iperfServer, testConfig.testDuration);
 
-  // Create new survey point
   const newPoint: SurveyPoint = {
     x,
     y,
@@ -39,7 +36,6 @@ export async function startSurvey(
     timestamp: new Date().toISOString(),
   };
 
-  // Add to database
   await addSurveyPoint(dbPath, newPoint);
 
   return newPoint;

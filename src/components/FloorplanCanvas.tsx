@@ -12,11 +12,10 @@ import { MetricType } from "@/lib/heatmapGenerator";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
+import { Loader } from "./Loader";
 
 interface FloorplanCanvasProps {
   image: string;
@@ -343,7 +342,7 @@ export default function FloorplanCanvas({
 
     if (hoveredPoint) {
       setHoveredPoint(hoveredPoint);
-      setTooltipPosition({ x: event.clientX, y: event.clientY });
+      setTooltipPosition({ x: hoveredPoint.x, y: hoveredPoint.y });
     } else {
       setHoveredPoint(null);
     }
@@ -356,6 +355,16 @@ export default function FloorplanCanvas({
           Interactive Floorplan
         </h2>
         <div className="relative">
+          <div
+            className={`absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-lg ${
+              status === "running" ? "" : "hidden"
+            }`}
+          >
+            <div className="flex flex-col items-center">
+              <Loader className="w-24 h-24 text-blue-500" />
+              <p className="text-white text-lg font-medium">Running...</p>
+            </div>
+          </div>
           <canvas
             ref={clickableCanvasRef}
             width={dimensions.width}
@@ -387,6 +396,8 @@ export default function FloorplanCanvas({
                   <p>SSID: {hoveredPoint.wifiData.ssid}</p>
                   <p>RSSI: {hoveredPoint.wifiData.rssi} dBm</p>
                   <p>Channel: {hoveredPoint.wifiData.channel}</p>
+                  <p>BSSID: {hoveredPoint.wifiData.bssid}</p>
+                  <p>Frequency: {hoveredPoint.wifiData.frequency} MHz</p>
                 </>
               )}
               {hoveredPoint.iperfResults && (

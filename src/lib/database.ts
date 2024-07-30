@@ -1,5 +1,7 @@
 import fs from "fs/promises";
+import fsSync from "fs";
 import path from "path";
+import { getDefaults } from "./utils";
 
 export interface SurveyPoint {
   x: number;
@@ -47,19 +49,16 @@ export interface Database {
 }
 
 export async function readDatabase(dbPath: string): Promise<Database> {
-  try {
-    const data = await fs.readFile(dbPath, "utf-8");
-    return JSON.parse(data);
-  } catch (error) {
-    console.error("Error reading database:", error);
-    return {
-      surveyPoints: [],
-      floorplanImage: "",
-      iperfServer: "",
-      apMapping: [],
-      testDuration: 10,
-    };
+  // check if the file exists
+  if (!fsSync.existsSync(dbPath)) {
+    console.warn("Database file does not exist, creating...");
+    await fs.mkdir(path.dirname(dbPath), { recursive: true });
+    await fs.writeFile(dbPath, JSON.stringify(getDefaults()));
+    return getDefaults();
   }
+
+  const data = await fs.readFile(dbPath, "utf-8");
+  return JSON.parse(data);
 }
 
 export async function writeDatabase(
@@ -77,7 +76,6 @@ export async function addSurveyPoint(
   dbPath: string,
   point: SurveyPoint
 ): Promise<void> {
-  console.debug("Adding survey point", point);
   const db = await readDatabase(dbPath);
   db.surveyPoints.push(point);
   await writeDatabase(dbPath, db);
@@ -88,7 +86,6 @@ export async function updateDatabaseField<K extends keyof Database>(
   field: K,
   value: Database[K]
 ): Promise<void> {
-  console.debug("Writing to database", field, value);
   const db = await readDatabase(dbPath);
   db[field] = value;
   await writeDatabase(dbPath, db);

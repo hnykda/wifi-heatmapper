@@ -4,6 +4,9 @@ import { WifiNetwork } from "./database";
 
 const execAsync = util.promisify(exec);
 
+/**
+ * Gets the current WiFi network name, BSSID of the AP it's connected to, and the RSSI.
+ */
 export async function scanWifi(sudoerPassword: string): Promise<WifiNetwork> {
   try {
     const [wdutilOutput, ssid, bssid] = await Promise.all([

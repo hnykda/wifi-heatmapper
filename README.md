@@ -1,36 +1,54 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# WiFi Heatmapper
 
-## Getting Started
+This project is a WiFi heatmapper solution for macOS, inspired by [python-wifi-survey-heatmap](https://github.com/jantman/python-wifi-survey-heatmap). I wanted to create a heatmap of my WiFi coverage, but the original project didn't work for me due to being on a Mac.
 
-First, run the development server:
+![Screenshot](various/screenshot.jpeg)
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## Prerequisites
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- macOS (tested on Apple M2, Sonoma 14.5)
+- Node.js and npm installed
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Installation
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+    ```
+    git clone https://github.com/hnykda/wifi-heatmapper.git
+    cd wifi-heatmapper
+    npm install
+    ```
 
-## Learn More
+## Usage
 
-To learn more about Next.js, take a look at the following resources:
+1. Start the application from where you want to run the tests (very likely your Mac laptop so you can move around the house):
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+   ```bash
+   npm run dev
+   ```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+2. On a separate server that you want to run the tests against, run the following command to start the `iperf` server (you will need its IP address to be accessible from the laptop running the application):
 
-## Deploy on Vercel
+   ```bash
+   iperf -s
+   ```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+3. Open a web browser and go to `http://localhost:3000`.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+4. Upload your floor plan image. You might have to create it using some other software, such as `sweethome3d`.
+
+5. Follow the on-screen instructions to complete the WiFi survey and generate the heatmap.
+
+## Credits
+
+This project was inspired by [python-wifi-survey-heatmap](https://github.com/jantman/python-wifi-survey-heatmap). Special thanks to the original author for their work.
+
+## Contributing
+
+Feel free to contribute to this project by opening an issue or submitting a pull request. I am more than happy for that!
+
+Some ideas one could work on:
+
+1. extend this to work on Windows and Linux
+2. find out how to get RSSI and other stuff from `ioreg` so sudo is not needed (for `wdutil`)
+3. make the app more user-friendly and informative (step by step wizard for the measurements)
+4. serialize the image to the database file so it can be loaded later
+5. add leaflet to make the maps interactive

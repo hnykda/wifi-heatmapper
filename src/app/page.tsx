@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect } from "react";
 import FloorplanCanvas from "@/components/FloorplanCanvas";
 import {
   startSurvey,
@@ -9,9 +9,9 @@ import {
   updateDbField,
   uploadImage,
 } from "@/lib/actions";
-import { Database, SurveyPoint, IperfTest } from "@/lib/database";
-import { cn } from "@/lib/utils";
-import { Loader2 } from "lucide-react";
+import { Database } from "@/lib/database";
+import { cn, getDefaults } from "@/lib/utils";
+import { Info, Loader, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -19,17 +19,28 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { Toaster } from "@/components/ui/toaster";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { MetricType } from "@/lib/heatmapGenerator";
 import React from "react";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
-const Loader = ({ className }: { className?: string }) => {
-  return <Loader2 className={cn("animate-spin", className)} />;
+const PopoverHelper = ({ text }: { text: string }) => {
+  return (
+    <Popover>
+      <PopoverTrigger>
+        <Info />
+      </PopoverTrigger>
+      <PopoverContent>{text}</PopoverContent>
+    </Popover>
+  );
 };
 
 export default function Home() {
-  const [surveyData, setSurveyData] = useState<Database | null>(null);
+  const [surveyData, setSurveyData] = useState<Database>(getDefaults());
   const [status, setStatus] = useState<"ready" | "running" | "error">("ready");
-  const [dbPath, setDbPath] = useState("data/db3.json");
+  const [dbPath, setDbPath] = useState("data/db.json");
   const [sudoerPassword, setSudoerPassword] = useState("");
   const [alertMessage, setAlertMessage] = useState("");
   const { toast } = useToast();
@@ -86,7 +97,7 @@ export default function Home() {
               ...prev,
               surveyPoints: [...prev.surveyPoints, newPoint],
             }
-          : null
+          : getDefaults()
       );
     } catch (error) {
       setAlertMessage(`An error occurred: ${error}`);
@@ -151,26 +162,13 @@ export default function Home() {
         WiFi Heatmap
       </h1>
 
-      <div className="bg-blue-100 text-blue-700 p-4 rounded-lg mb-6">
-        Status:{" "}
-        <span className="font-semibold">
-          {status}
-          {status === "running" && (
-            <Loader className="inline ml-2 animate-spin" />
-          )}
-        </span>
-      </div>
-      {status === "error" && (
-        <Alert variant="destructive">
-          <AlertTitle>Error</AlertTitle>
-          <AlertDescription>{alertMessage}</AlertDescription>
-        </Alert>
-      )}
-
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="dbPath">Database Path</Label>
+            <Label htmlFor="dbPath">
+              Database Path{" "}
+              <PopoverHelper text="Path to the database file. It will be created if it doesn't exist. All measurements and most of the settings will be saved to this file. Use one file per single database file." />
+            </Label>
             <div className="flex">
               <Input
                 id="dbPath"
@@ -189,18 +187,24 @@ export default function Home() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="iperfServer">iperf3 Server Address</Label>
+            <Label htmlFor="iperfServer">
+              iperf3 Server Address{" "}
+              <PopoverHelper text="An IP address of the server where iperf3 is running." />
+            </Label>
             <Input
               id="iperfServer"
               value={surveyData.iperfServer}
               onChange={(e) => handleIperfServerChange(e.target.value)}
-              placeholder="iperf3 server address"
+              placeholder="192.168.0.42"
               className="h-9"
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="sudoerPassword">Sudoer Password</Label>
+            <Label htmlFor="sudoerPassword">
+              Sudoer Password{" "}
+              <PopoverHelper text="This is needed to run wdutil info command. It will not be saved to DB file." />
+            </Label>
             <Input
               id="sudoerPassword"
               type="password"
@@ -208,13 +212,16 @@ export default function Home() {
               onChange={(e) => {
                 setSudoerPassword(e.target.value);
               }}
-              placeholder="Sudoer password (not saved to file)"
+              placeholder="passw0rd"
               className="h-9"
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="floorplanImage">Floorplan Image</Label>
+            <Label htmlFor="floorplanImage">
+              Floorplan Image{" "}
+              <PopoverHelper text="Image of the floorplan you want to measure your wifi on. Think about it as a map." />
+            </Label>
             <Input
               id="floorplanImage"
               type="file"
@@ -227,11 +234,14 @@ export default function Home() {
 
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="testDuration">Test Duration (seconds)</Label>
+            <Label htmlFor="testDuration">
+              Test Duration (seconds){" "}
+              <PopoverHelper text="How long each iperf3 measurement will last. 10 seconds might be enough. Higher value will give you more accurate results." />
+            </Label>
             <Input
               id="testDuration"
               type="number"
-              placeholder="Test duration [s]"
+              placeholder="10"
               value={surveyData.testDuration}
               min={1}
               max={999}
@@ -241,7 +251,13 @@ export default function Home() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="apMapping">AP Mapping</Label>
+            <Label htmlFor="apMapping">
+              AP Mapping{" "}
+              <PopoverHelper
+                text="A list of AP names and MAC addresses. It will be used to map the measurements to the APs. This is useful when you have multiple APs and your device might connect to different
+              ones at different places. It's comma separated APName,MACAddress; one mapping per line, no separators in the mac address, and in lowercase."
+              />
+            </Label>
             <Textarea
               id="apMapping"
               rows={4}
@@ -253,25 +269,42 @@ export default function Home() {
                   : ""
               }
               onChange={(e) => handleApMappingChange(e.target.value)}
-              placeholder="AP Mapping (apName,macAddress)"
+              placeholder="someNiceNameAP1,9e05d696e830"
               className="resize-none"
             />
           </div>
           <div className="space-y-2 flex flex-col">
-            <div>Measurements: {surveyData.surveyPoints.length}</div>
+            {surveyData.surveyPoints?.length > 0 && (
+              <div>Measurements: {surveyData.surveyPoints.length}</div>
+            )}
           </div>
         </div>
       </div>
 
-      <div className="bg-white shadow-md rounded-lg p-6">
-        <FloorplanCanvas
-          status={status}
-          image={surveyData.floorplanImage}
-          points={surveyData.surveyPoints}
-          apMapping={surveyData.apMapping}
-          onPointClick={handlePointClick}
-        />
-      </div>
+      {status === "error" && (
+        <Alert variant="destructive">
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{alertMessage}</AlertDescription>
+        </Alert>
+      )}
+      {surveyData.floorplanImage ? (
+        <div className="bg-white shadow-md rounded-lg p-6">
+          <FloorplanCanvas
+            status={status}
+            image={surveyData.floorplanImage}
+            points={surveyData.surveyPoints}
+            apMapping={surveyData.apMapping}
+            onPointClick={handlePointClick}
+          />
+        </div>
+      ) : (
+        <Alert>
+          <AlertTitle>No floorplan image</AlertTitle>
+          <AlertDescription>
+            Please upload a floorplan image to start the measurements.
+          </AlertDescription>
+        </Alert>
+      )}
       <Toaster />
     </div>
   );
