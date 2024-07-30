@@ -7,15 +7,13 @@ This project is a WiFi heatmapper solution for macOS, inspired by [python-wifi-s
 ## Prerequisites
 
 - macOS (tested on Apple M2, Sonoma 14.5)
-- Node.js and npm installed
+- `npm` and `iperf3` installed (can be installed via `brew install npm iperf3`)
 
 ## Installation
 
-    ```bash
     git clone https://github.com/hnykda/wifi-heatmapper.git
     cd wifi-heatmapper
     npm install
-    ```
 
 ## Usage
 
