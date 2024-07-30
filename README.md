@@ -23,10 +23,10 @@ This project is a WiFi heatmapper solution for macOS, inspired by [python-wifi-s
    npm run dev
    ```
 
-2. On a separate server that you want to run the tests against, run the following command to start the `iperf` server (you will need its IP address to be accessible from the laptop running the application):
+2. On a separate server that you want to run the tests against, run the following command to start the `iperf3` server (you will need its IP address to be accessible from the laptop running the application):
 
    ```bash
-   iperf -s
+   iperf3 -s
    ```
 
 3. Open a web browser and go to `http://localhost:3000`.
