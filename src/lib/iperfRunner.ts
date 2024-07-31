@@ -9,17 +9,35 @@ export async function runIperfTest(
   duration: number
 ): Promise<IperfResults> {
   try {
-    const tcpDownload = await runSingleTest(server, duration, true, false);
-    const tcpUpload = await runSingleTest(server, duration, false, false);
-    const udpDownload = await runSingleTest(server, duration, true, true);
-    const udpUpload = await runSingleTest(server, duration, false, true);
+    const maxRetries = 3;
+    let attempts = 0;
+    let results: IperfResults | null = null;
 
-    return {
-      tcpDownload,
-      tcpUpload,
-      udpDownload,
-      udpUpload,
-    };
+    // TODO: only retry the one that failed
+    while (attempts < maxRetries && !results) {
+      try {
+        const tcpDownload = await runSingleTest(server, duration, true, false);
+        const tcpUpload = await runSingleTest(server, duration, false, false);
+        const udpDownload = await runSingleTest(server, duration, true, true);
+        const udpUpload = await runSingleTest(server, duration, false, true);
+
+        results = {
+          tcpDownload,
+          tcpUpload,
+          udpDownload,
+          udpUpload,
+        };
+      } catch (error) {
+        console.error(`Attempt ${attempts + 1} failed:`, error);
+        attempts++;
+        if (attempts >= maxRetries) {
+          throw error;
+        }
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+      }
+    }
+
+    return results!;
   } catch (error) {
     console.error("Error running iperf3 test:", error);
     throw error;
@@ -32,9 +50,15 @@ async function runSingleTest(
   isDownload: boolean,
   isUdp: boolean
 ): Promise<IperfTest> {
-  const command = `iperf3 -c ${server} -t ${duration} ${
-    isDownload ? "-R" : ""
-  } ${isUdp ? "-u -b 0" : ""} -J`;
+  let port = "";
+  if (server.includes(":")) {
+    const [host, serverPort] = server.split(":");
+    server = host;
+    port = serverPort;
+  }
+  const command = `iperf3 -c ${server} ${
+    port ? `-p ${port}` : ""
+  } -t ${duration} ${isDownload ? "-R" : ""} ${isUdp ? "-u -b 0" : ""} -J`;
   const { stdout } = await execAsync(command);
   const result = JSON.parse(stdout);
   return extractIperfResults(result);

@@ -8,7 +8,6 @@ import React, {
 } from "react";
 import { SurveyPoint, IperfTest } from "../lib/database";
 import h337 from "heatmap.js";
-import { MetricType } from "@/lib/heatmapGenerator";
 import {
   Dialog,
   DialogContent,
@@ -24,6 +23,13 @@ interface FloorplanCanvasProps {
   apMapping: { apName: string; macAddress: string }[];
   status: string;
 }
+
+type MetricType =
+  | "signalStrength"
+  | "tcpDownload"
+  | "tcpUpload"
+  | "udpDownload"
+  | "udpUpload";
 
 const metricTypes: MetricType[] = [
   "signalStrength",
@@ -191,9 +197,15 @@ export default function FloorplanCanvas({
         const heatmapInstance = h337.create({
           container: heatmapContainer,
           radius: Math.min(dimensions.width, dimensions.height) / 3,
-          maxOpacity: 0.6,
-          minOpacity: 0,
-          blur: 0.95,
+          maxOpacity: 0.7,
+          minOpacity: 0.2,
+          blur: 0.99,
+          gradient: {
+            ".0": "blue",
+            ".4": "green",
+            "0.6": "yellow",
+            ".8": "red",
+          },
         });
 
         const max = Math.max(...heatmapData.map((point) => point.value));
@@ -354,6 +366,10 @@ export default function FloorplanCanvas({
         <h2 className="text-2xl font-semibold mb-4 text-gray-800">
           Interactive Floorplan
         </h2>
+        <div className="p-2 rounded-md text-sm">
+          <p>Click on the plan to start a new measurement</p>
+          <p>Hover over existing points to see the measurements details</p> 
+        </div>
         <div className="relative">
           <div
             className={`absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-lg ${
@@ -373,10 +389,6 @@ export default function FloorplanCanvas({
             onMouseMove={handleCanvasMouseMove}
             className="border border-gray-300 rounded-lg cursor-pointer"
           />
-          <div className="absolute top-2 right-2 bg-white bg-opacity-75 p-2 rounded-md text-sm">
-            <p>Click to add a survey point</p>
-            <p>Hover over points to see details</p>
-          </div>
           {hoveredPoint && (
             <div
               className="absolute bg-white border border-gray-300 p-2 rounded-md shadow-md text-sm"

@@ -40,7 +40,7 @@ const PopoverHelper = ({ text }: { text: string }) => {
 export default function Home() {
   const [surveyData, setSurveyData] = useState<Database>(getDefaults());
   const [status, setStatus] = useState<"ready" | "running" | "error">("ready");
-  const [dbPath, setDbPath] = useState("data/db.json");
+  const [dbPath, setDbPath] = useState("data/db-test-spodni.json");
   const [sudoerPassword, setSudoerPassword] = useState("");
   const [alertMessage, setAlertMessage] = useState("");
   const { toast } = useToast();
@@ -107,6 +107,7 @@ export default function Home() {
         description: "Something went wrong, please check the logs",
         variant: "destructive",
       });
+      return;
     }
     setStatus("ready");
     toast({
