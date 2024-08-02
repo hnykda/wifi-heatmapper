@@ -12,10 +12,10 @@ export async function scanWifi(sudoerPassword: string): Promise<WifiNetwork> {
     const [wdutilOutput, ssid, bssid] = await Promise.all([
       execAsync(`echo ${sudoerPassword} | sudo -S wdutil info`),
       execAsync(
-        "ioreg -l -n AirPortDriver | grep IO80211SSID | sed 's/^.*= \"\\(.*\\)\".*$/\\1/; s/ /_/g'"
+        "ioreg -l -n AirPortDriver | grep IO80211SSID | sed 's/^.*= \"\\(.*\\)\".*$/\\1/; s/ /_/g'",
       ),
       execAsync(
-        "ioreg -l | grep \"IO80211BSSID\" | awk -F' = ' '{print $2}' | sed 's/[<>]//g'"
+        "ioreg -l | grep \"IO80211BSSID\" | awk -F' = ' '{print $2}' | sed 's/[<>]//g'",
       ),
     ]);
 
@@ -30,7 +30,7 @@ export async function scanWifi(sudoerPassword: string): Promise<WifiNetwork> {
     console.error("Error scanning WiFi:", error);
     if (error.message.includes("sudo")) {
       console.error(
-        "This command requires sudo privileges. Please run the application with sudo."
+        "This command requires sudo privileges. Please run the application with sudo.",
       );
     }
     throw error;
@@ -58,17 +58,18 @@ function parseWdutilOutput(output: string): WifiNetwork {
       case "RSSI":
         currentNetwork.rssi = parseInt(value.split(" ")[0]);
         break;
-      case "Channel":
+      case "Channel": {
         const channelParts = value.split(" ");
         // takes the first number
         currentNetwork.frequency = parseInt(
-          channelParts[0].match(/\d+/)?.[0] ?? "0"
+          channelParts[0].match(/\d+/)?.[0] ?? "0",
         );
         currentNetwork.channel = parseInt(channelParts[0].substring(2));
         currentNetwork.channelWidth = parseInt(
-          channelParts[1].replace(/[()]/g, "")
+          channelParts[1].replace(/[()]/g, ""),
         );
         break;
+      }
       case "Tx Rate":
         currentNetwork.txRate = parseFloat(value.split(" ")[0]);
         break;

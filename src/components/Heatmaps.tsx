@@ -1,10 +1,4 @@
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import h337 from "heatmap.js";
 import { SurveyPoint, IperfTest } from "../lib/database";
 import {
@@ -68,7 +62,7 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
   image,
 }) => {
   const [heatmaps, setHeatmaps] = useState<{ [key: string]: string | null }>(
-    {}
+    {},
   );
   const [selectedHeatmap, setSelectedHeatmap] = useState<{
     src: string;
@@ -108,7 +102,7 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
     (
       point: SurveyPoint,
       metric: MetricType,
-      testType?: keyof IperfTest
+      testType?: keyof IperfTest,
     ): number => {
       switch (metric) {
         case "signalStrength":
@@ -126,7 +120,7 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
           return 0;
       }
     },
-    [showSignalStrengthAsPercentage]
+    [showSignalStrengthAsPercentage],
   );
 
   const generateHeatmapData = useCallback(
@@ -137,7 +131,7 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
         value: getMetricValue(point, metric, testType),
       }));
     },
-    [points, getMetricValue]
+    [points, getMetricValue],
   );
 
   const offScreenContainerRef = useRef<HTMLDivElement | null>(null);
@@ -162,7 +156,7 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
   const renderHeatmap = useCallback(
     (
       metric: MetricType,
-      testType?: keyof IperfTest
+      testType?: keyof IperfTest,
     ): Promise<string | null> => {
       return new Promise((resolve) => {
         if (
@@ -171,7 +165,7 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
           !offScreenContainerRef.current
         ) {
           console.error(
-            "Image dimensions not set or off-screen container not available"
+            "Image dimensions not set or off-screen container not available",
           );
           resolve(null);
           return;
@@ -228,7 +222,7 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
             0,
             20,
             dimensions.width,
-            dimensions.height
+            dimensions.height,
           );
 
           const heatmapCanvas = heatmapContainer.querySelector("canvas");
@@ -254,7 +248,7 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
         backgroundImage.src = image;
       });
     },
-    [dimensions, generateHeatmapData, image]
+    [dimensions, generateHeatmapData, image],
   );
 
   const generateAllHeatmaps = useCallback(async () => {
@@ -266,7 +260,7 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
         for (const testType of selectedProperties) {
           newHeatmaps[`${metric}-${testType}`] = await renderHeatmap(
             metric,
-            testType as keyof IperfTest
+            testType,
           );
         }
       }
@@ -301,7 +295,7 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
         ? prev.filter((m) => m !== metric)
         : [...prev, metric];
       return newMetrics.sort(
-        (a, b) => metricTypes.indexOf(a) - metricTypes.indexOf(b)
+        (a, b) => metricTypes.indexOf(a) - metricTypes.indexOf(b),
       );
     });
   };
@@ -312,35 +306,10 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
         ? prev.filter((p) => p !== property)
         : [...prev, property];
       return newProperties.sort(
-        (a, b) => testProperties.indexOf(a) - testProperties.indexOf(b)
+        (a, b) => testProperties.indexOf(a) - testProperties.indexOf(b),
       );
     });
   };
-
-  const formatValue = useCallback(
-    (value: number, metric: MetricType, testType?: keyof IperfTest): string => {
-      if (metric === "signalStrength") {
-        return showSignalStrengthAsPercentage
-          ? `${Math.round(value)}%`
-          : `${Math.round(value)} dBm`;
-      }
-      if (testType === "bitsPerSecond") {
-        return `${(value / 1000000).toFixed(2)} Mbps`;
-      }
-      if (testType === "jitterMs") {
-        return `${value.toFixed(4)} ms`;
-      }
-      if (
-        testType === "lostPackets" ||
-        testType === "retransmits" ||
-        testType === "packetsReceived"
-      ) {
-        return Math.round(value).toString();
-      }
-      return value.toFixed(2);
-    },
-    [showSignalStrengthAsPercentage]
-  );
 
   return (
     <div className="bg-white p-6 rounded-lg shadow-md">
@@ -351,7 +320,7 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
           Select Metrics
         </h3>
         <div className="flex flex-wrap gap-4">
-          {metricTypes.map((metric) => (
+                      {metricTypes.map((metric) => (
             <div key={metric} className="flex items-center space-x-2">
               <Checkbox
                 id={`metric-${metric}`}
@@ -420,13 +389,13 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
                     </label>
                   </div>
                   <img
-                    src={heatmaps[metric]!}
+                    src={heatmaps[metric]}
                     alt={`Heatmap for ${metricTitles[metric]}`}
                     className="w-full rounded-md shadow-sm cursor-pointer transition-transform hover:scale-105"
                     onClick={() =>
                       openHeatmapModal(
                         heatmaps[metric]!,
-                        `Heatmap for ${metricTitles[metric]}`
+                        `Heatmap for ${metricTitles[metric]}`,
                       )
                     }
                   />
@@ -447,7 +416,7 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
                         onClick={() =>
                           openHeatmapModal(
                             heatmaps[`${metric}-${testType}`]!,
-                            `Heatmap for ${metricTitles[metric]} - ${propertyTitles[testType]}`
+                            `Heatmap for ${metricTitles[metric]} - ${propertyTitles[testType]}`,
                           )
                         }
                       />

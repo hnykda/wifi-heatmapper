@@ -19,7 +19,7 @@ export async function startSurvey(
   testConfig: {
     testDuration: number;
     sudoerPassword: string;
-  }
+  },
 ): Promise<SurveyPoint> {
   const db = await readDatabase(dbPath);
   const iperfServer = db.iperfServer;
@@ -47,14 +47,14 @@ export async function getSurveyData(dbPath: string): Promise<Database> {
 
 export async function updateIperfServer(
   dbPath: string,
-  server: string
+  server: string,
 ): Promise<void> {
   await updateDatabaseField(dbPath, "iperfServer", server);
 }
 
 export async function updateFloorplanImage(
   dbPath: string,
-  imagePath: string
+  imagePath: string,
 ): Promise<void> {
   await updateDatabaseField(dbPath, "floorplanImage", imagePath);
 }
@@ -62,9 +62,9 @@ export async function updateFloorplanImage(
 export async function updateDbField(
   dbPath: string,
   fieldName: keyof Database,
-  value: any
+  value: Database[keyof Database],
 ): Promise<void> {
-  await updateDatabaseField(dbPath, fieldName, value);
+  return await updateDatabaseField(dbPath, fieldName, value);
 }
 
 export const uploadImage = async (dbPath: string, formData: FormData) => {
@@ -74,6 +74,6 @@ export const uploadImage = async (dbPath: string, formData: FormData) => {
   await fs.mkdir(uploadDir, { recursive: true });
   await fs.writeFile(
     path.join(uploadDir, fileName),
-    Buffer.from(await file.arrayBuffer())
+    Buffer.from(await file.arrayBuffer()),
   );
 };

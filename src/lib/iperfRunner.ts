@@ -6,7 +6,7 @@ const execAsync = util.promisify(exec);
 
 export async function runIperfTest(
   server: string,
-  duration: number
+  duration: number,
 ): Promise<IperfResults> {
   try {
     const maxRetries = 3;
@@ -48,7 +48,7 @@ async function runSingleTest(
   server: string,
   duration: number,
   isDownload: boolean,
-  isUdp: boolean
+  isUdp: boolean,
 ): Promise<IperfTest> {
   let port = "";
   if (server.includes(":")) {
@@ -64,7 +64,13 @@ async function runSingleTest(
   return extractIperfResults(result);
 }
 
-function extractIperfResults(result: any): IperfTest {
+function extractIperfResults(result: {
+  end: {
+    sum_received: { bits_per_second: number };
+    sum_sent: { retransmits: number };
+    sum?: { jitter_ms: number; lost_packets: number; packets: number };
+  };
+}): IperfTest {
   const end = result.end;
   return {
     bitsPerSecond: end.sum_received.bits_per_second,

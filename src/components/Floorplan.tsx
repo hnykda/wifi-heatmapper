@@ -91,7 +91,7 @@ export const ClickableFloorplan: React.FC<ClickableFloorplanProps> = ({
   };
 
   const handleCanvasMouseMove = (
-    event: React.MouseEvent<HTMLCanvasElement>
+    event: React.MouseEvent<HTMLCanvasElement>,
   ) => {
     const canvas = event.currentTarget;
     const rect = canvas.getBoundingClientRect();
@@ -99,7 +99,7 @@ export const ClickableFloorplan: React.FC<ClickableFloorplanProps> = ({
     const y = event.clientY - rect.top;
 
     const hoveredPoint = points.find(
-      (point) => Math.sqrt((point.x - x) ** 2 + (point.y - y) ** 2) < 10
+      (point) => Math.sqrt((point.x - x) ** 2 + (point.y - y) ** 2) < 10,
     );
 
     if (hoveredPoint) {
@@ -176,7 +176,7 @@ export const ClickableFloorplan: React.FC<ClickableFloorplanProps> = ({
                   {formatValue(
                     hoveredPoint.iperfResults.tcpDownload.bitsPerSecond,
                     "tcpDownload",
-                    "bitsPerSecond"
+                    "bitsPerSecond",
                   )}
                 </p>
                 <p>
@@ -184,7 +184,7 @@ export const ClickableFloorplan: React.FC<ClickableFloorplanProps> = ({
                   {formatValue(
                     hoveredPoint.iperfResults.tcpUpload.bitsPerSecond,
                     "tcpUpload",
-                    "bitsPerSecond"
+                    "bitsPerSecond",
                   )}
                 </p>
               </>

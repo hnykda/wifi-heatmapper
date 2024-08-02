@@ -63,7 +63,7 @@ export async function readDatabase(dbPath: string): Promise<Database> {
 
 export async function writeDatabase(
   dbPath: string,
-  data: Database
+  data: Database,
 ): Promise<void> {
   try {
     await fs.writeFile(dbPath, JSON.stringify(data, null, 2));
@@ -74,7 +74,7 @@ export async function writeDatabase(
 
 export async function addSurveyPoint(
   dbPath: string,
-  point: SurveyPoint
+  point: SurveyPoint,
 ): Promise<void> {
   const db = await readDatabase(dbPath);
   db.surveyPoints.push(point);
@@ -84,7 +84,7 @@ export async function addSurveyPoint(
 export async function updateDatabaseField<K extends keyof Database>(
   dbPath: string,
   field: K,
-  value: Database[K]
+  value: Database[K],
 ): Promise<void> {
   const db = await readDatabase(dbPath);
   db[field] = value;

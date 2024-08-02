@@ -9,22 +9,16 @@ import {
   uploadImage,
 } from "@/lib/actions";
 import { Database } from "@/lib/database";
-import { cn, getDefaults } from "@/lib/utils";
-import { Info, Loader, Loader2 } from "lucide-react";
+import { getDefaults } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { Toaster } from "@/components/ui/toaster";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import React from "react";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+
 import { Heatmaps } from "@/components/Heatmaps";
 import { ClickableFloorplan } from "@/components/Floorplan";
 import { PopoverHelper } from "@/components/PopoverHelpText";
@@ -63,7 +57,7 @@ export default function Home() {
 
     if (!sudoerPassword) {
       setAlertMessage(
-        "Please set sudoer password so we can run wdutil info command"
+        "Please set sudoer password so we can run wdutil info command",
       );
       toast({
         title: "Please set sudoer password",
@@ -90,7 +84,7 @@ export default function Home() {
               ...prev,
               surveyPoints: [...prev.surveyPoints, newPoint],
             }
-          : getDefaults()
+          : getDefaults(),
       );
     } catch (error) {
       setAlertMessage(`An error occurred: ${error}`);
@@ -115,7 +109,7 @@ export default function Home() {
   };
 
   const handleFloorplanChange = async (
-    event: React.ChangeEvent<HTMLInputElement>
+    event: React.ChangeEvent<HTMLInputElement>,
   ) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -133,7 +127,7 @@ export default function Home() {
       apMapping.split("\n").map((line) => {
         const [apName, macAddress] = line.split(",");
         return { apName, macAddress };
-      })
+      }),
     );
     loadSurveyData();
   };
