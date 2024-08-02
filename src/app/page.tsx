@@ -27,17 +27,7 @@ import {
 } from "@/components/ui/popover";
 import { Heatmaps } from "@/components/Heatmaps";
 import { ClickableFloorplan } from "@/components/Floorplan";
-
-const PopoverHelper = ({ text }: { text: string }) => {
-  return (
-    <Popover>
-      <PopoverTrigger>
-        <Info />
-      </PopoverTrigger>
-      <PopoverContent>{text}</PopoverContent>
-    </Popover>
-  );
-};
+import { PopoverHelper } from "@/components/PopoverHelpText";
 
 export default function Home() {
   const [surveyData, setSurveyData] = useState<Database>(getDefaults());

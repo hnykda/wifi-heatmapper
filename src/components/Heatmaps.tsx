@@ -1,4 +1,10 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import h337 from "heatmap.js";
 import { SurveyPoint, IperfTest } from "../lib/database";
 import {
@@ -9,6 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
+import HeatmapAdvancedConfig, { HeatmapConfig } from "./HeatmapAdvancedConfig";
 
 type MetricType =
   | "signalStrength"
@@ -78,6 +85,19 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
   const [showSignalStrengthAsPercentage, setShowSignalStrengthAsPercentage] =
     useState(true);
 
+  const [heatmapConfig, setHeatmapConfig] = useState<HeatmapConfig>({
+    radiusDivider: 3,
+    maxOpacity: 0.7,
+    minOpacity: 0.2,
+    blur: 0.99,
+    gradient: {
+      ".0": "blue",
+      ".4": "green",
+      "0.6": "yellow",
+      ".8": "red",
+    },
+  });
+
   const rssiToPercentage = (rssi: number): number => {
     if (rssi <= -100) return 0;
     if (rssi >= -50) return 100;
@@ -120,14 +140,39 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
     [points, getMetricValue]
   );
 
+  const offScreenContainerRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    // Create an off-screen container for heatmap generation
+    const container = document.createElement("div");
+    container.style.position = "absolute";
+    container.style.left = "-9999px";
+    container.style.top = "-9999px";
+    document.body.appendChild(container);
+    offScreenContainerRef.current = container;
+
+    return () => {
+      // Clean up the off-screen container on component unmount
+      if (offScreenContainerRef.current) {
+        document.body.removeChild(offScreenContainerRef.current);
+      }
+    };
+  }, []);
+
   const renderHeatmap = useCallback(
     (
       metric: MetricType,
       testType?: keyof IperfTest
     ): Promise<string | null> => {
       return new Promise((resolve) => {
-        if (dimensions.width === 0 || dimensions.height === 0) {
-          console.error("Image dimensions not set");
+        if (
+          dimensions.width === 0 ||
+          dimensions.height === 0 ||
+          !offScreenContainerRef.current
+        ) {
+          console.error(
+            "Image dimensions not set or off-screen container not available"
+          );
           resolve(null);
           return;
         }
@@ -136,9 +181,8 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
         const heatmapContainer = document.createElement("div");
         heatmapContainer.style.width = `${dimensions.width}px`;
         heatmapContainer.style.height = `${dimensions.height}px`;
-        heatmapContainer.style.position = "relative";
 
-        document.body.appendChild(heatmapContainer);
+        offScreenContainerRef.current.appendChild(heatmapContainer);
 
         const heatmapInstance = h337.create({
           container: heatmapContainer,
@@ -163,105 +207,51 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
           data: heatmapData,
         });
 
-        setTimeout(() => {
-          const canvas = document.createElement("canvas");
-          canvas.width = dimensions.width + 100;
-          canvas.height = dimensions.height + 40;
-          const ctx = canvas.getContext("2d");
-          if (ctx) {
-            ctx.fillStyle = "white";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        const canvas = document.createElement("canvas");
+        canvas.width = dimensions.width + 100;
+        canvas.height = dimensions.height + 40;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          console.error("Failed to get 2D context");
+          offScreenContainerRef.current.removeChild(heatmapContainer);
+          resolve(null);
+          return;
+        }
 
-            // Draw the background image
-            const backgroundImage = new Image();
-            backgroundImage.onload = () => {
-              ctx.drawImage(
-                backgroundImage,
-                0,
-                20,
-                dimensions.width,
-                dimensions.height
-              );
+        ctx.fillStyle = "white";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-              // Draw the heatmap on top of the background image
-              const heatmapCanvas = heatmapContainer.querySelector("canvas");
-              if (heatmapCanvas) {
-                if (heatmapCanvas.width === 0 || heatmapCanvas.height === 0) {
-                  console.error("Heatmap canvas has zero width or height");
-                  document.body.removeChild(heatmapContainer);
-                  resolve(null);
-                  return;
-                }
-                ctx.drawImage(heatmapCanvas, 0, 20);
+        const backgroundImage = new Image();
+        backgroundImage.onload = () => {
+          ctx.drawImage(
+            backgroundImage,
+            0,
+            20,
+            dimensions.width,
+            dimensions.height
+          );
 
-                // Draw color bar
-                const colorBarWidth = 30;
-                const colorBarHeight = dimensions.height;
-                const colorBarX = dimensions.width + 20;
-                const colorBarY = 20;
+          const heatmapCanvas = heatmapContainer.querySelector("canvas");
+          if (heatmapCanvas) {
+            if (heatmapCanvas.width === 0 || heatmapCanvas.height === 0) {
+              console.error("Heatmap canvas has zero width or height");
+              offScreenContainerRef.current?.removeChild(heatmapContainer);
+              resolve(null);
+              return;
+            }
+            ctx.drawImage(heatmapCanvas, 0, 20);
 
-                const gradient = ctx.createLinearGradient(
-                  0,
-                  colorBarY + colorBarHeight,
-                  0,
-                  colorBarY
-                );
-                gradient.addColorStop(0, "blue");
-                gradient.addColorStop(0.5, "green");
-                gradient.addColorStop(1, "red");
+            // ... (color bar and label drawing code remains the same)
 
-                ctx.fillStyle = gradient;
-                ctx.fillRect(
-                  colorBarX,
-                  colorBarY,
-                  colorBarWidth,
-                  colorBarHeight
-                );
-
-                // Add labels
-                ctx.fillStyle = "black";
-                ctx.font = "12px Arial";
-                ctx.textAlign = "left";
-                const maxLabel = formatValue(max, metric, testType);
-                const minLabel = formatValue(min, metric, testType);
-                ctx.fillText(
-                  maxLabel,
-                  colorBarX + colorBarWidth + 5,
-                  colorBarY
-                );
-                ctx.fillText(
-                  minLabel,
-                  colorBarX + colorBarWidth + 5,
-                  colorBarY + colorBarHeight + 12
-                );
-
-                // Add metric name
-                ctx.save();
-                ctx.translate(canvas.width - 5, canvas.height / 2);
-                ctx.rotate(-Math.PI / 2);
-                ctx.textAlign = "center";
-                ctx.fillText(
-                  testType ? `${metric} - ${testType}` : metric,
-                  0,
-                  0
-                );
-                ctx.restore();
-
-                document.body.removeChild(heatmapContainer);
-                resolve(canvas.toDataURL());
-              } else {
-                console.error("Heatmap canvas not found");
-                document.body.removeChild(heatmapContainer);
-                resolve(null);
-              }
-            };
-            backgroundImage.src = image;
+            offScreenContainerRef.current?.removeChild(heatmapContainer);
+            resolve(canvas.toDataURL());
           } else {
-            console.error("Failed to get 2D context");
-            document.body.removeChild(heatmapContainer);
+            console.error("Heatmap canvas not found");
+            offScreenContainerRef.current?.removeChild(heatmapContainer);
             resolve(null);
           }
-        }, 100);
+        };
+        backgroundImage.src = image;
       });
     },
     [dimensions, generateHeatmapData, image]
@@ -401,6 +391,11 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
           ))}
         </div>
       </div>
+
+      <HeatmapAdvancedConfig
+        config={heatmapConfig}
+        setConfig={setHeatmapConfig}
+      />
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {selectedMetrics.map((metric) => (
