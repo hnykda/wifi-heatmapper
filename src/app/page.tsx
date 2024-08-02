@@ -161,7 +161,7 @@ export default function Home() {
             value={surveyData.iperfServer}
             onSave={handleIperfServerChange}
             placeholder="192.168.0.42"
-            helpText="IP address of the iperf3 server against which the tests will be run."
+            helpText="IP address of the iperf3 server against which the tests will be run. Can be in the form of 192.168.0.42 or with port 192.168.0.42:5201"
           />
 
           <EditableField
