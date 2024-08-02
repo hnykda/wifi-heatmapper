@@ -1,6 +1,5 @@
 "use client";
 import { useState, useEffect } from "react";
-import FloorplanCanvas from "@/components/FloorplanCanvas";
 import {
   startSurvey,
   getSurveyData,
@@ -14,6 +13,7 @@ import { cn, getDefaults } from "@/lib/utils";
 import { Info, Loader, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
@@ -25,6 +25,8 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { Heatmaps } from "@/components/Heatmaps";
+import { ClickableFloorplan } from "@/components/Floorplan";
 
 const PopoverHelper = ({ text }: { text: string }) => {
   return (
@@ -149,6 +151,7 @@ export default function Home() {
     await updateDbField(dbPath, "testDuration", parseInt(testDuration));
     loadSurveyData();
   };
+  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
 
   if (!surveyData)
     return (
@@ -290,13 +293,22 @@ export default function Home() {
       )}
       {surveyData.floorplanImage ? (
         <div className="bg-white shadow-md rounded-lg p-6">
-          <FloorplanCanvas
-            status={status}
-            image={surveyData.floorplanImage}
-            points={surveyData.surveyPoints}
-            apMapping={surveyData.apMapping}
-            onPointClick={handlePointClick}
-          />
+          <div className="space-y-8">
+            <ClickableFloorplan
+              image={surveyData.floorplanImage}
+              setDimensions={setDimensions}
+              dimensions={dimensions}
+              points={surveyData.surveyPoints}
+              onPointClick={handlePointClick}
+              apMapping={surveyData.apMapping}
+              status={status}
+            />
+            <Heatmaps
+              image={surveyData.floorplanImage}
+              points={surveyData.surveyPoints}
+              dimensions={dimensions}
+            />
+          </div>
         </div>
       ) : (
         <Alert>
