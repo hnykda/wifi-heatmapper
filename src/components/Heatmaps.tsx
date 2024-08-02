@@ -8,6 +8,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 
 type MetricType =
   | "signalStrength"
@@ -41,8 +42,8 @@ const metricTitles: Record<MetricType, string> = {
 };
 
 const propertyTitles: Record<keyof IperfTest, string> = {
-  bitsPerSecond: "Bits Per Second",
-  jitterMs: "Jitter (ms)",
+  bitsPerSecond: "Bits Per Second [Mbps]",
+  jitterMs: "Jitter [ms]",
   lostPackets: "Lost Packets",
   retransmits: "Retransmits",
   packetsReceived: "Packets Received",
@@ -74,6 +75,39 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
   const [selectedProperties, setSelectedProperties] = useState<
     (keyof IperfTest)[]
   >(["bitsPerSecond"]);
+  const [showSignalStrengthAsPercentage, setShowSignalStrengthAsPercentage] =
+    useState(true);
+
+  const rssiToPercentage = (rssi: number): number => {
+    if (rssi <= -100) return 0;
+    if (rssi >= -50) return 100;
+    return 2 * (rssi + 100);
+  };
+
+  const getMetricValue = useCallback(
+    (
+      point: SurveyPoint,
+      metric: MetricType,
+      testType?: keyof IperfTest
+    ): number => {
+      switch (metric) {
+        case "signalStrength":
+          return showSignalStrengthAsPercentage
+            ? rssiToPercentage(point.wifiData.rssi)
+            : point.wifiData.rssi;
+        case "tcpDownload":
+        case "tcpUpload":
+        case "udpDownload":
+        case "udpUpload":
+          return testType
+            ? point.iperfResults[metric][testType] || 0
+            : point.iperfResults[metric].bitsPerSecond;
+        default:
+          return 0;
+      }
+    },
+    [showSignalStrengthAsPercentage]
+  );
 
   const generateHeatmapData = useCallback(
     (metric: MetricType, testType?: keyof IperfTest) => {
@@ -83,28 +117,8 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
         value: getMetricValue(point, metric, testType),
       }));
     },
-    [points]
+    [points, getMetricValue]
   );
-
-  const getMetricValue = (
-    point: SurveyPoint,
-    metric: MetricType,
-    testType?: keyof IperfTest
-  ): number => {
-    switch (metric) {
-      case "signalStrength":
-        return point.wifiData.rssi;
-      case "tcpDownload":
-      case "tcpUpload":
-      case "udpDownload":
-      case "udpUpload":
-        return testType
-          ? point.iperfResults[metric][testType] || 0
-          : point.iperfResults[metric].bitsPerSecond;
-      default:
-        return 0;
-    }
-  };
 
   const renderHeatmap = useCallback(
     (
@@ -288,23 +302,55 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
     points,
     selectedMetrics,
     selectedProperties,
+    showSignalStrengthAsPercentage,
   ]);
 
   const toggleMetric = (metric: MetricType) => {
-    setSelectedMetrics((prev) =>
-      prev.includes(metric)
+    setSelectedMetrics((prev) => {
+      const newMetrics = prev.includes(metric)
         ? prev.filter((m) => m !== metric)
-        : [...prev, metric]
-    );
+        : [...prev, metric];
+      return newMetrics.sort(
+        (a, b) => metricTypes.indexOf(a) - metricTypes.indexOf(b)
+      );
+    });
   };
 
   const toggleProperty = (property: keyof IperfTest) => {
-    setSelectedProperties((prev) =>
-      prev.includes(property)
+    setSelectedProperties((prev) => {
+      const newProperties = prev.includes(property)
         ? prev.filter((p) => p !== property)
-        : [...prev, property]
-    );
+        : [...prev, property];
+      return newProperties.sort(
+        (a, b) => testProperties.indexOf(a) - testProperties.indexOf(b)
+      );
+    });
   };
+
+  const formatValue = useCallback(
+    (value: number, metric: MetricType, testType?: keyof IperfTest): string => {
+      if (metric === "signalStrength") {
+        return showSignalStrengthAsPercentage
+          ? `${Math.round(value)}%`
+          : `${Math.round(value)} dBm`;
+      }
+      if (testType === "bitsPerSecond") {
+        return `${(value / 1000000).toFixed(2)} Mbps`;
+      }
+      if (testType === "jitterMs") {
+        return `${value.toFixed(4)} ms`;
+      }
+      if (
+        testType === "lostPackets" ||
+        testType === "retransmits" ||
+        testType === "packetsReceived"
+      ) {
+        return Math.round(value).toString();
+      }
+      return value.toFixed(2);
+    },
+    [showSignalStrengthAsPercentage]
+  );
 
   return (
     <div className="bg-white p-6 rounded-lg shadow-md">
@@ -364,17 +410,32 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
             </h3>
             {metric === "signalStrength" ? (
               heatmaps[metric] && (
-                <img
-                  src={heatmaps[metric]!}
-                  alt={`Heatmap for ${metricTitles[metric]}`}
-                  className="w-full rounded-md shadow-sm cursor-pointer transition-transform hover:scale-105"
-                  onClick={() =>
-                    openHeatmapModal(
-                      heatmaps[metric]!,
-                      `Heatmap for ${metricTitles[metric]}`
-                    )
-                  }
-                />
+                <div>
+                  <div className="mb-4 flex items-center space-x-2">
+                    <Switch
+                      id="signal-strength-percentage"
+                      checked={showSignalStrengthAsPercentage}
+                      onCheckedChange={setShowSignalStrengthAsPercentage}
+                    />
+                    <label
+                      htmlFor="signal-strength-percentage"
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    >
+                      Show Signal Strength as Percentage
+                    </label>
+                  </div>
+                  <img
+                    src={heatmaps[metric]!}
+                    alt={`Heatmap for ${metricTitles[metric]}`}
+                    className="w-full rounded-md shadow-sm cursor-pointer transition-transform hover:scale-105"
+                    onClick={() =>
+                      openHeatmapModal(
+                        heatmaps[metric]!,
+                        `Heatmap for ${metricTitles[metric]}`
+                      )
+                    }
+                  />
+                </div>
               )
             ) : (
               <div className="space-y-4">
@@ -421,27 +482,3 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
     </div>
   );
 };
-
-function formatValue(
-  value: number,
-  metric: MetricType,
-  testType?: keyof IperfTest
-): string {
-  if (metric === "signalStrength") {
-    return `${Math.round(value)} dBm`;
-  }
-  if (testType === "bitsPerSecond") {
-    return `${(value / 1000000).toFixed(2)} Mbps`;
-  }
-  if (testType === "jitterMs") {
-    return `${value.toFixed(4)} ms`;
-  }
-  if (
-    testType === "lostPackets" ||
-    testType === "retransmits" ||
-    testType === "packetsReceived"
-  ) {
-    return Math.round(value).toString();
-  }
-  return value.toFixed(2);
-}

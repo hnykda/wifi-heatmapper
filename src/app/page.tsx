@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   startSurvey,
   getSurveyData,
@@ -48,14 +48,14 @@ export default function Home() {
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const { toast } = useToast();
 
-  useEffect(() => {
-    loadSurveyData();
-  }, []);
-
-  const loadSurveyData = async () => {
+  const loadSurveyData = useCallback(async () => {
     const data = await getSurveyData(dbPath);
     setSurveyData(data);
-  };
+  }, [dbPath]);
+
+  useEffect(() => {
+    loadSurveyData();
+  }, [loadSurveyData]);
 
   const handlePointClick = async (x: number, y: number) => {
     setAlertMessage("");
@@ -303,11 +303,13 @@ export default function Home() {
               apMapping={surveyData.apMapping}
               status={status}
             />
-            <Heatmaps
-              image={surveyData.floorplanImage}
-              points={surveyData.surveyPoints}
-              dimensions={dimensions}
-            />
+            {surveyData.surveyPoints?.length > 0 && (
+              <Heatmaps
+                image={surveyData.floorplanImage}
+                points={surveyData.surveyPoints}
+                dimensions={dimensions}
+              />
+            )}
           </div>
         </div>
       ) : (

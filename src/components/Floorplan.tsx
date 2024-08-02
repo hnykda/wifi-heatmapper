@@ -62,7 +62,9 @@ export const ClickableFloorplan: React.FC<ClickableFloorplanProps> = ({
           if (point.wifiData) {
             const wifiInfo = point.wifiData;
             const frequencyBand = wifiInfo.channel > 14 ? "5 GHz" : "2.4 GHz";
-            const apLabel = apMapping.find((ap) => ap.macAddress === wifiInfo.bssid)?.apName ?? wifiInfo.bssid;
+            const apLabel =
+              apMapping.find((ap) => ap.macAddress === wifiInfo.bssid)
+                ?.apName ?? wifiInfo.bssid;
             const annotation = `${frequencyBand}\n${apLabel}`;
 
             ctx.font = "12px Arial";
@@ -88,7 +90,9 @@ export const ClickableFloorplan: React.FC<ClickableFloorplanProps> = ({
     onPointClick(x, y);
   };
 
-  const handleCanvasMouseMove = (event: React.MouseEvent<HTMLCanvasElement>) => {
+  const handleCanvasMouseMove = (
+    event: React.MouseEvent<HTMLCanvasElement>
+  ) => {
     const canvas = event.currentTarget;
     const rect = canvas.getBoundingClientRect();
     const x = event.clientX - rect.left;
@@ -116,7 +120,7 @@ export const ClickableFloorplan: React.FC<ClickableFloorplanProps> = ({
 
   return (
     <div className="bg-white p-6 rounded-lg shadow-md">
-      <h2 className="text-2xl font-semibold mb-4 text-gray-800">
+      <h2 className="text-2xl font-semibold text-gray-800">
         Interactive Floorplan
       </h2>
       <div className="p-2 rounded-md text-sm">
@@ -192,11 +196,7 @@ export const ClickableFloorplan: React.FC<ClickableFloorplanProps> = ({
   );
 };
 
-function formatValue(
-  value: number,
-  metric: string,
-  testType: string
-): string {
+function formatValue(value: number, metric: string, testType: string): string {
   if (metric === "signalStrength") {
     return `${Math.round(value)} dBm`;
   }
