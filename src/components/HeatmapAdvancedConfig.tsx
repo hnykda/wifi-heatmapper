@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import { debounce } from "lodash";
+
 import {
   Accordion,
   AccordionContent,
@@ -28,32 +30,35 @@ const HeatmapAdvancedConfig = ({
 
   const handleConfigChange = (
     key: keyof HeatmapConfig,
-    value: number | Record<string, string>,
+    value: number | Record<string, string>
   ) => {
     const newConfig = { ...localConfig, [key]: value };
     setLocalConfig(newConfig);
     setConfig(newConfig);
   };
 
+  const debouncedOnChange = debounce(handleConfigChange, 500);
+
   return (
     <Accordion type="single" collapsible>
       <AccordionItem value="advanced-config">
         <AccordionTrigger>Advanced Configuration</AccordionTrigger>
         <AccordionContent>
-          <div className="space-y-4">
+          <div className="flex flex-row gap-4">
             <div>
               <Label htmlFor="radiusDivider">
                 Radius Divider
-                <PopoverHelper text="Divides the minimum of width and height to calculate the radius. Lower values create larger heat spots." />
+                <PopoverHelper text="Divides the minimum of width and height to calculate the radius. Lower values create larger heat spots. Can be decimal." />
               </Label>
               <Input
                 id="radiusDivider"
                 type="number"
+                step="0.1"
                 value={localConfig.radiusDivider}
                 onChange={(e) =>
                   handleConfigChange(
                     "radiusDivider",
-                    parseFloat(e.target.value),
+                    parseFloat(e.target.value)
                   )
                 }
                 className="h-9"
@@ -116,7 +121,6 @@ const HeatmapAdvancedConfig = ({
                 className="h-9"
               />
             </div>
-
             <div>
               <Label>
                 Gradient
@@ -131,7 +135,7 @@ const HeatmapAdvancedConfig = ({
                       const newGradient = { ...localConfig.gradient };
                       delete newGradient[key];
                       newGradient[e.target.value] = value;
-                      handleConfigChange("gradient", newGradient);
+                      debouncedOnChange("gradient", newGradient);
                     }}
                     className="w-20 h-9"
                   />
@@ -143,7 +147,7 @@ const HeatmapAdvancedConfig = ({
                         ...localConfig.gradient,
                         [key]: e.target.value,
                       };
-                      handleConfigChange("gradient", newGradient);
+                      debouncedOnChange("gradient", newGradient);
                     }}
                     className="w-20 h-9"
                   />
@@ -155,7 +159,7 @@ const HeatmapAdvancedConfig = ({
                     ...localConfig.gradient,
                     [""]: "#000000",
                   };
-                  handleConfigChange("gradient", newGradient);
+                  debouncedOnChange("gradient", newGradient);
                 }}
                 className="mt-2 px-2 py-1 bg-blue-500 text-white rounded"
               >

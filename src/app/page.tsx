@@ -57,7 +57,7 @@ export default function Home() {
 
     if (!sudoerPassword) {
       setAlertMessage(
-        "Please set sudoer password so we can run wdutil info command",
+        "Please set sudoer password so we can run wdutil info command"
       );
       toast({
         title: "Please set sudoer password",
@@ -84,7 +84,7 @@ export default function Home() {
               ...prev,
               surveyPoints: [...prev.surveyPoints, newPoint],
             }
-          : getDefaults(),
+          : getDefaults()
       );
     } catch (error) {
       setAlertMessage(`An error occurred: ${error}`);
@@ -109,7 +109,7 @@ export default function Home() {
   };
 
   const handleFloorplanChange = async (
-    event: React.ChangeEvent<HTMLInputElement>,
+    event: React.ChangeEvent<HTMLInputElement>
   ) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -127,7 +127,7 @@ export default function Home() {
       apMapping.split("\n").map((line) => {
         const [apName, macAddress] = line.split(",");
         return { apName, macAddress };
-      }),
+      })
     );
     loadSurveyData();
   };

@@ -10,6 +10,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import HeatmapAdvancedConfig, { HeatmapConfig } from "./HeatmapAdvancedConfig";
+import { Download } from "lucide-react";
 
 type MetricType =
   | "signalStrength"
@@ -44,10 +45,24 @@ const metricTitles: Record<MetricType, string> = {
 
 const propertyTitles: Record<keyof IperfTest, string> = {
   bitsPerSecond: "Bits Per Second [Mbps]",
-  jitterMs: "Jitter [ms]",
-  lostPackets: "Lost Packets",
-  retransmits: "Retransmits",
-  packetsReceived: "Packets Received",
+  jitterMs: "Jitter [ms] (UDP Only)",
+  lostPackets: "Lost Packets (UDP Only)",
+  retransmits: "Retransmits (TCP Download Only)",
+  packetsReceived: "Packets Received (UDP Only)",
+};
+
+const getAvailableProperties = (metric: MetricType): (keyof IperfTest)[] => {
+  switch (metric) {
+    case "tcpDownload":
+      return ["bitsPerSecond", "retransmits"];
+    case "tcpUpload":
+      return ["bitsPerSecond"];
+    case "udpDownload":
+    case "udpUpload":
+      return ["bitsPerSecond", "jitterMs", "lostPackets", "packetsReceived"];
+    default:
+      return [];
+  }
 };
 
 interface HeatmapProps {
@@ -62,7 +77,7 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
   image,
 }) => {
   const [heatmaps, setHeatmaps] = useState<{ [key: string]: string | null }>(
-    {},
+    {}
   );
   const [selectedHeatmap, setSelectedHeatmap] = useState<{
     src: string;
@@ -80,15 +95,16 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
     useState(true);
 
   const [heatmapConfig, setHeatmapConfig] = useState<HeatmapConfig>({
-    radiusDivider: 3,
+    radiusDivider: 1,
     maxOpacity: 0.7,
     minOpacity: 0.2,
     blur: 0.99,
     gradient: {
-      ".0": "blue",
-      ".4": "green",
-      "0.6": "yellow",
-      ".8": "red",
+      0.0: "rgba(0, 0, 255, 0.6)",
+      0.25: "rgba(0, 255, 255, 0.6)",
+      0.5: "rgba(0, 255, 0, 0.6)",
+      0.75: "rgba(255, 255, 0, 0.6)",
+      1.0: "rgba(255, 0, 0, 0.6)",
     },
   });
 
@@ -102,7 +118,7 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
     (
       point: SurveyPoint,
       metric: MetricType,
-      testType?: keyof IperfTest,
+      testType?: keyof IperfTest
     ): number => {
       switch (metric) {
         case "signalStrength":
@@ -120,18 +136,34 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
           return 0;
       }
     },
-    [showSignalStrengthAsPercentage],
+    [showSignalStrengthAsPercentage]
   );
 
   const generateHeatmapData = useCallback(
     (metric: MetricType, testType?: keyof IperfTest) => {
-      return points.map((point) => ({
-        x: point.x,
-        y: point.y,
-        value: getMetricValue(point, metric, testType),
-      }));
+      const data = points
+        .map((point) => {
+          const value = getMetricValue(point, metric, testType);
+          return value !== null ? { x: point.x, y: point.y, value } : null;
+        })
+        .filter(
+          (point): point is { x: number; y: number; value: number } =>
+            point !== null
+        );
+
+      // Check if all values are the same
+      const allSameValue = data.every((point) => point.value === data[0].value);
+
+      if (allSameValue) {
+        console.log(
+          `All values are the same (${data[0].value}) for ${metric}${testType ? `-${testType}` : ""}`
+        );
+        return null;
+      }
+
+      return data;
     },
-    [points, getMetricValue],
+    [points, getMetricValue]
   );
 
   const offScreenContainerRef = useRef<HTMLDivElement | null>(null);
@@ -153,10 +185,35 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
     };
   }, []);
 
+  const formatValue = useCallback(
+    (value: number, metric: MetricType, testType?: keyof IperfTest): string => {
+      if (metric === "signalStrength") {
+        return showSignalStrengthAsPercentage
+          ? `${Math.round(value)}%`
+          : `${Math.round(value)} dBm`;
+      }
+      if (testType === "bitsPerSecond") {
+        return `${(value / 1000000).toFixed(2)} Mbps`;
+      }
+      if (testType === "jitterMs") {
+        return `${value.toFixed(4)} ms`;
+      }
+      if (
+        testType === "lostPackets" ||
+        testType === "retransmits" ||
+        testType === "packetsReceived"
+      ) {
+        return Math.round(value).toString();
+      }
+      return value.toFixed(2);
+    },
+    [showSignalStrengthAsPercentage]
+  );
+
   const renderHeatmap = useCallback(
     (
       metric: MetricType,
-      testType?: keyof IperfTest,
+      testType?: keyof IperfTest
     ): Promise<string | null> => {
       return new Promise((resolve) => {
         if (
@@ -165,13 +222,22 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
           !offScreenContainerRef.current
         ) {
           console.error(
-            "Image dimensions not set or off-screen container not available",
+            "Image dimensions not set or off-screen container not available"
           );
           resolve(null);
           return;
         }
 
         const heatmapData = generateHeatmapData(metric, testType);
+
+        if (!heatmapData || heatmapData.length === 0) {
+          console.log(
+            `No valid data for ${metric}${testType ? `-${testType}` : ""}`
+          );
+          resolve(null);
+          return;
+        }
+
         const heatmapContainer = document.createElement("div");
         heatmapContainer.style.width = `${dimensions.width}px`;
         heatmapContainer.style.height = `${dimensions.height}px`;
@@ -180,20 +246,26 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
 
         const heatmapInstance = h337.create({
           container: heatmapContainer,
-          radius: Math.min(dimensions.width, dimensions.height) / 3,
-          maxOpacity: 0.7,
-          minOpacity: 0.2,
-          blur: 0.99,
-          gradient: {
-            ".0": "blue",
-            ".4": "green",
-            "0.6": "yellow",
-            ".8": "red",
-          },
+          radius:
+            Math.min(dimensions.width, dimensions.height) /
+            heatmapConfig.radiusDivider,
+          maxOpacity: heatmapConfig.maxOpacity,
+          minOpacity: heatmapConfig.minOpacity,
+          blur: heatmapConfig.blur,
+          gradient: heatmapConfig.gradient,
         });
 
         const max = Math.max(...heatmapData.map((point) => point.value));
         const min = Math.min(...heatmapData.map((point) => point.value));
+
+        // Ensure min and max are different to avoid division by zero
+        const dataObj = {
+          max: max !== min ? max : max + 1,
+          min: min,
+          data: heatmapData,
+        };
+
+        heatmapInstance.setData(dataObj);
 
         heatmapInstance.setData({
           max: max,
@@ -201,10 +273,15 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
           data: heatmapData,
         });
 
+        const colorBarWidth = 50;
+        const labelWidth = 150; // Width allocated for labels
+        const canvasRightPadding = 20; // Padding on the right side of the canvas
+
         const canvas = document.createElement("canvas");
-        canvas.width = dimensions.width + 100;
+        canvas.width =
+          dimensions.width + colorBarWidth + labelWidth + canvasRightPadding;
         canvas.height = dimensions.height + 40;
-        const ctx = canvas.getContext("2d");
+        const ctx = canvas.getContext("2d", { willReadFrequently: true });
         if (!ctx) {
           console.error("Failed to get 2D context");
           offScreenContainerRef.current.removeChild(heatmapContainer);
@@ -222,7 +299,7 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
             0,
             20,
             dimensions.width,
-            dimensions.height,
+            dimensions.height
           );
 
           const heatmapCanvas = heatmapContainer.querySelector("canvas");
@@ -235,7 +312,45 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
             }
             ctx.drawImage(heatmapCanvas, 0, 20);
 
-            // ... (color bar and label drawing code remains the same)
+            // Draw color bar
+            const colorBarWidth = 50; // Increased width
+            const colorBarHeight = dimensions.height;
+            const colorBarX = dimensions.width + 40; // Adjusted position
+            const colorBarY = 20;
+
+            const gradient = ctx.createLinearGradient(
+              0,
+              colorBarY + colorBarHeight,
+              0,
+              colorBarY
+            );
+            Object.entries(heatmapConfig.gradient).forEach(([stop, color]) => {
+              gradient.addColorStop(parseFloat(stop), color);
+            });
+
+            ctx.fillStyle = gradient;
+            ctx.fillRect(colorBarX, colorBarY, colorBarWidth, colorBarHeight);
+
+            // Add ticks and labels
+            const numTicks = 10;
+            ctx.fillStyle = "black";
+            ctx.font = "14px Arial"; // Increased font size
+            ctx.textAlign = "left";
+
+            for (let i = 0; i <= numTicks; i++) {
+              const y = colorBarY + (colorBarHeight * i) / numTicks;
+              const value = max - ((max - min) * i) / numTicks;
+              const label = formatValue(value, metric, testType);
+
+              // Draw tick
+              ctx.beginPath();
+              ctx.moveTo(colorBarX, y);
+              ctx.lineTo(colorBarX + 10, y);
+              ctx.stroke();
+
+              // Draw label
+              ctx.fillText(label, colorBarX + colorBarWidth + 15, y + 5);
+            }
 
             offScreenContainerRef.current?.removeChild(heatmapContainer);
             resolve(canvas.toDataURL());
@@ -248,7 +363,7 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
         backgroundImage.src = image;
       });
     },
-    [dimensions, generateHeatmapData, image],
+    [dimensions, generateHeatmapData, image, heatmapConfig]
   );
 
   const generateAllHeatmaps = useCallback(async () => {
@@ -257,16 +372,22 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
       if (metric === "signalStrength") {
         newHeatmaps[metric] = await renderHeatmap(metric);
       } else {
+        const availableProperties = getAvailableProperties(metric);
         for (const testType of selectedProperties) {
-          newHeatmaps[`${metric}-${testType}`] = await renderHeatmap(
-            metric,
-            testType,
-          );
+          if (availableProperties.includes(testType)) {
+            const heatmapData = generateHeatmapData(metric, testType);
+            if (heatmapData) {
+              newHeatmaps[`${metric}-${testType}`] = await renderHeatmap(
+                metric,
+                testType
+              );
+            }
+          }
         }
       }
     }
     setHeatmaps(newHeatmaps);
-  }, [renderHeatmap, selectedMetrics, selectedProperties]);
+  }, [renderHeatmap, selectedMetrics, selectedProperties, generateHeatmapData]);
 
   const openHeatmapModal = (src: string, alt: string) => {
     setSelectedHeatmap({ src, alt });
@@ -274,6 +395,49 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
 
   const closeHeatmapModal = () => {
     setSelectedHeatmap(null);
+  };
+
+  const downloadImage = (imageUrl: string, fileName: string) => {
+    const link = document.createElement("a");
+    link.href = imageUrl;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const HeatmapImage: React.FC<{
+    src: string;
+    alt: string;
+    onClick: () => void;
+  }> = ({ src, alt, onClick }) => {
+    const [isHovered, setIsHovered] = useState(false);
+
+    return (
+      <div
+        className="relative"
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+      >
+        <img
+          src={src}
+          alt={alt}
+          className="w-full rounded-md shadow-sm cursor-pointer transition-transform hover:scale-105"
+          onClick={onClick}
+        />
+        {isHovered && (
+          <div
+            className="absolute top-2 right-2 p-2 bg-gray-800 bg-opacity-50 rounded-full cursor-pointer transition-opacity hover:bg-opacity-75"
+            onClick={(e) => {
+              e.stopPropagation();
+              downloadImage(src, `${alt.replace(/\s+/g, "_")}.png`);
+            }}
+          >
+            <Download className="h-5 w-5 text-white" />
+          </div>
+        )}
+      </div>
+    );
   };
 
   useEffect(() => {
@@ -295,7 +459,7 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
         ? prev.filter((m) => m !== metric)
         : [...prev, metric];
       return newMetrics.sort(
-        (a, b) => metricTypes.indexOf(a) - metricTypes.indexOf(b),
+        (a, b) => metricTypes.indexOf(a) - metricTypes.indexOf(b)
       );
     });
   };
@@ -306,7 +470,7 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
         ? prev.filter((p) => p !== property)
         : [...prev, property];
       return newProperties.sort(
-        (a, b) => testProperties.indexOf(a) - testProperties.indexOf(b),
+        (a, b) => testProperties.indexOf(a) - testProperties.indexOf(b)
       );
     });
   };
@@ -320,7 +484,7 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
           Select Metrics
         </h3>
         <div className="flex flex-wrap gap-4">
-                      {metricTypes.map((metric) => (
+          {metricTypes.map((metric) => (
             <div key={metric} className="flex items-center space-x-2">
               <Checkbox
                 id={`metric-${metric}`}
@@ -365,7 +529,6 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
         config={heatmapConfig}
         setConfig={setHeatmapConfig}
       />
-
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {selectedMetrics.map((metric) => (
           <div key={metric} className="bg-gray-50 p-4 rounded-lg">
@@ -388,14 +551,13 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
                       Show Signal Strength as Percentage
                     </label>
                   </div>
-                  <img
+                  <HeatmapImage
                     src={heatmaps[metric]}
                     alt={`Heatmap for ${metricTitles[metric]}`}
-                    className="w-full rounded-md shadow-sm cursor-pointer transition-transform hover:scale-105"
                     onClick={() =>
                       openHeatmapModal(
                         heatmaps[metric]!,
-                        `Heatmap for ${metricTitles[metric]}`,
+                        `Heatmap for ${metricTitles[metric]}`
                       )
                     }
                   />
@@ -403,26 +565,25 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
               )
             ) : (
               <div className="space-y-4">
-                {selectedProperties.map((testType) => (
-                  <div key={`${metric}-${testType}`}>
-                    <h4 className="text-sm font-medium mb-2 text-gray-600">
-                      {propertyTitles[testType]}
-                    </h4>
-                    {heatmaps[`${metric}-${testType}`] && (
-                      <img
-                        src={heatmaps[`${metric}-${testType}`]!}
-                        alt={`Heatmap for ${metricTitles[metric]} - ${propertyTitles[testType]}`}
-                        className="w-full rounded-md shadow-sm cursor-pointer transition-transform hover:scale-105"
-                        onClick={() =>
-                          openHeatmapModal(
-                            heatmaps[`${metric}-${testType}`]!,
-                            `Heatmap for ${metricTitles[metric]} - ${propertyTitles[testType]}`,
-                          )
-                        }
+                {selectedProperties.map((testType) => {
+                  const heatmap = heatmaps[`${metric}-${testType}`];
+                  if (!heatmap) {
+                    return null;
+                  }
+                  const alt = `Heatmap for ${metricTitles[metric]} - ${propertyTitles[testType]}`;
+                  return (
+                    <div key={`${metric}-${testType}`}>
+                      <h4 className="text-sm font-medium mb-2 text-gray-600">
+                        {propertyTitles[testType]}
+                      </h4>
+                      <HeatmapImage
+                        src={heatmap}
+                        alt={alt}
+                        onClick={() => openHeatmapModal(heatmap, alt)}
                       />
-                    )}
-                  </div>
-                ))}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -430,16 +591,29 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
       </div>
 
       <Dialog open={selectedHeatmap !== null} onOpenChange={closeHeatmapModal}>
-        <DialogContent className="max-w-6xl">
+        <DialogContent className="max-w-6xl" aria-describedby="heatmap-modal">
           <DialogHeader>
             <DialogTitle>{selectedHeatmap?.alt}</DialogTitle>
           </DialogHeader>
           {selectedHeatmap && (
-            <img
-              src={selectedHeatmap.src}
-              alt={selectedHeatmap.alt}
-              className="w-full h-auto"
-            />
+            <div className="relative">
+              <img
+                src={selectedHeatmap.src}
+                alt={selectedHeatmap.alt}
+                className="w-full h-auto"
+              />
+              <div
+                className="absolute -top-[3rem] right-3 p-2 bg-gray-800 bg-opacity-50 rounded-full cursor-pointer transition-opacity hover:bg-opacity-75"
+                onClick={() =>
+                  downloadImage(
+                    selectedHeatmap.src,
+                    `${selectedHeatmap.alt.replace(/\s+/g, "_")}.png`
+                  )
+                }
+              >
+                <Download className="h-6 w-6 text-white" />
+              </div>
+            </div>
           )}
         </DialogContent>
       </Dialog>
