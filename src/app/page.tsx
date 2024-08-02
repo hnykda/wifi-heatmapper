@@ -13,7 +13,7 @@ import { cn, getDefaults } from "@/lib/utils";
 import { Info, Loader, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox"
+import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
@@ -42,9 +42,10 @@ const PopoverHelper = ({ text }: { text: string }) => {
 export default function Home() {
   const [surveyData, setSurveyData] = useState<Database>(getDefaults());
   const [status, setStatus] = useState<"ready" | "running" | "error">("ready");
-  const [dbPath, setDbPath] = useState("data/db-test-spodni.json");
+  const [dbPath, setDbPath] = useState("data/db.json");
   const [sudoerPassword, setSudoerPassword] = useState("");
   const [alertMessage, setAlertMessage] = useState("");
+  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const { toast } = useToast();
 
   useEffect(() => {
@@ -151,7 +152,6 @@ export default function Home() {
     await updateDbField(dbPath, "testDuration", parseInt(testDuration));
     loadSurveyData();
   };
-  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
 
   if (!surveyData)
     return (
