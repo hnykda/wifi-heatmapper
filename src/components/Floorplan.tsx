@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useState } from "react";
 import { SurveyPoint } from "../lib/database";
 import { Loader } from "./Loader";
+import { formatMacAddress } from "@/lib/utils";
 
 interface ClickableFloorplanProps {
   image: string;
@@ -91,7 +92,7 @@ export const ClickableFloorplan: React.FC<ClickableFloorplanProps> = ({
   };
 
   const handleCanvasMouseMove = (
-    event: React.MouseEvent<HTMLCanvasElement>,
+    event: React.MouseEvent<HTMLCanvasElement>
   ) => {
     const canvas = event.currentTarget;
     const rect = canvas.getBoundingClientRect();
@@ -99,7 +100,7 @@ export const ClickableFloorplan: React.FC<ClickableFloorplanProps> = ({
     const y = event.clientY - rect.top;
 
     const hoveredPoint = points.find(
-      (point) => Math.sqrt((point.x - x) ** 2 + (point.y - y) ** 2) < 10,
+      (point) => Math.sqrt((point.x - x) ** 2 + (point.y - y) ** 2) < 10
     );
 
     if (hoveredPoint) {
@@ -126,6 +127,9 @@ export const ClickableFloorplan: React.FC<ClickableFloorplanProps> = ({
       <div className="p-2 rounded-md text-sm">
         <p>Click on the plan to start a new measurement</p>
         <p>Hover over existing points to see the measurements details</p>
+        <div className="space-y-2 flex flex-col">
+          {points?.length > 0 && <div>Total Measurements: {points.length}</div>}
+        </div>
       </div>
       <div className="relative">
         <div
@@ -155,18 +159,30 @@ export const ClickableFloorplan: React.FC<ClickableFloorplanProps> = ({
               zIndex: 1000,
             }}
           >
-            <h3 className="font-bold">Survey Point Data</h3>
-            <p>
-              X: {hoveredPoint.x}, Y: {hoveredPoint.y}
-            </p>
+            <h3 className="font-bold">Measurement Details</h3>
             {hoveredPoint.wifiData && (
               <>
+                <p>RSSI: {hoveredPoint.wifiData.rssi} dBm</p>
                 <p>Created: {hoveredPoint.timestamp.toLocaleString()}</p>
                 <p>SSID: {hoveredPoint.wifiData.ssid}</p>
-                <p>RSSI: {hoveredPoint.wifiData.rssi} dBm</p>
                 <p>Channel: {hoveredPoint.wifiData.channel}</p>
-                <p>BSSID: {hoveredPoint.wifiData.bssid}</p>
+                <p>BSSID: {formatMacAddress(hoveredPoint.wifiData.bssid)}</p>
+                {apMapping.find(
+                  (ap) => ap.macAddress === hoveredPoint.wifiData.bssid
+                ) && (
+                  <p>
+                    AP Name:{" "}
+                    {
+                      apMapping.find(
+                        (ap) => ap.macAddress === hoveredPoint.wifiData.bssid
+                      )?.apName
+                    }
+                  </p>
+                )}
                 <p>Frequency: {hoveredPoint.wifiData.frequency} MHz</p>
+                <p>
+                  X: {hoveredPoint.x}, Y: {hoveredPoint.y}
+                </p>
               </>
             )}
             {hoveredPoint.iperfResults && (
@@ -176,7 +192,7 @@ export const ClickableFloorplan: React.FC<ClickableFloorplanProps> = ({
                   {formatValue(
                     hoveredPoint.iperfResults.tcpDownload.bitsPerSecond,
                     "tcpDownload",
-                    "bitsPerSecond",
+                    "bitsPerSecond"
                   )}
                 </p>
                 <p>
@@ -184,7 +200,7 @@ export const ClickableFloorplan: React.FC<ClickableFloorplanProps> = ({
                   {formatValue(
                     hoveredPoint.iperfResults.tcpUpload.bitsPerSecond,
                     "tcpUpload",
-                    "bitsPerSecond",
+                    "bitsPerSecond"
                   )}
                 </p>
               </>

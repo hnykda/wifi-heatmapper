@@ -8,7 +8,7 @@ import {
   updateDbField,
   uploadImage,
 } from "@/lib/actions";
-import { Database } from "@/lib/database";
+import { ApMapping, Database } from "@/lib/database";
 import { getDefaults } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -22,6 +22,8 @@ import React from "react";
 import { Heatmaps } from "@/components/Heatmaps";
 import { ClickableFloorplan } from "@/components/Floorplan";
 import { PopoverHelper } from "@/components/PopoverHelpText";
+import EditableField from "@/components/EditableField";
+import EditableApMapping from "@/components/ApMapping";
 
 export default function Home() {
   const [surveyData, setSurveyData] = useState<Database>(getDefaults());
@@ -120,15 +122,8 @@ export default function Home() {
     loadSurveyData();
   };
 
-  const handleApMappingChange = async (apMapping: string) => {
-    await updateDbField(
-      dbPath,
-      "apMapping",
-      apMapping.split("\n").map((line) => {
-        const [apName, macAddress] = line.split(",");
-        return { apName, macAddress };
-      })
-    );
+  const handleApMappingChange = async (apMapping: ApMapping[]) => {
+    await updateDbField(dbPath, "apMapping", apMapping);
     loadSurveyData();
   };
 
@@ -152,58 +147,33 @@ export default function Home() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         <div className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="dbPath">
-              Database Path{" "}
-              <PopoverHelper text="Path to the database file. It will be created if it doesn't exist. All measurements and most of the settings will be saved to this file. Use one file per single database file." />
-            </Label>
-            <div className="flex">
-              <Input
-                id="dbPath"
-                value={dbPath}
-                onChange={(e) => setDbPath(e.target.value)}
-                placeholder="Database path"
-                className="rounded-r-none h-9"
-              />
-              <Button
-                onClick={() => loadSurveyData()}
-                className="rounded-l-none h-9"
-              >
-                Load
-              </Button>
-            </div>
-          </div>
+          <EditableField
+            label="Database Path"
+            value={dbPath}
+            onSave={(newValue) => {
+              setDbPath(newValue);
+              loadSurveyData();
+            }}
+            placeholder="Database path"
+            helpText="Path to the database file to store settings and results."
+          />
 
-          <div className="space-y-2">
-            <Label htmlFor="iperfServer">
-              iperf3 Server Address{" "}
-              <PopoverHelper text="An IP address of the server where iperf3 is running." />
-            </Label>
-            <Input
-              id="iperfServer"
-              value={surveyData.iperfServer}
-              onChange={(e) => handleIperfServerChange(e.target.value)}
-              placeholder="192.168.0.42"
-              className="h-9"
-            />
-          </div>
+          <EditableField
+            label="iperf3 Server Address"
+            value={surveyData.iperfServer}
+            onSave={handleIperfServerChange}
+            placeholder="192.168.0.42"
+            helpText="IP address of the iperf3 server against which the tests will be run."
+          />
 
-          <div className="space-y-2">
-            <Label htmlFor="sudoerPassword">
-              Sudoer Password{" "}
-              <PopoverHelper text="This is needed to run wdutil info command. It will not be saved to DB file." />
-            </Label>
-            <Input
-              id="sudoerPassword"
-              type="password"
-              value={sudoerPassword}
-              onChange={(e) => {
-                setSudoerPassword(e.target.value);
-              }}
-              placeholder="passw0rd"
-              className="h-9"
-            />
-          </div>
+          <EditableField
+            label="Sudoer Password"
+            value={sudoerPassword}
+            onSave={setSudoerPassword}
+            type="password"
+            placeholder="passw0rd"
+            helpText="Password for sudoer user (needed for wdutil info command)."
+          />
 
           <div className="space-y-2">
             <Label htmlFor="floorplanImage">
@@ -221,51 +191,19 @@ export default function Home() {
         </div>
 
         <div className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="testDuration">
-              Test Duration (seconds){" "}
-              <PopoverHelper text="How long each iperf3 measurement will last. 10 seconds might be enough. Higher value will give you more accurate results." />
-            </Label>
-            <Input
-              id="testDuration"
-              type="number"
-              placeholder="10"
-              value={surveyData.testDuration}
-              min={1}
-              max={999}
-              onChange={(e) => handleTestDurationChange(e.target.value)}
-              className="h-9"
-            />
-          </div>
+          <EditableField
+            label="Test Duration (seconds)"
+            value={surveyData.testDuration.toString()}
+            onSave={(newValue) => handleTestDurationChange(newValue)}
+            type="number"
+            placeholder="10"
+            helpText="Duration of the each test in seconds."
+          />
 
-          <div className="space-y-2">
-            <Label htmlFor="apMapping">
-              AP Mapping{" "}
-              <PopoverHelper
-                text="A list of AP names and MAC addresses. It will be used to map the measurements to the APs. This is useful when you have multiple APs and your device might connect to different
-              ones at different places. It's comma separated APName,MACAddress; one mapping per line, no separators in the mac address, and in lowercase."
-              />
-            </Label>
-            <Textarea
-              id="apMapping"
-              rows={4}
-              value={
-                surveyData.apMapping
-                  ? surveyData.apMapping
-                      .map((ap) => `${ap.apName},${ap.macAddress}`)
-                      .join("\n")
-                  : ""
-              }
-              onChange={(e) => handleApMappingChange(e.target.value)}
-              placeholder="someNiceNameAP1,9e05d696e830"
-              className="resize-none"
-            />
-          </div>
-          <div className="space-y-2 flex flex-col">
-            {surveyData.surveyPoints?.length > 0 && (
-              <div>Measurements: {surveyData.surveyPoints.length}</div>
-            )}
-          </div>
+          <EditableApMapping
+            apMapping={surveyData.apMapping || []}
+            onSave={handleApMappingChange}
+          />
         </div>
       </div>
 

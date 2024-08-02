@@ -15,3 +15,7 @@ export const getDefaults = (): Database => {
     testDuration: 10,
   };
 };
+
+export const formatMacAddress = (macAddress: string) => {
+  return macAddress.replace(/../g, "$&-").toUpperCase().slice(0, -1);
+};
