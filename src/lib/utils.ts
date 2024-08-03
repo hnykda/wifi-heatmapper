@@ -31,7 +31,7 @@ export const metricFormatter = (
   value: number,
   metric: MeasurementTestType,
   testType?: keyof IperfTestProperty,
-  showSignalStrengthAsPercentage?: boolean
+  showSignalStrengthAsPercentage?: boolean,
 ): string => {
   if (metric === testTypes.signalStrength) {
     return showSignalStrengthAsPercentage

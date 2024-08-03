@@ -51,7 +51,7 @@ const HeatmapAdvancedConfig = ({
 
   const handleConfigChange = (
     key: keyof HeatmapConfig,
-    value: number | Record<string, string>
+    value: number | Record<string, string>,
   ) => {
     console.log(key, value, new Date());
     const newConfig = { ...localConfig, [key]: value };
@@ -86,7 +86,7 @@ const HeatmapAdvancedConfig = ({
                 onChange={(e) =>
                   handleConfigChange(
                     "radiusDivider",
-                    parseFloat(e.target.value)
+                    parseFloat(e.target.value),
                   )
                 }
                 className="h-9"

@@ -6,8 +6,8 @@ This project is a WiFi heatmapper solution for macOS, inspired by [python-wifi-s
 ![Screenshot](various/top2.jpg)
 
 ## Recording
-[![showcase recording](https://img.youtube.com/vi/pXlm-eWaJCs/0.jpg)](https://www.youtube.com/watch?v=pXlm-eWaJCs)
 
+[![showcase recording](https://img.youtube.com/vi/pXlm-eWaJCs/0.jpg)](https://www.youtube.com/watch?v=pXlm-eWaJCs)
 
 ## Prerequisites
 

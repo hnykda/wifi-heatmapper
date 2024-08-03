@@ -46,7 +46,7 @@ const PopupDetails: React.FC<PopupDetailsProps> = ({
         value: metricFormatter(
           point.iperfResults.tcpDownload.bitsPerSecond,
           "tcpDownload",
-          "bitsPerSecond"
+          "bitsPerSecond",
         ),
       },
       {
@@ -54,9 +54,9 @@ const PopupDetails: React.FC<PopupDetailsProps> = ({
         value: metricFormatter(
           point.iperfResults.tcpUpload.bitsPerSecond,
           "tcpUpload",
-          "bitsPerSecond"
+          "bitsPerSecond",
         ),
-      }
+      },
     );
   }
 

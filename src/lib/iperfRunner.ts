@@ -7,7 +7,7 @@ const execAsync = util.promisify(exec);
 
 const validateWifiDataConsistency = (
   wifiDataBefore: WifiNetwork,
-  wifiDataAfter: WifiNetwork
+  wifiDataAfter: WifiNetwork,
 ) => {
   return (
     wifiDataBefore.bssid === wifiDataAfter.bssid &&
@@ -20,7 +20,7 @@ const validateWifiDataConsistency = (
 export async function runIperfTest(
   server: string,
   duration: number,
-  sudoerPassword: string
+  sudoerPassword: string,
 ): Promise<{ iperfResults: IperfResults; wifiData: WifiNetwork }> {
   try {
     const maxRetries = 3;
@@ -40,7 +40,7 @@ export async function runIperfTest(
 
         if (!validateWifiDataConsistency(wifiDataBefore, wifiDataAfter)) {
           throw new Error(
-            "Wifi data inconsistency between scans! Cancelling instead of giving wrong results."
+            "Wifi data inconsistency between scans! Cancelling instead of giving wrong results.",
           );
         }
 
@@ -77,7 +77,7 @@ async function runSingleTest(
   server: string,
   duration: number,
   isDownload: boolean,
-  isUdp: boolean
+  isUdp: boolean,
 ): Promise<IperfTestProperty> {
   let port = "";
   if (server.includes(":")) {
