@@ -1,25 +1,48 @@
 import { exec } from "child_process";
 import util from "util";
-import { IperfResults, IperfTestProperty } from "./types";
+import { IperfResults, IperfTestProperty, WifiNetwork } from "./types";
+import { scanWifi } from "./wifiScanner";
 
 const execAsync = util.promisify(exec);
+
+const validateWifiDataConsistency = (
+  wifiDataBefore: WifiNetwork,
+  wifiDataAfter: WifiNetwork
+) => {
+  return (
+    wifiDataBefore.bssid === wifiDataAfter.bssid &&
+    wifiDataBefore.ssid === wifiDataAfter.ssid &&
+    wifiDataBefore.frequency === wifiDataAfter.frequency &&
+    wifiDataBefore.channel === wifiDataAfter.channel
+  );
+};
 
 export async function runIperfTest(
   server: string,
   duration: number,
-): Promise<IperfResults> {
+  sudoerPassword: string
+): Promise<{ iperfResults: IperfResults; wifiData: WifiNetwork }> {
   try {
     const maxRetries = 3;
     let attempts = 0;
     let results: IperfResults | null = null;
+    let wifiData: WifiNetwork | null = null;
 
     // TODO: only retry the one that failed
     while (attempts < maxRetries && !results) {
       try {
+        const wifiDataBefore = await scanWifi(sudoerPassword);
         const tcpDownload = await runSingleTest(server, duration, true, false);
         const tcpUpload = await runSingleTest(server, duration, false, false);
         const udpDownload = await runSingleTest(server, duration, true, true);
         const udpUpload = await runSingleTest(server, duration, false, true);
+        const wifiDataAfter = await scanWifi(sudoerPassword);
+
+        if (!validateWifiDataConsistency(wifiDataBefore, wifiDataAfter)) {
+          throw new Error(
+            "Wifi data inconsistency between scans! Cancelling instead of giving wrong results."
+          );
+        }
 
         results = {
           tcpDownload,
@@ -27,17 +50,23 @@ export async function runIperfTest(
           udpDownload,
           udpUpload,
         };
+        wifiData = {
+          ...wifiDataBefore,
+          // be more precise by averaging
+          rssi: Math.round((wifiDataAfter.rssi + wifiDataBefore.rssi) / 2),
+        };
       } catch (error) {
         console.error(`Attempt ${attempts + 1} failed:`, error);
         attempts++;
         if (attempts >= maxRetries) {
           throw error;
         }
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        // wait 2 secs to recover
+        await new Promise((resolve) => setTimeout(resolve, 2000));
       }
     }
 
-    return results!;
+    return { iperfResults: results!, wifiData: wifiData! };
   } catch (error) {
     console.error("Error running iperf3 test:", error);
     throw error;
@@ -48,7 +77,7 @@ async function runSingleTest(
   server: string,
   duration: number,
   isDownload: boolean,
-  isUdp: boolean,
+  isUdp: boolean
 ): Promise<IperfTestProperty> {
   let port = "";
   if (server.includes(":")) {

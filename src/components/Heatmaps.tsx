@@ -123,14 +123,12 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
   const generateHeatmapData = useCallback(
     (metric: MeasurementTestType, testType?: keyof IperfTestProperty) => {
       const data = points
+        .filter((p) => !p.isDisabled)
         .map((point) => {
           const value = getMetricValue(point, metric, testType);
           return value !== null ? { x: point.x, y: point.y, value } : null;
         })
-        .filter(
-          (point): point is { x: number; y: number; value: number } =>
-            point !== null
-        );
+        .filter((point) => point !== null);
 
       const allSameValue = data.every((point) => point.value === data[0].value);
       if (allSameValue) {

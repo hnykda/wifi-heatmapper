@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { rssiToPercentage } from "@/lib/utils";
 import { AlertDialogModal } from "./AlertDialogModal";
+import { PopoverHelper } from "./PopoverHelpText";
 
 type FlattenedSurveyPoint = {
   id: string;
@@ -117,6 +118,28 @@ const SurveyPointsTable: React.FC<SurveyPointsTableProps> = ({
         header: "ID",
       },
       {
+        id: "disable",
+        header: (
+          <>
+            Disable
+            <span className="ml-1 relative -top-0.5">
+              <PopoverHelper text="Disabling a point will prevent it from being used in the heatmap." />
+            </span>
+          </>
+        ),
+        cell: ({ row }) => (
+          <Switch
+            checked={row.original.isDisabled}
+            onCheckedChange={(value) => {
+              const id = row.original.id;
+              updateDatapoint(id, { isDisabled: value });
+            }}
+          />
+        ),
+        accessorKey: "isDisabled",
+        enableSorting: true,
+      },
+      {
         accessorKey: "rssi",
         header: "RSSI [dBm]",
       },
@@ -157,20 +180,6 @@ const SurveyPointsTable: React.FC<SurveyPointsTableProps> = ({
         header: "Timestamp",
       },
       {
-        id: "disable",
-        header: "Disable",
-        cell: ({ row }) => (
-          <Switch
-            checked={row.original.isDisabled}
-            onCheckedChange={(value) => {
-              const id = row.original.id;
-              updateDatapoint(id, { isDisabled: value });
-            }}
-          />
-        ),
-        enableSorting: false,
-      },
-      {
         accessorKey: "ssid",
         header: "SSID",
       },
@@ -200,7 +209,7 @@ const SurveyPointsTable: React.FC<SurveyPointsTableProps> = ({
         header: "Y",
       },
     ],
-    [updateDatapoint],
+    [updateDatapoint]
   );
 
   const convertToMbps = (bitsPerSecond: number) => {
@@ -212,7 +221,7 @@ const SurveyPointsTable: React.FC<SurveyPointsTableProps> = ({
       let bssid = point.wifiData.bssid;
       if (apMapping.length > 0) {
         const mappedName = apMapping.find(
-          (ap) => ap.macAddress === point.wifiData.bssid,
+          (ap) => ap.macAddress === point.wifiData.bssid
         )?.apName;
         if (mappedName) {
           bssid = `${mappedName} (${point.wifiData.bssid})`;
@@ -223,16 +232,16 @@ const SurveyPointsTable: React.FC<SurveyPointsTableProps> = ({
         ...point.wifiData,
         bssid,
         tcpDownloadMbps: convertToMbps(
-          point.iperfResults.tcpDownload.bitsPerSecond,
+          point.iperfResults.tcpDownload.bitsPerSecond
         ),
         tcpUploadMbps: convertToMbps(
-          point.iperfResults.tcpUpload.bitsPerSecond,
+          point.iperfResults.tcpUpload.bitsPerSecond
         ),
         udpDownloadMbps: convertToMbps(
-          point.iperfResults.udpDownload.bitsPerSecond,
+          point.iperfResults.udpDownload.bitsPerSecond
         ),
         udpUploadMbps: convertToMbps(
-          point.iperfResults.udpUpload.bitsPerSecond,
+          point.iperfResults.udpUpload.bitsPerSecond
         ),
         signalQuality: rssiToPercentage(point.wifiData.rssi),
         frequency: `${point.wifiData.frequency} Mhz`,
@@ -261,17 +270,17 @@ const SurveyPointsTable: React.FC<SurveyPointsTableProps> = ({
 
   const handleDelete = useCallback(() => {
     const selectedIds = Object.keys(rowSelection).map(
-      (index) => flattenedData[parseInt(index)].id,
+      (index) => flattenedData[parseInt(index)].id
     );
     onDelete(selectedIds);
   }, [rowSelection, flattenedData, onDelete]);
 
   const toggleDisableSelected = useCallback(() => {
     const selectedIds = Object.keys(rowSelection).map(
-      (index) => flattenedData[parseInt(index)].id,
+      (index) => flattenedData[parseInt(index)].id
     );
     const allHidden = selectedIds.every(
-      (id) => flattenedData.find((point) => point.id === id)?.isDisabled,
+      (id) => flattenedData.find((point) => point.id === id)?.isDisabled
     );
     selectedIds.forEach((id) => {
       updateDatapoint(id, { isDisabled: !allHidden });
@@ -380,7 +389,7 @@ const SurveyPointsTable: React.FC<SurveyPointsTableProps> = ({
                       >
                         {flexRender(
                           header.column.columnDef.header,
-                          header.getContext(),
+                          header.getContext()
                         )}
                         {{
                           asc: <ChevronUp className="ml-2 h-4 w-4" />,
@@ -414,7 +423,7 @@ const SurveyPointsTable: React.FC<SurveyPointsTableProps> = ({
                     <TableCell key={cell.id} className="text-center">
                       {flexRender(
                         cell.column.columnDef.cell,
-                        cell.getContext(),
+                        cell.getContext()
                       )}
                     </TableCell>
                   ))}

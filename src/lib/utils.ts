@@ -8,9 +8,6 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export const getDefaults = (): Database => {
-  // if (process.env.DEFAULT_CONFIG) {
-  //   return JSON.parse(process.env.DEFAULT_CONFIG);
-  // }
   return {
     surveyPoints: [],
     floorplanImage: "",
@@ -26,15 +23,15 @@ export const formatMacAddress = (macAddress: string) => {
 
 export const rssiToPercentage = (rssi: number): number => {
   if (rssi <= -100) return 0;
-  if (rssi >= -50) return 100;
-  return 2 * (rssi + 100);
+  if (rssi >= -40) return 100;
+  return Math.round(((rssi + 100) / 60) * 100);
 };
 
 export const metricFormatter = (
   value: number,
   metric: MeasurementTestType,
   testType?: keyof IperfTestProperty,
-  showSignalStrengthAsPercentage?: boolean,
+  showSignalStrengthAsPercentage?: boolean
 ): string => {
   if (metric === testTypes.signalStrength) {
     return showSignalStrengthAsPercentage

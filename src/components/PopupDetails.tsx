@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { SurveyPoint } from "@/lib/types";
 import { formatMacAddress, metricFormatter } from "@/lib/utils";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
@@ -22,6 +22,7 @@ const PopupDetails: React.FC<PopupDetailsProps> = ({
   updateDatapoint,
   onDelete,
 }) => {
+  const [isDisabled, setIsDisabled] = useState(point.isDisabled);
   const rows = [
     { label: "ID", value: point.id },
     { label: "RSSI", value: `${point.wifiData?.rssi} dBm` },
@@ -45,7 +46,7 @@ const PopupDetails: React.FC<PopupDetailsProps> = ({
         value: metricFormatter(
           point.iperfResults.tcpDownload.bitsPerSecond,
           "tcpDownload",
-          "bitsPerSecond",
+          "bitsPerSecond"
         ),
       },
       {
@@ -53,9 +54,9 @@ const PopupDetails: React.FC<PopupDetailsProps> = ({
         value: metricFormatter(
           point.iperfResults.tcpUpload.bitsPerSecond,
           "tcpUpload",
-          "bitsPerSecond",
+          "bitsPerSecond"
         ),
-      },
+      }
     );
   }
 
@@ -85,10 +86,11 @@ const PopupDetails: React.FC<PopupDetailsProps> = ({
       <div className="flex justify-between items-center px-2 py-2 bg-gray-100">
         <div className="flex items-center space-x-2">
           <Switch
-            checked={point.isDisabled}
-            onCheckedChange={(checked) =>
-              updateDatapoint(point.id, { isDisabled: checked })
-            }
+            checked={isDisabled}
+            onCheckedChange={(checked) => {
+              setIsDisabled(checked);
+              updateDatapoint(point.id, { isDisabled: checked });
+            }}
           />
           <span>Disable</span>
         </div>
