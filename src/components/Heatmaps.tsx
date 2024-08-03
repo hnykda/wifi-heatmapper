@@ -93,7 +93,6 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
       1.0: "rgba(255, 0, 0, 0.6)",
     },
   });
-  const { toast } = useToast();
 
   const getMetricValue = useCallback(
     (
@@ -132,10 +131,10 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
 
       const allSameValue = data.every((point) => point.value === data[0].value);
       if (allSameValue) {
-        toast({
-          title: `All available values for ${metric}${testType ? `-${testType}` : ""} are the same: ${data[0].value}`,
-          description: `It's not a problem, but the heatmap will be less interesting.`,
-        });
+        console.log(
+          `Values for all selected points for ${metric}${testType ? `-${testType}` : ""} are the same: ${data[0].value}.
+          It's not a problem, but the heatmap will be less interesting.`
+        );
       }
 
       return data;
@@ -155,7 +154,6 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
     offScreenContainerRef.current = container;
 
     return () => {
-      // Clean up the off-screen container on component unmount
       if (offScreenContainerRef.current) {
         document.body.removeChild(offScreenContainerRef.current);
       }
@@ -311,11 +309,24 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
               ctx.fillText(label, colorBarX + colorBarWidth + 15, y + 5);
             }
 
-            offScreenContainerRef.current?.removeChild(heatmapContainer);
+            try {
+              if (offScreenContainerRef.current?.contains(heatmapContainer)) {
+                offScreenContainerRef.current.removeChild(heatmapContainer);
+              }
+            } catch (error) {
+              console.error("Error removing heatmap container:", error);
+            }
+
             resolve(canvas.toDataURL());
           } else {
             console.error("Heatmap canvas not found");
-            offScreenContainerRef.current?.removeChild(heatmapContainer);
+            try {
+              if (offScreenContainerRef.current?.contains(heatmapContainer)) {
+                offScreenContainerRef.current.removeChild(heatmapContainer);
+              }
+            } catch (error) {
+              console.error("Error removing heatmap container:", error);
+            }
             resolve(null);
           }
         };

@@ -164,6 +164,10 @@ export default function Home() {
     });
   };
 
+  const activePoints = surveyData.surveyPoints.filter(
+    (point) => !point.isDisabled
+  );
+
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-8 text-center text-blue-600">
@@ -252,10 +256,10 @@ export default function Home() {
               updateDatapoint={updateDatapoint}
               status={status}
             />
-            {surveyData.surveyPoints?.length > 1 && (
+            {activePoints.length > 1 && (
               <Heatmaps
                 image={surveyData.floorplanImage}
-                points={surveyData.surveyPoints}
+                points={activePoints}
                 dimensions={dimensions}
               />
             )}
