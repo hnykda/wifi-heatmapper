@@ -2,7 +2,12 @@
 
 This project is a WiFi heatmapper solution for macOS, inspired by [python-wifi-survey-heatmap](https://github.com/jantman/python-wifi-survey-heatmap). I wanted to create a heatmap of my WiFi coverage, but the original project didn't work because I am running on Mac (Apple Sillicon).
 
-![Screenshot](various/screenshot.jpeg)
+![Screenshot](various/top1.jpg)
+![Screenshot](various/top2.jpg)
+
+## Recording
+[![showcase recording](https://img.youtube.com/vi/pXlm-eWaJCs/0.jpg)](https://www.youtube.com/watch?v=pXlm-eWaJCs)
+
 
 ## Prerequisites
 
@@ -54,8 +59,4 @@ Feel free to contribute to this project by opening an issue or submitting a pull
 3. make the app more user-friendly and informative (step by step wizard for the measurements)
 4. serialize the image to the database file so it can be loaded later
 5. add leaflet to make the maps interactive
-
-TODO:
-
-1. make sure before and after, we are on the same wifi
-2. enable filtering datapoints by BSSID, ghz, or free form, and also enable deleting them
+6. load/save heatmap config to database

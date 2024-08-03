@@ -19,6 +19,25 @@ export type HeatmapConfig = {
   gradient: Record<string, string>;
 };
 
+const rgbaToHex = (rgba: string) => {
+  const parts = rgba.match(/[\d.]+/g);
+  if (!parts || parts.length < 3) return "#000000";
+
+  const r = parseInt(parts[0]);
+  const g = parseInt(parts[1]);
+  const b = parseInt(parts[2]);
+
+  return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+};
+
+const hexToRgba = (hex: string, alpha: number) => {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};
+
 const HeatmapAdvancedConfig = ({
   config,
   setConfig,
@@ -28,16 +47,25 @@ const HeatmapAdvancedConfig = ({
 }) => {
   const [localConfig, setLocalConfig] = useState(config);
 
+  const debouncedSetConfig = debounce(setConfig, 500);
+
   const handleConfigChange = (
     key: keyof HeatmapConfig,
-    value: number | Record<string, string>,
+    value: number | Record<string, string>
   ) => {
+    console.log(key, value, new Date());
     const newConfig = { ...localConfig, [key]: value };
     setLocalConfig(newConfig);
-    setConfig(newConfig);
+    debouncedSetConfig(newConfig);
   };
 
-  const debouncedOnChange = debounce(handleConfigChange, 500);
+  const sortedGradientEntries = () => {
+    return Object.entries(localConfig.gradient).sort(([a], [b]) => {
+      const numA = parseFloat(a);
+      const numB = parseFloat(b);
+      return isNaN(numA) || isNaN(numB) ? 0 : numA - numB;
+    });
+  };
 
   return (
     <Accordion type="single" collapsible>
@@ -58,7 +86,7 @@ const HeatmapAdvancedConfig = ({
                 onChange={(e) =>
                   handleConfigChange(
                     "radiusDivider",
-                    parseFloat(e.target.value),
+                    parseFloat(e.target.value)
                   )
                 }
                 className="h-9"
@@ -124,42 +152,70 @@ const HeatmapAdvancedConfig = ({
             <div>
               <Label>
                 Gradient
-                <PopoverHelper text="Define the color gradient for the heatmap. Each key represents a point in the gradient (0 to 1), and the value is the color." />
+                <PopoverHelper text="Define the color gradient for the heatmap. Each key represents a point in the gradient (0 to 1), and the value is the color. See heatmap.js gradient configuration." />
               </Label>
-              {Object.entries(localConfig.gradient).map(([key, value]) => (
-                <div key={key} className="flex items-center space-x-2 mt-2">
-                  <Input
-                    type="text"
-                    value={key}
-                    onChange={(e) => {
-                      const newGradient = { ...localConfig.gradient };
-                      delete newGradient[key];
-                      newGradient[e.target.value] = value;
-                      debouncedOnChange("gradient", newGradient);
-                    }}
-                    className="w-20 h-9"
-                  />
-                  <Input
-                    type="color"
-                    value={value}
-                    onChange={(e) => {
-                      const newGradient = {
-                        ...localConfig.gradient,
-                        [key]: e.target.value,
-                      };
-                      debouncedOnChange("gradient", newGradient);
-                    }}
-                    className="w-20 h-9"
-                  />
-                </div>
-              ))}
+              <div className="flex items-center space-x-2 mt-2 mb-1 font-semibold">
+                <span className="w-20 text-center">Position</span>
+                <span className="w-20 text-center">Color</span>
+                <span className="w-20 text-center">Opacity</span>
+              </div>
+              {sortedGradientEntries().map(([key, value]) => {
+                const hexColor = rgbaToHex(value);
+                const alpha = parseFloat(value.split(",")[3]) || 1;
+
+                return (
+                  <div key={key} className="flex items-center space-x-2 mt-2">
+                    <Input
+                      type="text"
+                      value={key}
+                      onChange={(e) => {
+                        const newGradient = { ...localConfig.gradient };
+                        delete newGradient[key];
+                        newGradient[e.target.value] = value;
+                        handleConfigChange("gradient", newGradient);
+                      }}
+                      className="w-20 h-9"
+                    />
+                    <Input
+                      type="color"
+                      value={hexColor}
+                      onChange={(e) => {
+                        const newColor = hexToRgba(e.target.value, alpha);
+                        const newGradient = {
+                          ...localConfig.gradient,
+                          [key]: newColor,
+                        };
+                        handleConfigChange("gradient", newGradient);
+                      }}
+                      className="w-20 h-9"
+                    />
+                    <Input
+                      type="number"
+                      min="0"
+                      max="1"
+                      step="0.1"
+                      value={alpha}
+                      onChange={(e) => {
+                        const newAlpha = parseFloat(e.target.value);
+                        const newColor = hexToRgba(hexColor, newAlpha);
+                        const newGradient = {
+                          ...localConfig.gradient,
+                          [key]: newColor,
+                        };
+                        handleConfigChange("gradient", newGradient);
+                      }}
+                      className="w-20 h-9"
+                    />
+                  </div>
+                );
+              })}
               <button
                 onClick={() => {
                   const newGradient = {
                     ...localConfig.gradient,
-                    [""]: "#000000",
+                    [""]: "rgba(0, 0, 0, 1)",
                   };
-                  debouncedOnChange("gradient", newGradient);
+                  handleConfigChange("gradient", newGradient);
                 }}
                 className="mt-2 px-2 py-1 bg-blue-500 text-white rounded"
               >

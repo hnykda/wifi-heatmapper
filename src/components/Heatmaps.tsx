@@ -19,7 +19,6 @@ import { Download } from "lucide-react";
 
 import { IperfTestProperty } from "@/lib/types";
 import { metricFormatter, rssiToPercentage } from "@/lib/utils";
-import { useToast } from "./ui/use-toast";
 
 const metricTitles: Record<MeasurementTestType, string> = {
   signalStrength: "Signal Strength",

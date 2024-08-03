@@ -54,7 +54,7 @@ const EditableField = ({
       ) : (
         <>
           {value ? (
-            <span>{value}</span>
+            <span>{type === "password" ? "********" : value}</span>
           ) : (
             <span className="text-gray-400">{placeholder}</span>
           )}
