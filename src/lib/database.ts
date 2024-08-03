@@ -9,6 +9,7 @@ export interface SurveyPoint {
   wifiData: WifiNetwork;
   iperfResults: IperfResults;
   timestamp: string;
+  id: string;
 }
 
 export interface WifiNetwork {

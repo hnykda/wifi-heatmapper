@@ -126,7 +126,7 @@ export const ClickableFloorplan: React.FC<ClickableFloorplanProps> = ({
       </h2>
       <div className="p-2 rounded-md text-sm">
         <p>Click on the plan to start a new measurement</p>
-        <p>Hover over existing points to see the measurements details</p>
+        <p>Hover over existing points to see the measurements details. You need at least two measurements.</p>
         <div className="space-y-2 flex flex-col">
           {points?.length > 0 && <div>Total Measurements: {points.length}</div>}
         </div>

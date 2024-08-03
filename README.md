@@ -54,3 +54,8 @@ Feel free to contribute to this project by opening an issue or submitting a pull
 3. make the app more user-friendly and informative (step by step wizard for the measurements)
 4. serialize the image to the database file so it can be loaded later
 5. add leaflet to make the maps interactive
+
+
+TODO:
+1. make sure before and after, we are on the same wifi
+2. enable filtering datapoints by BSSID, ghz, or free form, and also enable deleting them
