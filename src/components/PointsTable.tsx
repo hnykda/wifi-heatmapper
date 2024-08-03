@@ -50,7 +50,7 @@ type FlattenedSurveyPoint = {
   udpDownloadMbps: number;
   udpUploadMbps: number;
   timestamp: string;
-  isHidden: boolean;
+  isDisabled: boolean;
 };
 
 interface SurveyPointsTableProps {
@@ -77,7 +77,7 @@ const SurveyPointsTable: React.FC<SurveyPointsTableProps> = ({
     tcpDownloadMbps: true,
     tcpUploadMbps: true,
     timestamp: true,
-    hide: true,
+    disable: true,
     rssi: false,
     ssid: false,
     security: false,
@@ -157,14 +157,14 @@ const SurveyPointsTable: React.FC<SurveyPointsTableProps> = ({
         header: "Timestamp",
       },
       {
-        id: "hide",
-        header: "Hide",
+        id: "disable",
+        header: "Disable",
         cell: ({ row }) => (
           <Switch
-            checked={row.original.isHidden}
+            checked={row.original.isDisabled}
             onCheckedChange={(value) => {
               const id = row.original.id;
-              updateDatapoint(id, { isHidden: value });
+              updateDatapoint(id, { isDisabled: value });
             }}
           />
         ),
@@ -266,15 +266,15 @@ const SurveyPointsTable: React.FC<SurveyPointsTableProps> = ({
     onDelete(selectedIds);
   }, [rowSelection, flattenedData, onDelete]);
 
-  const toggleHideSelected = useCallback(() => {
+  const toggleDisableSelected = useCallback(() => {
     const selectedIds = Object.keys(rowSelection).map(
       (index) => flattenedData[parseInt(index)].id,
     );
     const allHidden = selectedIds.every(
-      (id) => flattenedData.find((point) => point.id === id)?.isHidden,
+      (id) => flattenedData.find((point) => point.id === id)?.isDisabled,
     );
     selectedIds.forEach((id) => {
-      updateDatapoint(id, { isHidden: !allHidden });
+      updateDatapoint(id, { isDisabled: !allHidden });
     });
   }, [rowSelection, flattenedData, updateDatapoint]);
 
@@ -353,10 +353,10 @@ const SurveyPointsTable: React.FC<SurveyPointsTableProps> = ({
           <Button
             variant="secondary"
             size="sm"
-            onClick={toggleHideSelected}
+            onClick={toggleDisableSelected}
             disabled={Object.keys(rowSelection).length === 0}
           >
-            Toggle Hide Selected
+            Toggle Disable Selected
           </Button>
         </div>
       </div>

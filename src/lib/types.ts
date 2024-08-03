@@ -51,7 +51,7 @@ export interface SurveyPoint {
   iperfResults: IperfResults;
   timestamp: string;
   id: string;
-  isHidden: boolean;
+  isDisabled: boolean;
 }
 
 export interface WifiNetwork {

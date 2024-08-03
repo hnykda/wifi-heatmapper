@@ -58,7 +58,7 @@ export default function Home() {
 
     if (!sudoerPassword) {
       setAlertMessage(
-        "Please set sudoer password so we can run wdutil info command",
+        "Please set sudoer password so we can run wdutil info command"
       );
       toast({
         title: "Please set sudoer password",
@@ -85,7 +85,7 @@ export default function Home() {
               ...prev,
               surveyPoints: [...prev.surveyPoints, newPoint],
             }
-          : getDefaults(),
+          : getDefaults()
       );
     } catch (error) {
       setAlertMessage(`An error occurred: ${error}`);
@@ -110,7 +110,7 @@ export default function Home() {
   };
 
   const handleFloorplanChange = async (
-    event: React.ChangeEvent<HTMLInputElement>,
+    event: React.ChangeEvent<HTMLInputElement>
   ) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -141,7 +141,7 @@ export default function Home() {
   const handleDelete = (ids: string[]) => {
     setSurveyData((prev) => {
       const newPoints = prev.surveyPoints.filter(
-        (point) => !ids.includes(point.id),
+        (point) => !ids.includes(point.id)
       );
       updateDbField(dbPath, "surveyPoints", newPoints);
       return {
@@ -152,12 +152,16 @@ export default function Home() {
   };
 
   const updateDatapoint = (id: string, data: Partial<SurveyPoint>) => {
-    setSurveyData((prev) => ({
-      ...prev,
-      surveyPoints: prev.surveyPoints.map((point) =>
-        point.id === id ? { ...point, ...data } : point,
-      ),
-    }));
+    setSurveyData((prev) => {
+      const newPoints = prev.surveyPoints.map((point) =>
+        point.id === id ? { ...point, ...data } : point
+      );
+      updateDbField(dbPath, "surveyPoints", newPoints);
+      return {
+        ...prev,
+        surveyPoints: newPoints,
+      };
+    });
   };
 
   return (

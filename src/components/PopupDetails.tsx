@@ -85,9 +85,9 @@ const PopupDetails: React.FC<PopupDetailsProps> = ({
       <div className="flex justify-between items-center px-2 py-2 bg-gray-100">
         <div className="flex items-center space-x-2">
           <Switch
-            checked={point.isHidden}
+            checked={point.isDisabled}
             onCheckedChange={(checked) =>
-              updateDatapoint(point.id, { isHidden: checked })
+              updateDatapoint(point.id, { isDisabled: checked })
             }
           />
           <span>Disable</span>

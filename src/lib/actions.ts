@@ -36,7 +36,7 @@ export async function startSurvey(
     iperfResults,
     timestamp: new Date().toISOString(),
     id: nanoid(3),
-    isHidden: false,
+    isDisabled: false,
   };
 
   await addSurveyPoint(dbPath, newPoint);

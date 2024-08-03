@@ -74,17 +74,19 @@ export const ClickableFloorplan: React.FC<ClickableFloorplanProps> = ({
             0,
             point.x,
             point.y,
-            8,
+            8
           );
           gradient.addColorStop(
             0,
-            point.isHidden
+            point.isDisabled
               ? "rgba(156, 163, 175, 0.9)"
-              : "rgba(59, 130, 246, 0.9)",
+              : "rgba(59, 130, 246, 0.9)"
           );
           gradient.addColorStop(
             1,
-            point.isHidden ? "rgba(75, 85, 99, 0.9)" : "rgba(37, 99, 235, 0.9)",
+            point.isDisabled
+              ? "rgba(75, 85, 99, 0.9)"
+              : "rgba(37, 99, 235, 0.9)"
           );
           // Enhanced pulsing effect
           const pulseMaxSize = 20; // Increased from 8
@@ -97,7 +99,7 @@ export const ClickableFloorplan: React.FC<ClickableFloorplanProps> = ({
           // Draw outer pulse
           ctx.beginPath();
           ctx.arc(point.x, point.y, pulseSize, 0, 2 * Math.PI);
-          ctx.fillStyle = point.isHidden
+          ctx.fillStyle = point.isDisabled
             ? `rgba(75, 85, 99, ${0.4 - ((pulseSize - pulseMinSize) / (pulseMaxSize - pulseMinSize)) * 0.3})`
             : `rgba(59, 130, 246, ${0.4 - ((pulseSize - pulseMinSize) / (pulseMaxSize - pulseMinSize)) * 0.3})`;
           ctx.fill();
@@ -142,7 +144,7 @@ export const ClickableFloorplan: React.FC<ClickableFloorplanProps> = ({
               point.x - boxWidth / 2,
               point.y + 15,
               boxWidth,
-              boxHeight,
+              boxHeight
             );
 
             // Reset shadow for text
@@ -160,7 +162,7 @@ export const ClickableFloorplan: React.FC<ClickableFloorplanProps> = ({
               ctx.fillText(
                 line,
                 point.x,
-                point.y + 15 + padding + index * lineHeight,
+                point.y + 15 + padding + index * lineHeight
               );
             });
           }
@@ -196,7 +198,7 @@ export const ClickableFloorplan: React.FC<ClickableFloorplanProps> = ({
     const y = (event.clientY - rect.top) / scale;
 
     const clickedPoint = points.find(
-      (point) => Math.sqrt((point.x - x) ** 2 + (point.y - y) ** 2) < 10,
+      (point) => Math.sqrt((point.x - x) ** 2 + (point.y - y) ** 2) < 10
     );
 
     if (clickedPoint) {
@@ -207,7 +209,9 @@ export const ClickableFloorplan: React.FC<ClickableFloorplanProps> = ({
       });
     } else {
       setSelectedPoint(null);
-      onPointClick(x, y);
+      // if we don't round, everything breaks, as heatmap cannot handle floating point numbers
+      // for coordinates
+      onPointClick(Math.round(x), Math.round(y));
     }
   };
 
