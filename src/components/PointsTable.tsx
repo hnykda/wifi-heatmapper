@@ -119,7 +119,7 @@ const SurveyPointsTable: React.FC<SurveyPointsTableProps> = ({
       },
       {
         id: "disable",
-        header: (
+        header: () => (
           <>
             Disable
             <span className="ml-1 relative -top-0.5">
