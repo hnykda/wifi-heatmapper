@@ -9,9 +9,11 @@ import {
   readDatabase,
   addSurveyPoint,
   updateDatabaseField,
-  SurveyPoint,
-  Database,
 } from "./database";
+import {
+  SurveyPoint,
+  Database
+} from "./types";
 
 export async function startSurvey(
   dbPath: string,
@@ -36,6 +38,7 @@ export async function startSurvey(
     iperfResults,
     timestamp: new Date().toISOString(),
     id: nanoid(3),
+    isHidden: false,
   };
 
   await addSurveyPoint(dbPath, newPoint);

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Edit, Save, Plus, Trash } from "lucide-react";
-import { ApMapping } from "@/lib/database";
+import { ApMapping } from "@/lib/types";
 import { formatMacAddress } from "@/lib/utils";
 
 const EditableApMapping = ({

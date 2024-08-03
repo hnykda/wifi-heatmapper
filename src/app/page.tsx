@@ -8,7 +8,7 @@ import {
   updateDbField,
   uploadImage,
 } from "@/lib/actions";
-import { ApMapping, Database } from "@/lib/database";
+import { ApMapping, Database, SurveyPoint } from "@/lib/types";
 import { getDefaults } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,6 +22,7 @@ import { ClickableFloorplan } from "@/components/Floorplan";
 import { PopoverHelper } from "@/components/PopoverHelpText";
 import EditableField from "@/components/EditableField";
 import EditableApMapping from "@/components/ApMapping";
+import PointsTable from "@/components/PointsTable";
 
 export default function Home() {
   const [surveyData, setSurveyData] = useState<Database>(getDefaults());
@@ -137,6 +138,24 @@ export default function Home() {
       </div>
     );
 
+  const handleDelete = (ids: string[]) => {
+    setSurveyData((prev) => ({
+      ...prev,
+      surveyPoints: prev.surveyPoints.filter(
+        (point) => !ids.includes(point.id)
+      ),
+    }));
+  };
+
+  const updateDatapoint = (id: string, data: Partial<SurveyPoint>) => {
+    setSurveyData((prev) => ({
+      ...prev,
+      surveyPoints: prev.surveyPoints.map((point) =>
+        point.id === id ? { ...point, ...data } : point
+      ),
+    }));
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-8 text-center text-blue-600">
@@ -223,7 +242,7 @@ export default function Home() {
               apMapping={surveyData.apMapping}
               status={status}
             />
-            {surveyData.surveyPoints?.length > 0 && (
+            {surveyData.surveyPoints?.length > 1 && (
               <Heatmaps
                 image={surveyData.floorplanImage}
                 points={surveyData.surveyPoints}
@@ -239,6 +258,13 @@ export default function Home() {
             Please upload a floorplan image to start the measurements.
           </AlertDescription>
         </Alert>
+      )}
+      {surveyData.surveyPoints?.length > 0 && (
+        <PointsTable
+          data={surveyData.surveyPoints}
+          onDelete={handleDelete}
+          updateDatapoint={updateDatapoint}
+        />
       )}
       <Toaster />
     </div>

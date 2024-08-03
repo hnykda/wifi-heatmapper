@@ -1,6 +1,11 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import h337 from "heatmap.js";
-import { SurveyPoint, IperfTest } from "../lib/database";
+import {
+  SurveyPoint,
+  testProperties,
+  MeasurementTestType,
+  testTypes
+} from "@/lib/types";
 import {
   Dialog,
   DialogContent,
@@ -11,31 +16,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import HeatmapAdvancedConfig, { HeatmapConfig } from "./HeatmapAdvancedConfig";
 import { Download } from "lucide-react";
+import { metricFormatter } from "@/lib/utils";
+import { IperfTestProperty } from "@/lib/types";
 
-type MetricType =
-  | "signalStrength"
-  | "tcpDownload"
-  | "tcpUpload"
-  | "udpDownload"
-  | "udpUpload";
-
-const metricTypes: MetricType[] = [
-  "signalStrength",
-  "tcpDownload",
-  "tcpUpload",
-  "udpDownload",
-  "udpUpload",
-];
-
-const testProperties: (keyof IperfTest)[] = [
-  "bitsPerSecond",
-  "jitterMs",
-  "lostPackets",
-  "retransmits",
-  "packetsReceived",
-];
-
-const metricTitles: Record<MetricType, string> = {
+const metricTitles: Record<MeasurementTestType, string> = {
   signalStrength: "Signal Strength",
   tcpDownload: "TCP Download",
   tcpUpload: "TCP Upload",
@@ -43,7 +27,7 @@ const metricTitles: Record<MetricType, string> = {
   udpUpload: "UDP Upload",
 };
 
-const propertyTitles: Record<keyof IperfTest, string> = {
+const propertyTitles: Record<keyof IperfTestProperty, string> = {
   bitsPerSecond: "Bits Per Second [Mbps]",
   jitterMs: "Jitter [ms] (UDP Only)",
   lostPackets: "Lost Packets (UDP Only)",
@@ -51,7 +35,9 @@ const propertyTitles: Record<keyof IperfTest, string> = {
   packetsReceived: "Packets Received (UDP Only)",
 };
 
-const getAvailableProperties = (metric: MetricType): (keyof IperfTest)[] => {
+const getAvailableProperties = (
+  metric: MeasurementTestType
+): (keyof IperfTestProperty)[] => {
   switch (metric) {
     case "tcpDownload":
       return ["bitsPerSecond", "retransmits"];
@@ -83,13 +69,11 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
     src: string;
     alt: string;
   } | null>(null);
-  const [selectedMetrics, setSelectedMetrics] = useState<MetricType[]>([
-    "signalStrength",
-    "tcpDownload",
-    "tcpUpload",
-  ]);
+  const [selectedMetrics, setSelectedMetrics] = useState<MeasurementTestType[]>(
+    ["signalStrength", "tcpDownload", "tcpUpload"]
+  );
   const [selectedProperties, setSelectedProperties] = useState<
-    (keyof IperfTest)[]
+    (keyof IperfTestProperty)[]
   >(["bitsPerSecond"]);
   const [showSignalStrengthAsPercentage, setShowSignalStrengthAsPercentage] =
     useState(true);
@@ -117,8 +101,8 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
   const getMetricValue = useCallback(
     (
       point: SurveyPoint,
-      metric: MetricType,
-      testType?: keyof IperfTest
+      metric: MeasurementTestType,
+      testType?: keyof IperfTestProperty
     ): number => {
       switch (metric) {
         case "signalStrength":
@@ -140,7 +124,7 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
   );
 
   const generateHeatmapData = useCallback(
-    (metric: MetricType, testType?: keyof IperfTest) => {
+    (metric: MeasurementTestType, testType?: keyof IperfTestProperty) => {
       const data = points
         .map((point) => {
           const value = getMetricValue(point, metric, testType);
@@ -186,34 +170,25 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
   }, []);
 
   const formatValue = useCallback(
-    (value: number, metric: MetricType, testType?: keyof IperfTest): string => {
-      if (metric === "signalStrength") {
-        return showSignalStrengthAsPercentage
-          ? `${Math.round(value)}%`
-          : `${Math.round(value)} dBm`;
-      }
-      if (testType === "bitsPerSecond") {
-        return `${(value / 1000000).toFixed(2)} Mbps`;
-      }
-      if (testType === "jitterMs") {
-        return `${value.toFixed(4)} ms`;
-      }
-      if (
-        testType === "lostPackets" ||
-        testType === "retransmits" ||
-        testType === "packetsReceived"
-      ) {
-        return Math.round(value).toString();
-      }
-      return value.toFixed(2);
+    (
+      value: number,
+      metric: MeasurementTestType,
+      testType?: keyof IperfTestProperty
+    ): string => {
+      return metricFormatter(
+        value,
+        metric,
+        testType,
+        showSignalStrengthAsPercentage
+      );
     },
     [showSignalStrengthAsPercentage]
   );
 
   const renderHeatmap = useCallback(
     (
-      metric: MetricType,
-      testType?: keyof IperfTest
+      metric: MeasurementTestType,
+      testType?: keyof IperfTestProperty
     ): Promise<string | null> => {
       return new Promise((resolve) => {
         if (
@@ -453,24 +428,28 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
     showSignalStrengthAsPercentage,
   ]);
 
-  const toggleMetric = (metric: MetricType) => {
+  const toggleMetric = (metric: MeasurementTestType) => {
     setSelectedMetrics((prev) => {
       const newMetrics = prev.includes(metric)
         ? prev.filter((m) => m !== metric)
         : [...prev, metric];
       return newMetrics.sort(
-        (a, b) => metricTypes.indexOf(a) - metricTypes.indexOf(b)
+        (a, b) =>
+          Object.values(testTypes).indexOf(a) -
+          Object.values(testTypes).indexOf(b)
       );
     });
   };
 
-  const toggleProperty = (property: keyof IperfTest) => {
+  const toggleProperty = (property: keyof IperfTestProperty) => {
     setSelectedProperties((prev) => {
       const newProperties = prev.includes(property)
         ? prev.filter((p) => p !== property)
         : [...prev, property];
       return newProperties.sort(
-        (a, b) => testProperties.indexOf(a) - testProperties.indexOf(b)
+        (a, b) =>
+          Object.values(testProperties).indexOf(a) -
+          Object.values(testProperties).indexOf(b)
       );
     });
   };
@@ -484,7 +463,7 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
           Select Metrics
         </h3>
         <div className="flex flex-wrap gap-4">
-          {metricTypes.map((metric) => (
+          {Object.values(testTypes).map((metric) => (
             <div key={metric} className="flex items-center space-x-2">
               <Checkbox
                 id={`metric-${metric}`}
@@ -507,7 +486,7 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
           Select Properties
         </h3>
         <div className="flex flex-wrap gap-4">
-          {testProperties.map((property) => (
+          {Object.values(testProperties).map((property) => (
             <div key={property} className="flex items-center space-x-2">
               <Checkbox
                 id={`property-${property}`}

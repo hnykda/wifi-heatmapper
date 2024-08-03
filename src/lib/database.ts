@@ -2,57 +2,7 @@ import fs from "fs/promises";
 import fsSync from "fs";
 import path from "path";
 import { getDefaults } from "./utils";
-
-export interface SurveyPoint {
-  x: number;
-  y: number;
-  wifiData: WifiNetwork;
-  iperfResults: IperfResults;
-  timestamp: string;
-  id: string;
-}
-
-export interface WifiNetwork {
-  ssid: string;
-  bssid: string;
-  rssi: number;
-  channel: number;
-  security: string;
-  txRate: number;
-  phyMode: string;
-  channelWidth: number;
-  frequency: number;
-}
-
-export interface IperfResults {
-  tcpDownload: IperfTest;
-  tcpUpload: IperfTest;
-  udpDownload: IperfTest;
-  udpUpload: IperfTest;
-}
-
-export type TestType = keyof IperfResults;
-
-export interface IperfTest {
-  bitsPerSecond: number;
-  retransmits?: number;
-  jitterMs?: number;
-  lostPackets?: number;
-  packetsReceived?: number;
-}
-
-export interface ApMapping {
-  apName: string;
-  macAddress: string;
-}
-
-export interface Database {
-  surveyPoints: SurveyPoint[];
-  floorplanImage: string;
-  iperfServer: string;
-  testDuration: number;
-  apMapping: ApMapping[];
-}
+import { Database, SurveyPoint } from "./types";
 
 export async function readDatabase(dbPath: string): Promise<Database> {
   // check if the file exists
@@ -69,7 +19,7 @@ export async function readDatabase(dbPath: string): Promise<Database> {
 
 export async function writeDatabase(
   dbPath: string,
-  data: Database,
+  data: Database
 ): Promise<void> {
   try {
     await fs.writeFile(dbPath, JSON.stringify(data, null, 2));
@@ -80,7 +30,7 @@ export async function writeDatabase(
 
 export async function addSurveyPoint(
   dbPath: string,
-  point: SurveyPoint,
+  point: SurveyPoint
 ): Promise<void> {
   const db = await readDatabase(dbPath);
   db.surveyPoints.push(point);
@@ -90,7 +40,7 @@ export async function addSurveyPoint(
 export async function updateDatabaseField<K extends keyof Database>(
   dbPath: string,
   field: K,
-  value: Database[K],
+  value: Database[K]
 ): Promise<void> {
   const db = await readDatabase(dbPath);
   db[field] = value;

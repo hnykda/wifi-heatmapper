@@ -1,6 +1,6 @@
 import { exec } from "child_process";
 import util from "util";
-import { WifiNetwork } from "./database";
+import { WifiNetwork } from "./types";
 
 const execAsync = util.promisify(exec);
 

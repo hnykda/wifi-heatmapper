@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from "react";
-import { SurveyPoint } from "../lib/database";
+import { SurveyPoint } from "@/lib/types";
 import { Loader } from "./Loader";
 import { formatMacAddress } from "@/lib/utils";
 

@@ -1,6 +1,6 @@
 import { exec } from "child_process";
 import util from "util";
-import { IperfResults, IperfTest } from "./database";
+import { IperfResults, IperfTestProperty } from "./types";
 
 const execAsync = util.promisify(exec);
 
@@ -49,7 +49,7 @@ async function runSingleTest(
   duration: number,
   isDownload: boolean,
   isUdp: boolean,
-): Promise<IperfTest> {
+): Promise<IperfTestProperty> {
   let port = "";
   if (server.includes(":")) {
     const [host, serverPort] = server.split(":");
@@ -70,7 +70,7 @@ function extractIperfResults(result: {
     sum_sent: { retransmits: number };
     sum?: { jitter_ms: number; lost_packets: number; packets: number };
   };
-}): IperfTest {
+}): IperfTestProperty {
   const end = result.end;
   return {
     bitsPerSecond: end.sum_received.bits_per_second,
