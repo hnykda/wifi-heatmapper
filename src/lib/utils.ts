@@ -1,7 +1,6 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { Database, IperfTestProperty, testTypes } from "./types";
-import { useCallback } from "react";
 import { MeasurementTestType } from "./types";
 
 export function cn(...inputs: ClassValue[]) {
@@ -25,11 +24,17 @@ export const formatMacAddress = (macAddress: string) => {
   return macAddress.replace(/../g, "$&-").toUpperCase().slice(0, -1);
 };
 
+export const rssiToPercentage = (rssi: number): number => {
+  if (rssi <= -100) return 0;
+  if (rssi >= -50) return 100;
+  return 2 * (rssi + 100);
+};
+
 export const metricFormatter = (
   value: number,
   metric: MeasurementTestType,
   testType?: keyof IperfTestProperty,
-  showSignalStrengthAsPercentage?: boolean
+  showSignalStrengthAsPercentage?: boolean,
 ): string => {
   if (metric === testTypes.signalStrength) {
     return showSignalStrengthAsPercentage

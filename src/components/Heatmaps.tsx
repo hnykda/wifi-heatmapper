@@ -4,7 +4,7 @@ import {
   SurveyPoint,
   testProperties,
   MeasurementTestType,
-  testTypes
+  testTypes,
 } from "@/lib/types";
 import {
   Dialog,
@@ -16,8 +16,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import HeatmapAdvancedConfig, { HeatmapConfig } from "./HeatmapAdvancedConfig";
 import { Download } from "lucide-react";
-import { metricFormatter } from "@/lib/utils";
+
 import { IperfTestProperty } from "@/lib/types";
+import { metricFormatter, rssiToPercentage } from "@/lib/utils";
+import { useToast } from "./ui/use-toast";
 
 const metricTitles: Record<MeasurementTestType, string> = {
   signalStrength: "Signal Strength",
@@ -36,7 +38,7 @@ const propertyTitles: Record<keyof IperfTestProperty, string> = {
 };
 
 const getAvailableProperties = (
-  metric: MeasurementTestType
+  metric: MeasurementTestType,
 ): (keyof IperfTestProperty)[] => {
   switch (metric) {
     case "tcpDownload":
@@ -63,14 +65,14 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
   image,
 }) => {
   const [heatmaps, setHeatmaps] = useState<{ [key: string]: string | null }>(
-    {}
+    {},
   );
   const [selectedHeatmap, setSelectedHeatmap] = useState<{
     src: string;
     alt: string;
   } | null>(null);
   const [selectedMetrics, setSelectedMetrics] = useState<MeasurementTestType[]>(
-    ["signalStrength", "tcpDownload", "tcpUpload"]
+    ["signalStrength", "tcpDownload", "tcpUpload"],
   );
   const [selectedProperties, setSelectedProperties] = useState<
     (keyof IperfTestProperty)[]
@@ -91,18 +93,13 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
       1.0: "rgba(255, 0, 0, 0.6)",
     },
   });
-
-  const rssiToPercentage = (rssi: number): number => {
-    if (rssi <= -100) return 0;
-    if (rssi >= -50) return 100;
-    return 2 * (rssi + 100);
-  };
+  const { toast } = useToast();
 
   const getMetricValue = useCallback(
     (
       point: SurveyPoint,
       metric: MeasurementTestType,
-      testType?: keyof IperfTestProperty
+      testType?: keyof IperfTestProperty,
     ): number => {
       switch (metric) {
         case "signalStrength":
@@ -120,7 +117,7 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
           return 0;
       }
     },
-    [showSignalStrengthAsPercentage]
+    [showSignalStrengthAsPercentage],
   );
 
   const generateHeatmapData = useCallback(
@@ -132,22 +129,20 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
         })
         .filter(
           (point): point is { x: number; y: number; value: number } =>
-            point !== null
+            point !== null,
         );
 
-      // Check if all values are the same
       const allSameValue = data.every((point) => point.value === data[0].value);
-
       if (allSameValue) {
-        console.log(
-          `All values are the same (${data[0].value}) for ${metric}${testType ? `-${testType}` : ""}`
-        );
-        return null;
+        toast({
+          title: `All available values for ${metric}${testType ? `-${testType}` : ""} are the same: ${data[0].value}`,
+          description: `It's not a problem, but the heatmap will be less interesting.`,
+        });
       }
 
       return data;
     },
-    [points, getMetricValue]
+    [points, getMetricValue],
   );
 
   const offScreenContainerRef = useRef<HTMLDivElement | null>(null);
@@ -173,22 +168,22 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
     (
       value: number,
       metric: MeasurementTestType,
-      testType?: keyof IperfTestProperty
+      testType?: keyof IperfTestProperty,
     ): string => {
       return metricFormatter(
         value,
         metric,
         testType,
-        showSignalStrengthAsPercentage
+        showSignalStrengthAsPercentage,
       );
     },
-    [showSignalStrengthAsPercentage]
+    [showSignalStrengthAsPercentage],
   );
 
   const renderHeatmap = useCallback(
     (
       metric: MeasurementTestType,
-      testType?: keyof IperfTestProperty
+      testType?: keyof IperfTestProperty,
     ): Promise<string | null> => {
       return new Promise((resolve) => {
         if (
@@ -197,7 +192,7 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
           !offScreenContainerRef.current
         ) {
           console.error(
-            "Image dimensions not set or off-screen container not available"
+            "Image dimensions not set or off-screen container not available",
           );
           resolve(null);
           return;
@@ -207,7 +202,7 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
 
         if (!heatmapData || heatmapData.length === 0) {
           console.log(
-            `No valid data for ${metric}${testType ? `-${testType}` : ""}`
+            `No valid data for ${metric}${testType ? `-${testType}` : ""}`,
           );
           resolve(null);
           return;
@@ -274,7 +269,7 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
             0,
             20,
             dimensions.width,
-            dimensions.height
+            dimensions.height,
           );
 
           const heatmapCanvas = heatmapContainer.querySelector("canvas");
@@ -297,7 +292,7 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
               0,
               colorBarY + colorBarHeight,
               0,
-              colorBarY
+              colorBarY,
             );
             Object.entries(heatmapConfig.gradient).forEach(([stop, color]) => {
               gradient.addColorStop(parseFloat(stop), color);
@@ -338,7 +333,7 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
         backgroundImage.src = image;
       });
     },
-    [dimensions, generateHeatmapData, image, heatmapConfig]
+    [dimensions, generateHeatmapData, image, heatmapConfig],
   );
 
   const generateAllHeatmaps = useCallback(async () => {
@@ -354,7 +349,7 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
             if (heatmapData) {
               newHeatmaps[`${metric}-${testType}`] = await renderHeatmap(
                 metric,
-                testType
+                testType,
               );
             }
           }
@@ -436,7 +431,7 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
       return newMetrics.sort(
         (a, b) =>
           Object.values(testTypes).indexOf(a) -
-          Object.values(testTypes).indexOf(b)
+          Object.values(testTypes).indexOf(b),
       );
     });
   };
@@ -449,7 +444,7 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
       return newProperties.sort(
         (a, b) =>
           Object.values(testProperties).indexOf(a) -
-          Object.values(testProperties).indexOf(b)
+          Object.values(testProperties).indexOf(b),
       );
     });
   };
@@ -536,7 +531,7 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
                     onClick={() =>
                       openHeatmapModal(
                         heatmaps[metric]!,
-                        `Heatmap for ${metricTitles[metric]}`
+                        `Heatmap for ${metricTitles[metric]}`,
                       )
                     }
                   />
@@ -586,7 +581,7 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
                 onClick={() =>
                   downloadImage(
                     selectedHeatmap.src,
-                    `${selectedHeatmap.alt.replace(/\s+/g, "_")}.png`
+                    `${selectedHeatmap.alt.replace(/\s+/g, "_")}.png`,
                   )
                 }
               >

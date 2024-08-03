@@ -58,7 +58,7 @@ export default function Home() {
 
     if (!sudoerPassword) {
       setAlertMessage(
-        "Please set sudoer password so we can run wdutil info command"
+        "Please set sudoer password so we can run wdutil info command",
       );
       toast({
         title: "Please set sudoer password",
@@ -85,7 +85,7 @@ export default function Home() {
               ...prev,
               surveyPoints: [...prev.surveyPoints, newPoint],
             }
-          : getDefaults()
+          : getDefaults(),
       );
     } catch (error) {
       setAlertMessage(`An error occurred: ${error}`);
@@ -110,7 +110,7 @@ export default function Home() {
   };
 
   const handleFloorplanChange = async (
-    event: React.ChangeEvent<HTMLInputElement>
+    event: React.ChangeEvent<HTMLInputElement>,
   ) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -139,19 +139,23 @@ export default function Home() {
     );
 
   const handleDelete = (ids: string[]) => {
-    setSurveyData((prev) => ({
-      ...prev,
-      surveyPoints: prev.surveyPoints.filter(
-        (point) => !ids.includes(point.id)
-      ),
-    }));
+    setSurveyData((prev) => {
+      const newPoints = prev.surveyPoints.filter(
+        (point) => !ids.includes(point.id),
+      );
+      updateDbField(dbPath, "surveyPoints", newPoints);
+      return {
+        ...prev,
+        surveyPoints: newPoints,
+      };
+    });
   };
 
   const updateDatapoint = (id: string, data: Partial<SurveyPoint>) => {
     setSurveyData((prev) => ({
       ...prev,
       surveyPoints: prev.surveyPoints.map((point) =>
-        point.id === id ? { ...point, ...data } : point
+        point.id === id ? { ...point, ...data } : point,
       ),
     }));
   };
@@ -240,6 +244,8 @@ export default function Home() {
               points={surveyData.surveyPoints}
               onPointClick={handlePointClick}
               apMapping={surveyData.apMapping}
+              onDelete={handleDelete}
+              updateDatapoint={updateDatapoint}
               status={status}
             />
             {surveyData.surveyPoints?.length > 1 && (
@@ -264,6 +270,7 @@ export default function Home() {
           data={surveyData.surveyPoints}
           onDelete={handleDelete}
           updateDatapoint={updateDatapoint}
+          apMapping={surveyData.apMapping}
         />
       )}
       <Toaster />

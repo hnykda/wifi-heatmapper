@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useState } from "react";
 import { SurveyPoint } from "@/lib/types";
 import { Loader } from "./Loader";
-import { formatMacAddress } from "@/lib/utils";
+import PopupDetails from "./PopupDetails";
 
 interface ClickableFloorplanProps {
   image: string;
@@ -11,6 +11,8 @@ interface ClickableFloorplanProps {
   onPointClick: (x: number, y: number) => void;
   apMapping: { apName: string; macAddress: string }[];
   status: string;
+  onDelete: (id: string[]) => void;
+  updateDatapoint: (id: string, data: Partial<SurveyPoint>) => void;
 }
 
 export const ClickableFloorplan: React.FC<ClickableFloorplanProps> = ({
@@ -21,12 +23,16 @@ export const ClickableFloorplan: React.FC<ClickableFloorplanProps> = ({
   setDimensions,
   apMapping,
   status,
+  onDelete,
+  updateDatapoint,
 }) => {
   const [imageLoaded, setImageLoaded] = useState(false);
   const imageRef = useRef<HTMLImageElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [hoveredPoint, setHoveredPoint] = useState<SurveyPoint | null>(null);
-  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [selectedPoint, setSelectedPoint] = useState<SurveyPoint | null>(null);
+  const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 });
+  const [scale, setScale] = useState(1);
 
   useEffect(() => {
     if (image) {
@@ -38,13 +44,19 @@ export const ClickableFloorplan: React.FC<ClickableFloorplanProps> = ({
       };
       img.src = image;
     }
-  }, [image]);
+  }, [image, setDimensions]);
 
   useEffect(() => {
-    if (imageLoaded) {
+    if (imageLoaded && canvasRef.current) {
+      const canvas = canvasRef.current;
+      const containerWidth = containerRef.current?.clientWidth || canvas.width;
+      const scaleX = containerWidth / dimensions.width;
+      setScale(scaleX);
+      canvas.style.width = "100%";
+      canvas.style.height = "auto";
       drawCanvas();
     }
-  }, [points, imageLoaded]);
+  }, [imageLoaded, dimensions]);
 
   const drawCanvas = () => {
     const canvas = canvasRef.current;
@@ -54,11 +66,52 @@ export const ClickableFloorplan: React.FC<ClickableFloorplanProps> = ({
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.drawImage(imageRef.current, 0, 0);
 
-        points.forEach((point) => {
+        points.forEach((point, index) => {
+          // Create a gradient for the point
+          const gradient = ctx.createRadialGradient(
+            point.x,
+            point.y,
+            0,
+            point.x,
+            point.y,
+            8,
+          );
+          gradient.addColorStop(
+            0,
+            point.isHidden
+              ? "rgba(156, 163, 175, 0.9)"
+              : "rgba(59, 130, 246, 0.9)",
+          );
+          gradient.addColorStop(
+            1,
+            point.isHidden ? "rgba(75, 85, 99, 0.9)" : "rgba(37, 99, 235, 0.9)",
+          );
+          // Enhanced pulsing effect
+          const pulseMaxSize = 20; // Increased from 8
+          const pulseMinSize = 10; // New minimum size
+          const pulseSize =
+            pulseMinSize +
+            ((Math.sin(Date.now() * 0.001 + index) + 1) / 2) *
+              (pulseMaxSize - pulseMinSize);
+
+          // Draw outer pulse
           ctx.beginPath();
-          ctx.arc(point.x, point.y, 5, 0, 2 * Math.PI);
-          ctx.fillStyle = "red";
+          ctx.arc(point.x, point.y, pulseSize, 0, 2 * Math.PI);
+          ctx.fillStyle = point.isHidden
+            ? `rgba(75, 85, 99, ${0.4 - ((pulseSize - pulseMinSize) / (pulseMaxSize - pulseMinSize)) * 0.3})`
+            : `rgba(59, 130, 246, ${0.4 - ((pulseSize - pulseMinSize) / (pulseMaxSize - pulseMinSize)) * 0.3})`;
           ctx.fill();
+
+          // Draw the main point
+          ctx.beginPath();
+          ctx.arc(point.x, point.y, 6, 0, 2 * Math.PI);
+          ctx.fillStyle = gradient;
+          ctx.fill();
+
+          // Draw a white border
+          ctx.strokeStyle = "white";
+          ctx.lineWidth = 2;
+          ctx.stroke();
 
           if (point.wifiData) {
             const wifiInfo = point.wifiData;
@@ -69,13 +122,46 @@ export const ClickableFloorplan: React.FC<ClickableFloorplanProps> = ({
             const annotation = `${frequencyBand}\n${apLabel}`;
 
             ctx.font = "12px Arial";
-            ctx.fillStyle = "black";
+            const lines = annotation.split("\n");
+            const lineHeight = 14;
+            const padding = 4;
+            const boxWidth =
+              Math.max(...lines.map((line) => ctx.measureText(line).width)) +
+              padding * 2;
+            const boxHeight = lines.length * lineHeight + padding * 2;
+
+            // Draw shadow
+            ctx.shadowColor = "rgba(0, 0, 0, 0.2)";
+            ctx.shadowBlur = 4;
+            ctx.shadowOffsetX = 2;
+            ctx.shadowOffsetY = 2;
+
+            // Draw bounding box with increased transparency
+            ctx.fillStyle = "rgba(255, 255, 255, 0.6)";
+            ctx.fillRect(
+              point.x - boxWidth / 2,
+              point.y + 15,
+              boxWidth,
+              boxHeight,
+            );
+
+            // Reset shadow for text
+            ctx.shadowColor = "transparent";
+            ctx.shadowBlur = 0;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 0;
+
+            // Draw text
+            ctx.fillStyle = "#1F2937";
             ctx.textAlign = "center";
             ctx.textBaseline = "top";
 
-            const lines = annotation.split("\n");
             lines.forEach((line, index) => {
-              ctx.fillText(line, point.x, point.y + 10 + index * 14);
+              ctx.fillText(
+                line,
+                point.x,
+                point.y + 15 + padding + index * lineHeight,
+              );
             });
           }
         });
@@ -83,31 +169,45 @@ export const ClickableFloorplan: React.FC<ClickableFloorplanProps> = ({
     }
   };
 
+  useEffect(() => {
+    let animationFrameId: number;
+
+    const animate = () => {
+      drawCanvas();
+      animationFrameId = requestAnimationFrame(animate);
+    };
+
+    animate();
+
+    return () => {
+      cancelAnimationFrame(animationFrameId);
+    };
+  }, [points, dimensions, apMapping]);
+
   const handleCanvasClick = (event: React.MouseEvent<HTMLCanvasElement>) => {
+    if (selectedPoint) {
+      setSelectedPoint(null);
+      return;
+    }
+
     const canvas = event.currentTarget;
     const rect = canvas.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
-    onPointClick(x, y);
-  };
+    const x = (event.clientX - rect.left) / scale;
+    const y = (event.clientY - rect.top) / scale;
 
-  const handleCanvasMouseMove = (
-    event: React.MouseEvent<HTMLCanvasElement>,
-  ) => {
-    const canvas = event.currentTarget;
-    const rect = canvas.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
-
-    const hoveredPoint = points.find(
+    const clickedPoint = points.find(
       (point) => Math.sqrt((point.x - x) ** 2 + (point.y - y) ** 2) < 10,
     );
 
-    if (hoveredPoint) {
-      setHoveredPoint(hoveredPoint);
-      setTooltipPosition({ x: hoveredPoint.x, y: hoveredPoint.y });
+    if (clickedPoint) {
+      setSelectedPoint(selectedPoint == clickedPoint ? null : clickedPoint);
+      setPopupPosition({
+        x: clickedPoint.x * scale,
+        y: clickedPoint.y * scale,
+      });
     } else {
-      setHoveredPoint(null);
+      setSelectedPoint(null);
+      onPointClick(x, y);
     }
   };
 
@@ -126,12 +226,15 @@ export const ClickableFloorplan: React.FC<ClickableFloorplanProps> = ({
       </h2>
       <div className="p-2 rounded-md text-sm">
         <p>Click on the plan to start a new measurement</p>
-        <p>Hover over existing points to see the measurements details. You need at least two measurements.</p>
+        <p>
+          Click on existing points to see the measurement details. You need at
+          least two measurements.
+        </p>
         <div className="space-y-2 flex flex-col">
           {points?.length > 0 && <div>Total Measurements: {points.length}</div>}
         </div>
       </div>
-      <div className="relative">
+      <div className="relative" ref={containerRef}>
         <div
           className={`absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-lg ${
             status === "running" ? "" : "hidden"
@@ -147,87 +250,30 @@ export const ClickableFloorplan: React.FC<ClickableFloorplanProps> = ({
           width={dimensions.width}
           height={dimensions.height}
           onClick={handleCanvasClick}
-          onMouseMove={handleCanvasMouseMove}
           className="border border-gray-300 rounded-lg cursor-pointer"
         />
-        {hoveredPoint && (
+        {selectedPoint && (
           <div
-            className="absolute bg-white border border-gray-300 p-2 rounded-md shadow-md text-sm"
             style={{
-              left: tooltipPosition.x + 10,
-              top: tooltipPosition.y + 10,
-              zIndex: 1000,
+              position: "absolute",
+              left: `${popupPosition.x}px`,
+              top: `${popupPosition.y}px`,
+              transform: "translate(10px, -50%)",
             }}
           >
-            <h3 className="font-bold">Measurement Details</h3>
-            {hoveredPoint.wifiData && (
-              <>
-                <p>RSSI: {hoveredPoint.wifiData.rssi} dBm</p>
-                <p>Created: {hoveredPoint.timestamp.toLocaleString()}</p>
-                <p>SSID: {hoveredPoint.wifiData.ssid}</p>
-                <p>Channel: {hoveredPoint.wifiData.channel}</p>
-                <p>BSSID: {formatMacAddress(hoveredPoint.wifiData.bssid)}</p>
-                {apMapping.find(
-                  (ap) => ap.macAddress === hoveredPoint.wifiData.bssid,
-                ) && (
-                  <p>
-                    AP Name:{" "}
-                    {
-                      apMapping.find(
-                        (ap) => ap.macAddress === hoveredPoint.wifiData.bssid,
-                      )?.apName
-                    }
-                  </p>
-                )}
-                <p>Frequency: {hoveredPoint.wifiData.frequency} MHz</p>
-                <p>
-                  X: {hoveredPoint.x}, Y: {hoveredPoint.y}
-                </p>
-              </>
-            )}
-            {hoveredPoint.iperfResults && (
-              <>
-                <p>
-                  TCP Download:{" "}
-                  {formatValue(
-                    hoveredPoint.iperfResults.tcpDownload.bitsPerSecond,
-                    "tcpDownload",
-                    "bitsPerSecond",
-                  )}
-                </p>
-                <p>
-                  TCP Upload:{" "}
-                  {formatValue(
-                    hoveredPoint.iperfResults.tcpUpload.bitsPerSecond,
-                    "tcpUpload",
-                    "bitsPerSecond",
-                  )}
-                </p>
-              </>
-            )}
+            <PopupDetails
+              point={selectedPoint}
+              apMapping={apMapping}
+              onClose={() => setSelectedPoint(null)}
+              updateDatapoint={updateDatapoint}
+              onDelete={(ids) => {
+                onDelete(ids);
+                setSelectedPoint(null);
+              }}
+            />
           </div>
         )}
       </div>
     </div>
   );
 };
-
-function formatValue(value: number, metric: string, testType: string): string {
-  if (metric === "signalStrength") {
-    return `${Math.round(value)} dBm`;
-  }
-  if (testType === "bitsPerSecond") {
-    return `${(value / 1000000).toFixed(2)} Mbps`;
-  }
-  if (testType === "jitterMs") {
-    return `${value.toFixed(4)} ms`;
-  }
-  if (
-    testType === "lostPackets" ||
-    testType === "retransmits" ||
-    testType === "packetsReceived"
-  ) {
-    return Math.round(value).toString();
-  }
-  return value.toFixed(2);
-}

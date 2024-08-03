@@ -9,7 +9,7 @@ import {
   flexRender,
   VisibilityState,
 } from "@tanstack/react-table";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronUp, ChevronsUpDown } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -21,7 +21,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { SurveyPoint } from "@/lib/types";
+import { ApMapping, SurveyPoint } from "@/lib/types";
 import { Switch } from "./ui/switch";
 import {
   DropdownMenu,
@@ -29,8 +29,9 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { rssiToPercentage } from "@/lib/utils";
+import { AlertDialogModal } from "./AlertDialogModal";
 
-// Types
 type FlattenedSurveyPoint = {
   id: string;
   x: number;
@@ -43,7 +44,7 @@ type FlattenedSurveyPoint = {
   txRate: number;
   phyMode: string;
   channelWidth: number;
-  frequency: number;
+  frequency: string;
   tcpDownloadMbps: number;
   tcpUploadMbps: number;
   udpDownloadMbps: number;
@@ -56,31 +57,34 @@ interface SurveyPointsTableProps {
   data: SurveyPoint[];
   onDelete: (ids: string[]) => void;
   updateDatapoint: (id: string, data: Partial<SurveyPoint>) => void;
+  apMapping: ApMapping[];
 }
 
 const SurveyPointsTable: React.FC<SurveyPointsTableProps> = ({
   data,
   onDelete,
   updateDatapoint,
+  apMapping,
 }) => {
   const [rowSelection, setRowSelection] = useState({});
   const [globalFilter, setGlobalFilter] = useState("");
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({
     select: true,
     id: true,
-    rssi: true,
+    signalQuality: true,
     bssid: true,
-    channel: true,
+    frequency: true,
     tcpDownloadMbps: true,
     tcpUploadMbps: true,
     timestamp: true,
     hide: true,
+    rssi: false,
     ssid: false,
     security: false,
     txRate: false,
     phyMode: false,
     channelWidth: false,
-    frequency: false,
+    channel: false,
     x: false,
     y: false,
   });
@@ -114,11 +118,19 @@ const SurveyPointsTable: React.FC<SurveyPointsTableProps> = ({
       },
       {
         accessorKey: "rssi",
-        header: "RSSI",
+        header: "RSSI [dBm]",
+      },
+      {
+        accessorKey: "signalQuality",
+        header: "Signal Quality [%]",
       },
       {
         accessorKey: "bssid",
         header: "BSSID",
+      },
+      {
+        accessorKey: "frequency",
+        header: "Frequency",
       },
       {
         accessorKey: "channel",
@@ -126,19 +138,19 @@ const SurveyPointsTable: React.FC<SurveyPointsTableProps> = ({
       },
       {
         accessorKey: "tcpDownloadMbps",
-        header: "TCP Down (Mbps)",
+        header: "TCP Down [Mbps]",
       },
       {
         accessorKey: "tcpUploadMbps",
-        header: "TCP Up (Mbps)",
+        header: "TCP Up [Mbps]",
       },
       {
         accessorKey: "udpDownloadMbps",
-        header: "UDP Down (Mbps)",
+        header: "UDP Down [Mbps]",
       },
       {
         accessorKey: "udpUploadMbps",
-        header: "UDP Up (Mbps)",
+        header: "UDP Up [Mbps]",
       },
       {
         accessorKey: "timestamp",
@@ -178,10 +190,7 @@ const SurveyPointsTable: React.FC<SurveyPointsTableProps> = ({
         accessorKey: "channelWidth",
         header: "Channel Width",
       },
-      {
-        accessorKey: "frequency",
-        header: "Frequency",
-      },
+
       {
         accessorKey: "x",
         header: "X",
@@ -191,33 +200,46 @@ const SurveyPointsTable: React.FC<SurveyPointsTableProps> = ({
         header: "Y",
       },
     ],
-    [updateDatapoint]
+    [updateDatapoint],
   );
 
   const convertToMbps = (bitsPerSecond: number) => {
     return Math.round((bitsPerSecond / 1000000) * 100) / 100;
   };
 
-  const flattenedData: FlattenedSurveyPoint[] = useMemo(
-    () =>
-      data.map((point) => ({
+  const flattenedData: FlattenedSurveyPoint[] = useMemo(() => {
+    return data.map((point) => {
+      let bssid = point.wifiData.bssid;
+      if (apMapping.length > 0) {
+        const mappedName = apMapping.find(
+          (ap) => ap.macAddress === point.wifiData.bssid,
+        )?.apName;
+        if (mappedName) {
+          bssid = `${mappedName} (${point.wifiData.bssid})`;
+        }
+      }
+      return {
         ...point,
         ...point.wifiData,
+        bssid,
         tcpDownloadMbps: convertToMbps(
-          point.iperfResults.tcpDownload.bitsPerSecond
+          point.iperfResults.tcpDownload.bitsPerSecond,
         ),
         tcpUploadMbps: convertToMbps(
-          point.iperfResults.tcpUpload.bitsPerSecond
+          point.iperfResults.tcpUpload.bitsPerSecond,
         ),
         udpDownloadMbps: convertToMbps(
-          point.iperfResults.udpDownload.bitsPerSecond
+          point.iperfResults.udpDownload.bitsPerSecond,
         ),
         udpUploadMbps: convertToMbps(
-          point.iperfResults.udpUpload.bitsPerSecond
+          point.iperfResults.udpUpload.bitsPerSecond,
         ),
-      })),
-    [data]
-  );
+        signalQuality: rssiToPercentage(point.wifiData.rssi),
+        frequency: `${point.wifiData.frequency} Mhz`,
+        timestamp: new Date(point.timestamp).toLocaleString(),
+      };
+    });
+  }, [data, apMapping]);
 
   const table = useReactTable({
     data: flattenedData,
@@ -239,17 +261,17 @@ const SurveyPointsTable: React.FC<SurveyPointsTableProps> = ({
 
   const handleDelete = useCallback(() => {
     const selectedIds = Object.keys(rowSelection).map(
-      (index) => flattenedData[parseInt(index)].id
+      (index) => flattenedData[parseInt(index)].id,
     );
     onDelete(selectedIds);
   }, [rowSelection, flattenedData, onDelete]);
 
   const toggleHideSelected = useCallback(() => {
     const selectedIds = Object.keys(rowSelection).map(
-      (index) => flattenedData[parseInt(index)].id
+      (index) => flattenedData[parseInt(index)].id,
     );
     const allHidden = selectedIds.every(
-      (id) => flattenedData.find((point) => point.id === id)?.isHidden
+      (id) => flattenedData.find((point) => point.id === id)?.isHidden,
     );
     selectedIds.forEach((id) => {
       updateDatapoint(id, { isHidden: !allHidden });
@@ -259,14 +281,14 @@ const SurveyPointsTable: React.FC<SurveyPointsTableProps> = ({
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-2 mt-3">
           <Input
             placeholder="Search all columns..."
             value={globalFilter ?? ""}
             onChange={(event) => setGlobalFilter(event.target.value)}
             className="max-w-sm"
           />
-          <span className="text-sm text-gray-500">
+          <span className="text-md text-gray-700 min-w-fit">
             {Object.keys(rowSelection).length} of {flattenedData.length} row(s)
             selected
           </span>
@@ -275,7 +297,7 @@ const SurveyPointsTable: React.FC<SurveyPointsTableProps> = ({
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" className="ml-auto">
-                Columns
+                Show Columns <ChevronDown className="ml-2 h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
@@ -292,7 +314,7 @@ const SurveyPointsTable: React.FC<SurveyPointsTableProps> = ({
                         column.toggleVisibility(!!value)
                       }
                     >
-                      {column.id}
+                      {column.columnDef.header?.toString() ?? column.id}
                     </DropdownMenuCheckboxItem>
                   );
                 })}
@@ -302,6 +324,7 @@ const SurveyPointsTable: React.FC<SurveyPointsTableProps> = ({
             variant="outline"
             size="sm"
             onClick={() => table.toggleAllRowsSelected(false)}
+            disabled={Object.keys(rowSelection).length === 0}
           >
             Deselect All
           </Button>
@@ -312,10 +335,27 @@ const SurveyPointsTable: React.FC<SurveyPointsTableProps> = ({
           >
             Select All
           </Button>
-          <Button variant="destructive" size="sm" onClick={handleDelete}>
-            Delete Selected
-          </Button>
-          <Button variant="secondary" size="sm" onClick={toggleHideSelected}>
+          <AlertDialogModal
+            title="Delete Selected"
+            description="Are you sure you want to delete the selected rows?"
+            onConfirm={handleDelete}
+            onCancel={() => {}}
+            disabled={Object.keys(rowSelection).length === 0}
+          >
+            <Button
+              variant="destructive"
+              size="sm"
+              className={`${Object.keys(rowSelection).length === 0 ? "opacity-50 cursor-not-allowed" : ""}`}
+            >
+              Delete Selected
+            </Button>
+          </AlertDialogModal>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={toggleHideSelected}
+            disabled={Object.keys(rowSelection).length === 0}
+          >
             Toggle Hide Selected
           </Button>
         </div>
@@ -330,20 +370,25 @@ const SurveyPointsTable: React.FC<SurveyPointsTableProps> = ({
                     {header.isPlaceholder ? null : (
                       <div
                         {...{
-                          className: header.column.getCanSort()
-                            ? "cursor-pointer select-none"
-                            : "",
+                          className: `${
+                            header.column.getCanSort()
+                              ? "cursor-pointer select-none"
+                              : ""
+                          } flex items-center justify-center whitespace-nowrap`,
                           onClick: header.column.getToggleSortingHandler(),
                         }}
                       >
                         {flexRender(
                           header.column.columnDef.header,
-                          header.getContext()
+                          header.getContext(),
                         )}
                         {{
                           asc: <ChevronUp className="ml-2 h-4 w-4" />,
                           desc: <ChevronDown className="ml-2 h-4 w-4" />,
-                        }[header.column.getIsSorted() as string] ?? null}
+                        }[header.column.getIsSorted() as string] ??
+                          (header.column.getCanSort() ? (
+                            <ChevronsUpDown className="ml-2 h-4 w-4 opacity-50" />
+                          ) : null)}
                       </div>
                     )}
                   </TableHead>
@@ -366,10 +411,10 @@ const SurveyPointsTable: React.FC<SurveyPointsTableProps> = ({
                   }`}
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
+                    <TableCell key={cell.id} className="text-center">
                       {flexRender(
                         cell.column.columnDef.cell,
-                        cell.getContext()
+                        cell.getContext(),
                       )}
                     </TableCell>
                   ))}
