@@ -58,16 +58,37 @@ function parseWdutilOutput(output: string): WifiNetwork {
       case "RSSI":
         currentNetwork.rssi = parseInt(value.split(" ")[0]);
         break;
+      // case "Channel": {
+      //   const channelParts = value.split(" ");
+      //   // takes the first number
+      //   currentNetwork.frequency = parseInt(
+      //     channelParts[0].match(/\d+/)?.[0] ?? "0",
+      //   );
+      //   currentNetwork.channel = parseInt(channelParts[0].substring(2));
+      //   currentNetwork.channelWidth = parseInt(
+      //     channelParts[1].replace(/[()]/g, ""),
+      //   );
+      //   break;
+      // }
       case "Channel": {
         const channelParts = value.split(" ");
-        // takes the first number
+        
+        // Parse frequency from the first part (e.g., "5g48/80")
         currentNetwork.frequency = parseInt(
           channelParts[0].match(/\d+/)?.[0] ?? "0",
         );
+        
+        // Parse channel number
         currentNetwork.channel = parseInt(channelParts[0].substring(2));
-        currentNetwork.channelWidth = parseInt(
-          channelParts[1].replace(/[()]/g, ""),
-        );
+        
+        // Parse channel width if the second part exists
+        if (channelParts[1]) {
+          currentNetwork.channelWidth = parseInt(
+            channelParts[1].replace(/[()]/g, ""),
+          );
+        } else {
+          currentNetwork.channelWidth = null; // Or any default value you'd like
+        }
         break;
       }
       case "Tx Rate":
