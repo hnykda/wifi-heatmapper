@@ -11,7 +11,7 @@ This project is a WiFi heatmapper solution for macOS, inspired by [python-wifi-s
 
 ## Prerequisites
 
-- macOS (tested on Apple M2, Sonoma 14.5)
+- macOS (tested on Apple M2, Sequoia 15)
 - `npm` and `iperf3` installed (can be installed via `brew install npm iperf3`)
 
 ## Installation
