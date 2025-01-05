@@ -1,5 +1,6 @@
 import { exec } from "child_process";
 import util from "util";
+import os from "os";
 import { WifiNetwork } from "./types";
 
 const execAsync = util.promisify(exec);
@@ -9,22 +10,17 @@ const execAsync = util.promisify(exec);
  */
 export async function scanWifi(sudoerPassword: string): Promise<WifiNetwork> {
   try {
-    const [wdutilOutput, ssid, bssid] = await Promise.all([
-      execAsync(`echo ${sudoerPassword} | sudo -S wdutil info`),
-      execAsync(
-        "ioreg -l -n AirPortDriver | grep IO80211SSID | sed 's/^.*= \"\\(.*\\)\".*$/\\1/; s/ /_/g'",
-      ),
-      execAsync(
-        "ioreg -l | grep \"IO80211BSSID\" | awk -F' = ' '{print $2}' | sed 's/[<>]//g'",
-      ),
-    ]);
+    const platform = os.platform();
 
-    const network = parseWdutilOutput(wdutilOutput.stdout);
-
-    network.ssid = ssid.stdout.trim();
-    network.bssid = bssid.stdout.trim();
-
-    return network;
+    if (platform === "darwin") {
+      // macOS
+      return await scanWifiMacOS(sudoerPassword);
+    } else if (platform === "win32") {
+      // Windows
+      return await scanWifiWindows();
+    } else {
+      throw new Error(`Unsupported platform: ${platform}`);
+    }
   } catch (error_) {
     const error = error_ as Error;
     console.error("Error scanning WiFi:", error);
@@ -35,6 +31,32 @@ export async function scanWifi(sudoerPassword: string): Promise<WifiNetwork> {
     }
     throw error;
   }
+}
+
+async function scanWifiMacOS(sudoerPassword: string): Promise<WifiNetwork> {
+  const [wdutilOutput, ssid, bssid] = await Promise.all([
+    execAsync(`echo ${sudoerPassword} | sudo -S wdutil info`),
+    execAsync(
+      "ioreg -l -n AirPortDriver | grep IO80211SSID | sed 's/^.*= \"\\(.*\\)\".*$/\\1/; s/ /_/g'",
+    ),
+    execAsync(
+      "ioreg -l | grep \"IO80211BSSID\" | awk -F' = ' '{print $2}' | sed 's/[<>]//g'",
+    ),
+  ]);
+
+  const network = parseWdutilOutput(wdutilOutput.stdout);
+
+  network.ssid = ssid.stdout.trim();
+  network.bssid = bssid.stdout.trim();
+
+  return network;
+}
+
+async function scanWifiWindows(): Promise<WifiNetwork> {
+  const command = "netsh wlan show interfaces";
+  const { stdout } = await execAsync(command);
+
+  return parseNetshOutput(stdout);
 }
 
 function parseWdutilOutput(output: string): WifiNetwork {
@@ -58,36 +80,18 @@ function parseWdutilOutput(output: string): WifiNetwork {
       case "RSSI":
         currentNetwork.rssi = parseInt(value.split(" ")[0]);
         break;
-      // case "Channel": {
-      //   const channelParts = value.split(" ");
-      //   // takes the first number
-      //   currentNetwork.frequency = parseInt(
-      //     channelParts[0].match(/\d+/)?.[0] ?? "0",
-      //   );
-      //   currentNetwork.channel = parseInt(channelParts[0].substring(2));
-      //   currentNetwork.channelWidth = parseInt(
-      //     channelParts[1].replace(/[()]/g, ""),
-      //   );
-      //   break;
-      // }
       case "Channel": {
         const channelParts = value.split(" ");
-        
-        // Parse frequency from the first part (e.g., "5g48/80")
         currentNetwork.frequency = parseInt(
           channelParts[0].match(/\d+/)?.[0] ?? "0",
         );
-        
-        // Parse channel number
         currentNetwork.channel = parseInt(channelParts[0].substring(2));
-        
-        // Parse channel width if the second part exists
         if (channelParts[1]) {
           currentNetwork.channelWidth = parseInt(
             channelParts[1].replace(/[()]/g, ""),
           );
         } else {
-          currentNetwork.channelWidth = null; // Or any default value you'd like
+          currentNetwork.channelWidth = null;
         }
         break;
       }
@@ -100,6 +104,29 @@ function parseWdutilOutput(output: string): WifiNetwork {
       case "Security":
         currentNetwork.security = value;
         break;
+    }
+  });
+
+  return currentNetwork as WifiNetwork;
+}
+
+function parseNetshOutput(output: string): WifiNetwork {
+  const lines = output.split("\n");
+  let currentNetwork: Partial<WifiNetwork> = {};
+
+  lines.forEach((line) => {
+    const trimmedLine = line.trim();
+    if (trimmedLine.startsWith("SSID")) {
+      currentNetwork.ssid = trimmedLine.split(":")[1]?.trim() || "";
+    } else if (trimmedLine.startsWith("BSSID")) {
+      currentNetwork.bssid = trimmedLine.split(":")[1]?.trim() || "";
+    } else if (trimmedLine.startsWith("Signal")) {
+      const signal = trimmedLine.split(":")[1]?.trim() || "";
+      currentNetwork.rssi = parseInt(signal.replace("%", ""));
+    } else if (trimmedLine.startsWith("Channel")) {
+      currentNetwork.channel = parseInt(trimmedLine.split(":")[1]?.trim() || "0");
+    } else if (trimmedLine.startsWith("Radio type")) {
+      currentNetwork.phyMode = trimmedLine.split(":")[1]?.trim() || "";
     }
   });
 
