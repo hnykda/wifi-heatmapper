@@ -12,7 +12,7 @@ There are 1 interfaces on the system:
     Physical address      : ba:34:56:78:90:ab
     State                 : connected
     SSID                  : SomeSSID
-    BSSID                 : bs:34:56:78:90:ac
+    BSSID                 : ba:34:56:78:90:ac
     Network type         : Infrastructure
     Radio type           : 802.11ax
     Authentication       : WPA2-Personal
@@ -30,7 +30,7 @@ There are 1 interfaces on the system:
   const output = parseNetshOutput(input);
   expect(output).toStrictEqual({
     ssid: "SomeSSID",
-    bssid: "bs34567890ac",
+    bssid: "ba34567890ac",
     rssi: 0,
     signalStrength: 42,
     channel: 44,
