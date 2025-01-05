@@ -1,6 +1,4 @@
 "use client";
-import os from "os";
-const platform = os.platform();
 import { useState, useEffect, useCallback } from "react";
 import {
   startSurvey,
@@ -58,9 +56,14 @@ export default function Home() {
       return;
     }
 
-    if (!sudoerPassword && platform == "win32") {
+    const runningPlatform = process.platform;
+
+    if (!sudoerPassword && runningPlatform == "darwin") {
+      console.warn(
+        "No sudoer password set, but running on macOS where it's required for wdutil info command"
+      );
       setAlertMessage(
-        "Please set sudoer password so we can run wdutil info command",
+        "Please set sudoer password so we can run wdutil info command"
       );
       toast({
         title: "Please set sudoer password",
@@ -87,7 +90,7 @@ export default function Home() {
               ...prev,
               surveyPoints: [...prev.surveyPoints, newPoint],
             }
-          : getDefaults(),
+          : getDefaults()
       );
     } catch (error) {
       setAlertMessage(`An error occurred: ${error}`);
@@ -112,7 +115,7 @@ export default function Home() {
   };
 
   const handleFloorplanChange = async (
-    event: React.ChangeEvent<HTMLInputElement>,
+    event: React.ChangeEvent<HTMLInputElement>
   ) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -143,7 +146,7 @@ export default function Home() {
   const handleDelete = (ids: string[]) => {
     setSurveyData((prev) => {
       const newPoints = prev.surveyPoints.filter(
-        (point) => !ids.includes(point.id),
+        (point) => !ids.includes(point.id)
       );
       updateDbField(dbPath, "surveyPoints", newPoints);
       return {
@@ -156,7 +159,7 @@ export default function Home() {
   const updateDatapoint = (id: string, data: Partial<SurveyPoint>) => {
     setSurveyData((prev) => {
       const newPoints = prev.surveyPoints.map((point) =>
-        point.id === id ? { ...point, ...data } : point,
+        point.id === id ? { ...point, ...data } : point
       );
       updateDbField(dbPath, "surveyPoints", newPoints);
       return {
@@ -167,7 +170,7 @@ export default function Home() {
   };
 
   const activePoints = surveyData.surveyPoints.filter(
-    (point) => !point.isDisabled,
+    (point) => !point.isDisabled
   );
 
   return (
@@ -197,14 +200,16 @@ export default function Home() {
             helpText="IP address of the iperf3 server against which the tests will be run. Can be in the form of 192.168.0.42 or with port 192.168.0.42:5201"
           />
 
-          <EditableField
-            label="Sudoer Password"
-            value={sudoerPassword}
-            onSave={setSudoerPassword}
-            type="password"
-            placeholder="passw0rd"
-            helpText="Password for sudoer user (needed for wdutil info command)."
-          />
+          {process.platform == "darwin" && (
+            <EditableField
+              label="Sudoer Password"
+              value={sudoerPassword}
+              onSave={setSudoerPassword}
+              type="password"
+              placeholder="passw0rd"
+              helpText="Password for sudoer user (needed for wdutil info command on macOS)."
+            />
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="floorplanImage">

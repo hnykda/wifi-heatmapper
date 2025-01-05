@@ -1,16 +1,27 @@
 import { exec } from "child_process";
 import util from "util";
-import os from "os";
 import { WifiNetwork } from "./types";
 
 const execAsync = util.promisify(exec);
+
+const getDefaultWifiNetwork = (): WifiNetwork => ({
+  ssid: "",
+  bssid: "",
+  rssi: 0,
+  channel: 0,
+  frequency: 0,
+  channelWidth: 0,
+  txRate: 0,
+  phyMode: "",
+  security: "",
+});
 
 /**
  * Gets the current WiFi network name, BSSID of the AP it's connected to, and the RSSI.
  */
 export async function scanWifi(sudoerPassword: string): Promise<WifiNetwork> {
   try {
-    const platform = os.platform();
+    const platform = process.platform;
 
     if (platform === "darwin") {
       // macOS
@@ -63,72 +74,70 @@ function parseWdutilOutput(output: string): WifiNetwork {
   const wifiSection = output.split("WIFI")[1].split("BLUETOOTH")[0];
   const lines = wifiSection.split("\n");
 
-  let currentNetwork: Partial<WifiNetwork> = {};
+  const networkInfo = getDefaultWifiNetwork();
 
   lines.forEach((line) => {
     const [key, value] = line.split(":").map((s) => s.trim());
     switch (key) {
       case "SSID":
-        if (Object.keys(currentNetwork).length > 0) {
-          currentNetwork = {};
-        }
-        currentNetwork.ssid = value;
+        networkInfo.ssid = value;
         break;
       case "BSSID":
-        currentNetwork.bssid = value;
+        networkInfo.bssid = value;
         break;
       case "RSSI":
-        currentNetwork.rssi = parseInt(value.split(" ")[0]);
+        networkInfo.rssi = parseInt(value.split(" ")[0]);
         break;
       case "Channel": {
         const channelParts = value.split(" ");
-        currentNetwork.frequency = parseInt(
-          channelParts[0].match(/\d+/)?.[0] ?? "0",
+        networkInfo.frequency = parseInt(
+          channelParts[0].match(/\d+/)?.[0] ?? "0"
         );
-        currentNetwork.channel = parseInt(channelParts[0].substring(2));
+        networkInfo.channel = parseInt(channelParts[0].substring(2));
         if (channelParts[1]) {
-          currentNetwork.channelWidth = parseInt(
-            channelParts[1].replace(/[()]/g, ""),
+          networkInfo.channelWidth = parseInt(
+            channelParts[1].replace(/[()]/g, "")
           );
         } else {
-          currentNetwork.channelWidth = null;
+          networkInfo.channelWidth = 0;
         }
         break;
       }
       case "Tx Rate":
-        currentNetwork.txRate = parseFloat(value.split(" ")[0]);
+        networkInfo.txRate = parseFloat(value.split(" ")[0]);
         break;
       case "PHY Mode":
-        currentNetwork.phyMode = value;
+        networkInfo.phyMode = value;
         break;
       case "Security":
-        currentNetwork.security = value;
+        networkInfo.security = value;
         break;
     }
   });
 
-  return currentNetwork as WifiNetwork;
+  return networkInfo;
 }
 
 function parseNetshOutput(output: string): WifiNetwork {
+  const networkInfo = getDefaultWifiNetwork();
+
   const lines = output.split("\n");
-  let currentNetwork: Partial<WifiNetwork> = {};
 
   lines.forEach((line) => {
     const trimmedLine = line.trim();
     if (trimmedLine.startsWith("SSID")) {
-      currentNetwork.ssid = trimmedLine.split(":")[1]?.trim() || "";
+      networkInfo.ssid = trimmedLine.split(":")[1]?.trim() || "";
     } else if (trimmedLine.startsWith("BSSID")) {
-      currentNetwork.bssid = trimmedLine.split(":")[1]?.trim() || "";
+      networkInfo.bssid = trimmedLine.split(":")[1]?.trim() || "";
     } else if (trimmedLine.startsWith("Signal")) {
       const signal = trimmedLine.split(":")[1]?.trim() || "";
-      currentNetwork.rssi = parseInt(signal.replace("%", ""));
+      networkInfo.rssi = parseInt(signal.replace("%", ""));
     } else if (trimmedLine.startsWith("Channel")) {
-      currentNetwork.channel = parseInt(trimmedLine.split(":")[1]?.trim() || "0");
+      networkInfo.channel = parseInt(trimmedLine.split(":")[1]?.trim() || "0");
     } else if (trimmedLine.startsWith("Radio type")) {
-      currentNetwork.phyMode = trimmedLine.split(":")[1]?.trim() || "";
+      networkInfo.phyMode = trimmedLine.split(":")[1]?.trim() || "";
     }
   });
 
-  return currentNetwork as WifiNetwork;
+  return networkInfo;
 }

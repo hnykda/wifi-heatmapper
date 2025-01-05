@@ -1,6 +1,7 @@
 # WiFi Heatmapper
 
-This project is a WiFi heatmapper solution for macOS, inspired by [python-wifi-survey-heatmap](https://github.com/jantman/python-wifi-survey-heatmap). I wanted to create a heatmap of my WiFi coverage, but the original project didn't work because I am running on Mac (Apple Sillicon).
+This project is a WiFi heatmapper solution for macOS/Windows, inspired by [python-wifi-survey-heatmap](https://github.com/jantman/python-wifi-survey-heatmap). I wanted to create a heatmap of my WiFi coverage, but the original project didn't work because I am running on Mac (Apple Sillicon).
+A Windows support was added subsequently.
 
 ![Screenshot](various/top1.jpg)
 ![Screenshot](various/top2.jpg)
@@ -11,8 +12,11 @@ This project is a WiFi heatmapper solution for macOS, inspired by [python-wifi-s
 
 ## Prerequisites
 
-- macOS (tested on Apple M2, Sequoia 15)
+- macOS (tested on Apple M2, Sequoia 15) or Windows
 - `npm` and `iperf3` installed (can be installed via `brew install npm iperf3`)
+   - `iperf3` must be available in `PATH`, i.e. from the terminal you are running `npm run dev` you **must** be able to run e.g. `iperf3 --version` just fine. This is 
+      likely default on macOS if you used e.g. `brew iperf3` (as if you have "normally" configured `brew`, it adds `iperf3` binary into directory that is in your path), but for Windows
+      you might have to do something like `set PATH=%PATH%;C:\path\to\iperf3`, e.g. do `set PATH=%PATH%;C:\iperf3` (or `setx` to make it permanent) before running `npm run dev`
 
 ## Installation
 
@@ -22,7 +26,9 @@ This project is a WiFi heatmapper solution for macOS, inspired by [python-wifi-s
 
 ## Usage
 
-1. Start the application from where you want to run the tests (very likely your Mac laptop so you can move around the house):
+
+0. check that your `iperf3` command works by `iperf3 --version`
+1. Start the application from where you want to run the tests (very likely your Mac/Windows laptop so you can move around the house):
 
    ```bash
    npm run dev
