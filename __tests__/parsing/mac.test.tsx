@@ -66,6 +66,7 @@ POWER
     frequency: 5,
     phyMode: "11ax",
     rssi: -79,
+    signalStrength: 0,
     security: "WPA2 Personal",
     ssid: "SomeSSID",
     txRate: 103,

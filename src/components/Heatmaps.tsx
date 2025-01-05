@@ -18,7 +18,11 @@ import HeatmapAdvancedConfig, { HeatmapConfig } from "./HeatmapAdvancedConfig";
 import { Download } from "lucide-react";
 
 import { IperfTestProperty } from "@/lib/types";
-import { metricFormatter, rssiToPercentage } from "@/lib/utils";
+import {
+  metricFormatter,
+  percentageToRssi,
+  rssiToPercentage,
+} from "@/lib/utils";
 
 const metricTitles: Record<MeasurementTestType, string> = {
   signalStrength: "Signal Strength",
@@ -102,8 +106,10 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
       switch (metric) {
         case "signalStrength":
           return showSignalStrengthAsPercentage
-            ? rssiToPercentage(point.wifiData.rssi)
-            : point.wifiData.rssi;
+            ? point.wifiData.signalStrength ||
+                rssiToPercentage(point.wifiData.rssi)
+            : point.wifiData.rssi ||
+                percentageToRssi(point.wifiData.signalStrength);
         case "tcpDownload":
         case "tcpUpload":
         case "udpDownload":

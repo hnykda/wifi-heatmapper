@@ -54,10 +54,15 @@ export interface SurveyPoint {
   isDisabled: boolean;
 }
 
+/**
+ * @rssi is the dBm value
+ * @signalStrength is the percentage of signal strength
+ */
 export interface WifiNetwork {
   ssid: string;
   bssid: string;
   rssi: number;
+  signalStrength: number;
   channel: number;
   security: string;
   txRate: number;
@@ -73,3 +78,8 @@ export interface Database {
   testDuration: number;
   apMapping: ApMapping[];
 }
+
+export type ScannerSettings = {
+  sudoerPassword: string | "";
+  wlanInterfaceId: string | "";
+};

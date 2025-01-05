@@ -27,6 +27,10 @@ export const rssiToPercentage = (rssi: number): number => {
   return Math.round(((rssi + 100) / 60) * 100);
 };
 
+export const percentageToRssi = (percentage: number): number => {
+  return Math.round(-100 + (percentage / 100) * 60);
+};
+
 export const metricFormatter = (
   value: number,
   metric: MeasurementTestType,
