@@ -37,21 +37,23 @@ export async function scanWifi(sudoerPassword: string): Promise<WifiNetwork> {
     console.error("Error scanning WiFi:", error);
     if (error.message.includes("sudo")) {
       console.error(
-        "This command requires sudo privileges. Please run the application with sudo.",
+        "This command requires sudo privileges. Please run the application with sudo."
       );
     }
     throw error;
   }
 }
 
-async function scanWifiMacOS(sudoerPassword: string): Promise<WifiNetwork> {
+export async function scanWifiMacOS(
+  sudoerPassword: string
+): Promise<WifiNetwork> {
   const [wdutilOutput, ssid, bssid] = await Promise.all([
     execAsync(`echo ${sudoerPassword} | sudo -S wdutil info`),
     execAsync(
-      "ioreg -l -n AirPortDriver | grep IO80211SSID | sed 's/^.*= \"\\(.*\\)\".*$/\\1/; s/ /_/g'",
+      "ioreg -l -n AirPortDriver | grep IO80211SSID | sed 's/^.*= \"\\(.*\\)\".*$/\\1/; s/ /_/g'"
     ),
     execAsync(
-      "ioreg -l | grep \"IO80211BSSID\" | awk -F' = ' '{print $2}' | sed 's/[<>]//g'",
+      "ioreg -l | grep \"IO80211BSSID\" | awk -F' = ' '{print $2}' | sed 's/[<>]//g'"
     ),
   ]);
 
@@ -70,55 +72,57 @@ async function scanWifiWindows(): Promise<WifiNetwork> {
   return parseNetshOutput(stdout);
 }
 
-function parseWdutilOutput(output: string): WifiNetwork {
+export function parseWdutilOutput(output: string): WifiNetwork {
   const wifiSection = output.split("WIFI")[1].split("BLUETOOTH")[0];
   const lines = wifiSection.split("\n");
 
   const networkInfo = getDefaultWifiNetwork();
 
   lines.forEach((line) => {
-    const [key, value] = line.split(":").map((s) => s.trim());
-    switch (key) {
-      case "SSID":
-        networkInfo.ssid = value;
-        break;
-      case "BSSID":
-        networkInfo.bssid = value;
-        break;
-      case "RSSI":
-        networkInfo.rssi = parseInt(value.split(" ")[0]);
-        break;
-      case "Channel": {
-        const channelParts = value.split(" ");
-        networkInfo.frequency = parseInt(
-          channelParts[0].match(/\d+/)?.[0] ?? "0"
-        );
-        networkInfo.channel = parseInt(channelParts[0].substring(2));
-        if (channelParts[1]) {
-          networkInfo.channelWidth = parseInt(
-            channelParts[1].replace(/[()]/g, "")
+    if (line.includes(":")) {
+      const colonIndex = line.indexOf(":");
+      const key = line.substring(0, colonIndex).trim();
+      const value = line.substring(colonIndex + 1).trim();
+      switch (key) {
+        case "SSID":
+          networkInfo.ssid = value;
+          break;
+        case "BSSID":
+          networkInfo.bssid = value;
+          break;
+        case "RSSI":
+          networkInfo.rssi = parseInt(value.split(" ")[0]);
+          break;
+        case "Channel": {
+          const channelParts = value.split("/");
+          networkInfo.frequency = parseInt(
+            channelParts[0].match(/\d+/)?.[0] ?? "0"
           );
-        } else {
-          networkInfo.channelWidth = 0;
+          networkInfo.channel = parseInt(channelParts[0].substring(2));
+          if (channelParts[1]) {
+            networkInfo.channelWidth = parseInt(channelParts[1]);
+          } else {
+            networkInfo.channelWidth = 0;
+          }
+          break;
         }
-        break;
+        case "Tx Rate":
+          networkInfo.txRate = parseFloat(value.split(" ")[0]);
+          break;
+        case "PHY Mode":
+          networkInfo.phyMode = value;
+          break;
+        case "Security":
+          networkInfo.security = value;
+          break;
       }
-      case "Tx Rate":
-        networkInfo.txRate = parseFloat(value.split(" ")[0]);
-        break;
-      case "PHY Mode":
-        networkInfo.phyMode = value;
-        break;
-      case "Security":
-        networkInfo.security = value;
-        break;
     }
   });
 
   return networkInfo;
 }
 
-function parseNetshOutput(output: string): WifiNetwork {
+export function parseNetshOutput(output: string): WifiNetwork {
   const networkInfo = getDefaultWifiNetwork();
 
   const lines = output.split("\n");
@@ -128,14 +132,23 @@ function parseNetshOutput(output: string): WifiNetwork {
     if (trimmedLine.startsWith("SSID")) {
       networkInfo.ssid = trimmedLine.split(":")[1]?.trim() || "";
     } else if (trimmedLine.startsWith("BSSID")) {
-      networkInfo.bssid = trimmedLine.split(":")[1]?.trim() || "";
+      const colonIndex = trimmedLine.indexOf(":");
+      networkInfo.bssid = trimmedLine.substring(colonIndex + 1).trim();
     } else if (trimmedLine.startsWith("Signal")) {
       const signal = trimmedLine.split(":")[1]?.trim() || "";
       networkInfo.rssi = parseInt(signal.replace("%", ""));
     } else if (trimmedLine.startsWith("Channel")) {
-      networkInfo.channel = parseInt(trimmedLine.split(":")[1]?.trim() || "0");
+      const channel = parseInt(trimmedLine.split(":")[1]?.trim() || "0");
+      networkInfo.channel = channel;
+      // Set frequency based on channel number (2.4GHz for channels 1-14, 5GHz for higher)
+      networkInfo.frequency = channel > 14 ? 5 : 2.4;
     } else if (trimmedLine.startsWith("Radio type")) {
       networkInfo.phyMode = trimmedLine.split(":")[1]?.trim() || "";
+    } else if (trimmedLine.startsWith("Authentication")) {
+      networkInfo.security = trimmedLine.split(":")[1]?.trim() || "";
+    } else if (trimmedLine.startsWith("Transmit rate")) {
+      const rate = trimmedLine.split(":")[1]?.trim() || "";
+      networkInfo.txRate = parseFloat(rate.split(" ")[0]);
     }
   });
 

@@ -15,7 +15,6 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { Toaster } from "@/components/ui/toaster";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import React from "react";
 
 import { Heatmaps } from "@/components/Heatmaps";
 import { ClickableFloorplan } from "@/components/Floorplan";
@@ -60,10 +59,10 @@ export default function Home() {
 
     if (!sudoerPassword && runningPlatform == "darwin") {
       console.warn(
-        "No sudoer password set, but running on macOS where it's required for wdutil info command"
+        "No sudoer password set, but running on macOS where it's required for wdutil info command",
       );
       setAlertMessage(
-        "Please set sudoer password so we can run wdutil info command"
+        "Please set sudoer password so we can run wdutil info command",
       );
       toast({
         title: "Please set sudoer password",
@@ -84,13 +83,13 @@ export default function Home() {
         testDuration: surveyData.testDuration,
         sudoerPassword,
       });
-      setSurveyData((prev) =>
+      setSurveyData((prev: Database) =>
         prev
           ? {
               ...prev,
               surveyPoints: [...prev.surveyPoints, newPoint],
             }
-          : getDefaults()
+          : getDefaults(),
       );
     } catch (error) {
       setAlertMessage(`An error occurred: ${error}`);
@@ -115,7 +114,7 @@ export default function Home() {
   };
 
   const handleFloorplanChange = async (
-    event: React.ChangeEvent<HTMLInputElement>
+    event: React.ChangeEvent<HTMLInputElement>,
   ) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -144,9 +143,9 @@ export default function Home() {
     );
 
   const handleDelete = (ids: string[]) => {
-    setSurveyData((prev) => {
+    setSurveyData((prev: Database) => {
       const newPoints = prev.surveyPoints.filter(
-        (point) => !ids.includes(point.id)
+        (point) => !ids.includes(point.id),
       );
       updateDbField(dbPath, "surveyPoints", newPoints);
       return {
@@ -157,9 +156,9 @@ export default function Home() {
   };
 
   const updateDatapoint = (id: string, data: Partial<SurveyPoint>) => {
-    setSurveyData((prev) => {
+    setSurveyData((prev: Database) => {
       const newPoints = prev.surveyPoints.map((point) =>
-        point.id === id ? { ...point, ...data } : point
+        point.id === id ? { ...point, ...data } : point,
       );
       updateDbField(dbPath, "surveyPoints", newPoints);
       return {
@@ -170,7 +169,7 @@ export default function Home() {
   };
 
   const activePoints = surveyData.surveyPoints.filter(
-    (point) => !point.isDisabled
+    (point: SurveyPoint) => !point.isDisabled,
   );
 
   return (
