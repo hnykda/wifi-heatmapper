@@ -31,6 +31,6 @@ rx bitrate: 780.0 MBit/s
     channelWidth: 80,
     txRate: 866.7,
     phyMode: "",
-    security: ""
+    security: "",
   });
-}); 
+});
