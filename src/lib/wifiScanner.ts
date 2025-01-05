@@ -127,26 +127,55 @@ export function parseNetshOutput(output: string): WifiNetwork {
 
   const lines = output.split("\n");
 
+  let SSID = "";
+  let BSSID = "";
+  let Signal = "";
+  let Channel = "";
+  let Authentication = "";
+  let TR = "";
+  let phyMode = "";
+
   lines.forEach((line) => {
     const trimmedLine = line.trim();
-    if (trimmedLine.startsWith("SSID")) {
+
+    if (trimmedLine.startsWith("Name")) {
+      SSID = "SSID";
+      BSSID = "BSSID";
+      Signal = "Signal";
+      Channel = "Channel";
+      Authentication = "Authentication";
+      TR = "Transmit rate (Mbps)";
+      phyMode = "Radio Type";
+    } else if (trimmedLine.startsWith("Nome")) {
+      SSID = "SSID";
+      BSSID = "BSSID";
+      Signal = "Segnale";
+      Channel = "Canale";
+      Authentication = "Autenticazione";
+      TR = "Velocità trasmissione (Mbps)";
+      phyMode = "Tipo frequenza radio";
+    }
+  });
+
+  lines.forEach((line) => {
+    const trimmedLine = line.trim();
+    if (trimmedLine.startsWith(SSID)) {
       networkInfo.ssid = trimmedLine.split(":")[1]?.trim() || "";
-    } else if (trimmedLine.startsWith("BSSID")) {
+    } else if (trimmedLine.startsWith(BSSID)) {
       const colonIndex = trimmedLine.indexOf(":");
       networkInfo.bssid = trimmedLine.substring(colonIndex + 1).trim();
-    } else if (trimmedLine.startsWith("Signal")) {
+    } else if (trimmedLine.startsWith(Signal)) {
       const signal = trimmedLine.split(":")[1]?.trim() || "";
       networkInfo.rssi = parseInt(signal.replace("%", ""));
-    } else if (trimmedLine.startsWith("Channel")) {
+    } else if (trimmedLine.startsWith(Channel)) {
       const channel = parseInt(trimmedLine.split(":")[1]?.trim() || "0");
       networkInfo.channel = channel;
-      // Set frequency based on channel number (2.4GHz for channels 1-14, 5GHz for higher)
       networkInfo.frequency = channel > 14 ? 5 : 2.4;
-    } else if (trimmedLine.startsWith("Radio type")) {
+    } else if (trimmedLine.startsWith(phyMode)) {
       networkInfo.phyMode = trimmedLine.split(":")[1]?.trim() || "";
-    } else if (trimmedLine.startsWith("Authentication")) {
+    } else if (trimmedLine.startsWith(Authentication)) {
       networkInfo.security = trimmedLine.split(":")[1]?.trim() || "";
-    } else if (trimmedLine.startsWith("Transmit rate")) {
+    } else if (trimmedLine.startsWith(TR)) {
       const rate = trimmedLine.split(":")[1]?.trim() || "";
       networkInfo.txRate = parseFloat(rate.split(" ")[0]);
     }
