@@ -49,7 +49,7 @@ A Windows support was added subsequently.
 
 ## How does this work
 
-It's actually pretty simple. The app is written in Next.js. To get the information, we invoke the `iperf3`, `wdutil` and `ioreg` commands via JS `child_process` and parse the output. The webapp then just stores everything in simple JSON "database" file.
+It's actually pretty simple. The app is written in Next.js. To get the information, we invoke the `iperf3`, `wdutil` and `ioreg` commands (or equivalent on different platforms) via JS `child_process` and parse the output. The webapp then just stores everything in simple JSON "database" file.
 
 ## Credits
 
@@ -59,11 +59,16 @@ This project was inspired by [python-wifi-survey-heatmap](https://github.com/jan
 
 Feel free to contribute to this project by opening an issue or submitting a pull request. I am more than happy for that!
 
+## Problems
+
+This tool relies on command line utilities that are able to parse information about wifi. The problem is that the major proprietary OS vendors like Mac or Windows are making this stupidly hard. For example, `wdutil` worked on MacOS 14, stopped working (SSID and BSSID started to show as `<redacted>` as if this is useful for anyone 🙄) on 15.0-15.2, and started working again on 15.3. There are often multiple ways how to get this, but again, this is time consuming and very annoying. Linux is likely much more stable in this, making this easily extensible to that platform.
+
 ### Some ideas one could work on:
 
-1. extend this to work on Windows and Linux
+1. extend this to work on Linux (should be a piece of cake as opposed to the trash MacOS has)
 2. find out how to get RSSI and other stuff from `ioreg` so sudo is not needed (for `wdutil`)
 3. make the app more user-friendly and informative (step by step wizard for the measurements)
 4. serialize the image to the database file so it can be loaded later
 5. add leaflet to make the maps interactive
 6. load/save heatmap config to database
+7. infer the relevant command/OS version and use the relevant commands and parser based on that to make this multi-platform.
