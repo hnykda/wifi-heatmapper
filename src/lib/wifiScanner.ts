@@ -1,8 +1,5 @@
-import { exec } from "child_process";
-import util from "util";
 import { ScannerSettings, WifiNetwork } from "./types";
-
-const execAsync = util.promisify(exec);
+import { execAsync } from "./server-utils";
 
 const getDefaultWifiNetwork = (): WifiNetwork => ({
   ssid: "",
@@ -89,7 +86,6 @@ const getIoregBssid = async (): Promise<string> => {
   );
   return stdout.trim();
 };
-
 
 export async function scanWifiMacOS(
   settings: ScannerSettings,

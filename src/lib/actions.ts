@@ -11,6 +11,7 @@ import {
   writeDatabase,
 } from "./database";
 import { SurveyPoint, Database } from "./types";
+import { execAsync } from "./server-utils";
 
 export async function startSurvey(
   dbPath: string,
@@ -93,3 +94,19 @@ export const uploadImage = async (dbPath: string, formData: FormData) => {
     Buffer.from(await file.arrayBuffer()),
   );
 };
+
+export async function getPlatform() {
+  return process.platform === "darwin"
+    ? "macos"
+    : process.platform === "win32"
+      ? "windows"
+      : "linux";
+}
+
+export async function inferWifiDeviceIdOnLinux(): Promise<string> {
+  console.debug("Inferring WLAN interface ID on Linux");
+  const { stdout } = await execAsync(
+    "iw dev | awk '$1==\"Interface\"{print $2}' | head -n1",
+  );
+  return stdout.trim();
+}

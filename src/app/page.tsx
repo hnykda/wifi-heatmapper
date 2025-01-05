@@ -8,6 +8,8 @@ import {
   updateFloorplanImage,
   updateDbField,
   uploadImage,
+  getPlatform,
+  inferWifiDeviceIdOnLinux,
 } from "@/lib/actions";
 import { ApMapping, Database, SurveyPoint } from "@/lib/types";
 import { getDefaults } from "@/lib/utils";
@@ -32,6 +34,7 @@ export default function Home() {
   const [wlanInterfaceId, setWlanInterfaceId] = useState("");
   const [alertMessage, setAlertMessage] = useState("");
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+  const [platform, setPlatform] = useState("");
   const { toast } = useToast();
 
   const loadSurveyData = useCallback(async () => {
@@ -41,6 +44,14 @@ export default function Home() {
 
   useEffect(() => {
     loadSurveyData();
+    getPlatform().then((platform) => {
+      setPlatform(platform);
+      if (platform === "linux" && !wlanInterfaceId) {
+        inferWifiDeviceIdOnLinux().then((wlanInterfaceId) => {
+          setWlanInterfaceId(wlanInterfaceId);
+        });
+      }
+    });
   }, [loadSurveyData]);
 
   const handlePointClick = async (x: number, y: number) => {
@@ -198,22 +209,26 @@ export default function Home() {
             helpText="IP address of the iperf3 server against which the tests will be run. Can be in the form of 192.168.0.42 or with port 192.168.0.42:5201"
           />
 
-          <EditableField
-            label="(macOS only) Sudoer Password"
-            value={sudoerPassword}
-            onSave={setSudoerPassword}
-            type="password"
-            placeholder="passw0rd"
-            helpText="(macOS only) Password for sudoer user (needed for wdutil info command)."
-          />
+          {platform === "macos" && (
+            <EditableField
+              label="Sudoer Password"
+              value={sudoerPassword}
+              onSave={setSudoerPassword}
+              type="password"
+              placeholder="passw0rd"
+              helpText="Password for sudoer user (needed for wdutil info command). macOS only"
+            />
+          )}
 
-          <EditableField
-            label="(linux only) WLAN Interface ID"
-            value={wlanInterfaceId}
-            onSave={setWlanInterfaceId}
-            placeholder="wlp3s0"
-            helpText="(linux only) ID of the WLAN interface to use for scanning. Can be found with 'iw dev' command."
-          />
+          {platform === "linux" && (
+            <EditableField
+              label="WLAN Interface ID"
+              value={wlanInterfaceId}
+              onSave={setWlanInterfaceId}
+              placeholder="wlp3s0"
+              helpText="ID of the WLAN interface to use for scanning. We try to infer it automatically, but you can set it manually if it fails. Linux only"
+            />
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="floorplanImage">
@@ -227,6 +242,9 @@ export default function Home() {
               onChange={handleFloorplanChange}
               className="h-9"
             />
+          </div>
+          <div>
+            <h3 className="font-bold">Platform: {platform}</h3>
           </div>
         </div>
 
