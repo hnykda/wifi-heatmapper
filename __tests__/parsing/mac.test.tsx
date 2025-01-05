@@ -15,7 +15,7 @@ WIFI
     Power                : On [On]
     Op Mode              : STA
     SSID                 : SomeSSID
-    BSSID                : BS:34:56:78:90:AC
+    BSSID                : BA:34:56:78:90:AC
     RSSI                 : -79 dBm
     CCA                  : 16 %
     Noise                : -91 dBm
@@ -60,7 +60,7 @@ POWER
   `;
   const output = parseWdutilOutput(input);
   expect(output).toStrictEqual({
-    bssid: "bs34567890ac",
+    bssid: "ba34567890ac",
     channel: 44,
     channelWidth: 40,
     frequency: 5,
