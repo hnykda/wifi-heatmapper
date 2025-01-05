@@ -1,6 +1,10 @@
 import React, { useState } from "react";
 import { SurveyPoint } from "@/lib/types";
-import { formatMacAddress, metricFormatter } from "@/lib/utils";
+import {
+  formatMacAddress,
+  metricFormatter,
+  rssiToPercentage,
+} from "@/lib/utils";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
@@ -26,6 +30,10 @@ const PopupDetails: React.FC<PopupDetailsProps> = ({
   const rows = [
     { label: "ID", value: point.id },
     { label: "RSSI", value: `${point.wifiData?.rssi} dBm` },
+    {
+      label: "Signal Strength",
+      value: `${point.wifiData?.signalStrength || rssiToPercentage(point.wifiData?.rssi)}%`,
+    },
     { label: "Created", value: new Date(point.timestamp).toLocaleString() },
     { label: "SSID", value: point.wifiData?.ssid },
     { label: "Channel", value: point.wifiData?.channel },

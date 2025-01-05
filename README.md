@@ -73,6 +73,8 @@ This tool relies on command line utilities that are able to parse information ab
 
 I have made an extensive search for any cross-platform libraries in JS or Python that would do this, but I haven't found any that would do what I need and be maintained and updated (somewhat understandably, this is pretty annoying). Also, a lot of these libs focus on also manipulating connection, while we only need to read information about it (so slightly easier task). Therefore, for the foreseable future, this app is going to do it low-level raw CLI commands, ideally built-ins, with as little privileges and configuration as possible.
 
+Also, different platforms/versions of tools return different fields. Example is Windows's `netsh` that doesn't return signal strength as `RSSI` but as `Signal Strength` instead. We try to be clever and use whichever is available and appropriate.
+
 ### Some ideas one could work on:
 
 1. extend this to work on Linux (should be a piece of cake as opposed to the trash MacOS has)
