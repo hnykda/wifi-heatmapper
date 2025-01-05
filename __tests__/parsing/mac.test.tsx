@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { scanWifiMacOS, parseWdutilOutput } from "../../src/lib/wifiScanner";
+import { parseWdutilOutput } from "../../src/lib/wifiScanner";
 
 test("parsing wdutil output", () => {
   const input = `
@@ -72,4 +72,3 @@ POWER
     txRate: 103,
   });
 });
-
