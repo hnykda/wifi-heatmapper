@@ -8,9 +8,6 @@ jobs:
   node-checks:
     name: Node.js Checks
     runs-on: ubuntu-22.04
-    defaults:
-      run:
-        working-directory: platform
 
     steps:
       - uses: actions/checkout@v4
