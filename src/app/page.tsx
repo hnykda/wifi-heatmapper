@@ -145,30 +145,26 @@ export default function Home() {
       </div>
     );
 
-  const handleDelete = (ids: string[]) => {
-    setSurveyData((prev: Database) => {
-      const newPoints = prev.surveyPoints.filter(
-        (point) => !ids.includes(point.id),
-      );
-      updateDbField(dbPath, "surveyPoints", newPoints);
-      return {
-        ...prev,
-        surveyPoints: newPoints,
-      };
-    });
+  const handleDelete = async (ids: string[]) => {
+    const newPoints = surveyData.surveyPoints.filter(
+      (point) => !ids.includes(point.id),
+    );
+    await updateDbField(dbPath, "surveyPoints", newPoints);
+    setSurveyData((prev: Database) => ({
+      ...prev,
+      surveyPoints: newPoints,
+    }));
   };
 
-  const updateDatapoint = (id: string, data: Partial<SurveyPoint>) => {
-    setSurveyData((prev: Database) => {
-      const newPoints = prev.surveyPoints.map((point) =>
-        point.id === id ? { ...point, ...data } : point,
-      );
-      updateDbField(dbPath, "surveyPoints", newPoints);
-      return {
-        ...prev,
-        surveyPoints: newPoints,
-      };
-    });
+  const updateDatapoint = async (id: string, data: Partial<SurveyPoint>) => {
+    const newPoints = surveyData.surveyPoints.map((point) =>
+      point.id === id ? { ...point, ...data } : point,
+    );
+    await updateDbField(dbPath, "surveyPoints", newPoints);
+    setSurveyData((prev: Database) => ({
+      ...prev,
+      surveyPoints: newPoints,
+    }));
   };
 
   const activePoints = surveyData.surveyPoints.filter(
