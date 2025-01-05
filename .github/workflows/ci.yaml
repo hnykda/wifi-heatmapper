@@ -1,0 +1,36 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  node-checks:
+    name: Node.js Checks
+    runs-on: ubuntu-22.04
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: |
+          npm install
+
+      - name: Run lint
+        run: |
+          npm run lint
+
+      - name: Run type check
+        run: |
+          npm run typecheck
+
+      - name: Run tests
+        run: npm run test
+  

@@ -15,7 +15,6 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { Toaster } from "@/components/ui/toaster";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import React from "react";
 
 import { Heatmaps } from "@/components/Heatmaps";
 import { ClickableFloorplan } from "@/components/Floorplan";
@@ -56,7 +55,12 @@ export default function Home() {
       return;
     }
 
-    if (!sudoerPassword) {
+    const runningPlatform = process.platform;
+
+    if (!sudoerPassword && runningPlatform == "darwin") {
+      console.warn(
+        "No sudoer password set, but running on macOS where it's required for wdutil info command",
+      );
       setAlertMessage(
         "Please set sudoer password so we can run wdutil info command",
       );
@@ -79,7 +83,7 @@ export default function Home() {
         testDuration: surveyData.testDuration,
         sudoerPassword,
       });
-      setSurveyData((prev) =>
+      setSurveyData((prev: Database) =>
         prev
           ? {
               ...prev,
@@ -139,7 +143,7 @@ export default function Home() {
     );
 
   const handleDelete = (ids: string[]) => {
-    setSurveyData((prev) => {
+    setSurveyData((prev: Database) => {
       const newPoints = prev.surveyPoints.filter(
         (point) => !ids.includes(point.id),
       );
@@ -152,7 +156,7 @@ export default function Home() {
   };
 
   const updateDatapoint = (id: string, data: Partial<SurveyPoint>) => {
-    setSurveyData((prev) => {
+    setSurveyData((prev: Database) => {
       const newPoints = prev.surveyPoints.map((point) =>
         point.id === id ? { ...point, ...data } : point,
       );
@@ -165,7 +169,7 @@ export default function Home() {
   };
 
   const activePoints = surveyData.surveyPoints.filter(
-    (point) => !point.isDisabled,
+    (point: SurveyPoint) => !point.isDisabled,
   );
 
   return (
@@ -195,14 +199,16 @@ export default function Home() {
             helpText="IP address of the iperf3 server against which the tests will be run. Can be in the form of 192.168.0.42 or with port 192.168.0.42:5201"
           />
 
-          <EditableField
-            label="Sudoer Password"
-            value={sudoerPassword}
-            onSave={setSudoerPassword}
-            type="password"
-            placeholder="passw0rd"
-            helpText="Password for sudoer user (needed for wdutil info command)."
-          />
+          {process.platform == "darwin" && (
+            <EditableField
+              label="Sudoer Password"
+              value={sudoerPassword}
+              onSave={setSudoerPassword}
+              type="password"
+              placeholder="passw0rd"
+              helpText="Password for sudoer user (needed for wdutil info command on macOS)."
+            />
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="floorplanImage">

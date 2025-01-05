@@ -1,6 +1,7 @@
 # WiFi Heatmapper
 
-This project is a WiFi heatmapper solution for macOS, inspired by [python-wifi-survey-heatmap](https://github.com/jantman/python-wifi-survey-heatmap). I wanted to create a heatmap of my WiFi coverage, but the original project didn't work because I am running on Mac (Apple Sillicon).
+This project is a WiFi heatmapper solution for macOS/Windows, inspired by [python-wifi-survey-heatmap](https://github.com/jantman/python-wifi-survey-heatmap). I wanted to create a heatmap of my WiFi coverage, but the original project didn't work because I am running on Mac (Apple Sillicon).
+A Windows support was added subsequently.
 
 ![Screenshot](various/top1.jpg)
 ![Screenshot](various/top2.jpg)
@@ -11,8 +12,12 @@ This project is a WiFi heatmapper solution for macOS, inspired by [python-wifi-s
 
 ## Prerequisites
 
-- macOS (tested on Apple M2, Sequoia 15)
-- `npm` and `iperf3` installed (can be installed via `brew install npm iperf3`)
+- macOS (tested on Apple M2, Sequoia 15) or Windows
+- `npm` and `iperf3` installed (on macOS can be installed via `brew install npm iperf3`)
+
+> [!IMPORTANT]  
+> `iperf3` must be available in `PATH`. For Windows you might have to do something like `set PATH=%PATH%;C:\path\to\iperf3`, e.g. do `set PATH=%PATH%;C:\iperf3` (or `setx` to make it permanent) before running `npm run dev`.
+
 
 ## Installation
 
@@ -22,7 +27,9 @@ This project is a WiFi heatmapper solution for macOS, inspired by [python-wifi-s
 
 ## Usage
 
-1. Start the application from where you want to run the tests (very likely your Mac laptop so you can move around the house):
+
+0. check that your `iperf3` command works by `iperf3 --version`
+1. Start the application from where you want to run the tests (very likely your Mac/Windows laptop so you can move around the house):
 
    ```bash
    npm run dev
@@ -42,7 +49,7 @@ This project is a WiFi heatmapper solution for macOS, inspired by [python-wifi-s
 
 ## How does this work
 
-It's actually pretty simple. The app is written in Next.js. To get the information, we invoke the `iperf3`, `wdutil` and `ioreg` commands via JS `child_process` and parse the output. The webapp then just stores everything in simple JSON "database" file.
+It's actually pretty simple. The app is written in Next.js. To get the information, we invoke the `iperf3`, `wdutil` and `ioreg` commands (or equivalent on different platforms) via JS `child_process` and parse the output. The webapp then just stores everything in simple JSON "database" file.
 
 ## Credits
 
@@ -52,11 +59,16 @@ This project was inspired by [python-wifi-survey-heatmap](https://github.com/jan
 
 Feel free to contribute to this project by opening an issue or submitting a pull request. I am more than happy for that!
 
+## Problems
+
+This tool relies on command line utilities that are able to parse information about wifi. The problem is that the major proprietary OS vendors like Mac or Windows are making this stupidly hard. For example, `wdutil` worked on MacOS 14, stopped working (SSID and BSSID started to show as `<redacted>` as if this is useful for anyone 🙄) on 15.0-15.2, and started working again on 15.3. There are often multiple ways how to get this, but again, this is time consuming and very annoying. Linux is likely much more stable in this, making this easily extensible to that platform.
+
 ### Some ideas one could work on:
 
-1. extend this to work on Windows and Linux
+1. extend this to work on Linux (should be a piece of cake as opposed to the trash MacOS has)
 2. find out how to get RSSI and other stuff from `ioreg` so sudo is not needed (for `wdutil`)
 3. make the app more user-friendly and informative (step by step wizard for the measurements)
 4. serialize the image to the database file so it can be loaded later
 5. add leaflet to make the maps interactive
 6. load/save heatmap config to database
+7. infer the relevant command/OS version and use the relevant commands and parser based on that to make this multi-platform.
