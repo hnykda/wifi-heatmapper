@@ -13,10 +13,11 @@ A Windows support was added subsequently.
 ## Prerequisites
 
 - macOS (tested on Apple M2, Sequoia 15) or Windows
-- `npm` and `iperf3` installed (can be installed via `brew install npm iperf3`)
-   - `iperf3` must be available in `PATH`, i.e. from the terminal you are running `npm run dev` you **must** be able to run e.g. `iperf3 --version` just fine. This is 
-      likely default on macOS if you used e.g. `brew iperf3` (as if you have "normally" configured `brew`, it adds `iperf3` binary into directory that is in your path), but for Windows
-      you might have to do something like `set PATH=%PATH%;C:\path\to\iperf3`, e.g. do `set PATH=%PATH%;C:\iperf3` (or `setx` to make it permanent) before running `npm run dev`
+- `npm` and `iperf3` installed (on macOS can be installed via `brew install npm iperf3`)
+
+> [!IMPORTANT]  
+> `iperf3` must be available in `PATH`. For Windows you might have to do something like `set PATH=%PATH%;C:\path\to\iperf3`, e.g. do `set PATH=%PATH%;C:\iperf3` (or `setx` to make it permanent) before running `npm run dev`.
+
 
 ## Installation
 
