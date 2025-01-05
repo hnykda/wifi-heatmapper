@@ -23,7 +23,7 @@ rx bitrate: 780.0 MBit/s
   const output = parseIwOutput(linkOutput, infoOutput);
   expect(output).toStrictEqual({
     ssid: "HomeNetwork_5G",
-    bssid: "e8:de:27:3f:19:7c",
+    bssid: "e8de273f197c",
     rssi: -56,
     channel: 36,
     signalStrength: 0,
