@@ -36,7 +36,7 @@ This utility relies on parsing outputs of the following CLI commands.
 
 ## Usage
 
-0. check that your `iperf3` command works by `iperf3 --version`
+1. (optional check) that your `iperf3` command works by `iperf3 --version`
 1. Start the application from where you want to run the tests (very likely your Mac/Windows laptop so you can move around the house):
 
    ```bash

@@ -30,7 +30,7 @@ const hasValidData = (wifiData: WifiNetwork): boolean => {
  * Gets the current WiFi network name, BSSID of the AP it's connected to, and the RSSI.
  */
 export async function scanWifi(
-  settings: ScannerSettings,
+  settings: ScannerSettings
 ): Promise<WifiNetwork> {
   let wifiData: WifiNetwork | null = null;
 
@@ -51,7 +51,7 @@ export async function scanWifi(
     console.error("Error scanning WiFi:", error);
     if (error.message.includes("sudo")) {
       console.error(
-        "This command requires sudo privileges. Please run the application with sudo.",
+        "This command requires sudo privileges. Please run the application with sudo."
       );
     }
     throw error;
@@ -60,27 +60,32 @@ export async function scanWifi(
   if (!hasValidData(wifiData)) {
     throw new Error(
       "Measurement failed. We were not able to get good enough WiFi data: " +
-        JSON.stringify(wifiData),
+        JSON.stringify(wifiData)
     );
   }
 
   return wifiData;
 }
 
+const normalizeMacAddress = (macAddress: string): string => {
+  return macAddress.replace(/[:-]/g, "").toLowerCase();
+};
+
 const isValidMacAddress = (macAddress: string): boolean => {
-  return /^([0-9A-Fa-f]{2}-){5}[0-9A-Fa-f]{2}$/.test(macAddress);
+  const cleanedMacAddress = normalizeMacAddress(macAddress);
+  return /^[0-9a-f]{12}$/.test(cleanedMacAddress);
 };
 
 const getIoregSsid = async (): Promise<string> => {
   const { stdout } = await execAsync(
-    "ioreg -l -n AirPortDriver | grep IO80211SSID | sed 's/^.*= \"\\(.*\\)\".*$/\\1/; s/ /_/g'",
+    "ioreg -l -n AirPortDriver | grep IO80211SSID | sed 's/^.*= \"\\(.*\\)\".*$/\\1/; s/ /_/g'"
   );
   return stdout.trim();
 };
 
 const getIoregBssid = async (): Promise<string> => {
   const { stdout } = await execAsync(
-    "ioreg -l | grep \"IO80211BSSID\" | awk -F' = ' '{print $2}' | sed 's/[<>]//g'",
+    "ioreg -l | grep \"IO80211BSSID\" | awk -F' = ' '{print $2}' | sed 's/[<>]//g'"
   );
   return stdout.trim();
 };
@@ -95,10 +100,10 @@ const getIoregBssid = async (): Promise<string> => {
  * @returns The WiFi network information.
  */
 export async function scanWifiMacOS(
-  settings: ScannerSettings,
+  settings: ScannerSettings
 ): Promise<WifiNetwork> {
   const wdutilOutput = await execAsync(
-    `echo ${settings.sudoerPassword} | sudo -S wdutil info`,
+    `echo ${settings.sudoerPassword} | sudo -S wdutil info`
   );
   const wdutilNetworkInfo = parseWdutilOutput(wdutilOutput.stdout);
 
@@ -159,7 +164,7 @@ export function parseWdutilOutput(output: string): WifiNetwork {
           networkInfo.ssid = value;
           break;
         case "BSSID":
-          networkInfo.bssid = value;
+          networkInfo.bssid = normalizeMacAddress(value);
           break;
         case "RSSI":
           networkInfo.rssi = parseInt(value.split(" ")[0]);
@@ -167,7 +172,7 @@ export function parseWdutilOutput(output: string): WifiNetwork {
         case "Channel": {
           const channelParts = value.split("/");
           networkInfo.frequency = parseInt(
-            channelParts[0].match(/\d+/)?.[0] ?? "0",
+            channelParts[0].match(/\d+/)?.[0] ?? "0"
           );
           networkInfo.channel = parseInt(channelParts[0].substring(2));
           if (channelParts[1]) {
@@ -204,7 +209,9 @@ export function parseNetshOutput(output: string): WifiNetwork {
       networkInfo.ssid = trimmedLine.split(":")[1]?.trim() || "";
     } else if (trimmedLine.startsWith("BSSID")) {
       const colonIndex = trimmedLine.indexOf(":");
-      networkInfo.bssid = trimmedLine.substring(colonIndex + 1).trim();
+      networkInfo.bssid = normalizeMacAddress(
+        trimmedLine.substring(colonIndex + 1).trim()
+      );
     } else if (trimmedLine.startsWith("Signal")) {
       // netsh uses signal instead of rssi
       const signal = trimmedLine.split(":")[1]?.trim() || "";
@@ -229,7 +236,7 @@ export function parseNetshOutput(output: string): WifiNetwork {
 
 export function parseIwOutput(
   linkOutput: string,
-  infoOutput: string,
+  infoOutput: string
 ): WifiNetwork {
   const networkInfo = getDefaultWifiNetwork();
 
@@ -239,7 +246,9 @@ export function parseIwOutput(
     if (trimmedLine.startsWith("SSID:")) {
       networkInfo.ssid = trimmedLine.split("SSID:")[1]?.trim() || "";
     } else if (trimmedLine.startsWith("Connected to")) {
-      networkInfo.bssid = trimmedLine.split(" ")[2]?.trim() || "";
+      networkInfo.bssid = normalizeMacAddress(
+        trimmedLine.split(" ")[2]?.trim() || ""
+      );
     } else if (trimmedLine.startsWith("signal:")) {
       const signalMatch = trimmedLine.match(/signal:\s*(-?\d+)\s*dBm/);
       if (signalMatch) {
@@ -265,7 +274,7 @@ export function parseIwOutput(
     const trimmedLine = line.trim();
     if (trimmedLine.startsWith("channel")) {
       const channelMatch = trimmedLine.match(
-        /channel\s+(\d+)\s+\((\d+)\s*MHz\),\s*width:\s*(\d+)\s*MHz/,
+        /channel\s+(\d+)\s+\((\d+)\s*MHz\),\s*width:\s*(\d+)\s*MHz/
       );
       if (channelMatch) {
         networkInfo.channel = parseInt(channelMatch[1]);
