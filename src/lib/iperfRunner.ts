@@ -2,6 +2,8 @@ import { exec } from "child_process";
 import util from "util";
 import { IperfResults, IperfTestProperty, WifiNetwork } from "./types";
 import { scanWifi } from "./wifiScanner";
+import os from "os";
+const platform = os.platform();
 
 const execAsync = util.promisify(exec);
 
@@ -85,9 +87,16 @@ async function runSingleTest(
     server = host;
     port = serverPort;
   }
-  const command = `iperf3 -c ${server} ${
-    port ? `-p ${port}` : ""
-  } -t ${duration} ${isDownload ? "-R" : ""} ${isUdp ? "-u -b 0" : ""} -J`;
+  let command;
+  if ( platform == "win32" ) {
+	command = `C:/iperf3/iperf3.exe -c ${server} ${
+	  port ? `-p ${port}` : ""
+	} -t ${duration} ${isDownload ? "-R" : ""} ${isUdp ? "-u -b 0" : ""} -J`;
+  } else {
+	command = `iperf3 -c ${server} ${
+	  port ? `-p ${port}` : ""
+	} -t ${duration} ${isDownload ? "-R" : ""} ${isUdp ? "-u -b 0" : ""} -J`;
+  }
   const { stdout } = await execAsync(command);
   const result = JSON.parse(stdout);
   return extractIperfResults(result);
