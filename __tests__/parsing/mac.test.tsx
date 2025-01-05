@@ -60,12 +60,13 @@ POWER
   `;
   const output = parseWdutilOutput(input);
   expect(output).toStrictEqual({
-    bssid: "BS:34:56:78:90:AC",
+    bssid: "bs34567890ac",
     channel: 44,
     channelWidth: 40,
     frequency: 5,
     phyMode: "11ax",
     rssi: -79,
+    signalStrength: 0,
     security: "WPA2 Personal",
     ssid: "SomeSSID",
     txRate: 103,

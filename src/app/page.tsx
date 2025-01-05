@@ -1,4 +1,5 @@
 "use client";
+
 import { useState, useEffect, useCallback } from "react";
 import {
   startSurvey,
@@ -28,6 +29,7 @@ export default function Home() {
   const [status, setStatus] = useState<"ready" | "running" | "error">("ready");
   const [dbPath, setDbPath] = useState("data/db.json");
   const [sudoerPassword, setSudoerPassword] = useState("");
+  const [wlanInterfaceId, setWlanInterfaceId] = useState("");
   const [alertMessage, setAlertMessage] = useState("");
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const { toast } = useToast();
@@ -82,6 +84,7 @@ export default function Home() {
       const newPoint = await startSurvey(dbPath, x, y, {
         testDuration: surveyData.testDuration,
         sudoerPassword,
+        wlanInterfaceId,
       });
       setSurveyData((prev: Database) =>
         prev
@@ -142,30 +145,26 @@ export default function Home() {
       </div>
     );
 
-  const handleDelete = (ids: string[]) => {
-    setSurveyData((prev: Database) => {
-      const newPoints = prev.surveyPoints.filter(
-        (point) => !ids.includes(point.id),
-      );
-      updateDbField(dbPath, "surveyPoints", newPoints);
-      return {
-        ...prev,
-        surveyPoints: newPoints,
-      };
-    });
+  const handleDelete = async (ids: string[]) => {
+    const newPoints = surveyData.surveyPoints.filter(
+      (point) => !ids.includes(point.id),
+    );
+    await updateDbField(dbPath, "surveyPoints", newPoints);
+    setSurveyData((prev: Database) => ({
+      ...prev,
+      surveyPoints: newPoints,
+    }));
   };
 
-  const updateDatapoint = (id: string, data: Partial<SurveyPoint>) => {
-    setSurveyData((prev: Database) => {
-      const newPoints = prev.surveyPoints.map((point) =>
-        point.id === id ? { ...point, ...data } : point,
-      );
-      updateDbField(dbPath, "surveyPoints", newPoints);
-      return {
-        ...prev,
-        surveyPoints: newPoints,
-      };
-    });
+  const updateDatapoint = async (id: string, data: Partial<SurveyPoint>) => {
+    const newPoints = surveyData.surveyPoints.map((point) =>
+      point.id === id ? { ...point, ...data } : point,
+    );
+    await updateDbField(dbPath, "surveyPoints", newPoints);
+    setSurveyData((prev: Database) => ({
+      ...prev,
+      surveyPoints: newPoints,
+    }));
   };
 
   const activePoints = surveyData.surveyPoints.filter(
@@ -199,16 +198,22 @@ export default function Home() {
             helpText="IP address of the iperf3 server against which the tests will be run. Can be in the form of 192.168.0.42 or with port 192.168.0.42:5201"
           />
 
-          {process.platform == "darwin" && (
-            <EditableField
-              label="Sudoer Password"
-              value={sudoerPassword}
-              onSave={setSudoerPassword}
-              type="password"
-              placeholder="passw0rd"
-              helpText="Password for sudoer user (needed for wdutil info command on macOS)."
-            />
-          )}
+          <EditableField
+            label="(macOS only) Sudoer Password"
+            value={sudoerPassword}
+            onSave={setSudoerPassword}
+            type="password"
+            placeholder="passw0rd"
+            helpText="(macOS only) Password for sudoer user (needed for wdutil info command)."
+          />
+
+          <EditableField
+            label="(linux only) WLAN Interface ID"
+            value={wlanInterfaceId}
+            onSave={setWlanInterfaceId}
+            placeholder="wlp3s0"
+            helpText="(linux only) ID of the WLAN interface to use for scanning. Can be found with 'iw dev' command."
+          />
 
           <div className="space-y-2">
             <Label htmlFor="floorplanImage">

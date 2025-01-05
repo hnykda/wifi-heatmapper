@@ -1,7 +1,6 @@
 # WiFi Heatmapper
 
-This project is a WiFi heatmapper solution for macOS/Windows, inspired by [python-wifi-survey-heatmap](https://github.com/jantman/python-wifi-survey-heatmap). I wanted to create a heatmap of my WiFi coverage, but the original project didn't work because I am running on Mac (Apple Sillicon).
-A Windows support was added subsequently.
+This project is a WiFi heatmapper solution for macOS/Windows/Linux, inspired by [python-wifi-survey-heatmap](https://github.com/jantman/python-wifi-survey-heatmap). I wanted to create a heatmap of my WiFi coverage, but the original project didn't work because I am running on Mac (Apple Sillicon). I also wanted just something that might be slightly easier to use, i.e. via browser.
 
 ![Screenshot](various/top1.jpg)
 ![Screenshot](various/top2.jpg)
@@ -12,12 +11,22 @@ A Windows support was added subsequently.
 
 ## Prerequisites
 
-- macOS (tested on Apple M2, Sequoia 15) or Windows
-- `npm` and `iperf3` installed (on macOS can be installed via `brew install npm iperf3`)
+- macOS, Windows, Linux
+- `npm` and `iperf3` installed
+  - on macOS can be installed via `brew install npm iperf3`
+
+## Platform-Specific Commands
+
+This utility relies on parsing outputs of the following CLI commands.
+
+| Platform | Commands          | Notes                                                                                                                             |
+| -------- | ----------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| macOS    | `wdutil`, `ioreg` | Both are usually part of the system, sudo is needed for wdutil                                                                    |
+| Windows  | `netsh`           | Part of the system                                                                                                                |
+| Linux    | `iw`              | `iw` might need to be installed via your distro package manager, you will need to provide your wireless device id (e.g. "wlp4s0") |
 
 > [!IMPORTANT]  
-> `iperf3` must be available in `PATH`. For Windows you might have to do something like `set PATH=%PATH%;C:\path\to\iperf3`, e.g. do `set PATH=%PATH%;C:\iperf3` (or `setx` to make it permanent) before running `npm run dev`.
-
+> In all cases, `iperf3` must be available in `PATH`. For Windows you might have to do something like `set PATH=%PATH%;C:\path\to\iperf3`, e.g. do `set PATH=%PATH%;C:\iperf3` (or `setx` to make it permanent) before running `npm run dev`.
 
 ## Installation
 
@@ -27,8 +36,7 @@ A Windows support was added subsequently.
 
 ## Usage
 
-
-0. check that your `iperf3` command works by `iperf3 --version`
+1. (optional check) that your `iperf3` command works by `iperf3 --version`
 1. Start the application from where you want to run the tests (very likely your Mac/Windows laptop so you can move around the house):
 
    ```bash
@@ -61,7 +69,7 @@ Feel free to contribute to this project by opening an issue or submitting a pull
 
 ## Problems
 
-This tool relies on command line utilities that are able to parse information about wifi. The problem is that the major proprietary OS vendors like Mac or Windows are making this stupidly hard. For example, `wdutil` worked on MacOS 14, stopped working (SSID and BSSID started to show as `<redacted>` as if this is useful for anyone 🙄) on 15.0-15.2, and started working again on 15.3. There are often multiple ways how to get this, but again, this is time consuming and very annoying. Linux is likely much more stable in this, making this easily extensible to that platform.
+This tool relies on command line utilities that are able to parse information about wifi. The problem is that the major proprietary OS vendors like Mac or Windows are making this stupidly hard. For example, `wdutil` worked on MacOS 14, stopped working on 15.0-15.2 (SSID and BSSID started to show as `<redacted>` as if this is useful for anyone 🙄), and started working again on 15.3. There are often multiple ways how to get this, but again, this is time consuming and very annoying.
 
 ### Some ideas one could work on:
 

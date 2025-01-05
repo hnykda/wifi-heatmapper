@@ -30,8 +30,9 @@ There are 1 interfaces on the system:
   const output = parseNetshOutput(input);
   expect(output).toStrictEqual({
     ssid: "SomeSSID",
-    bssid: "bs:34:56:78:90:ac",
-    rssi: 42,
+    bssid: "bs34567890ac",
+    rssi: 0,
+    signalStrength: 42,
     channel: 44,
     frequency: 5, // 5GHz since channel is > 14
     channelWidth: 0, // Windows doesn't provide this info

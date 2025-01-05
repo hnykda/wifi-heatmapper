@@ -19,6 +19,7 @@ export async function startSurvey(
   testConfig: {
     testDuration: number;
     sudoerPassword: string;
+    wlanInterfaceId: string;
   },
 ): Promise<SurveyPoint> {
   const db = await readDatabase(dbPath);
@@ -27,7 +28,10 @@ export async function startSurvey(
   const { iperfResults, wifiData } = await runIperfTest(
     iperfServer,
     testConfig.testDuration,
-    testConfig.sudoerPassword,
+    {
+      sudoerPassword: testConfig.sudoerPassword,
+      wlanInterfaceId: testConfig.wlanInterfaceId,
+    },
   );
 
   const newPoint: SurveyPoint = {

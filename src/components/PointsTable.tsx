@@ -243,7 +243,10 @@ const SurveyPointsTable: React.FC<SurveyPointsTableProps> = ({
         udpUploadMbps: convertToMbps(
           point.iperfResults.udpUpload.bitsPerSecond,
         ),
-        signalQuality: rssiToPercentage(point.wifiData.rssi),
+        // we take the signal strength from the wifi scanner if available, otherwise we use the rssi
+        signalQuality:
+          point.wifiData.signalStrength ||
+          rssiToPercentage(point.wifiData.rssi),
         frequency: `${point.wifiData.frequency} Mhz`,
         timestamp: new Date(point.timestamp).toLocaleString(),
       };

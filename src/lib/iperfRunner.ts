@@ -1,6 +1,11 @@
 import { exec } from "child_process";
 import util from "util";
-import { IperfResults, IperfTestProperty, WifiNetwork } from "./types";
+import {
+  IperfResults,
+  IperfTestProperty,
+  WifiNetwork,
+  ScannerSettings,
+} from "./types";
 import { scanWifi } from "./wifiScanner";
 
 const execAsync = util.promisify(exec);
@@ -20,7 +25,7 @@ const validateWifiDataConsistency = (
 export async function runIperfTest(
   server: string,
   duration: number,
-  sudoerPassword: string,
+  settings: ScannerSettings,
 ): Promise<{ iperfResults: IperfResults; wifiData: WifiNetwork }> {
   try {
     const maxRetries = 3;
@@ -31,12 +36,12 @@ export async function runIperfTest(
     // TODO: only retry the one that failed
     while (attempts < maxRetries && !results) {
       try {
-        const wifiDataBefore = await scanWifi(sudoerPassword);
+        const wifiDataBefore = await scanWifi(settings);
         const tcpDownload = await runSingleTest(server, duration, true, false);
         const tcpUpload = await runSingleTest(server, duration, false, false);
         const udpDownload = await runSingleTest(server, duration, true, true);
         const udpUpload = await runSingleTest(server, duration, false, true);
-        const wifiDataAfter = await scanWifi(sudoerPassword);
+        const wifiDataAfter = await scanWifi(settings);
 
         if (!validateWifiDataConsistency(wifiDataBefore, wifiDataAfter)) {
           throw new Error(
