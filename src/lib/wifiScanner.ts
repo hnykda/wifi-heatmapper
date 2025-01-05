@@ -91,12 +91,12 @@ function parseWdutilOutput(output: string): WifiNetwork {
       case "Channel": {
         const channelParts = value.split(" ");
         networkInfo.frequency = parseInt(
-          channelParts[0].match(/\d+/)?.[0] ?? "0"
+          channelParts[0].match(/\d+/)?.[0] ?? "0",
         );
         networkInfo.channel = parseInt(channelParts[0].substring(2));
         if (channelParts[1]) {
           networkInfo.channelWidth = parseInt(
-            channelParts[1].replace(/[()]/g, "")
+            channelParts[1].replace(/[()]/g, ""),
           );
         } else {
           networkInfo.channelWidth = 0;
