@@ -1,4 +1,6 @@
 "use client";
+import os from "os";
+const platform = os.platform();
 import { useState, useEffect, useCallback } from "react";
 import {
   startSurvey,
@@ -56,7 +58,7 @@ export default function Home() {
       return;
     }
 
-    if (!sudoerPassword) {
+    if (!sudoerPassword && platform == "win32") {
       setAlertMessage(
         "Please set sudoer password so we can run wdutil info command",
       );
