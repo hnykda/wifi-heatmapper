@@ -90,15 +90,7 @@ const getIoregBssid = async (): Promise<string> => {
   return stdout.trim();
 };
 
-/**
- * Scans the WiFi network on macOS using wdutil and ioreg.
- * We use wdutil information primarily as it provides all information at once. However,
- * because it sometimes returns rubbish or incorrect information, we also use ioreg
- * to get the SSID and BSSID. These are run concurrently and because ioreg is fast
- * we can run it always as well.
- * @param sudoerPassword - The password for the sudoer user.
- * @returns The WiFi network information.
- */
+
 export async function scanWifiMacOS(
   settings: ScannerSettings,
 ): Promise<WifiNetwork> {
