@@ -69,15 +69,15 @@ Feel free to contribute to this project by opening an issue or submitting a pull
 
 ## Notes
 
-This tool relies on command line utilities that are able to parse information about wifi. The problem is that the major proprietary OS vendors like Mac or Windows are making this stupidly hard. For example, `wdutil` worked on MacOS 14, stopped working on 15.0-15.2 (SSID and BSSID started to show as `<redacted>` as if this is useful for anyone 🙄), and started working again on 15.3. There are often multiple ways how to get this, but again, this is time consuming and very annoying.
+This tool relies on command line utilities that are able to get information about the system's wifi. The problem is that the major proprietary OS vendors like Mac or Windows are making this unnecessarily hard. For example, `wdutil` worked on MacOS 14, stopped working on 15.0-15.2 (SSID and BSSID started to show as `<redacted>` as if this is useful for anyone 🙄), and started working again on 15.3 🤷‍♂️. On Windows, `netsh` is language localized, so it is hard to parse reliably. There often are multiple ways how to get the information and I am sure we could have gazilion of fallbacks and strategies (effectively what we do), but again, this is time-consuming and very annoying.
 
-I have made an extensive search for any cross-platform libraries in JS or Python that would do this, but I haven't found any that would do what I need and be maintained and updated (somewhat understandably, this is pretty annoying). Also, a lot of these libs focus on also manipulating connection, while we only need to read information about it (so slightly easier task). Therefore, for the foreseable future, this app is going to do it low-level raw CLI commands, ideally built-ins, with as little privileges and configuration as possible.
+I have made an extensive search for any cross-platform libraries in JS or Python that would do this, but I haven't found any that would do what I need and be maintained and updated (somewhat understandably, as I said, this is pretty annoying). Additionally, a lot of these libs focus on manipulating connection, while we only need to read the information (so a slightly easier task, i.e. we don't need a heavy lib). Therefore, for the foreseeable future, this app is going to do low-level raw CLI commands, ideally built-ins, with as little privileges and configuration as possible.
 
-Also, different platforms/versions of tools return different fields. Example is Windows's `netsh` that doesn't return signal strength as `RSSI` but as `Signal Strength` instead. We try to be clever and use whichever is available and appropriate.
+Also, different platforms/versions of tools return different fields, which makes the unified output complicated. An example is Windows's `netsh` that doesn't return signal strength as `RSSI` but as `Signal Strength` instead. We try to be clever about it and use whichever is available and appropriate.
 
 ### Some ideas one could work on:
 
-1. extend this to work on Linux (should be a piece of cake as opposed to the trash MacOS has)
+1. bundle this into a nice installable (electron?) app so it can be easily installed
 2. find out how to get RSSI and other stuff from `ioreg` so sudo is not needed (for `wdutil`)
 3. make the app more user-friendly and informative (step by step wizard for the measurements)
 4. serialize the image to the database file so it can be loaded later
