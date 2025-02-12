@@ -58,6 +58,48 @@ export const ClickableFloorplan: React.FC<ClickableFloorplanProps> = ({
     }
   }, [imageLoaded, dimensions]);
 
+  // Takes a signal strength (-40 .. -80)
+  // returns a rgba() giving a color gradient between red (-40) and blue (-80)
+  function getGradientColor(strength: number): string {
+    // Clamp strength between -80 and -40
+    strength = Math.max(-80, Math.min(-40, strength));
+
+    let r: number, g: number, b: number;
+
+    if (strength >= -40) {
+      // Red (>= -40)
+      r = 255;
+      g = 0;
+      b = 0;
+    } else if (strength >= -50) {
+      // Red → Yellow (-40 to -50)
+      const t = (strength + 50) / 10;
+      r = 255;
+      g = Math.round(255 * (1 - t));
+      b = 0;
+    } else if (strength >= -60) {
+      // Yellow → Green (-50 to -60)
+      const t = (strength + 60) / 10;
+      r = Math.round(255 * t);
+      g = 255;
+      b = 0;
+    } else if (strength >= -70) {
+      // Green → Turquoise (-60 to -70)
+      const t = (strength + 70) / 10;
+      r = 0;
+      g = 255;
+      b = Math.round(255 * (1 - t));
+    } else {
+      // Turquoise → Blue (-70 to -80)
+      const t = (strength + 80) / 10;
+      r = 0;
+      g = Math.round(255 * t);
+      b = 255;
+    }
+
+    return `rgba(${r}, ${g}, ${b}, 0.6)`; // Always return fully opaque
+  }
+
   const drawCanvas = () => {
     const canvas = canvasRef.current;
     if (canvas && imageRef.current) {
@@ -120,7 +162,7 @@ export const ClickableFloorplan: React.FC<ClickableFloorplanProps> = ({
             const frequencyBand = wifiInfo.channel > 14 ? "5 GHz" : "2.4 GHz";
             const apLabel =
               apMapping.find((ap) => ap.macAddress === wifiInfo.bssid)
-                ?.apName ?? wifiInfo.bssid;
+                ?.apName ?? wifiInfo.bssid + " " + wifiInfo.rssi;
             const annotation = `${frequencyBand}\n${apLabel}`;
 
             ctx.font = "12px Arial";
@@ -157,6 +199,19 @@ export const ClickableFloorplan: React.FC<ClickableFloorplanProps> = ({
             ctx.fillStyle = "#1F2937";
             ctx.textAlign = "center";
             ctx.textBaseline = "top";
+
+            gradient.addColorStop(
+              0,
+              point.isDisabled
+                ? "rgba(156, 163, 175, 0.9)"
+                : getGradientColor(wifiInfo.rssi),
+            );
+
+            // Re-draw the main point
+            ctx.beginPath();
+            ctx.arc(point.x, point.y, 6, 0, 2 * Math.PI);
+            ctx.fillStyle = gradient;
+            ctx.fill();
 
             lines.forEach((line, index) => {
               ctx.fillText(
