@@ -75,8 +75,8 @@ export const ClickableFloorplan: React.FC<ClickableFloorplanProps> = ({
     ];
 
     // Handle out-of-range values
-    if (value >= 100) return "rgba(255,0,0,1)"; // Red for 100 and higher
-    if (value <= 0) return "rba(0,0,255,1)"; // Blue for 0 and lower
+    if (value >= 100) return "rgba(255,0,0,0.6)"; // Red for 100 and higher
+    if (value <= 0) return "rba(0,0,255,0.6)"; // Blue for 0 and lower
 
     // Find the two closest stops
     let lowerStop = colorStops[colorStops.length - 1];
@@ -104,7 +104,7 @@ export const ClickableFloorplan: React.FC<ClickableFloorplanProps> = ({
       lowerStop.color[2] + t * (upperStop.color[2] - lowerStop.color[2]),
     );
 
-    return `rgba(${r}, ${g}, ${b}, 1)`; // Always return full opacity
+    return `rgba(${r}, ${g}, ${b}, 0.6)`; // Always return full opacity
   }
 
   // Example usage
@@ -183,8 +183,7 @@ export const ClickableFloorplan: React.FC<ClickableFloorplanProps> = ({
             ctx.lineWidth = 2;
             ctx.stroke();
 
-            const t = getGradientColor(rssiToPercentage(wifiInfo.rssi));
-            const annotation = `${point.id}: ${wifiInfo.rssi}dBm\n${wifiInfo.signalStrength}% ${frequencyBand}\n${t}`;
+            const annotation = `${point.id}: ${wifiInfo.rssi}dBm\n${wifiInfo.signalStrength}% ${frequencyBand}`;
             ctx.font = "12px Arial";
             const lines = annotation.split("\n");
             const lineHeight = 14;
