@@ -1,5 +1,6 @@
 import { ScannerSettings, WifiNetwork } from "./types";
 import { execAsync } from "./server-utils";
+import { rssiToPercentage } from "./utils";
 
 const getDefaultWifiNetwork = (): WifiNetwork => ({
   ssid: "",
@@ -104,7 +105,7 @@ export async function scanWifiMacOS(
     const bssidOutput = await getIoregBssid();
     wdutilNetworkInfo.bssid = bssidOutput;
   }
-
+  wdutilNetworkInfo.signalStrength = rssiToPercentage(wdutilNetworkInfo.rssi);
   return wdutilNetworkInfo;
 }
 
