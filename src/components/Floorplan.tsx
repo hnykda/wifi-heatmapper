@@ -61,46 +61,60 @@ export const ClickableFloorplan: React.FC<ClickableFloorplanProps> = ({
 
   // Takes a percentage signal strength
   // returns a rgba() giving a color gradient between red (100%) and blue (0%)
-  function getGradientColor(strength: number): string {
-    // Clamp strength between -80 and -40
-    // strength = Math.max(-80, Math.min(-40, strength));
+  function getGradientColor(value: number): string {
+    // Define key color points
+    const colorStops: {
+      value: number;
+      color: [number, number, number, number];
+    }[] = [
+      { value: 100, color: [255, 0, 0, 1] }, // Red
+      { value: 75, color: [255, 255, 0, 1] }, // Yellow
+      { value: 50, color: [0, 255, 0, 1] }, // Green
+      { value: 25, color: [0, 255, 255, 1] }, // Turquoise
+      { value: 0, color: [0, 0, 255, 1] }, // Blue
+    ];
 
-    // THIS SHOULD USE SAME GRADIENT LOGIC AS HEATMAP
-    let r: number, g: number, b: number;
+    // Handle out-of-range values
+    if (value >= 100) return "rgba(255,0,0,1)"; // Red for 100 and higher
+    if (value <= 0) return "rba(0,0,255,1)"; // Blue for 0 and lower
 
-    if (strength >= 100) {
-      // 100 = all red
-      r = 255;
-      g = 0;
-      b = 0;
-    } else if (strength >= 75) {
-      // 75 = yellow
-      const t = (strength - 75) / 10;
-      r = 255;
-      g = Math.round(255 * (1 - t));
-      b = 0;
-    } else if (strength >= 50) {
-      // 50 = green
-      const t = (strength - 50) / 10;
-      r = Math.round(255 * t);
-      g = 255;
-      b = 0;
-    } else if (strength >= 25) {
-      // 25 = turquoise
-      const t = (strength - 25) / 10;
-      r = 0;
-      g = 255;
-      b = Math.round(255 * (1 - t));
-    } else {
-      // 0 = blue
-      const t = strength / 10;
-      r = 0;
-      g = Math.round(255 * t);
-      b = 255;
+    // Find the two closest stops
+    let lowerStop = colorStops[colorStops.length - 1];
+    let upperStop = colorStops[0];
+
+    for (let i = 0; i < colorStops.length - 1; i++) {
+      if (value <= colorStops[i].value && value >= colorStops[i + 1].value) {
+        lowerStop = colorStops[i + 1];
+        upperStop = colorStops[i];
+        break;
+      }
     }
 
-    return `rgba(${r}, ${g}, ${b}, 1.0)`; // Always return fully opaque
+    // Normalize value to a range between 0 and 1
+    const t = (value - lowerStop.value) / (upperStop.value - lowerStop.value);
+
+    // Interpolate RGB values
+    const r = Math.round(
+      lowerStop.color[0] + t * (upperStop.color[0] - lowerStop.color[0]),
+    );
+    const g = Math.round(
+      lowerStop.color[1] + t * (upperStop.color[1] - lowerStop.color[1]),
+    );
+    const b = Math.round(
+      lowerStop.color[2] + t * (upperStop.color[2] - lowerStop.color[2]),
+    );
+
+    return `rgba(${r}, ${g}, ${b}, 1)`; // Always return full opacity
   }
+
+  // Example usage
+  // console.log(getGradientColor(100)); // [255, 0, 0, 1] (Red)
+  // console.log(getGradientColor(75)); // [255, 255, 0, 1] (Yellow)
+  // console.log(getGradientColor(50)); // [0, 255, 0, 1] (Green)
+  // console.log(getGradientColor(-25)); // [0, 255, 255, 1] (Turquoise)
+  // console.log(getGradientColor(0)); // [0, 0, 255, 1] (Blue)
+  // console.log(getGradientColor(63)); // Interpolated color between Green and Yellow
+  // console.log(getGradientColor(-10)); // Interpolated color between Turquoise and Blue
 
   const drawCanvas = () => {
     const canvas = canvasRef.current;
