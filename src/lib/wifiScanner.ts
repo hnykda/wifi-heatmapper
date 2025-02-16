@@ -4,6 +4,7 @@ import { getLogger } from "./logger";
 
 const logger = getLogger("wifiScanner");
 import { rssiToPercentage } from "./utils";
+import { percentageToRssi, rssiToPercentage } from "./utils";
 
 const getDefaultWifiNetwork = (): WifiNetwork => ({
   ssid: "",
@@ -286,6 +287,8 @@ export function parseNetshOutput(output: string): WifiNetwork {
   networkInfo.signalStrength = parseInt(signal.replace("%", ""));
   logger.trace("Signal strength:", networkInfo.signalStrength);
   logger.trace("Final WiFi data:", networkInfo);
+  networkInfo.rssi = percentageToRssi(networkInfo.signalStrength);
+
   return networkInfo;
 }
 

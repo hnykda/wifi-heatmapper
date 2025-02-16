@@ -76,7 +76,7 @@ export const ClickableFloorplan: React.FC<ClickableFloorplanProps> = ({
 
     // Handle out-of-range values
     if (value >= 100) return "rgba(255,0,0,0.6)"; // Red for 100 and higher
-    if (value <= 0) return "rba(0,0,255,0.6)"; // Blue for 0 and lower
+    if (value <= 0) return "rgba(0,0,255,0.6)"; // Blue for 0 and lower
 
     // Find the two closest stops
     let lowerStop = colorStops[colorStops.length - 1];
