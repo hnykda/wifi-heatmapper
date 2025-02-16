@@ -1,6 +1,6 @@
 import { ScannerSettings, WifiNetwork } from "./types";
 import { execAsync } from "./server-utils";
-import { rssiToPercentage } from "./utils";
+import { percentageToRssi, rssiToPercentage } from "./utils";
 
 const getDefaultWifiNetwork = (): WifiNetwork => ({
   ssid: "",
@@ -251,6 +251,7 @@ export function parseNetshOutput(output: string): WifiNetwork {
   // Signal is 8 lines after BSSID
   const signal = getValue(lines[bssidLineIndex + 9]);
   networkInfo.signalStrength = parseInt(signal.replace("%", ""));
+  networkInfo.rssi = percentageToRssi(networkInfo.signalStrength);
 
   return networkInfo;
 }
