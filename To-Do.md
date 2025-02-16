@@ -24,6 +24,8 @@
 * Clicking a heat map (signal strength or data rate) and clicking Back should not give https error
 * An expanded (clicked) heat map should fit fully within the browser window
 * Clicking in Password field should select; pressing Return should accept
+* Setting browser to 110% should not disarrange click points
+  for survey data
 
 ## Questions
 
