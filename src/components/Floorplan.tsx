@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useState } from "react";
 import { SurveyPoint } from "@/lib/types";
 import { Loader } from "./Loader";
 import PopupDetails from "./PopupDetails";
+import { rssiToPercentage } from "../lib/utils";
 
 interface ClickableFloorplanProps {
   image: string;
@@ -58,46 +59,47 @@ export const ClickableFloorplan: React.FC<ClickableFloorplanProps> = ({
     }
   }, [imageLoaded, dimensions]);
 
-  // Takes a signal strength (-40 .. -80)
-  // returns a rgba() giving a color gradient between red (-40) and blue (-80)
+  // Takes a percentage signal strength
+  // returns a rgba() giving a color gradient between red (100%) and blue (0%)
   function getGradientColor(strength: number): string {
     // Clamp strength between -80 and -40
-    strength = Math.max(-80, Math.min(-40, strength));
+    // strength = Math.max(-80, Math.min(-40, strength));
 
+    // THIS SHOULD USE SAME GRADIENT LOGIC AS HEATMAP
     let r: number, g: number, b: number;
 
-    if (strength >= -40) {
-      // Red (>= -40)
+    if (strength >= 100) {
+      // 100 = all red
       r = 255;
       g = 0;
       b = 0;
-    } else if (strength >= -50) {
-      // Red → Yellow (-40 to -50)
-      const t = (strength + 50) / 10;
+    } else if (strength >= 75) {
+      // 75 = yellow
+      const t = (strength - 75) / 10;
       r = 255;
       g = Math.round(255 * (1 - t));
       b = 0;
-    } else if (strength >= -60) {
-      // Yellow → Green (-50 to -60)
-      const t = (strength + 60) / 10;
+    } else if (strength >= 50) {
+      // 50 = green
+      const t = (strength - 50) / 10;
       r = Math.round(255 * t);
       g = 255;
       b = 0;
-    } else if (strength >= -70) {
-      // Green → Turquoise (-60 to -70)
-      const t = (strength + 70) / 10;
+    } else if (strength >= 25) {
+      // 25 = turquoise
+      const t = (strength - 25) / 10;
       r = 0;
       g = 255;
       b = Math.round(255 * (1 - t));
     } else {
-      // Turquoise → Blue (-70 to -80)
-      const t = (strength + 80) / 10;
+      // 0 = blue
+      const t = strength / 10;
       r = 0;
       g = Math.round(255 * t);
       b = 255;
     }
 
-    return `rgba(${r}, ${g}, ${b}, 0.6)`; // Always return fully opaque
+    return `rgba(${r}, ${g}, ${b}, 1.0)`; // Always return fully opaque
   }
 
   const drawCanvas = () => {
@@ -110,61 +112,65 @@ export const ClickableFloorplan: React.FC<ClickableFloorplanProps> = ({
 
         points.forEach((point, index) => {
           // Create a gradient for the point
-          const gradient = ctx.createRadialGradient(
-            point.x,
-            point.y,
-            0,
-            point.x,
-            point.y,
-            8,
-          );
-          gradient.addColorStop(
-            0,
-            point.isDisabled
-              ? "rgba(156, 163, 175, 0.9)"
-              : "rgba(59, 130, 246, 0.9)",
-          );
-          gradient.addColorStop(
-            1,
-            point.isDisabled
-              ? "rgba(75, 85, 99, 0.9)"
-              : "rgba(37, 99, 235, 0.9)",
-          );
+          // const gradient = ctx.createRadialGradient(
+          //   point.x,
+          //   point.y,
+          //   0,
+          //   point.x,
+          //   point.y,
+          //   8,
+          // );
+          // gradient.addColorStop(
+          //   0,
+          //   point.isDisabled
+          //     ? "rgba(156, 163, 175, 0.9)"
+          //     : "rgba(59, 130, 246, 0.9)",
+          // );
+          // gradient.addColorStop(
+          //   1,
+          //   point.isDisabled
+          //     ? "rgba(75, 85, 99, 0.9)"
+          //     : "rgba(37, 99, 235, 0.9)",
+          // );
           // Enhanced pulsing effect
-          const pulseMaxSize = 20; // Increased from 8
-          const pulseMinSize = 10; // New minimum size
-          const pulseSize =
-            pulseMinSize +
-            ((Math.sin(Date.now() * 0.001 + index) + 1) / 2) *
-              (pulseMaxSize - pulseMinSize);
+          // const pulseMaxSize = 20; // Increased from 8
+          // const pulseMinSize = 10; // New minimum size
+          // const pulseSize =
+          //   pulseMinSize +
+          //   ((Math.sin(Date.now() * 0.001 + index) + 1) / 2) *
+          //     (pulseMaxSize - pulseMinSize);
 
           // Draw outer pulse
-          ctx.beginPath();
-          ctx.arc(point.x, point.y, pulseSize, 0, 2 * Math.PI);
-          ctx.fillStyle = point.isDisabled
-            ? `rgba(75, 85, 99, ${0.4 - ((pulseSize - pulseMinSize) / (pulseMaxSize - pulseMinSize)) * 0.3})`
-            : `rgba(59, 130, 246, ${0.4 - ((pulseSize - pulseMinSize) / (pulseMaxSize - pulseMinSize)) * 0.3})`;
-          ctx.fill();
-
-          // Draw the main point
-          ctx.beginPath();
-          ctx.arc(point.x, point.y, 6, 0, 2 * Math.PI);
-          ctx.fillStyle = gradient;
-          ctx.fill();
-
-          // Draw a white border
-          ctx.strokeStyle = "white";
-          ctx.lineWidth = 2;
-          ctx.stroke();
+          // ctx.beginPath();
+          // ctx.arc(point.x, point.y, pulseSize, 0, 2 * Math.PI);
+          // ctx.fillStyle = point.isDisabled
+          //   ? `rgba(75, 85, 99, ${0.4 - ((pulseSize - pulseMinSize) / (pulseMaxSize - pulseMinSize)) * 0.3})`
+          //   : `rgba(59, 130, 246, ${0.4 - ((pulseSize - pulseMinSize) / (pulseMaxSize - pulseMinSize)) * 0.3})`;
+          // ctx.fill();
 
           if (point.wifiData) {
             const wifiInfo = point.wifiData;
-            const frequencyBand = wifiInfo.channel > 14 ? "5 GHz" : "2.4 GHz";
-            const apLabel =
-              apMapping.find((ap) => ap.macAddress === wifiInfo.bssid)
-                ?.apName ?? wifiInfo.bssid + " " + wifiInfo.rssi;
-            const annotation = `${frequencyBand}\n${apLabel}`;
+            const frequencyBand = wifiInfo.channel > 14 ? "(5)" : "(2.4)";
+            // const apLabel =
+            //   apMapping.find((ap) => ap.macAddress === wifiInfo.bssid)
+            //     ?.apName ?? wifiInfo.bssid + " " + wifiInfo.rssi;
+            // const annotation = `${frequencyBand}\n${apLabel}`;
 
+            // Draw the main point
+            ctx.beginPath();
+            ctx.arc(point.x, point.y, 8, 0, 2 * Math.PI);
+            ctx.fillStyle = point.isDisabled
+              ? "rgba(156, 163, 175, 0.9)"
+              : getGradientColor(rssiToPercentage(wifiInfo.rssi));
+            ctx.fill();
+
+            // Draw a white border
+            ctx.strokeStyle = "grey";
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            const t = getGradientColor(rssiToPercentage(wifiInfo.rssi));
+            const annotation = `${point.id}: ${wifiInfo.rssi}dBm\n${wifiInfo.signalStrength}% ${frequencyBand}\n${t}`;
             ctx.font = "12px Arial";
             const lines = annotation.split("\n");
             const lineHeight = 14;
@@ -200,18 +206,18 @@ export const ClickableFloorplan: React.FC<ClickableFloorplanProps> = ({
             ctx.textAlign = "center";
             ctx.textBaseline = "top";
 
-            gradient.addColorStop(
-              0,
-              point.isDisabled
-                ? "rgba(156, 163, 175, 0.9)"
-                : getGradientColor(wifiInfo.rssi),
-            );
+            // gradient.addColorStop(
+            //   0,
+            //   point.isDisabled
+            //     ? "rgba(156, 163, 175, 0.9)"
+            //     : getGradientColor(rssiToPercentage(wifiInfo.rssi)),
+            // );
 
-            // Re-draw the main point
-            ctx.beginPath();
-            ctx.arc(point.x, point.y, 6, 0, 2 * Math.PI);
-            ctx.fillStyle = gradient;
-            ctx.fill();
+            // // Re-draw the main point
+            // ctx.beginPath();
+            // ctx.arc(point.x, point.y, 6, 0, 2 * Math.PI);
+            // ctx.fillStyle = gradient;
+            // ctx.fill();
 
             lines.forEach((line, index) => {
               ctx.fillText(

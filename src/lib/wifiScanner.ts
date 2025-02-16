@@ -3,6 +3,7 @@ import { execAsync } from "./server-utils";
 import { getLogger } from "./logger";
 
 const logger = getLogger("wifiScanner");
+import { rssiToPercentage } from "./utils";
 
 const getDefaultWifiNetwork = (): WifiNetwork => ({
   ssid: "",
@@ -127,6 +128,7 @@ export async function scanWifiMacOS(
   }
 
   logger.trace("Final WiFi data:", wdutilNetworkInfo);
+  wdutilNetworkInfo.signalStrength = rssiToPercentage(wdutilNetworkInfo.rssi);
   return wdutilNetworkInfo;
 }
 

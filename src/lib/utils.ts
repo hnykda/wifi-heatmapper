@@ -22,13 +22,13 @@ export const formatMacAddress = (macAddress: string) => {
 };
 
 export const rssiToPercentage = (rssi: number): number => {
-  if (rssi <= -80) return 0;
+  if (rssi <= -100) return 0;
   if (rssi >= -40) return 100;
-  return Math.round(((rssi + 80) / 40) * 100);
+  return Math.round(((rssi + 100) / 60) * 100);
 };
 
 export const percentageToRssi = (percentage: number): number => {
-  return Math.round(-80 + (percentage / 100) * 40);
+  return Math.round(-100 + (percentage / 100) * 60);
 };
 
 export const metricFormatter = (
