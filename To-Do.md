@@ -26,6 +26,11 @@
 * Clicking in Password field should select; pressing Return should accept
 * Setting browser to 110% should not disarrange click points
   for survey data
+* Improve "fetch error" message when the web GUI has lost contact
+  with the server (perhaps because `npm run dev` has been stopped)
+* Start with "Survey 1" as the name of the database file
+  so that it can be renamed
+* 
 
 ## Questions
 
@@ -34,6 +39,9 @@
 * What's the best gradient for signal strength? Linear between -40 and -80 dBM?
   Emphasize differences between good (-40 to -60?) Emphasize the bad?
   Good rule might be "green or above (yellow, orange, red) is good...
+* Can heat map colors go (good to bad)
+  Green - Turquoise - Blue - Yellow - Red
+  to comport with "normal meanings"? (Rule might be blue or above...)
 * I think the magic of this heat map system is that if drawing
   is not actually to scale it'll still give good info - relative signal
   strength relative to other places on the drawing
@@ -42,5 +50,5 @@
 * Would it improve the signal strength heat map to indicaate the points where
   measurements were made? As it is, there are 'holes' that occur simply because
   no samples were taken there...
-* In Heatmaps.tsx, line 221, ask person for estimated size of background image
-  and use that to replace Radius_divider
+* In Heatmaps.tsx, line 221, ask person for estimated size
+  of background image and use that to set Radius_divider

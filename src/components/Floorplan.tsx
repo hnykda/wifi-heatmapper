@@ -59,6 +59,10 @@ export const ClickableFloorplan: React.FC<ClickableFloorplanProps> = ({
     }
   }, [imageLoaded, dimensions]);
 
+  // Convert a number of bits (typically megabits) into a string
+  function megabits(value: number): string {
+    return `${(value / 1000000).toFixed(0)}`;
+  }
   // Takes a percentage signal strength
   // returns a rgba() giving a color gradient between red (100%) and blue (0%)
   function getGradientColor(value: number): string {
@@ -164,7 +168,8 @@ export const ClickableFloorplan: React.FC<ClickableFloorplanProps> = ({
 
           if (point.wifiData) {
             const wifiInfo = point.wifiData;
-            const frequencyBand = wifiInfo.channel > 14 ? "(5)" : "(2.4)";
+            const iperfInfo = point.iperfResults;
+            const frequencyBand = wifiInfo.channel > 14 ? "5GHz" : "2.4GHz";
             // const apLabel =
             //   apMapping.find((ap) => ap.macAddress === wifiInfo.bssid)
             //     ?.apName ?? wifiInfo.bssid + " " + wifiInfo.rssi;
@@ -183,7 +188,16 @@ export const ClickableFloorplan: React.FC<ClickableFloorplanProps> = ({
             ctx.lineWidth = 2;
             ctx.stroke();
 
-            const annotation = `${point.id}: ${wifiInfo.rssi}dBm\n${wifiInfo.signalStrength}% ${frequencyBand}`;
+            let annotation = `${wifiInfo.signalStrength}% `;
+            annotation += `(${wifiInfo.rssi}dBm `;
+            annotation += `${frequencyBand})`;
+            annotation += `\n`;
+            annotation += `${megabits(iperfInfo.tcpDownload.bitsPerSecond)} / `;
+            annotation += `${megabits(iperfInfo.tcpUpload.bitsPerSecond)} `;
+            annotation += `Mbps`;
+            // annotation += `${megabits(iperfInfo.udpDownload.bitsPerSecond)} / `;
+            // annotation += `${megabits(iperfInfo.udpUpload.bitsPerSecond)} `;
+
             ctx.font = "12px Arial";
             const lines = annotation.split("\n");
             const lineHeight = 14;
