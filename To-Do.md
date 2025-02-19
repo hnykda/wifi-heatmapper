@@ -50,5 +50,9 @@
 * Would it improve the signal strength heat map to indicaate the points where
   measurements were made? As it is, there are 'holes' that occur simply because
   no samples were taken there...
-* In Heatmaps.tsx, line 221, ask person for estimated size
-  of background image and use that to set Radius_divider
+* ~~In Heatmaps.tsx, line 221, ask person for estimated size of background image and use that to set Radius_divider~~
+* Autocompute `Radius_Divider`:
+  The answer on my map is 5. It has something to do
+  with the average space points occupy.
+  Currently using sqrt (h x w / #points)
+* ~~Add "Map lock" to prevent unintended clicks from surveying? (No - canceling will do the same thing.)~~
