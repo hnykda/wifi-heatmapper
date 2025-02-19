@@ -60,9 +60,9 @@ export const ClickableFloorplan: React.FC<ClickableFloorplanProps> = ({
   }, [imageLoaded, dimensions]);
 
   // Convert a number of bits (typically megabits) into a string
-  function megabits(value: number): string {
-    return `${(value / 1000000).toFixed(0)}`;
-  }
+  // function megabits(value: number): string {
+  //   return `${(value / 1000000).toFixed(0)}`;
+  // }
   // Takes a percentage signal strength
   // returns a rgba() giving a color gradient between red (100%) and blue (0%)
   function getGradientColor(value: number): string {
@@ -74,13 +74,21 @@ export const ClickableFloorplan: React.FC<ClickableFloorplanProps> = ({
       { value: 100, color: [255, 0, 0, 1] }, // Red
       { value: 75, color: [255, 255, 0, 1] }, // Yellow
       { value: 50, color: [0, 255, 0, 1] }, // Green
-      { value: 25, color: [0, 255, 255, 1] }, // Turquoise
+      { value: 35, color: [0, 255, 255, 1] }, // Turquoise
       { value: 0, color: [0, 0, 255, 1] }, // Blue
+      // Color experiment - Green is good, blue is OK, red and yellow are bad
+      // the following values don't quite work...
+      // { value: 100, color: [0, 255, 0, 1] }, // Green
+      // { value: 75, color: [0, 255, 255, 1] }, // Turquoise
+      // { value: 50, color: [0, 0, 255, 1] }, // Blue
+      // { value: 45, color: [255, 255, 255, 1] }, // Grey
+      // { value: 40, color: [255, 255, 0, 1] }, // Yellow
+      // { value: 0, color: [255, 0, 0, 1] }, // Red
     ];
 
     // Handle out-of-range values
-    if (value >= 100) return "rgba(255,0,0,0.6)"; // Red for 100 and higher
-    if (value <= 0) return "rgba(0,0,255,0.6)"; // Blue for 0 and lower
+    value = Math.min(100, value);
+    value = Math.max(0, value);
 
     // Find the two closest stops
     let lowerStop = colorStops[colorStops.length - 1];
@@ -108,7 +116,7 @@ export const ClickableFloorplan: React.FC<ClickableFloorplanProps> = ({
       lowerStop.color[2] + t * (upperStop.color[2] - lowerStop.color[2]),
     );
 
-    return `rgba(${r}, ${g}, ${b}, 0.6)`; // Always return full opacity
+    return `rgba(${r}, ${g}, ${b}, 1.0)`; // Always return full opacity
   }
 
   // Example usage
@@ -187,14 +195,16 @@ export const ClickableFloorplan: React.FC<ClickableFloorplanProps> = ({
             ctx.strokeStyle = "grey";
             ctx.lineWidth = 2;
             ctx.stroke();
+            // const t = getGradientColor(rssiToPercentage(wifiInfo.rssi));
 
-            let annotation = `${wifiInfo.signalStrength}% `;
-            annotation += `(${wifiInfo.rssi}dBm `;
-            annotation += `${frequencyBand})`;
-            annotation += `\n`;
-            annotation += `${megabits(iperfInfo.tcpDownload.bitsPerSecond)} / `;
-            annotation += `${megabits(iperfInfo.tcpUpload.bitsPerSecond)} `;
-            annotation += `Mbps`;
+            const annotation = `${rssiToPercentage(wifiInfo.rssi)}%`;
+            // annotation += ` (${wifiInfo.rssi}dBm`;
+            // annotation += ` ${frequencyBand})`;
+            // annotation += `\n`;
+            // annotation += `${megabits(iperfInfo.tcpDownload.bitsPerSecond)} / `;
+            // annotation += `${megabits(iperfInfo.tcpUpload.bitsPerSecond)} `;
+            // annotation += `Mbps`;
+            // annotation += `\n${t}`;
             // annotation += `${megabits(iperfInfo.udpDownload.bitsPerSecond)} / `;
             // annotation += `${megabits(iperfInfo.udpUpload.bitsPerSecond)} `;
 

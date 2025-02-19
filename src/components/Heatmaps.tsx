@@ -215,11 +215,23 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
 
         offScreenContainerRef.current.appendChild(heatmapContainer);
 
+        // density is the "amount of space" taken up by points in the heatmap
+        // if points were spread evenly, they'd take (h x w) / (# points) pixels.
+        // take the square root of the # pixels to get average X & Y
+        // and throw in a fudge factor just because ... :-)
+        const numPoints = heatmapData.length;
+        const newDivider = Math.sqrt(
+          (0.9 * (dimensions.width * dimensions.height)) / numPoints,
+        );
+        // heatmapConfig.radiusDivider = newDivider;
+        // setHeatmapConfig(heatmapConfig);
+
         const heatmapInstance = h337.create({
           container: heatmapContainer,
           radius:
             Math.min(dimensions.width, dimensions.height) /
             heatmapConfig.radiusDivider,
+          // newDivider,
           maxOpacity: heatmapConfig.maxOpacity,
           minOpacity: heatmapConfig.minOpacity,
           blur: heatmapConfig.blur,
