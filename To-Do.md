@@ -56,3 +56,4 @@
   with the average space points occupy.
   Currently using sqrt (h x w / #points)
 * ~~Add "Map lock" to prevent unintended clicks from surveying? (No - canceling will do the same thing.)~~
+* Ultimately, `Database` might be called `SiteMap`, since it contains all the info required to reproduce the site's heatmap(s)
