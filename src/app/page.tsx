@@ -13,17 +13,12 @@ import {
 } from "@/lib/actions";
 import { ApMapping, Database, SurveyPoint } from "@/lib/types";
 import { getDefaults } from "@/lib/utils";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { Toaster } from "@/components/ui/toaster";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-
+import { Settings } from "@/components/SettingsEditor";
 import { Heatmaps } from "@/components/Heatmaps";
 import { ClickableFloorplan } from "@/components/Floorplan";
-import { PopoverHelper } from "@/components/PopoverHelpText";
-import EditableField from "@/components/EditableField";
-import EditableApMapping from "@/components/ApMapping";
 import PointsTable from "@/components/PointsTable";
 import { getLogger } from "@/lib/logger";
 
@@ -39,11 +34,17 @@ export default function Home() {
   const [platform, setPlatform] = useState("");
   const { toast } = useToast();
 
+  /**
+   * loadSurveyData - define a function to update the (global) survey data
+   */
   const loadSurveyData = useCallback(async () => {
     const data = await getSurveyData(dbPath);
     setSurveyData(data);
   }, [dbPath]);
 
+  /**
+   * useEffect - define a function to be called when `loadSurveyPath` changes
+   */
   useEffect(() => {
     loadSurveyData();
     getPlatform().then((platform) => {
@@ -56,6 +57,13 @@ export default function Home() {
     });
   }, [loadSurveyData]);
 
+  /**
+   * handlePointClick
+   * Survey the sinal strength and speed tests at the point
+   * @param x X position of the click
+   * @param y Y position of the click
+   * @returns null - but uses Toast to indicate proress
+   */
   const handlePointClick = async (x: number, y: number) => {
     setAlertMessage("");
     setStatus("running");
@@ -124,11 +132,22 @@ export default function Home() {
     });
   };
 
+  /**
+   * handleIperfServerChange
+   * @param server new address or iperf3 server
+   */
   const handleIperfServerChange = async (server: string) => {
     await updateIperfServer(dbPath, server);
     loadSurveyData();
   };
 
+  /**
+   * handleFloorPlanChange
+   * Takes path to the floorplan file, uploads to internal storage
+   * Reloads the surveydata
+   * @param event new file to be used as floor plan (FORMAT????)
+   * @returns null
+   */
   const handleFloorplanChange = async (
     event: React.ChangeEvent<HTMLInputElement>,
   ) => {
@@ -141,11 +160,20 @@ export default function Home() {
     loadSurveyData();
   };
 
+  /**
+   * handleApMappingChange
+   * I don't really understand AP mapping...
+   * @param apMapping the AP mapping
+   */
   const handleApMappingChange = async (apMapping: ApMapping[]) => {
     await updateDbField(dbPath, "apMapping", apMapping);
     loadSurveyData();
   };
 
+  /**
+   * handleTestDurationChane
+   * @param testDuration - New test duration
+   */
   const handleTestDurationChange = async (testDuration: string) => {
     await updateDbField(dbPath, "testDuration", parseInt(testDuration));
     loadSurveyData();
@@ -158,6 +186,10 @@ export default function Home() {
       </div>
     );
 
+  /**
+   * handleDelete - delete IDs from the survey
+   * @param ids list of the IDs to delete
+   */
   const handleDelete = async (ids: string[]) => {
     const newPoints = surveyData.surveyPoints.filter(
       (point) => !ids.includes(point.id),
@@ -169,6 +201,11 @@ export default function Home() {
     }));
   };
 
+  /**
+   * updateDatapoint
+   * @param id ID of the point to update
+   * @param data to use for the point
+   */
   const updateDatapoint = async (id: string, data: Partial<SurveyPoint>) => {
     const newPoints = surveyData.surveyPoints.map((point) =>
       point.id === id ? { ...point, ...data } : point,
@@ -180,92 +217,23 @@ export default function Home() {
     }));
   };
 
+  /**
+   * return a list of the active points
+   */
   const activePoints = surveyData.surveyPoints.filter(
     (point: SurveyPoint) => !point.isDisabled,
   );
 
+  /**
+   * Display the contents of the "page"
+   */
+  const allPrefs = { ...surveyData, sudoerPw: sudoerPassword };
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-8 text-center text-blue-600">
         WiFi Heatmap
       </h1>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-        <div className="space-y-4">
-          <EditableField
-            label="Database Path"
-            value={dbPath}
-            onSave={(newValue) => {
-              setDbPath(newValue);
-              loadSurveyData();
-            }}
-            placeholder="Database path"
-            helpText="Path to the database file to store settings and results."
-          />
-
-          <EditableField
-            label="iperf3 Server Address"
-            value={surveyData.iperfServer}
-            onSave={handleIperfServerChange}
-            placeholder="192.168.0.42"
-            helpText="IP address of the iperf3 server against which the tests will be run. Can be in the form of 192.168.0.42 or with port 192.168.0.42:5201"
-          />
-
-          {platform === "macos" && (
-            <EditableField
-              label="Sudoer Password"
-              value={sudoerPassword}
-              onSave={setSudoerPassword}
-              type="password"
-              placeholder="passw0rd"
-              helpText="Password for sudoer user (needed for wdutil info command). macOS only"
-            />
-          )}
-
-          {platform === "linux" && (
-            <EditableField
-              label="WLAN Interface ID"
-              value={wlanInterfaceId}
-              onSave={setWlanInterfaceId}
-              placeholder="wlp3s0"
-              helpText="ID of the WLAN interface to use for scanning. We try to infer it automatically, but you can set it manually if it fails. Linux only"
-            />
-          )}
-
-          <div className="space-y-2">
-            <Label htmlFor="floorplanImage">
-              Floorplan Image{" "}
-              <PopoverHelper text="Image of the floorplan you want to measure your wifi on. Think about it as a map." />
-            </Label>
-            <Input
-              id="floorplanImage"
-              type="file"
-              accept="image/*"
-              onChange={handleFloorplanChange}
-              className="h-9"
-            />
-          </div>
-          <div>
-            <h3 className="font-bold">Platform: {platform}</h3>
-          </div>
-        </div>
-
-        <div className="space-y-4">
-          <EditableField
-            label="Test Duration (seconds)"
-            value={surveyData.testDuration.toString()}
-            onSave={(newValue) => handleTestDurationChange(newValue)}
-            type="number"
-            placeholder="10"
-            helpText="Duration of the each test in seconds."
-          />
-
-          <EditableApMapping
-            apMapping={surveyData.apMapping || []}
-            onSave={handleApMappingChange}
-          />
-        </div>
-      </div>
+      <Settings settings={allPrefs} />
 
       {status === "error" && (
         <Alert variant="destructive">

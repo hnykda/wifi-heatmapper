@@ -77,6 +77,10 @@ export interface Database {
   iperfServer: string;
   testDuration: number;
   apMapping: ApMapping[];
+  dbPath: string;
+  platform: string;
+  // NOT THE sudoersPassword - NEVER save in the database
+  // and ultimately advanced settings and TCP/UDP speed test settings
 }
 
 export type ScannerSettings = {

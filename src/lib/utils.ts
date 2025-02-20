@@ -14,6 +14,8 @@ export const getDefaults = (): Database => {
     iperfServer: "",
     apMapping: [],
     testDuration: 10,
+    dbPath: "",
+    platform: "",
   };
 };
 
