@@ -198,6 +198,7 @@ export const ClickableFloorplan: React.FC<ClickableFloorplanProps> = ({
             // const t = getGradientColor(rssiToPercentage(wifiInfo.rssi));
 
             const annotation = `${rssiToPercentage(wifiInfo.rssi)}%`;
+            // These are no longer displayed
             // annotation += ` (${wifiInfo.rssi}dBm`;
             // annotation += ` ${frequencyBand})`;
             // annotation += `\n`;
