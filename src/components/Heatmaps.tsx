@@ -241,8 +241,10 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
           gradient: heatmapConfig.gradient,
         });
 
-        const max = Math.max(...heatmapData.map((point) => point.value));
-        const min = Math.min(...heatmapData.map((point) => point.value));
+        // const max = Math.max(...heatmapData.map((point) => point.value));
+        // const min = Math.min(...heatmapData.map((point) => point.value));
+        const max = 100;
+        const min = 0;
 
         heatmapInstance.setData({
           max: max,

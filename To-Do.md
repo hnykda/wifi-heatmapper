@@ -28,7 +28,8 @@
 * Improve "fetch error" message when the web GUI has lost contact
   with the server (perhaps because `npm run dev` has been stopped)
 * Coalesce all the settings into a single object that can then be saved to a file. (Remember to isolate the sudoer password - never save it).
-* 
+* If only one survey point exists, <Heatmap> should appear as a blank floor plan, but display a message like "Not enough points"
+* The signal strength heat map should always have a scale of 0-100% because people deserve to know when their wifi strength is low.
 
 ## Questions
 
@@ -51,3 +52,4 @@
 * ~~Add "Map lock" to prevent unintended clicks from surveying? (No - canceling will do the same thing.)~~
 * Ultimately, `Database` might be called `SiteMap`, since it contains all the info required to reproduce the site's heatmap(s)
   Might experiment with something like `divider = sqrt(h x w / #points)`
+* Does "winking" WiFi off and then back on before measurement improve the values?

@@ -86,6 +86,7 @@ export async function runIperfTest(
           udpDownload,
           udpUpload,
         };
+        console.error(`Wifi: ${wifiDataBefore.rssi} & ${wifiDataAfter.rssi}`);
         // average the two rssi values
         wifiData = {
           ...wifiDataBefore,
