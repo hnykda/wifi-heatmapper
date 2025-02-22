@@ -8,6 +8,7 @@ import {
 import { scanWifi } from "./wifiScanner";
 import { getLogger } from "./logger";
 import { execAsync } from "./server-utils";
+import { rssiToPercentage } from "./utils";
 
 const logger = getLogger("iperfRunner");
 
@@ -75,7 +76,7 @@ export async function runIperfTest(
 
         if (!validateWifiDataConsistency(wifiDataBefore, wifiDataAfter)) {
           throw new Error(
-            "Wifi data inconsistency between scans! Cancelling instead of giving wrong results.",
+            "Wifi configuration changed between scans! Cancelling instead of giving wrong results.",
           );
         }
 
@@ -85,10 +86,16 @@ export async function runIperfTest(
           udpDownload,
           udpUpload,
         };
+        // average the two rssi values
         wifiData = {
           ...wifiDataBefore,
           // be more precise by averaging
           rssi: Math.round((wifiDataAfter.rssi + wifiDataBefore.rssi) / 2),
+        };
+        // and convert rssi to equivalent percentage
+        wifiData = {
+          ...wifiData,
+          signalStrength: rssiToPercentage(wifiData.rssi),
         };
       } catch (error) {
         logger.error(`Attempt ${attempts + 1} failed:`, error);
