@@ -91,6 +91,16 @@ const getIoregBssid = async (): Promise<string> => {
 export async function scanWifiMacOS(
   settings: ScannerSettings,
 ): Promise<WifiNetwork> {
+  // toggle WiFi off and on to get fresh data
+  // console.error("Toggling WiFi off ");
+  // let offon = await execAsync(
+  //   `echo ${settings.sudoerPassword} | sudo networksetup -setairportpower en0 off`,
+  // );
+  // console.error("Toggling WiFi on");
+  // offon = await execAsync(
+  //   `echo ${settings.sudoerPassword} | sudo networksetup -setairportpower en0 on`,
+  // );
+
   const wdutilOutput = await execAsync(
     `echo ${settings.sudoerPassword} | sudo -S wdutil info`,
   );
