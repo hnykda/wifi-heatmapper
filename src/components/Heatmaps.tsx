@@ -89,11 +89,11 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
     minOpacity: 0.2,
     blur: 0.99,
     gradient: {
-      0.0: "rgba(0, 0, 255, 0.6)",
-      0.25: "rgba(0, 255, 255, 0.6)",
-      0.5: "rgba(0, 255, 0, 0.6)",
-      0.75: "rgba(255, 255, 0, 0.6)",
-      1.0: "rgba(255, 0, 0, 0.6)",
+      0.0: "rgba(0, 0, 255, 0.6)", // 40%, -80 dBm
+      0.25: "rgba(0, 255, 255, 0.6)", // 60%, -70 dBm
+      0.5: "rgba(0, 255, 0, 0.6)", // 70%, -60 dBm
+      0.75: "rgba(255, 255, 0, 0.6)", // 85%, -50 dBm
+      1.0: "rgba(255, 0, 0, 0.6)", // 100%, -40 dBm
     },
   });
 
@@ -215,19 +215,33 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
 
         offScreenContainerRef.current.appendChild(heatmapContainer);
 
+        // density is the "amount of space" taken up by points in the heatmap
+        // if points were spread evenly, they'd take (h x w) / (# points) pixels.
+        // take the square root of the # pixels to get average X & Y
+        // and throw in a fudge factor just because ... :-)
+        const numPoints = heatmapData.length;
+        const newDivider = Math.sqrt(
+          (0.9 * (dimensions.width * dimensions.height)) / numPoints,
+        );
+        // heatmapConfig.radiusDivider = newDivider;
+        // setHeatmapConfig(heatmapConfig);
+
         const heatmapInstance = h337.create({
           container: heatmapContainer,
           radius:
             Math.min(dimensions.width, dimensions.height) /
             heatmapConfig.radiusDivider,
+          // newDivider,
           maxOpacity: heatmapConfig.maxOpacity,
           minOpacity: heatmapConfig.minOpacity,
           blur: heatmapConfig.blur,
           gradient: heatmapConfig.gradient,
         });
 
-        const max = Math.max(...heatmapData.map((point) => point.value));
-        const min = Math.min(...heatmapData.map((point) => point.value));
+        // const max = Math.max(...heatmapData.map((point) => point.value));
+        // const min = Math.min(...heatmapData.map((point) => point.value));
+        const max = 100;
+        const min = 0;
 
         heatmapInstance.setData({
           max: max,

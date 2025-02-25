@@ -1,5 +1,6 @@
 import { ScannerSettings, WifiNetwork } from "./types";
 import { execAsync } from "./server-utils";
+import { percentageToRssi, rssiToPercentage } from "./utils";
 
 const getDefaultWifiNetwork = (): WifiNetwork => ({
   ssid: "",
@@ -90,6 +91,16 @@ const getIoregBssid = async (): Promise<string> => {
 export async function scanWifiMacOS(
   settings: ScannerSettings,
 ): Promise<WifiNetwork> {
+  // toggle WiFi off and on to get fresh data
+  // console.error("Toggling WiFi off ");
+  // let offon = await execAsync(
+  //   `echo ${settings.sudoerPassword} | sudo networksetup -setairportpower en0 off`,
+  // );
+  // console.error("Toggling WiFi on");
+  // offon = await execAsync(
+  //   `echo ${settings.sudoerPassword} | sudo networksetup -setairportpower en0 on`,
+  // );
+
   const wdutilOutput = await execAsync(
     `echo ${settings.sudoerPassword} | sudo -S wdutil info`,
   );
@@ -104,7 +115,7 @@ export async function scanWifiMacOS(
     const bssidOutput = await getIoregBssid();
     wdutilNetworkInfo.bssid = bssidOutput;
   }
-
+  wdutilNetworkInfo.signalStrength = rssiToPercentage(wdutilNetworkInfo.rssi);
   return wdutilNetworkInfo;
 }
 
@@ -250,6 +261,7 @@ export function parseNetshOutput(output: string): WifiNetwork {
   // Signal is 8 lines after BSSID
   const signal = getValue(lines[bssidLineIndex + 9]);
   networkInfo.signalStrength = parseInt(signal.replace("%", ""));
+  networkInfo.rssi = percentageToRssi(networkInfo.signalStrength);
 
   return networkInfo;
 }

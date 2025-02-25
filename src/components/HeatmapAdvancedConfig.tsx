@@ -75,8 +75,8 @@ const HeatmapAdvancedConfig = ({
           <div className="flex flex-row gap-4">
             <div>
               <Label htmlFor="radiusDivider">
-                Radius Divider
-                <PopoverHelper text="Divides the minimum of width and height to calculate the radius. Lower values create larger heat spots. Can be decimal." />
+                Size Adjustment
+                <PopoverHelper text="Adjusts the size of the heat spots to fit the base drawing. Values are generally 1 to 10 - lower values create larger spots. Can be float." />
               </Label>
               <Input
                 id="radiusDivider"

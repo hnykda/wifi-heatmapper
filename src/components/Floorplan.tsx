@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useState } from "react";
 import { SurveyPoint } from "@/lib/types";
 import { Loader } from "./Loader";
 import PopupDetails from "./PopupDetails";
+import { rssiToPercentage } from "../lib/utils";
 
 interface ClickableFloorplanProps {
   image: string;
@@ -58,6 +59,75 @@ export const ClickableFloorplan: React.FC<ClickableFloorplanProps> = ({
     }
   }, [imageLoaded, dimensions]);
 
+  // Convert a number of bits (typically megabits) into a string
+  // function megabits(value: number): string {
+  //   return `${(value / 1000000).toFixed(0)}`;
+  // }
+  // Takes a percentage signal strength
+  // returns a rgba() giving a color gradient between red (100%) and blue (0%)
+  function getGradientColor(value: number): string {
+    // Define key color points
+    const colorStops: {
+      value: number;
+      color: [number, number, number, number];
+    }[] = [
+      { value: 100, color: [255, 0, 0, 1] }, // Red
+      { value: 75, color: [255, 255, 0, 1] }, // Yellow
+      { value: 50, color: [0, 255, 0, 1] }, // Green
+      { value: 35, color: [0, 255, 255, 1] }, // Turquoise
+      { value: 0, color: [0, 0, 255, 1] }, // Blue
+      // Color experiment - Green is good, blue is OK, red and yellow are bad
+      // the following values don't quite work...
+      // { value: 100, color: [0, 255, 0, 1] }, // Green
+      // { value: 75, color: [0, 255, 255, 1] }, // Turquoise
+      // { value: 50, color: [0, 0, 255, 1] }, // Blue
+      // { value: 45, color: [255, 255, 255, 1] }, // Grey
+      // { value: 40, color: [255, 255, 0, 1] }, // Yellow
+      // { value: 0, color: [255, 0, 0, 1] }, // Red
+    ];
+
+    // Handle out-of-range values
+    value = Math.min(100, value);
+    value = Math.max(0, value);
+
+    // Find the two closest stops
+    let lowerStop = colorStops[colorStops.length - 1];
+    let upperStop = colorStops[0];
+
+    for (let i = 0; i < colorStops.length - 1; i++) {
+      if (value <= colorStops[i].value && value >= colorStops[i + 1].value) {
+        lowerStop = colorStops[i + 1];
+        upperStop = colorStops[i];
+        break;
+      }
+    }
+
+    // Normalize value to a range between 0 and 1
+    const t = (value - lowerStop.value) / (upperStop.value - lowerStop.value);
+
+    // Interpolate RGB values
+    const r = Math.round(
+      lowerStop.color[0] + t * (upperStop.color[0] - lowerStop.color[0]),
+    );
+    const g = Math.round(
+      lowerStop.color[1] + t * (upperStop.color[1] - lowerStop.color[1]),
+    );
+    const b = Math.round(
+      lowerStop.color[2] + t * (upperStop.color[2] - lowerStop.color[2]),
+    );
+
+    return `rgba(${r}, ${g}, ${b}, 1.0)`; // Always return full opacity
+  }
+
+  // Example usage
+  // console.log(getGradientColor(100)); // [255, 0, 0, 1] (Red)
+  // console.log(getGradientColor(75)); // [255, 255, 0, 1] (Yellow)
+  // console.log(getGradientColor(50)); // [0, 255, 0, 1] (Green)
+  // console.log(getGradientColor(-25)); // [0, 255, 255, 1] (Turquoise)
+  // console.log(getGradientColor(0)); // [0, 0, 255, 1] (Blue)
+  // console.log(getGradientColor(63)); // Interpolated color between Green and Yellow
+  // console.log(getGradientColor(-10)); // Interpolated color between Turquoise and Blue
+
   const drawCanvas = () => {
     const canvas = canvasRef.current;
     if (canvas && imageRef.current) {
@@ -68,60 +138,76 @@ export const ClickableFloorplan: React.FC<ClickableFloorplanProps> = ({
 
         points.forEach((point, index) => {
           // Create a gradient for the point
-          const gradient = ctx.createRadialGradient(
-            point.x,
-            point.y,
-            0,
-            point.x,
-            point.y,
-            8,
-          );
-          gradient.addColorStop(
-            0,
-            point.isDisabled
-              ? "rgba(156, 163, 175, 0.9)"
-              : "rgba(59, 130, 246, 0.9)",
-          );
-          gradient.addColorStop(
-            1,
-            point.isDisabled
-              ? "rgba(75, 85, 99, 0.9)"
-              : "rgba(37, 99, 235, 0.9)",
-          );
+          // const gradient = ctx.createRadialGradient(
+          //   point.x,
+          //   point.y,
+          //   0,
+          //   point.x,
+          //   point.y,
+          //   8,
+          // );
+          // gradient.addColorStop(
+          //   0,
+          //   point.isDisabled
+          //     ? "rgba(156, 163, 175, 0.9)"
+          //     : "rgba(59, 130, 246, 0.9)",
+          // );
+          // gradient.addColorStop(
+          //   1,
+          //   point.isDisabled
+          //     ? "rgba(75, 85, 99, 0.9)"
+          //     : "rgba(37, 99, 235, 0.9)",
+          // );
           // Enhanced pulsing effect
-          const pulseMaxSize = 20; // Increased from 8
-          const pulseMinSize = 10; // New minimum size
-          const pulseSize =
-            pulseMinSize +
-            ((Math.sin(Date.now() * 0.001 + index) + 1) / 2) *
-              (pulseMaxSize - pulseMinSize);
+          // const pulseMaxSize = 20; // Increased from 8
+          // const pulseMinSize = 10; // New minimum size
+          // const pulseSize =
+          //   pulseMinSize +
+          //   ((Math.sin(Date.now() * 0.001 + index) + 1) / 2) *
+          //     (pulseMaxSize - pulseMinSize);
 
           // Draw outer pulse
-          ctx.beginPath();
-          ctx.arc(point.x, point.y, pulseSize, 0, 2 * Math.PI);
-          ctx.fillStyle = point.isDisabled
-            ? `rgba(75, 85, 99, ${0.4 - ((pulseSize - pulseMinSize) / (pulseMaxSize - pulseMinSize)) * 0.3})`
-            : `rgba(59, 130, 246, ${0.4 - ((pulseSize - pulseMinSize) / (pulseMaxSize - pulseMinSize)) * 0.3})`;
-          ctx.fill();
-
-          // Draw the main point
-          ctx.beginPath();
-          ctx.arc(point.x, point.y, 6, 0, 2 * Math.PI);
-          ctx.fillStyle = gradient;
-          ctx.fill();
-
-          // Draw a white border
-          ctx.strokeStyle = "white";
-          ctx.lineWidth = 2;
-          ctx.stroke();
+          // ctx.beginPath();
+          // ctx.arc(point.x, point.y, pulseSize, 0, 2 * Math.PI);
+          // ctx.fillStyle = point.isDisabled
+          //   ? `rgba(75, 85, 99, ${0.4 - ((pulseSize - pulseMinSize) / (pulseMaxSize - pulseMinSize)) * 0.3})`
+          //   : `rgba(59, 130, 246, ${0.4 - ((pulseSize - pulseMinSize) / (pulseMaxSize - pulseMinSize)) * 0.3})`;
+          // ctx.fill();
 
           if (point.wifiData) {
             const wifiInfo = point.wifiData;
-            const frequencyBand = wifiInfo.channel > 14 ? "5 GHz" : "2.4 GHz";
-            const apLabel =
-              apMapping.find((ap) => ap.macAddress === wifiInfo.bssid)
-                ?.apName ?? wifiInfo.bssid;
-            const annotation = `${frequencyBand}\n${apLabel}`;
+            const iperfInfo = point.iperfResults;
+            const frequencyBand = wifiInfo.channel > 14 ? "5GHz" : "2.4GHz";
+            // const apLabel =
+            //   apMapping.find((ap) => ap.macAddress === wifiInfo.bssid)
+            //     ?.apName ?? wifiInfo.bssid + " " + wifiInfo.rssi;
+            // const annotation = `${frequencyBand}\n${apLabel}`;
+
+            // Draw the main point
+            ctx.beginPath();
+            ctx.arc(point.x, point.y, 8, 0, 2 * Math.PI);
+            ctx.fillStyle = point.isDisabled
+              ? "rgba(156, 163, 175, 0.9)"
+              : getGradientColor(rssiToPercentage(wifiInfo.rssi));
+            ctx.fill();
+
+            // Draw a white border
+            ctx.strokeStyle = "grey";
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            // const t = getGradientColor(rssiToPercentage(wifiInfo.rssi));
+
+            const annotation = `${rssiToPercentage(wifiInfo.rssi)}%`;
+            // These are no longer displayed
+            // annotation += ` (${wifiInfo.rssi}dBm`;
+            // annotation += ` ${frequencyBand})`;
+            // annotation += `\n`;
+            // annotation += `${megabits(iperfInfo.tcpDownload.bitsPerSecond)} / `;
+            // annotation += `${megabits(iperfInfo.tcpUpload.bitsPerSecond)} `;
+            // annotation += `Mbps`;
+            // annotation += `\n${t}`;
+            // annotation += `${megabits(iperfInfo.udpDownload.bitsPerSecond)} / `;
+            // annotation += `${megabits(iperfInfo.udpUpload.bitsPerSecond)} `;
 
             ctx.font = "12px Arial";
             const lines = annotation.split("\n");
@@ -157,6 +243,19 @@ export const ClickableFloorplan: React.FC<ClickableFloorplanProps> = ({
             ctx.fillStyle = "#1F2937";
             ctx.textAlign = "center";
             ctx.textBaseline = "top";
+
+            // gradient.addColorStop(
+            //   0,
+            //   point.isDisabled
+            //     ? "rgba(156, 163, 175, 0.9)"
+            //     : getGradientColor(rssiToPercentage(wifiInfo.rssi)),
+            // );
+
+            // // Re-draw the main point
+            // ctx.beginPath();
+            // ctx.arc(point.x, point.y, 6, 0, 2 * Math.PI);
+            // ctx.fillStyle = gradient;
+            // ctx.fill();
 
             lines.forEach((line, index) => {
               ctx.fillText(
