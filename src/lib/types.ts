@@ -44,6 +44,18 @@ export interface ApMapping {
   macAddress: string;
 }
 
+export interface Database {
+  surveyPoints: SurveyPoint[];
+  floorplanImagePath: string;
+  iperfServerAdrs: string;
+  testDuration: number;
+  apMapping: ApMapping[];
+  // platform: string; // Not the platform - it will be determined each time we start
+  // dbPath: string; // Not the dbPath - since that's needed to find the data
+  // NOT THE sudoersPassword - NEVER save in the database
+  // and ultimately advanced settings and TCP/UDP speed test settings
+}
+
 export interface SurveyPoint {
   x: number;
   y: number;
@@ -71,19 +83,9 @@ export interface WifiNetwork {
   frequency: number;
 }
 
-export interface Database {
-  surveyPoints: SurveyPoint[];
-  floorplanImage: string;
-  iperfServer: string;
-  testDuration: number;
-  apMapping: ApMapping[];
-  dbPath: string;
-  platform: string;
-  // NOT THE sudoersPassword - NEVER save in the database
-  // and ultimately advanced settings and TCP/UDP speed test settings
-}
-
 export type ScannerSettings = {
   sudoerPassword: string | "";
   wlanInterfaceId: string | "";
 };
+
+export type OS = "macos" | "windows" | "linux";

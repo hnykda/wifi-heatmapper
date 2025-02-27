@@ -10,7 +10,7 @@ import {
   updateDatabaseField,
   writeDatabase,
 } from "./database";
-import { SurveyPoint, Database } from "./types";
+import { SurveyPoint, Database, OS } from "./types";
 import { execAsync } from "./server-utils";
 import { getLogger } from "./logger";
 
@@ -98,7 +98,7 @@ export const uploadImage = async (dbPath: string, formData: FormData) => {
   );
 };
 
-export async function getPlatform() {
+export async function getPlatform(): Promise<OS> {
   return process.platform === "darwin"
     ? "macos"
     : process.platform === "win32"

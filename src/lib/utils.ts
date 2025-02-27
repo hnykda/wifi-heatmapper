@@ -1,23 +1,11 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
-import { Database, IperfTestProperty, testTypes } from "./types";
+import { IperfTestProperty, testTypes } from "./types";
 import { MeasurementTestType } from "./types";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
-
-export const getDefaults = (): Database => {
-  return {
-    surveyPoints: [],
-    floorplanImage: "",
-    iperfServer: "",
-    apMapping: [],
-    testDuration: 10,
-    dbPath: "",
-    platform: "",
-  };
-};
 
 export const formatMacAddress = (macAddress: string) => {
   return macAddress.replace(/../g, "$&-").toUpperCase().slice(0, -1);
