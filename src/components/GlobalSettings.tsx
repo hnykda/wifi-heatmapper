@@ -7,12 +7,34 @@ import {
 } from "react";
 import { readSettingsFromFile, writeSettingsToFile } from "../lib/fileHandler";
 import { Database } from "../lib/types";
-import { getDefaults } from "../lib/utils";
+// import { getDefaults } from "../lib/utils";
+// import { getPlatform } from "@/lib/actions";
+
+const getDefaults = (): Database => {
+  return {
+    surveyPoints: [],
+    floorplanImagePath: "",
+    iperfServerAdrs: "",
+    apMapping: [],
+    testDuration: 10,
+    // dbPath: "",
+    // platform: "",
+  };
+};
+
+const getPlatform = (): string => {
+  return process.platform === "darwin"
+    ? "macos"
+    : process.platform === "win32"
+      ? "windows"
+      : "linux";
+};
 
 // Define the shape of the settings object
-interface HeatmapSettings {
+export interface HeatmapSettings {
   savedSettings: Database;
-  sudoerPassword: string; // separate because it should never be saved
+  sudoerPassword: string; // separate because it should never be saved to the database file
+  platform: string; // separate because it is determined at run-time
 }
 
 // Define the context type
@@ -38,14 +60,21 @@ export function useSettings() {
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<HeatmapSettings>({
     savedSettings: getDefaults(),
-    sudoerPassword: "",
+    // determined at runtime
+    platform: getPlatform(),
+    sudoerPassword: "", // never saved
   });
 
   // Load settings from file on mount
   useEffect(() => {
     async function loadSettings() {
-      const savedSettings = await readSettingsFromFile();
-      setSettings(savedSettings);
+      // const savedSettings: Database = await readSettingsFromFile();
+      const newHeatmapSettings: HeatmapSettings = {
+        savedSettings: await readSettingsFromFile(),
+        sudoerPassword: "",
+        platform: getPlatform(),
+      };
+      setSettings(newHeatmapSettings);
     }
     loadSettings();
   }, []);

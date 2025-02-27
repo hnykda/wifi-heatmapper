@@ -1,28 +1,17 @@
-export async function readSettingsFromFile(): Promise<HeatmapSettings> {
+import { getDefaults } from "./utils";
+import { Database } from "./types";
+
+export async function readSettingsFromFile(): Promise<Database> {
   try {
     const data = localStorage.getItem("projectSettings"); // Simulating file storage
-    return data
-      ? JSON.parse(data)
-      : {
-          theme: "light",
-          autoSave: true,
-          fontSize: 14,
-          filePath: "/default/path",
-        };
+    return data ? JSON.parse(data) : getDefaults();
   } catch (error) {
     console.error("Error reading settings:", error);
-    return {
-      theme: "light",
-      autoSave: true,
-      fontSize: 14,
-      filePath: "/default/path",
-    };
+    return getDefaults();
   }
 }
 
-export async function writeSettingsToFile(
-  settings: HeatmapSettings,
-): Promise<void> {
+export async function writeSettingsToFile(settings: Database): Promise<void> {
   try {
     localStorage.setItem("projectSettings", JSON.stringify(settings)); // Simulating file storage
   } catch (error) {
