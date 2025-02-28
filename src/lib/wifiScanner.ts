@@ -19,6 +19,14 @@ const getDefaultWifiNetwork = (): WifiNetwork => ({
   security: "",
 });
 
+// const getPlatform = (): string => {
+//   return process.platform === "darwin"
+//     ? "macos"
+//     : process.platform === "win32"
+//       ? "windows"
+//       : "linux";
+// };
+
 const hasValidData = (wifiData: WifiNetwork): boolean => {
   if (!isValidMacAddress(wifiData.ssid)) {
     logger.warn("Invalid SSID (we were not able to get it):", wifiData.ssid);

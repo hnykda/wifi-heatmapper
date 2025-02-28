@@ -6,9 +6,10 @@ export default function SettingsViewer() {
   return (
     <div>
       <h2>Configuration</h2>
-      <p>Floor Plan: {settings.savedSettings.floorplanImagePath}</p>
-      <p>iperfServer: {settings.savedSettings.iperfServerAdrs}</p>
-      <p>Test duration: {settings.savedSettings.testDuration}</p>
+      <p>Floor Plan: {settings.floorplanImagePath}</p>
+      <p>iperfServer: {settings.iperfServerAdrs}</p>
+      <p>Test duration: {settings.testDuration}</p>
+      <p>sudoerPassword: {settings.sudoerPassword}</p>
     </div>
   );
 }
