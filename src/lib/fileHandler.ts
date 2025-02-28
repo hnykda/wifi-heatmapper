@@ -1,5 +1,16 @@
-import { getDefaults } from "./utils";
 import { Database } from "./types";
+
+export const getDefaults = (): Database => {
+  return {
+    surveyPoints: [],
+    floorplanImagePath: "foo.png",
+    iperfServerAdrs: "127.0.0.1",
+    apMapping: [],
+    testDuration: 10,
+    // dbPath: "",
+    // platform: "",
+  };
+};
 
 export async function readSettingsFromFile(): Promise<Database> {
   try {

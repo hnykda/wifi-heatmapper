@@ -67,3 +67,52 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* added for tab panel */
+
+/* Tab List (Container for Tabs) */
+[data-orientation="horizontal"] {
+  /* display: flex; */
+  gap: 8px; /* Space between tabs */
+  /* background-color: #f8f8f8; / * Light gray background */
+  padding: 4px;
+  /* border-bottom: 2px solid #ccc; /* Separator between tabs and content */
+}
+
+/* Default (Inactive) Tabs */
+[data-radix-collection-item] {
+  padding: 10px 16px;
+  font-size: 16px;
+  font-weight: 500;
+  background-color: #e5e5e5; /* Light gray background */
+  color: #333; /* Darker text */
+  border: 1px solid #aaa;
+  border-bottom: none; /* Removes bottom border */
+  border-radius: 6px 6px 0 0; /* Only round the top corners */
+  cursor: pointer;
+  transition: all 0.3s ease-in-out;
+}
+
+/* Hover Effect for Tabs */
+[data-radix-collection-item]:hover {
+  background-color: #d6d6d6;
+}
+
+/* Active Tab (White Background, No Bottom Border) */
+[data-state="active"] {
+  background-color: white;
+  color: black;
+  font-weight: 600;
+  border-bottom: none; /* No bottom border for active tab */
+  border-color: #888; /* Slightly darker border for active tab */
+  border-radius: 6px 6px 0 0; /* Ensure only top corners are rounded */
+}
+
+/* Content Panel (Below Tabs) */
+[data-radix-tab-content] {
+  margin-top: 8px;
+  padding: 16px;
+  background-color: white;
+  border: 1px solid #ccc;
+  /* border-radius: 0 0 6px 6px; Only round bottom corners */
+}
