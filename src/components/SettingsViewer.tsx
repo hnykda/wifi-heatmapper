@@ -5,10 +5,10 @@ export default function SettingsViewer() {
 
   return (
     <div>
-      <h2>Project Settings</h2>
+      <h2>Configuration</h2>
       <p>Floor Plan: {settings.savedSettings.floorplanImagePath}</p>
-      <p>Auto-Save: {settings.savedSettings.iperfServerAdrs}</p>
-      <p>File Path: {settings.savedSettings.testDuration}</p>
+      <p>iperfServer: {settings.savedSettings.iperfServerAdrs}</p>
+      <p>Test duration: {settings.savedSettings.testDuration}</p>
     </div>
   );
 }

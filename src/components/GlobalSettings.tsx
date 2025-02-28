@@ -1,3 +1,5 @@
+"use client";
+
 import {
   createContext,
   useContext,
@@ -7,20 +9,7 @@ import {
 } from "react";
 import { readSettingsFromFile, writeSettingsToFile } from "../lib/fileHandler";
 import { Database } from "../lib/types";
-// import { getDefaults } from "../lib/utils";
-// import { getPlatform } from "@/lib/actions";
-
-const getDefaults = (): Database => {
-  return {
-    surveyPoints: [],
-    floorplanImagePath: "",
-    iperfServerAdrs: "",
-    apMapping: [],
-    testDuration: 10,
-    // dbPath: "",
-    // platform: "",
-  };
-};
+import { getDefaults } from "../lib/fileHandler";
 
 const getPlatform = (): string => {
   return process.platform === "darwin"
