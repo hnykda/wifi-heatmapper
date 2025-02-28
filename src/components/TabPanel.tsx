@@ -3,19 +3,20 @@
 import * as Tabs from "@radix-ui/react-tabs";
 import { useState } from "react";
 import SettingsViewer from "@/components/SettingsViewer";
+import SettingsEditor from "@/components/SettingsEditor";
 
 export default function TabPanel() {
   const [activeTab, setActiveTab] = useState("tab1"); // State to track the active tab
 
   return (
     <div className="w-full max-w-md">
-      {/* Button to change tabs dynamically */}
+      {/* Button to change tabs dynamically
       <button
         className="mb-2 p-2 bg-blue-500 text-white rounded"
         onClick={() => setActiveTab("tab2")}
       >
         Go to Tab 2
-      </button>
+      </button> */}
 
       {/* Tabs Root with controlled state */}
       <Tabs.Root value={activeTab} onValueChange={setActiveTab}>
@@ -31,19 +32,19 @@ export default function TabPanel() {
             value="tab2"
             className="px-4 py-2 border-b-2 border-transparent hover:border-gray-400 focus:border-blue-500"
           >
-            Floor Plan
+            Floor&nbsp;Plan
           </Tabs.Trigger>
           <Tabs.Trigger
             value="tab3"
             className="px-4 py-2 border-b-2 border-transparent hover:border-gray-400 focus:border-blue-500"
           >
-            Heat Maps
+            Heat&nbsp;Maps
           </Tabs.Trigger>
           <Tabs.Trigger
             value="tab4"
             className="px-4 py-2 border-b-2 border-transparent hover:border-gray-400 focus:border-blue-500"
           >
-            Measurement Points
+            Survey&nbsp;Points
           </Tabs.Trigger>
         </Tabs.List>
 
@@ -52,13 +53,14 @@ export default function TabPanel() {
           <SettingsViewer />
         </Tabs.Content>
         <Tabs.Content value="tab2" className="p-4">
-          <p>This is content for Tab 2.</p>
+          <SettingsEditor />
+          {/* <p>Contents of Tab 2.</p> */}
         </Tabs.Content>
         <Tabs.Content value="tab3" className="p-4">
-          <p>This is content for Tab 3.</p>
+          <p>This displays Heat Maps.</p>
         </Tabs.Content>
         <Tabs.Content value="tab4" className="p-4">
-          <p>This is content for Tab 4.</p>
+          <p>This displays Survey Points</p>
         </Tabs.Content>
       </Tabs.Root>
     </div>

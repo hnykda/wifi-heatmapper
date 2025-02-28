@@ -1,5 +1,7 @@
 # To-Do
 
+Random questions that arise at the start of the project.
+
 * ~~Only use (percentage) signal strength to create colors
   (heat map & coloring survey dots)~~
 * ~~Update labels on survey dots to show more interesting info (not "00000000")~~
@@ -14,7 +16,7 @@
   It also removes the requirement of setting up a separate iperf3 server.
 * Need better error message when initially starting survey (empty password) on macOS
 * "Pre-flight" button to check all settings prior to making a survey (catches empty password, no iperf3 server)
-* Retain the "Size Adjustment" setting (and other Advancd Configuration settings?)
+* Retain the "Size Adjustment" setting (and other Advancd Configuration settings?) in the global object
 * Come up with a better mechanism (than random strings) for naming survey points 
 * It's odd that "Floorplan Image" can be empty and show a floor plan...
 * Does a mDNS name work for the iperf3 server address?
@@ -28,7 +30,7 @@
 * Improve "fetch error" message when the web GUI has lost contact
   with the server (perhaps because `npm run dev` has been stopped)
 * Coalesce all the settings into a single object that can then be saved to a file. (Remember to isolate the sudoer password - never save it).
-* If only one survey point exists, <Heatmap> should appear as a blank floor plan, but display a message like "Not enough points"
+* If only one survey point exists, the <Heatmap> floor plan should appear, but with a message like "Not enough points"
 * The signal strength heat map should always have a scale of 0-100% because people deserve to know when their wifi strength is low.
 
 ## Questions
@@ -50,3 +52,18 @@
   with the average space points occupy.
   Might experiment with something like `divider = sqrt(h x w / #points)`
 * Does "winking" WiFi off and then back on before measurement improve the values?
+
+## Decisions
+
+* _HeatmapSettings_ replaces _Database_, and
+  holds all prefs (including sudoerPasword)
+  in a flat structure so they can be passed around and
+  modified by the children
+* `fileHandler.ts` removes sudoerPassword before saving
+* Don't dislay Platform in the Settings Pane (no decisions made,
+  just gets passed around)
+* Obviously `wifiScanner.ts` must determine the platorm,
+  but none of the other code needs to know the platform
+* `wifiScanner` must throw quickly if sudoerPassword is _empty_
+
+

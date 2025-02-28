@@ -15,6 +15,14 @@ const getDefaultWifiNetwork = (): WifiNetwork => ({
   security: "",
 });
 
+// const getPlatform = (): string => {
+//   return process.platform === "darwin"
+//     ? "macos"
+//     : process.platform === "win32"
+//       ? "windows"
+//       : "linux";
+// };
+
 const hasValidData = (wifiData: WifiNetwork): boolean => {
   return (
     wifiData.ssid !== "" &&

@@ -44,16 +44,17 @@ export interface ApMapping {
   macAddress: string;
 }
 
-export interface Database {
+export interface HeatmapSettings {
   surveyPoints: SurveyPoint[];
   floorplanImagePath: string;
   iperfServerAdrs: string;
   testDuration: number;
   apMapping: ApMapping[];
-  // platform: string; // Not the platform - it will be determined each time we start
-  // dbPath: string; // Not the dbPath - since that's needed to find the data
-  // NOT THE sudoersPassword - NEVER save in the database
-  // and ultimately advanced settings and TCP/UDP speed test settings
+  sudoerPassword: string; // passed around, removed before writing to file
+  // ultimately advanced settings and TCP/UDP speed test settings
+  // NOT
+  // platform: it will be determined each time we start
+  // dbPath: since that's needed to find the data
 }
 
 export interface SurveyPoint {

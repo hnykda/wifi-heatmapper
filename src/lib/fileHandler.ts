@@ -1,18 +1,19 @@
-import { Database } from "./types";
+import { HeatmapSettings } from "./types";
 
-export const getDefaults = (): Database => {
+export const getDefaults = (): HeatmapSettings => {
   return {
     surveyPoints: [],
     floorplanImagePath: "foo.png",
     iperfServerAdrs: "127.0.0.1",
     apMapping: [],
     testDuration: 10,
+    sudoerPassword: "",
     // dbPath: "",
     // platform: "",
   };
 };
 
-export async function readSettingsFromFile(): Promise<Database> {
+export async function readSettingsFromFile(): Promise<HeatmapSettings> {
   try {
     const data = localStorage.getItem("projectSettings"); // Simulating file storage
     return data ? JSON.parse(data) : getDefaults();
@@ -22,9 +23,12 @@ export async function readSettingsFromFile(): Promise<Database> {
   }
 }
 
-export async function writeSettingsToFile(settings: Database): Promise<void> {
+export async function writeSettingsToFile(
+  settings: HeatmapSettings,
+): Promise<void> {
   try {
-    localStorage.setItem("projectSettings", JSON.stringify(settings)); // Simulating file storage
+    const { sudoerPassword: _, ...noPWSettings } = settings;
+    localStorage.setItem("projectSettings", JSON.stringify(noPWSettings)); // Simulating file storage
   } catch (error) {
     console.error("Error saving settings:", error);
   }
