@@ -4,6 +4,7 @@ import * as Tabs from "@radix-ui/react-tabs";
 import { useState } from "react";
 import SettingsViewer from "@/components/SettingsViewer";
 import SettingsEditor from "@/components/SettingsEditor";
+import ClickableFloorplan from "@/components/Floorplan";
 
 export default function TabPanel() {
   const [activeTab, setActiveTab] = useState("tab1"); // State to track the active tab
@@ -50,16 +51,28 @@ export default function TabPanel() {
 
         {/* Tab Content */}
         <Tabs.Content value="tab1" className="p-4">
-          <SettingsViewer />
+          {" "}
+          <SettingsEditor />
         </Tabs.Content>
         <Tabs.Content value="tab2" className="p-4">
-          <SettingsEditor />
-          {/* <p>Contents of Tab 2.</p> */}
+          <ClickableFloorplan />
+          {/* image={surveyData.floorplanImage}
+            setDimensions={setDimensions}
+            dimensions={dimensions}
+            points={surveyData.surveyPoints}
+            onPointClick={handlePointClick}
+            apMapping={surveyData.apMapping}
+            onDelete={handleDelete}
+            updateDatapoint={updateDatapoint}
+            status={status}
         </Tabs.Content>
         <Tabs.Content value="tab3" className="p-4">
           <p>This displays Heat Maps.</p>
+          
+          /> */}
         </Tabs.Content>
         <Tabs.Content value="tab4" className="p-4">
+          <SettingsViewer />
           <p>This displays Survey Points</p>
         </Tabs.Content>
       </Tabs.Root>
