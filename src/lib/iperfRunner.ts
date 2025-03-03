@@ -1,9 +1,9 @@
 import os from "os";
 import {
+  HeatmapSettings,
   IperfResults,
   IperfTestProperty,
   WifiNetwork,
-  ScannerSettings,
 } from "./types";
 import { scanWifi } from "./wifiScanner";
 import { getLogger } from "./logger";
@@ -53,10 +53,12 @@ const validateWifiDataConsistency = (
   );
 };
 
+// export async function runIperfTest(
+//   server: string,
+//   duration: number,
+//   settings: ScannerSettings,
 export async function runIperfTest(
-  server: string,
-  duration: number,
-  settings: ScannerSettings,
+  settings: HeatmapSettings,
 ): Promise<{ iperfResults: IperfResults; wifiData: WifiNetwork }> {
   try {
     const maxRetries = 3;
@@ -67,6 +69,9 @@ export async function runIperfTest(
     // TODO: only retry the one that failed
     while (attempts < maxRetries && !results) {
       try {
+        const server = settings.iperfServerAdrs;
+        const duration = settings.testDuration;
+
         const wifiDataBefore = await scanWifi(settings);
         const tcpDownload = await runSingleTest(server, duration, true, false);
         const tcpUpload = await runSingleTest(server, duration, false, false);

@@ -1,5 +1,3 @@
-"use client";
-
 import React, { ReactNode } from "react";
 import { useRef, useEffect } from "react";
 import { rssiToPercentage } from "../lib/utils";
@@ -7,7 +5,11 @@ import { useSettings } from "./GlobalSettings";
 // import SurveyPointsTable from "./PointsTable";
 import { SurveyPoint } from "../lib/types";
 import { Loader } from "@/components/Loader";
-// interface ClickableFloorplanProps {
+import { startSurvey } from "@/lib/actions";
+import { useToast } from "@/components/ui/use-toast";
+import { Toaster } from "@/components/ui/toaster";
+
+// interface ClickableFloorplanProps {,
 
 export default function ClickableFloorplan(): ReactNode {
   // {
@@ -32,12 +34,20 @@ export default function ClickableFloorplan(): ReactNode {
   // const [scale, setScale] = useState(1);
   const { settings, updateSettings } = useSettings();
   const dimensions = { width: 0, height: 0 };
+  const scale = 1;
+  let selectedPoint: object | null = null;
+  let alertMessage = "";
+  let measurementStatus = "";
+  const { toast } = useToast();
 
   /**
-   * Load the image (and the canvas)
+   * Load the image (and the canvas) when the component is mounted
+   *
    */
   useEffect(() => {
-    const canvas = canvasRef.current;
+    const canvas: HTMLCanvasElement | null = canvasRef.current;
+    if (!canvas) return;
+
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
     if (settings.floorplanImagePath == "") return;
@@ -50,8 +60,10 @@ export default function ClickableFloorplan(): ReactNode {
       // imageLoaded = true;
       ctx.drawImage(img, 0, 0);
     };
-    drawPoints(ctx, settings.surveyPoints);
-  }, [settings.floorplanImagePath]);
+    console.log("useEffect " + JSON.stringify(settings));
+    drawPoints(settings.surveyPoints, ctx);
+    // canvas.addEventListener("click", handlePointClick);
+  }, [settings.floorplanImagePath, settings.surveyPoints]);
 
   // useEffect(() => {
   //   if (imageLoaded && canvasRef.current) {
@@ -65,139 +77,214 @@ export default function ClickableFloorplan(): ReactNode {
   //   }
   // }, []);
 
-  const drawPoints = (ctx: any, points: SurveyPoint[]) => {
-    points.forEach((point, index) => {
-      const i = index;
-      // Create a gradient for the point
-      // const gradient = ctx.createRadialGradient(
-      //   point.x,
-      //   point.y,
-      //   0,
-      //   point.x,
-      //   point.y,
-      //   8,
-      // );
+  /**
+   * measureSurveyPoint - make measurements for point at x/y
+   * Triggered by a click on the canvas that _isn't_ an existin
+   *    surveypoint
+   * @param x
+   * @param y
+   * @returns
+   */
+  const measureSurveyPoint = async (x: number, y: number) => {
+    alertMessage = "";
+    measurementStatus = "running";
+    if (!settings?.iperfServerAdrs) {
+      alertMessage = "Please set iperf server address";
+      measurementStatus = "error";
+      toast({
+        title: "An error occurred",
+        description: "Please set iperf server address",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const runningPlatform = process.platform;
+
+    if (!settings.sudoerPassword && runningPlatform == "darwin") {
+      console.warn(
+        "No sudoer password set, but running on macOS where it's required for wdutil info command",
+      );
+      alertMessage =
+        "Please set sudoer password so we can run wdutil info command";
+      toast({
+        title: "Please set sudoer password",
+        description:
+          "Please set sudoer password so we can run wdutil info command",
+        variant: "destructive",
+      });
+      measurementStatus = "error";
+      return;
+    }
+
+    toast({
+      title: "Starting measurement...",
+      description: "Please wait...",
+    });
+    try {
+      const newPoint = await startSurvey(x, y, settings);
+
+      const newPoints = [...settings.surveyPoints, newPoint];
+      updateSettings({ surveyPoints: newPoints });
+    } catch (error) {
+      alertMessage = `An error occurred: ${error}`;
+      measurementStatus = "error";
+      toast({
+        title: "An error occurred",
+        description: "Something went wrong, please check the logs",
+        variant: "destructive",
+      });
+      return;
+    }
+    measurementStatus = "ready";
+    toast({
+      title: "Measurement complete",
+      description: "Measurement complete",
+    });
+  };
+
+  /**
+   * drawPoints - draw the list of points in the specified context
+   * @param ctx
+   * @param points
+   */
+  const drawPoints = (points: SurveyPoint[], ctx: CanvasRenderingContext2D) => {
+    console.log(JSON.stringify(points));
+    points.forEach((point) => drawPoint(point, ctx));
+  };
+
+  const drawPoint = (point: SurveyPoint, ctx: CanvasRenderingContext2D) => {
+    // const i = index;
+    // Create a gradient for the point
+    // const gradient = ctx.createRadialGradient(
+    //   point.x,
+    //   point.y,
+    //   0,
+    //   point.x,
+    //   point.y,
+    //   8,
+    // );
+    // gradient.addColorStop(
+    //   0,
+    //   point.isDisabled
+    //     ? "rgba(156, 163, 175, 0.9)"
+    //     : "rgba(59, 130, 246, 0.9)",
+    // );
+    // gradient.addColorStop(
+    //   1,
+    //   point.isDisabled
+    //     ? "rgba(75, 85, 99, 0.9)"
+    //     : "rgba(37, 99, 235, 0.9)",
+    // );
+    // Enhanced pulsing effect
+    // const pulseMaxSize = 20; // Increased from 8
+    // const pulseMinSize = 10; // New minimum size
+    // const pulseSize =
+    //   pulseMinSize +
+    //   ((Math.sin(Date.now() * 0.001 + index) + 1) / 2) *
+    //     (pulseMaxSize - pulseMinSize);
+
+    // Draw outer pulse
+    // ctx.beginPath();
+    // ctx.arc(point.x, point.y, pulseSize, 0, 2 * Math.PI);
+    // ctx.fillStyle = point.isDisabled
+    //   ? `rgba(75, 85, 99, ${0.4 - ((pulseSize - pulseMinSize) / (pulseMaxSize - pulseMinSize)) * 0.3})`
+    //   : `rgba(59, 130, 246, ${0.4 - ((pulseSize - pulseMinSize) / (pulseMaxSize - pulseMinSize)) * 0.3})`;
+    // ctx.fill();
+
+    if (point.wifiData) {
+      const wifiInfo = point.wifiData;
+      const iperfInfo = point.iperfResults;
+      const frequencyBand = wifiInfo.channel > 14 ? "5GHz" : "2.4GHz";
+      // const apLabel =
+      //   apMapping.find((ap) => ap.macAddress === wifiInfo.bssid)
+      //     ?.apName ?? wifiInfo.bssid + " " + wifiInfo.rssi;
+      // const annotation = `${frequencyBand}\n${apLabel}`;
+
+      // Draw the main point
+      ctx.beginPath();
+      ctx.arc(point.x, point.y, 8, 0, 2 * Math.PI);
+      ctx.fillStyle = point.isDisabled
+        ? "rgba(156, 163, 175, 0.9)"
+        : getGradientColor(rssiToPercentage(wifiInfo.rssi));
+      ctx.fill();
+
+      // Draw a white border
+      ctx.strokeStyle = "grey";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      // const t = getGradientColor(rssiToPercentage(wifiInfo.rssi));
+
+      const annotation = `${rssiToPercentage(wifiInfo.rssi)}%`;
+      // These are no longer displayed
+      // annotation += ` (${wifiInfo.rssi}dBm`;
+      // annotation += ` ${frequencyBand})`;
+      // annotation += `\n`;
+      // annotation += `${megabits(iperfInfo.tcpDownload.bitsPerSecond)} / `;
+      // annotation += `${megabits(iperfInfo.tcpUpload.bitsPerSecond)} `;
+      // annotation += `Mbps`;
+      // annotation += `\n${t}`;
+      // annotation += `${megabits(iperfInfo.udpDownload.bitsPerSecond)} / `;
+      // annotation += `${megabits(iperfInfo.udpUpload.bitsPerSecond)} `;
+
+      ctx.font = "12px Arial";
+      const lines = annotation.split("\n");
+      const lineHeight = 14;
+      const padding = 4;
+      const boxWidth =
+        Math.max(...lines.map((line) => ctx.measureText(line).width)) +
+        padding * 2;
+      const boxHeight = lines.length * lineHeight + padding * 2;
+
+      // Draw shadow
+      ctx.shadowColor = "rgba(0, 0, 0, 0.2)";
+      ctx.shadowBlur = 4;
+      ctx.shadowOffsetX = 2;
+      ctx.shadowOffsetY = 2;
+
+      // Draw bounding box with increased transparency
+      ctx.fillStyle = "rgba(255, 255, 255, 0.6)";
+      ctx.fillRect(point.x - boxWidth / 2, point.y + 15, boxWidth, boxHeight);
+
+      // Reset shadow for text
+      ctx.shadowColor = "transparent";
+      ctx.shadowBlur = 0;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 0;
+
+      // Draw text
+      ctx.fillStyle = "#1F2937";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "top";
+
       // gradient.addColorStop(
       //   0,
       //   point.isDisabled
       //     ? "rgba(156, 163, 175, 0.9)"
-      //     : "rgba(59, 130, 246, 0.9)",
+      //     : getGradientColor(rssiToPercentage(wifiInfo.rssi)),
       // );
-      // gradient.addColorStop(
-      //   1,
-      //   point.isDisabled
-      //     ? "rgba(75, 85, 99, 0.9)"
-      //     : "rgba(37, 99, 235, 0.9)",
-      // );
-      // Enhanced pulsing effect
-      // const pulseMaxSize = 20; // Increased from 8
-      // const pulseMinSize = 10; // New minimum size
-      // const pulseSize =
-      //   pulseMinSize +
-      //   ((Math.sin(Date.now() * 0.001 + index) + 1) / 2) *
-      //     (pulseMaxSize - pulseMinSize);
 
-      // Draw outer pulse
+      // // Re-draw the main point
       // ctx.beginPath();
-      // ctx.arc(point.x, point.y, pulseSize, 0, 2 * Math.PI);
-      // ctx.fillStyle = point.isDisabled
-      //   ? `rgba(75, 85, 99, ${0.4 - ((pulseSize - pulseMinSize) / (pulseMaxSize - pulseMinSize)) * 0.3})`
-      //   : `rgba(59, 130, 246, ${0.4 - ((pulseSize - pulseMinSize) / (pulseMaxSize - pulseMinSize)) * 0.3})`;
+      // ctx.arc(point.x, point.y, 6, 0, 2 * Math.PI);
+      // ctx.fillStyle = gradient;
       // ctx.fill();
 
-      if (point.wifiData) {
-        const wifiInfo = point.wifiData;
-        const iperfInfo = point.iperfResults;
-        const frequencyBand = wifiInfo.channel > 14 ? "5GHz" : "2.4GHz";
-        // const apLabel =
-        //   apMapping.find((ap) => ap.macAddress === wifiInfo.bssid)
-        //     ?.apName ?? wifiInfo.bssid + " " + wifiInfo.rssi;
-        // const annotation = `${frequencyBand}\n${apLabel}`;
-
-        // Draw the main point
-        ctx.beginPath();
-        ctx.arc(point.x, point.y, 8, 0, 2 * Math.PI);
-        ctx.fillStyle = point.isDisabled
-          ? "rgba(156, 163, 175, 0.9)"
-          : getGradientColor(rssiToPercentage(wifiInfo.rssi));
-        ctx.fill();
-
-        // Draw a white border
-        ctx.strokeStyle = "grey";
-        ctx.lineWidth = 2;
-        ctx.stroke();
-        // const t = getGradientColor(rssiToPercentage(wifiInfo.rssi));
-
-        const annotation = `${rssiToPercentage(wifiInfo.rssi)}%`;
-        // These are no longer displayed
-        // annotation += ` (${wifiInfo.rssi}dBm`;
-        // annotation += ` ${frequencyBand})`;
-        // annotation += `\n`;
-        // annotation += `${megabits(iperfInfo.tcpDownload.bitsPerSecond)} / `;
-        // annotation += `${megabits(iperfInfo.tcpUpload.bitsPerSecond)} `;
-        // annotation += `Mbps`;
-        // annotation += `\n${t}`;
-        // annotation += `${megabits(iperfInfo.udpDownload.bitsPerSecond)} / `;
-        // annotation += `${megabits(iperfInfo.udpUpload.bitsPerSecond)} `;
-
-        ctx.font = "12px Arial";
-        const lines = annotation.split("\n");
-        const lineHeight = 14;
-        const padding = 4;
-        const boxWidth =
-          Math.max(...lines.map((line) => ctx.measureText(line).width)) +
-          padding * 2;
-        const boxHeight = lines.length * lineHeight + padding * 2;
-
-        // Draw shadow
-        ctx.shadowColor = "rgba(0, 0, 0, 0.2)";
-        ctx.shadowBlur = 4;
-        ctx.shadowOffsetX = 2;
-        ctx.shadowOffsetY = 2;
-
-        // Draw bounding box with increased transparency
-        ctx.fillStyle = "rgba(255, 255, 255, 0.6)";
-        ctx.fillRect(point.x - boxWidth / 2, point.y + 15, boxWidth, boxHeight);
-
-        // Reset shadow for text
-        ctx.shadowColor = "transparent";
-        ctx.shadowBlur = 0;
-        ctx.shadowOffsetX = 0;
-        ctx.shadowOffsetY = 0;
-
-        // Draw text
-        ctx.fillStyle = "#1F2937";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "top";
-
-        // gradient.addColorStop(
-        //   0,
-        //   point.isDisabled
-        //     ? "rgba(156, 163, 175, 0.9)"
-        //     : getGradientColor(rssiToPercentage(wifiInfo.rssi)),
-        // );
-
-        // // Re-draw the main point
-        // ctx.beginPath();
-        // ctx.arc(point.x, point.y, 6, 0, 2 * Math.PI);
-        // ctx.fillStyle = gradient;
-        // ctx.fill();
-
-        lines.forEach((line, index) => {
-          ctx.fillText(
-            line,
-            point.x,
-            point.y + 15 + padding + index * lineHeight,
-          );
-        });
-      }
-    });
+      lines.forEach((line, index) => {
+        ctx.fillText(
+          line,
+          point.x,
+          point.y + 15 + padding + index * lineHeight,
+        );
+      });
+    }
   };
 
   // Convert a number of bits (typically megabits) into a string
   // function megabits(value: number): string {
   //   return `${(value / 1000000).toFixed(0)}`;
   // }
+
   // Takes a percentage signal strength
   // returns a rgba() giving a color gradient between red (100%) and blue (0%)
   function getGradientColor(value: number): string {
@@ -263,18 +350,18 @@ export default function ClickableFloorplan(): ReactNode {
   // console.log(getGradientColor(63)); // Interpolated color between Green and Yellow
   // console.log(getGradientColor(-10)); // Interpolated color between Turquoise and Blue
 
-  const drawCanvas = () => {
-    const canvas = canvasRef.current;
-    if (canvas && imageRef.current) {
-      const ctx = canvas.getContext("2d");
-      if (ctx) {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(imageRef.current, 0, 0);
+  // const drawCanvas = () => {
+  //   const canvas = canvasRef.current;
+  //   if (canvas && imageRef.current) {
+  //     const ctx = canvas.getContext("2d");
+  //     if (ctx) {
+  //       ctx.clearRect(0, 0, canvas.width, canvas.height);
+  //       ctx.drawImage(imageRef.current, 0, 0);
 
-        drawPoints(ctx, settings.surveyPoints);
-      }
-    }
-  };
+  //       drawPoints(ctx, settings.surveyPoints);
+  //     }
+  //   }
+  // };
 
   // useEffect(() => {
   //   let animationFrameId: number;
@@ -291,36 +378,44 @@ export default function ClickableFloorplan(): ReactNode {
   //   };
   // }, [points, dimensions, apMapping]);
 
-  // const handleCanvasClick = (
-  //   event: React.MouseEvent<HTMLCanvasElement>,
-  // ) => {
-  //   if (selectedPoint) {
-  //     setSelectedPoint(null);
-  //     return;
-  //   }
+  /**
+   * handleCanvasClick - a click anywhere in the canvas
+   * @param event click point
+   * @returns nothing
+   */
 
-  //   const canvas = event.currentTarget;
-  //   const rect = canvas.getBoundingClientRect();
-  //   const x = (event.clientX - rect.left) / scale;
-  //   const y = (event.clientY - rect.top) / scale;
+  const handleCanvasClick = (event: React.MouseEvent<HTMLCanvasElement>) => {
+    // if a point was selected, they have "clicked away"
+    if (selectedPoint) {
+      selectedPoint = null;
+      return;
+    }
 
-  //   const clickedPoint = points.find(
-  //     (point) => Math.sqrt((point.x - x) ** 2 + (point.y - y) ** 2) < 10,
-  //   );
+    //if the click was on a survey point,
+    // then display the popup window
+    // otherwise, measure the signal strength/speeds at that X/Y
+    const canvas = event.currentTarget;
+    const rect = canvas.getBoundingClientRect();
+    const x = (event.clientX - rect.left) / scale;
+    const y = (event.clientY - rect.top) / scale;
 
-  //   if (clickedPoint) {
-  //     setSelectedPoint(selectedPoint == clickedPoint ? null : clickedPoint);
-  //     setPopupPosition({
-  //       x: clickedPoint.x * scale,
-  //       y: clickedPoint.y * scale,
-  //     });
-  //   } else {
-  //     setSelectedPoint(null);
-  //     // if we don't round, everything breaks, as heatmap cannot handle floating point numbers
-  //     // for coordinates
-  //     onPointClick(Math.round(x), Math.round(y));
-  //   }
-  // };
+    const clickedPoint = settings.surveyPoints.find(
+      (point) => Math.sqrt((point.x - x) ** 2 + (point.y - y) ** 2) < 10,
+    );
+
+    if (clickedPoint) {
+      selectedPoint = selectedPoint == clickedPoint ? null : clickedPoint;
+      // setPopupPosition({
+      //   x: clickedPoint.x * scale,
+      //   y: clickedPoint.y * scale,
+      // });
+    } else {
+      selectedPoint = null;
+      // round the coordinates,
+      // heatmap expects integer values
+      measureSurveyPoint(Math.round(x), Math.round(y));
+    }
+  };
 
   // if (!imageLoaded) {
   //   return (
@@ -372,7 +467,7 @@ export default function ClickableFloorplan(): ReactNode {
           ref={canvasRef}
           width={dimensions.width}
           height={dimensions.height}
-          // onClick={handleCanvasClick}
+          onClick={handleCanvasClick}
           className="border border-gray-300 rounded-lg cursor-pointer"
         />
         {/* {selectedPoint && (
@@ -396,6 +491,7 @@ export default function ClickableFloorplan(): ReactNode {
                 />
               </div>
             )} */}
+        <Toaster />
       </div>
     </div>
   );

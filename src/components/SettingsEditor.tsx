@@ -1,5 +1,3 @@
-"use client";
-
 import { useSettings } from "./GlobalSettings";
 
 export default function SettingsEditor() {

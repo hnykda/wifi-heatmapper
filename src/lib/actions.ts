@@ -4,39 +4,29 @@ import fs from "fs/promises";
 import { nanoid } from "nanoid";
 
 import { runIperfTest } from "./iperfRunner";
-import {
-  readDatabase,
-  addSurveyPoint,
-  updateDatabaseField,
-  writeDatabase,
-} from "./database";
-import { SurveyPoint, Database, OS } from "./types";
+import { updateDatabaseField, writeDatabase } from "./database";
+import { SurveyPoint, OS, HeatmapSettings } from "./types";
 import { execAsync } from "./server-utils";
 import { getLogger } from "./logger";
 
 const logger = getLogger("actions");
 
 export async function startSurvey(
-  dbPath: string,
   x: number,
   y: number,
-  testConfig: {
-    testDuration: number;
-    sudoerPassword: string;
-    wlanInterfaceId: string;
-  },
+  settings: HeatmapSettings,
 ): Promise<SurveyPoint> {
-  const db = await readDatabase(dbPath);
-  const iperfServer = db.iperfServer;
+  // const db = await readDatabase(dbPath);
+  // const iperfServer = testConfig.iperfServerAdrs;
 
-  const { iperfResults, wifiData } = await runIperfTest(
-    iperfServer,
-    testConfig.testDuration,
-    {
-      sudoerPassword: testConfig.sudoerPassword,
-      wlanInterfaceId: testConfig.wlanInterfaceId,
-    },
-  );
+  const { iperfResults, wifiData } = await runIperfTest(settings);
+  // iperfServer,
+  // testConfig.testDuration,
+  // {
+  //   sudoerPassword: testConfig.sudoerPassword,
+  //   wlanInterfaceId: testConfig.wlanInterfaceId,
+  // },
+  // }
 
   const newPoint: SurveyPoint = {
     x,
@@ -48,14 +38,14 @@ export async function startSurvey(
     isDisabled: false,
   };
 
-  await addSurveyPoint(dbPath, newPoint);
+  // await addSurveyPoint(dbPath, newPoint);
 
   return newPoint;
 }
 
-export async function getSurveyData(dbPath: string): Promise<Database> {
-  return await readDatabase(dbPath);
-}
+// export async function getSurveyData(dbPath: string): Promise<Database> {
+//   return await readDatabase(dbPath);
+// }
 
 export async function updateIperfServer(
   dbPath: string,
