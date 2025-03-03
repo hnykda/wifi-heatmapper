@@ -1,6 +1,7 @@
-import { ScannerSettings, WifiNetwork } from "./types";
+import { HeatmapSettings, WifiNetwork } from "./types";
 import { execAsync } from "./server-utils";
 import { percentageToRssi, rssiToPercentage } from "./utils";
+import { inferWifiDeviceIdOnLinux } from "./actions";
 
 const getDefaultWifiNetwork = (): WifiNetwork => ({
   ssid: "",
@@ -36,7 +37,7 @@ const hasValidData = (wifiData: WifiNetwork): boolean => {
  * Gets the current WiFi network name, BSSID of the AP it's connected to, and the RSSI.
  */
 export async function scanWifi(
-  settings: ScannerSettings,
+  settings: HeatmapSettings,
 ): Promise<WifiNetwork> {
   let wifiData: WifiNetwork | null = null;
 
@@ -44,11 +45,11 @@ export async function scanWifi(
     const platform = process.platform;
 
     if (platform === "darwin") {
-      wifiData = await scanWifiMacOS(settings);
+      wifiData = await scanWifiMacOS(settings); // Needs sudoerPassword
     } else if (platform === "win32") {
       wifiData = await scanWifiWindows();
     } else if (platform === "linux") {
-      wifiData = await scanWifiLinux(settings);
+      wifiData = await scanWifiLinux();
     } else {
       throw new Error(`Unsupported platform: ${platform}`);
     }
@@ -96,8 +97,13 @@ const getIoregBssid = async (): Promise<string> => {
   return stdout.trim();
 };
 
+/**
+ * scanWifiMacOS() scan the Wifi for MacOS
+ * @param settings - the full set of settins, including sudoerPassword
+ * @returns a WiFiNetwork description to be added to the surveyPoints
+ */
 export async function scanWifiMacOS(
-  settings: ScannerSettings,
+  settings: HeatmapSettings,
 ): Promise<WifiNetwork> {
   // toggle WiFi off and on to get fresh data
   // console.error("Toggling WiFi off ");
@@ -127,6 +133,10 @@ export async function scanWifiMacOS(
   return wdutilNetworkInfo;
 }
 
+/**
+ * scanWifiWindows() scan the Wifi for Windows
+ * @returns a WiFiNetwork description to be added to the surveyPoints
+ */
 async function scanWifiWindows(): Promise<WifiNetwork> {
   const command = "netsh wlan show interfaces";
   const { stdout } = await execAsync(command);
@@ -146,10 +156,20 @@ async function iwDevInfo(interfaceId: string): Promise<string> {
   return stdout;
 }
 
-async function scanWifiLinux(settings: ScannerSettings): Promise<WifiNetwork> {
+/**
+ * scanWifiLinux() scan the Wifi for Linux
+ * @returns a WiFiNetwork description to be added to the surveyPoints
+ */
+async function scanWifiLinux(): Promise<WifiNetwork> {
+  //  if (platform === "linux" && !wlanInterfaceId) {
+  let wlanInterface: string = "";
+  inferWifiDeviceIdOnLinux().then((wlanInterfaceId) => {
+    wlanInterface = wlanInterfaceId;
+  });
+  // }
   const [linkOutput, infoOutput] = await Promise.all([
-    iwDevLink(settings.wlanInterfaceId),
-    iwDevInfo(settings.wlanInterfaceId),
+    iwDevLink(wlanInterface),
+    iwDevInfo(wlanInterface),
   ]);
 
   return parseIwOutput(linkOutput, infoOutput);

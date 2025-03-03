@@ -1,7 +1,7 @@
 import fs from "fs/promises";
 import fsSync from "fs";
 import path from "path";
-import { getDefaults } from "./utils";
+// import { getDefaults } from "./utils";
 import { Database, SurveyPoint } from "./types";
 
 export async function readDatabase(dbPath: string): Promise<Database> {

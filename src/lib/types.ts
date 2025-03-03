@@ -52,9 +52,10 @@ export interface HeatmapSettings {
   apMapping: ApMapping[];
   sudoerPassword: string; // passed around, removed before writing to file
   // ultimately advanced settings and TCP/UDP speed test settings
-  // NOT
-  // platform: it will be determined each time we start
-  // dbPath: since that's needed to find the data
+  // BUT NOT
+  // platform: it will be determined each time we need it
+  // dbPath: since that's how we find the data in the first place
+  // wifiInterface: let the wifiScanner discover this
 }
 
 export interface SurveyPoint {

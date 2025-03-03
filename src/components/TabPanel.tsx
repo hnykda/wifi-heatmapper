@@ -1,10 +1,9 @@
-"use client";
-
 import * as Tabs from "@radix-ui/react-tabs";
 import { useState } from "react";
 import SettingsViewer from "@/components/SettingsViewer";
 import SettingsEditor from "@/components/SettingsEditor";
 import ClickableFloorplan from "@/components/Floorplan";
+import { Toaster } from "./ui/toaster";
 
 export default function TabPanel() {
   const [activeTab, setActiveTab] = useState("tab1"); // State to track the active tab
@@ -64,12 +63,11 @@ export default function TabPanel() {
             apMapping={surveyData.apMapping}
             onDelete={handleDelete}
             updateDatapoint={updateDatapoint}
-            status={status}
+            status={status} */}
+          <Toaster />
         </Tabs.Content>
         <Tabs.Content value="tab3" className="p-4">
           <p>This displays Heat Maps.</p>
-          
-          /> */}
         </Tabs.Content>
         <Tabs.Content value="tab4" className="p-4">
           <SettingsViewer />
