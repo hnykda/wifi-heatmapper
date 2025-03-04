@@ -34,7 +34,7 @@ export async function startSurvey(
     id: nanoid(3),
     isDisabled: false,
   };
-
+  console.log("Created new point: " + JSON.stringify(newPoint));
   // await addSurveyPoint(dbPath, newPoint);
 
   return newPoint;

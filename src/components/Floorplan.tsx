@@ -1,5 +1,5 @@
-import React, { ReactNode } from "react";
-import { useRef, useEffect } from "react";
+import React, { ReactNode, useState } from "react";
+import { useEffect } from "react";
 import { rssiToPercentage } from "../lib/utils";
 import { useSettings } from "./GlobalSettings";
 // import SurveyPointsTable from "./PointsTable";
@@ -23,54 +23,82 @@ export default function ClickableFloorplan(): ReactNode {
   // onDelete,
   // updateDatapoint,
   // }
-  // const [imageLoaded, setImageLoaded] = useState(false);
-  // let imageRef = useRef<HTMLImageElement | null>(null);
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const imageRef = useRef<HTMLImageElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  // const [selectedPoint, setSelectedPoint] = useState<SurveyPoint | null>(
-  //   null,
-  // );
-  // const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 });
-  // const [scale, setScale] = useState(1);
+  const [selectedPoint, setSelectedPoint] = useState<SurveyPoint | null>(null);
+  const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 });
+  const [scale, setScale] = useState(1);
   const { settings, updateSettings } = useSettings();
-  const dimensions = { width: 0, height: 0 };
-  const scale = 1;
-  let selectedPoint: object | null = null;
+  let dimensions = { width: 0, height: 0 };
+  const { toast } = useToast();
+
   let alertMessage = "";
   let measurementStatus = "";
-  const { toast } = useToast();
 
   /**
    * Load the image (and the canvas) when the component is mounted
    *
    */
+
   useEffect(() => {
-    const canvas: HTMLCanvasElement | null = canvasRef.current;
-    if (!canvas) return;
+    if (settings.floorplanImagePath != "") {
+      const img = new Image();
+      img.onload = () => {
+        dimensions = { width: img.width, height: img.height };
+        imageLoaded = true;
+        imageRef = img;
+      };
+      img.src = settings.floorplanImagePath; // load the image from the path
+    }
+  }, [image, setDimensions]);
 
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    if (settings.floorplanImagePath == "") return;
+  useEffect(() => {
+    if (imageLoaded && canvasRef.current) {
+      const canvas = canvasRef.current;
+      const containerWidth = containerRef.current?.clientWidth || canvas.width;
+      const scaleX = containerWidth / dimensions.width;
+      setScale(scaleX);
+      canvas.style.width = "100%";
+      canvas.style.height = "auto";
+      drawCanvas();
+    }
+  }, [imageLoaded, dimensions]);
 
-    const img = new Image();
-    img.src = settings.floorplanImagePath; // load the image from the path
-    img.onload = () => {
-      canvas.width = img.width;
-      canvas.height = img.height;
-      // imageLoaded = true;
-      ctx.drawImage(img, 0, 0);
-    };
-    console.log("useEffect " + JSON.stringify(settings));
-    drawPoints(settings.surveyPoints, ctx);
-    // canvas.addEventListener("click", handlePointClick);
-  }, [settings.floorplanImagePath, settings.surveyPoints]);
+  // new attempt to fix - switching back to old
+  // useEffect(() => {
+  //   if (settings.floorplanImagePath == "") return;
+  //   canvas = canvasRef.current;
+  //   if (!canvas) return;
+  //   ctx = canvas.getContext("2d");
+  //   if (!ctx) return;
+
+  //   const img = new Image();
+  //   img.src = settings.floorplanImagePath; // load the image from the path
+  //   img.onload = () => {
+  //     canvas = canvasRef.current;
+  //     canvas.width = img.width;
+  //     canvas.height = img.height;
+  //     // imageLoaded = true;
+  //     ctx = canvas.getContext("2d");
+  //     ctx.drawImage(img, 0, 0);
+  //     // ctx.fillStyle = "blue"; // Set fill color
+  //     // ctx.fillRect(50, 50, 100, 75); // Draw a filled rectangle (x, y, width, height)
+
+  //     // console.log(`useEffect: ${JSON.stringify(ctx)}`);
+  //   };
+  //   console.log("useEffect " + JSON.stringify(settings.surveyPoints));
+  //   drawPoints(settings.surveyPoints, ctx);
+  //   // canvas.addEventListener("click", handlePointClick);
+  // }, []); // settings.floorplanImagePath, settings.surveyPoints
 
   // useEffect(() => {
   //   if (imageLoaded && canvasRef.current) {
   //     const canvas = canvasRef.current;
   //     const containerWidth = containerRef.current?.clientWidth || canvas.width;
   //     const scaleX = containerWidth / dimensions.width;
-  //     scale = scaleX; //setScale(scaleX);
+  //     setScale(scaleX);
   //     canvas.style.width = "100%";
   //     canvas.style.height = "auto";
   //     drawCanvas();
@@ -125,6 +153,7 @@ export default function ClickableFloorplan(): ReactNode {
       const newPoint = await startSurvey(x, y, settings);
 
       const newPoints = [...settings.surveyPoints, newPoint];
+      // console.log("Floorplan new point: " + JSON.stringify(newPoint));
       updateSettings({ surveyPoints: newPoints });
     } catch (error) {
       alertMessage = `An error occurred: ${error}`;
@@ -149,7 +178,7 @@ export default function ClickableFloorplan(): ReactNode {
    * @param points
    */
   const drawPoints = (points: SurveyPoint[], ctx: CanvasRenderingContext2D) => {
-    console.log(JSON.stringify(points));
+    // console.log(JSON.stringify(points));
     points.forEach((point) => drawPoint(point, ctx));
   };
 
@@ -192,7 +221,17 @@ export default function ClickableFloorplan(): ReactNode {
     //   : `rgba(59, 130, 246, ${0.4 - ((pulseSize - pulseMinSize) / (pulseMaxSize - pulseMinSize)) * 0.3})`;
     // ctx.fill();
 
+    // canvas = canvasRef.current;
+    // if (!canvas) {
+    //   console.log(`canvas is null`);
+    //   return;
+    // }
+    // ctx = canvas.getContext("2d");
+
     if (point.wifiData) {
+      console.log(
+        `drawPoint: ${JSON.stringify(point)} ${JSON.stringify(ctx)} `,
+      );
       const wifiInfo = point.wifiData;
       const iperfInfo = point.iperfResults;
       const frequencyBand = wifiInfo.channel > 14 ? "5GHz" : "2.4GHz";
@@ -200,16 +239,18 @@ export default function ClickableFloorplan(): ReactNode {
       //   apMapping.find((ap) => ap.macAddress === wifiInfo.bssid)
       //     ?.apName ?? wifiInfo.bssid + " " + wifiInfo.rssi;
       // const annotation = `${frequencyBand}\n${apLabel}`;
+      ctx.fillStyle = "blue"; // Set fill color
+      ctx.fillRect(50, 50, 100, 75); // Draw a filled rectangle (x, y, width, height)
 
       // Draw the main point
       ctx.beginPath();
-      ctx.arc(point.x, point.y, 8, 0, 2 * Math.PI);
+      ctx.arc(0, 0, 8, 0, 2 * Math.PI); //point.x, point.y
       ctx.fillStyle = point.isDisabled
         ? "rgba(156, 163, 175, 0.9)"
         : getGradientColor(rssiToPercentage(wifiInfo.rssi));
       ctx.fill();
 
-      // Draw a white border
+      // Draw a grey border
       ctx.strokeStyle = "grey";
       ctx.lineWidth = 2;
       ctx.stroke();
