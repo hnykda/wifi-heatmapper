@@ -1,4 +1,4 @@
-import React, { ReactNode, useState } from "react";
+import React, { ReactNode, useRef, useState } from "react";
 import { useEffect } from "react";
 import { rssiToPercentage } from "../lib/utils";
 import { useSettings } from "./GlobalSettings";
@@ -29,9 +29,10 @@ export default function ClickableFloorplan(): ReactNode {
   const containerRef = useRef<HTMLDivElement>(null);
   const [selectedPoint, setSelectedPoint] = useState<SurveyPoint | null>(null);
   const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 });
+  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [scale, setScale] = useState(1);
   const { settings, updateSettings } = useSettings();
-  let dimensions = { width: 0, height: 0 };
+  // const dimensions = { width: 0, height: 0 };
   const { toast } = useToast();
 
   let alertMessage = "";
@@ -46,13 +47,13 @@ export default function ClickableFloorplan(): ReactNode {
     if (settings.floorplanImagePath != "") {
       const img = new Image();
       img.onload = () => {
-        dimensions = { width: img.width, height: img.height };
-        imageLoaded = true;
-        imageRef = img;
+        setDimensions({ width: img.width, height: img.height });
+        setImageLoaded(true);
+        imageRef.current = img;
       };
       img.src = settings.floorplanImagePath; // load the image from the path
     }
-  }, [image, setDimensions]);
+  }, [settings.floorplanImagePath, setDimensions]);
 
   useEffect(() => {
     if (imageLoaded && canvasRef.current) {
@@ -93,17 +94,17 @@ export default function ClickableFloorplan(): ReactNode {
   //   // canvas.addEventListener("click", handlePointClick);
   // }, []); // settings.floorplanImagePath, settings.surveyPoints
 
-  // useEffect(() => {
-  //   if (imageLoaded && canvasRef.current) {
-  //     const canvas = canvasRef.current;
-  //     const containerWidth = containerRef.current?.clientWidth || canvas.width;
-  //     const scaleX = containerWidth / dimensions.width;
-  //     setScale(scaleX);
-  //     canvas.style.width = "100%";
-  //     canvas.style.height = "auto";
-  //     drawCanvas();
-  //   }
-  // }, []);
+  useEffect(() => {
+    if (imageLoaded && canvasRef.current) {
+      const canvas = canvasRef.current;
+      const containerWidth = containerRef.current?.clientWidth || canvas.width;
+      const scaleX = containerWidth / dimensions.width;
+      setScale(scaleX);
+      canvas.style.width = "100%";
+      canvas.style.height = "auto";
+      drawCanvas();
+    }
+  }, []);
 
   /**
    * measureSurveyPoint - make measurements for point at x/y
@@ -173,6 +174,22 @@ export default function ClickableFloorplan(): ReactNode {
   };
 
   /**
+   * drawCanvas - make the entire drawing go...
+   */
+  const drawCanvas = () => {
+    const canvas = canvasRef.current;
+    if (canvas && imageRef.current) {
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(imageRef.current, 0, 0);
+
+        drawPoints(settings.surveyPoints, ctx);
+      }
+    }
+  };
+
+  /**
    * drawPoints - draw the list of points in the specified context
    * @param ctx
    * @param points
@@ -239,12 +256,12 @@ export default function ClickableFloorplan(): ReactNode {
       //   apMapping.find((ap) => ap.macAddress === wifiInfo.bssid)
       //     ?.apName ?? wifiInfo.bssid + " " + wifiInfo.rssi;
       // const annotation = `${frequencyBand}\n${apLabel}`;
-      ctx.fillStyle = "blue"; // Set fill color
-      ctx.fillRect(50, 50, 100, 75); // Draw a filled rectangle (x, y, width, height)
+      // ctx.fillStyle = "blue"; // Set fill color
+      // ctx.fillRect(50, 50, 100, 75); // Draw a filled rectangle (x, y, width, height)
 
       // Draw the main point
       ctx.beginPath();
-      ctx.arc(0, 0, 8, 0, 2 * Math.PI); //point.x, point.y
+      ctx.arc(point.x, point.y, 8, 0, 2 * Math.PI);
       ctx.fillStyle = point.isDisabled
         ? "rgba(156, 163, 175, 0.9)"
         : getGradientColor(rssiToPercentage(wifiInfo.rssi));
@@ -253,6 +270,7 @@ export default function ClickableFloorplan(): ReactNode {
       // Draw a grey border
       ctx.strokeStyle = "grey";
       ctx.lineWidth = 2;
+      ctx.closePath();
       ctx.stroke();
       // const t = getGradientColor(rssiToPercentage(wifiInfo.rssi));
 
@@ -428,7 +446,7 @@ export default function ClickableFloorplan(): ReactNode {
   const handleCanvasClick = (event: React.MouseEvent<HTMLCanvasElement>) => {
     // if a point was selected, they have "clicked away"
     if (selectedPoint) {
-      selectedPoint = null;
+      setSelectedPoint(null);
       return;
     }
 
@@ -445,13 +463,13 @@ export default function ClickableFloorplan(): ReactNode {
     );
 
     if (clickedPoint) {
-      selectedPoint = selectedPoint == clickedPoint ? null : clickedPoint;
-      // setPopupPosition({
-      //   x: clickedPoint.x * scale,
-      //   y: clickedPoint.y * scale,
-      // });
+      setSelectedPoint(selectedPoint == clickedPoint ? null : clickedPoint);
+      setPopupPosition({
+        x: clickedPoint.x * scale,
+        y: clickedPoint.y * scale,
+      });
     } else {
-      selectedPoint = null;
+      setSelectedPoint(null);
       // round the coordinates,
       // heatmap expects integer values
       measureSurveyPoint(Math.round(x), Math.round(y));
