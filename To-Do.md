@@ -2,10 +2,7 @@
 
 Random questions that arise at the start of the project.
 
-* ~~Only use (percentage) signal strength to create colors
-  (heat map & coloring survey dots)~~
-* ~~Update labels on survey dots to show more interesting info (not "00000000")~~
-* ~~Remove pulsing aura's when not actively sampling (or always?)~~
+
 * Update the Toast progress indicators to stay on-screen during entire survey process. Display:
   * Starting measurement... X seconds remaining (and count down)
   * Signal level is XX dBM / %
@@ -35,8 +32,6 @@ Random questions that arise at the start of the project.
 
 ## Questions
 
-* Is there a difference between using the currently subscribed SSID
-  and using the sum of all SSIDs?
 * What's the best gradient for signal strength? Linear between -40 and -80 dBM?
   Emphasize differences between good (-40 to -60?) Emphasize the bad?
   Good rule might be "green or above (yellow, orange, red) is good...
@@ -60,10 +55,16 @@ Random questions that arise at the start of the project.
   in a flat structure so they can be passed around and
   modified by the children
 * `fileHandler.ts` removes sudoerPassword before saving
-* Don't dislay Platform in the Settings Pane (no decisions made,
-  just gets passed around)
+* Don't dislay Platform in the Settings Pane 
 * Obviously `wifiScanner.ts` must determine the platorm,
-  but none of the other code needs to know the platform
+  but none of the other code needs to know the platform.
+  It decides on-the-fly when `platform` is needed
 * `wifiScanner` must throw quickly if sudoerPassword is _empty_
 
+## DONE
 
+* ~~Only use (percentage) signal strength to create colors
+  (heat map & coloring survey dots)~~
+* ~~Update labels on survey dots to show more interesting info (not "00000000")~~
+* ~~Remove pulsing aura's when not actively sampling (or always?)~~
+* ~~Is there a difference between using the currently subscribed SSID and using the sum of all SSIDs?~~ Yes. `wifi-heatmapper` only uses the current SSID, and doesn't see other SSIDs.
