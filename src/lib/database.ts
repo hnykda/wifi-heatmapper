@@ -3,11 +3,14 @@ import fsSync from "fs";
 import path from "path";
 import { getDefaults } from "./utils";
 import { Database, SurveyPoint } from "./types";
+import { getLogger } from "./logger";
+
+const logger = getLogger("database");
 
 export async function readDatabase(dbPath: string): Promise<Database> {
   // check if the file exists
   if (!fsSync.existsSync(dbPath)) {
-    console.warn("Database file does not exist, creating...");
+    logger.warn("Database file does not exist, creating...");
     await fs.mkdir(path.dirname(dbPath), { recursive: true });
     await fs.writeFile(dbPath, JSON.stringify(getDefaults()));
     return getDefaults();
@@ -24,7 +27,7 @@ export async function writeDatabase(
   try {
     await fs.writeFile(dbPath, JSON.stringify(data, null, 2));
   } catch (error) {
-    console.error("Error writing database:", error);
+    logger.error("Error writing database:", error);
   }
 }
 

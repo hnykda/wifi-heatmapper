@@ -23,6 +23,9 @@ import {
   percentageToRssi,
   rssiToPercentage,
 } from "@/lib/utils";
+import { getLogger } from "@/lib/logger";
+
+const logger = getLogger("Heatmaps");
 
 const metricTitles: Record<MeasurementTestType, string> = {
   signalStrength: "Signal Strength",
@@ -136,7 +139,7 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
 
       const allSameValue = data.every((point) => point.value === data[0].value);
       if (allSameValue) {
-        console.log(
+        logger.info(
           `Values for all selected points for ${metric}${testType ? `-${testType}` : ""} are the same: ${data[0].value}.
           It's not a problem, but the heatmap will be less interesting.`,
         );
@@ -192,7 +195,7 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
           dimensions.height === 0 ||
           !offScreenContainerRef.current
         ) {
-          console.error(
+          logger.error(
             "Image dimensions not set or off-screen container not available",
           );
           resolve(null);
@@ -202,7 +205,7 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
         const heatmapData = generateHeatmapData(metric, testType);
 
         if (!heatmapData || heatmapData.length === 0) {
-          console.log(
+          logger.info(
             `No valid data for ${metric}${testType ? `-${testType}` : ""}`,
           );
           resolve(null);
@@ -245,7 +248,7 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
         canvas.height = dimensions.height + 40;
         const ctx = canvas.getContext("2d", { willReadFrequently: true });
         if (!ctx) {
-          console.error("Failed to get 2D context");
+          logger.error("Failed to get 2D context");
           offScreenContainerRef.current.removeChild(heatmapContainer);
           resolve(null);
           return;
@@ -267,7 +270,7 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
           const heatmapCanvas = heatmapContainer.querySelector("canvas");
           if (heatmapCanvas) {
             if (heatmapCanvas.width === 0 || heatmapCanvas.height === 0) {
-              console.error("Heatmap canvas has zero width or height");
+              logger.error("Heatmap canvas has zero width or height");
               offScreenContainerRef.current?.removeChild(heatmapContainer);
               resolve(null);
               return;
@@ -319,18 +322,18 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
                 offScreenContainerRef.current.removeChild(heatmapContainer);
               }
             } catch (error) {
-              console.error("Error removing heatmap container:", error);
+              logger.error("Error removing heatmap container:", error);
             }
 
             resolve(canvas.toDataURL());
           } else {
-            console.error("Heatmap canvas not found");
+            logger.error("Heatmap canvas not found");
             try {
               if (offScreenContainerRef.current?.contains(heatmapContainer)) {
                 offScreenContainerRef.current.removeChild(heatmapContainer);
               }
             } catch (error) {
-              console.error("Error removing heatmap container:", error);
+              logger.error("Error removing heatmap container:", error);
             }
             resolve(null);
           }

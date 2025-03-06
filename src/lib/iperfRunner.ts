@@ -7,8 +7,15 @@ import {
   ScannerSettings,
 } from "./types";
 import { scanWifi } from "./wifiScanner";
+import { getLogger } from "./logger";
 
-const execAsync = util.promisify(exec);
+const logger = getLogger("iperfRunner");
+
+const execAsync = (command: string) => {
+  logger.trace("Executing command:", command);
+  const result = util.promisify(exec)(command);
+  return result;
+};
 
 const validateWifiDataConsistency = (
   wifiDataBefore: WifiNetwork,
@@ -61,7 +68,7 @@ export async function runIperfTest(
           rssi: Math.round((wifiDataAfter.rssi + wifiDataBefore.rssi) / 2),
         };
       } catch (error) {
-        console.error(`Attempt ${attempts + 1} failed:`, error);
+        logger.error(`Attempt ${attempts + 1} failed:`, error);
         attempts++;
         if (attempts >= maxRetries) {
           throw error;
@@ -73,7 +80,7 @@ export async function runIperfTest(
 
     return { iperfResults: results!, wifiData: wifiData! };
   } catch (error) {
-    console.error("Error running iperf3 test:", error);
+    logger.error("Error running iperf3 test:", error);
     throw error;
   }
 }
@@ -95,7 +102,10 @@ async function runSingleTest(
   } -t ${duration} ${isDownload ? "-R" : ""} ${isUdp ? "-u -b 0" : ""} -J`;
   const { stdout } = await execAsync(command);
   const result = JSON.parse(stdout);
-  return extractIperfResults(result);
+  logger.trace("Iperf JSON-parsed result:", result);
+  const extracted = extractIperfResults(result);
+  logger.trace("Iperf extracted results:", extracted);
+  return extracted;
 }
 
 function extractIperfResults(result: {

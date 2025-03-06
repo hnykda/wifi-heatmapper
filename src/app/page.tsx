@@ -25,7 +25,9 @@ import { PopoverHelper } from "@/components/PopoverHelpText";
 import EditableField from "@/components/EditableField";
 import EditableApMapping from "@/components/ApMapping";
 import PointsTable from "@/components/PointsTable";
+import { getLogger } from "@/lib/logger";
 
+const logger = getLogger("Home");
 export default function Home() {
   const [surveyData, setSurveyData] = useState<Database>(getDefaults());
   const [status, setStatus] = useState<"ready" | "running" | "error">("ready");
@@ -71,7 +73,7 @@ export default function Home() {
     const runningPlatform = process.platform;
 
     if (!sudoerPassword && runningPlatform == "darwin") {
-      console.warn(
+      logger.warn(
         "No sudoer password set, but running on macOS where it's required for wdutil info command",
       );
       setAlertMessage(

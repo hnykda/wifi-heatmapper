@@ -10,7 +10,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PopoverHelper } from "@/components/PopoverHelpText";
+import { getLogger } from "@/lib/logger";
 
+const logger = getLogger("HeatmapAdvancedConfig");
 export type HeatmapConfig = {
   radiusDivider: number;
   maxOpacity: number;
@@ -53,7 +55,7 @@ const HeatmapAdvancedConfig = ({
     key: keyof HeatmapConfig,
     value: number | Record<string, string>,
   ) => {
-    console.log(key, value, new Date());
+    logger.info(key, value, new Date());
     const newConfig = { ...localConfig, [key]: value };
     setLocalConfig(newConfig);
     debouncedSetConfig(newConfig);
