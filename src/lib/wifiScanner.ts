@@ -1,5 +1,8 @@
 import { ScannerSettings, WifiNetwork } from "./types";
 import { execAsync } from "./server-utils";
+import { getLogger } from "./logger";
+
+const logger = getLogger("wifiScanner");
 
 const getDefaultWifiNetwork = (): WifiNetwork => ({
   ssid: "",
@@ -45,9 +48,9 @@ export async function scanWifi(
     }
   } catch (error_) {
     const error = error_ as Error;
-    console.error("Error scanning WiFi:", error);
+    logger.error("Error scanning WiFi:", error);
     if (error.message.includes("sudo")) {
-      console.error(
+      logger.error(
         "This command requires sudo privileges. Please run the application with sudo.",
       );
     }
@@ -94,25 +97,31 @@ export async function scanWifiMacOS(
     `echo ${settings.sudoerPassword} | sudo -S wdutil info`,
   );
   const wdutilNetworkInfo = parseWdutilOutput(wdutilOutput.stdout);
+  logger.trace("WDUTIL output:", wdutilNetworkInfo);
 
-  if (!isValidMacAddress(wdutilNetworkInfo.bssid)) {
+  if (!isValidMacAddress(wdutilNetworkInfo.ssid)) {
+    logger.trace("Invalid SSID, getting it from ioreg");
     const ssidOutput = await getIoregSsid();
     wdutilNetworkInfo.ssid = ssidOutput;
   }
 
   if (!isValidMacAddress(wdutilNetworkInfo.bssid)) {
+    logger.trace("Invalid BSSID, getting it from ioreg");
     const bssidOutput = await getIoregBssid();
     wdutilNetworkInfo.bssid = bssidOutput;
   }
 
+  logger.trace("Final WiFi data:", wdutilNetworkInfo);
   return wdutilNetworkInfo;
 }
 
 async function scanWifiWindows(): Promise<WifiNetwork> {
   const command = "netsh wlan show interfaces";
   const { stdout } = await execAsync(command);
-
-  return parseNetshOutput(stdout);
+  logger.trace("NETSH output:", stdout);
+  const parsed = parseNetshOutput(stdout);
+  logger.trace("Final WiFi data:", parsed);
+  return parsed;
 }
 
 async function iwDevLink(interfaceId: string): Promise<string> {
@@ -133,13 +142,17 @@ async function scanWifiLinux(settings: ScannerSettings): Promise<WifiNetwork> {
     iwDevInfo(settings.wlanInterfaceId),
   ]);
 
-  return parseIwOutput(linkOutput, infoOutput);
+  logger.trace("IW output:", linkOutput);
+  logger.trace("IW info:", infoOutput);
+  const parsed = parseIwOutput(linkOutput, infoOutput);
+  logger.trace("Final WiFi data:", parsed);
+  return parsed;
 }
 
 export function parseWdutilOutput(output: string): WifiNetwork {
   const wifiSection = output.split("WIFI")[1].split("BLUETOOTH")[0];
   const lines = wifiSection.split("\n");
-
+  logger.silly("WDUTIL lines:", lines);
   const networkInfo = getDefaultWifiNetwork();
 
   lines.forEach((line) => {
@@ -183,6 +196,7 @@ export function parseWdutilOutput(output: string): WifiNetwork {
     }
   });
 
+  logger.trace("Final WiFi data:", networkInfo);
   return networkInfo;
 }
 
@@ -196,7 +210,7 @@ export function parseWdutilOutput(output: string): WifiNetwork {
 export function parseNetshOutput(output: string): WifiNetwork {
   const networkInfo = getDefaultWifiNetwork();
   const lines = output.split("\n").map((line) => line.trim());
-
+  logger.trace("NETSH lines:", lines);
   // Find the Wi-Fi interface section
   const wifiLineIndex = lines.findIndex((line) => line.includes("Wi-Fi"));
   if (wifiLineIndex === -1) return networkInfo;
@@ -206,11 +220,13 @@ export function parseNetshOutput(output: string): WifiNetwork {
     (line, index) =>
       index > wifiLineIndex && line.includes("SSID") && !line.includes("BSSID"),
   );
+  logger.trace("SSID line index:", ssidLineIndex);
   if (ssidLineIndex === -1) return networkInfo;
 
   const bssidLineIndex = lines.findIndex(
     (line, index) => index > wifiLineIndex && line.includes("BSSID"),
   );
+  logger.trace("BSSID line index:", bssidLineIndex);
   if (bssidLineIndex === -1) return networkInfo;
 
   // Parse values based on their position relative to BSSID line
@@ -221,9 +237,10 @@ export function parseNetshOutput(output: string): WifiNetwork {
 
   // SSID is always present and consistent
   networkInfo.ssid = getValue(lines[ssidLineIndex]);
-
+  logger.trace("SSID:", networkInfo.ssid);
   // BSSID is always present and consistent
   networkInfo.bssid = normalizeMacAddress(getValue(lines[bssidLineIndex]));
+  logger.trace("BSSID:", networkInfo.bssid);
   if (!isValidMacAddress(networkInfo.bssid)) {
     throw new Error(
       "Invalid BSSID when parsing netsh output: " +
@@ -234,23 +251,24 @@ export function parseNetshOutput(output: string): WifiNetwork {
 
   // Radio type is 2 lines after BSSID
   networkInfo.phyMode = getValue(lines[bssidLineIndex + 2]);
-
+  logger.trace("PHY mode:", networkInfo.phyMode);
   // Authentication is 3 lines after BSSID
   networkInfo.security = getValue(lines[bssidLineIndex + 3]);
-
+  logger.trace("Security:", networkInfo.security);
   // Channel is 6 lines after BSSID
   const channel = parseInt(getValue(lines[bssidLineIndex + 6]) || "0");
   networkInfo.channel = channel;
   networkInfo.frequency = channel > 14 ? 5 : 2.4;
-
+  logger.trace("Frequency:", networkInfo.frequency);
   // Transmit rate is 7 lines after BSSID
   const txRate = getValue(lines[bssidLineIndex + 8]);
   networkInfo.txRate = parseFloat(txRate.split(" ")[0]);
-
+  logger.trace("Transmit rate:", networkInfo.txRate);
   // Signal is 8 lines after BSSID
   const signal = getValue(lines[bssidLineIndex + 9]);
   networkInfo.signalStrength = parseInt(signal.replace("%", ""));
-
+  logger.trace("Signal strength:", networkInfo.signalStrength);
+  logger.trace("Final WiFi data:", networkInfo);
   return networkInfo;
 }
 
@@ -259,7 +277,6 @@ export function parseIwOutput(
   infoOutput: string,
 ): WifiNetwork {
   const networkInfo = getDefaultWifiNetwork();
-
   const linkLines = linkOutput.split("\n");
   linkLines.forEach((line) => {
     const trimmedLine = line.trim();

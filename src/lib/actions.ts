@@ -12,6 +12,9 @@ import {
 } from "./database";
 import { SurveyPoint, Database } from "./types";
 import { execAsync } from "./server-utils";
+import { getLogger } from "./logger";
+
+const logger = getLogger("actions");
 
 export async function startSurvey(
   dbPath: string,
@@ -80,7 +83,7 @@ export async function writeSurveyData(
   dbPath: string,
   data: Database,
 ): Promise<void> {
-  console.log("Writing survey data to database");
+  logger.info("Writing survey data to database");
   await writeDatabase(dbPath, data);
 }
 
@@ -104,7 +107,7 @@ export async function getPlatform() {
 }
 
 export async function inferWifiDeviceIdOnLinux(): Promise<string> {
-  console.debug("Inferring WLAN interface ID on Linux");
+  logger.debug("Inferring WLAN interface ID on Linux");
   const { stdout } = await execAsync(
     "iw dev | awk '$1==\"Interface\"{print $2}' | head -n1",
   );
