@@ -9,14 +9,23 @@ import {
 } from "react";
 import { readSettingsFromFile, writeSettingsToFile } from "../lib/fileHandler";
 import { HeatmapSettings } from "../lib/types";
-import { getDefaults } from "../lib/fileHandler";
 
-// // Define the shape of the settings object
-// export interface HeatmapSettings {
-//   savedSettings: Database;
-//   sudoerPassword: string; // separate because it should never be saved to the database file
-//   platform: string; // separate because it is determined at run-time
-// }
+/**
+ * getDefaults()
+ * @returns Set of default settings
+ */
+const getDefaults = (): HeatmapSettings => {
+  return {
+    surveyPoints: [],
+    floorplanImagePath: "media/EmptyFloor.png",
+    iperfServerAdrs: "127.0.0.1",
+    apMapping: [],
+    testDuration: 10,
+    sudoerPassword: "",
+    // addAPoint: addPoint,
+    // delAPoint: deletePoint,
+  };
+};
 
 // Define the context type
 interface SettingsContextType {
@@ -39,17 +48,14 @@ export function useSettings() {
 
 // Context provider component
 export function SettingsProvider({ children }: { children: ReactNode }) {
-  const [settings, setSettings] = useState<HeatmapSettings>(getDefaults());
-
   // Load settings from file on mount
   useEffect(() => {
     async function loadSettings() {
-      const newHeatmapSettings: HeatmapSettings = await readSettingsFromFile();
-      // {
-      //   settings: await readSettingsFromFile(),
-      //   // sudoerPassword: "",
-      //   // platform: getPlatform(),
-      // };
+      let newHeatmapSettings: HeatmapSettings | null =
+        await readSettingsFromFile();
+      if (!newHeatmapSettings) {
+        newHeatmapSettings = getDefaults();
+      }
       setSettings(newHeatmapSettings);
     }
     loadSettings();
@@ -64,6 +70,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       return updatedSettings;
     });
   };
+
+  const [settings, setSettings] = useState<HeatmapSettings>(getDefaults());
 
   return (
     <SettingsContext.Provider value={{ settings, updateSettings }}>

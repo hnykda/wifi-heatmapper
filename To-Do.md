@@ -29,6 +29,7 @@ Random questions that arise at the start of the project.
 * Coalesce all the settings into a single object that can then be saved to a file. (Remember to isolate the sudoer password - never save it).
 * If only one survey point exists, the <Heatmap> floor plan should appear, but with a message like "Not enough points"
 * The signal strength heat map should always have a scale of 0-100% because people deserve to know when their wifi strength is low.
+* If `Floorplan` cannot open the image, display a sensible message
 
 ## Questions
 
@@ -61,8 +62,12 @@ Random questions that arise at the start of the project.
 * Don't dislay Platform in the Settings Pane 
 * Obviously `wifiScanner.ts` must determine the platorm,
   but none of the other code needs to know the platform.
-  It decides on-the-fly when `platform` is needed
+  We can decide on-the-fly when `platform` is needed
 * `wifiScanner` must throw quickly if sudoerPassword is _empty_
+* `GlobalSettings` owns/controls the array of surveyPoints.
+  `<Floorplan>` may add or delete a point;
+  `<PointsTable>` may remove one or many.
+  Both receive the full list of points, and return an updated list back to `GlobalSettings`
 
 ## DONE
 

@@ -8,8 +8,8 @@ import { Loader } from "@/components/Loader";
 import { startSurvey } from "@/lib/actions";
 import { useToast } from "@/components/ui/use-toast";
 import { Toaster } from "@/components/ui/toaster";
-
-// interface ClickableFloorplanProps {,
+import PopupDetails from "@/components/PopupDetails";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 export default function ClickableFloorplan(): ReactNode {
   // {
@@ -31,11 +31,12 @@ export default function ClickableFloorplan(): ReactNode {
   const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 });
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [scale, setScale] = useState(1);
+  const [alertMessage, setAlertMessage] = useState("");
   const { settings, updateSettings } = useSettings();
   // const dimensions = { width: 0, height: 0 };
   const { toast } = useToast();
 
-  let alertMessage = "";
+  // let alertMessage = "";
   let measurementStatus = "";
 
   /**
@@ -65,34 +66,7 @@ export default function ClickableFloorplan(): ReactNode {
       canvas.style.height = "auto";
       drawCanvas();
     }
-  }, [imageLoaded, dimensions]);
-
-  // new attempt to fix - switching back to old
-  // useEffect(() => {
-  //   if (settings.floorplanImagePath == "") return;
-  //   canvas = canvasRef.current;
-  //   if (!canvas) return;
-  //   ctx = canvas.getContext("2d");
-  //   if (!ctx) return;
-
-  //   const img = new Image();
-  //   img.src = settings.floorplanImagePath; // load the image from the path
-  //   img.onload = () => {
-  //     canvas = canvasRef.current;
-  //     canvas.width = img.width;
-  //     canvas.height = img.height;
-  //     // imageLoaded = true;
-  //     ctx = canvas.getContext("2d");
-  //     ctx.drawImage(img, 0, 0);
-  //     // ctx.fillStyle = "blue"; // Set fill color
-  //     // ctx.fillRect(50, 50, 100, 75); // Draw a filled rectangle (x, y, width, height)
-
-  //     // console.log(`useEffect: ${JSON.stringify(ctx)}`);
-  //   };
-  //   console.log("useEffect " + JSON.stringify(settings.surveyPoints));
-  //   drawPoints(settings.surveyPoints, ctx);
-  //   // canvas.addEventListener("click", handlePointClick);
-  // }, []); // settings.floorplanImagePath, settings.surveyPoints
+  }, [imageLoaded, dimensions, settings.surveyPoints]);
 
   useEffect(() => {
     if (imageLoaded && canvasRef.current) {
@@ -107,6 +81,16 @@ export default function ClickableFloorplan(): ReactNode {
   }, []);
 
   /**
+   * addPoint() - add a point to the surveyPoints
+   * @param point
+   * @returns
+   */
+  const addPoint = (point: SurveyPoint) => {
+    const newPoints = [...settings.surveyPoints, point];
+    updateSettings({ surveyPoints: newPoints });
+  };
+
+  /**
    * measureSurveyPoint - make measurements for point at x/y
    * Triggered by a click on the canvas that _isn't_ an existin
    *    surveypoint
@@ -115,10 +99,10 @@ export default function ClickableFloorplan(): ReactNode {
    * @returns
    */
   const measureSurveyPoint = async (x: number, y: number) => {
-    alertMessage = "";
+    setAlertMessage("");
     measurementStatus = "running";
     if (!settings?.iperfServerAdrs) {
-      alertMessage = "Please set iperf server address";
+      setAlertMessage("Please set iperf server address");
       measurementStatus = "error";
       toast({
         title: "An error occurred",
@@ -134,8 +118,9 @@ export default function ClickableFloorplan(): ReactNode {
       console.warn(
         "No sudoer password set, but running on macOS where it's required for wdutil info command",
       );
-      alertMessage =
-        "Please set sudoer password so we can run wdutil info command";
+      setAlertMessage(
+        "Please set sudoer password so we can run wdutil info command",
+      );
       toast({
         title: "Please set sudoer password",
         description:
@@ -153,11 +138,12 @@ export default function ClickableFloorplan(): ReactNode {
     try {
       const newPoint = await startSurvey(x, y, settings);
 
-      const newPoints = [...settings.surveyPoints, newPoint];
-      // console.log("Floorplan new point: " + JSON.stringify(newPoint));
-      updateSettings({ surveyPoints: newPoints });
+      addPoint(newPoint);
+      // const newPoints = [...settings.surveyPoints, newPoint];
+      // // console.log("Floorplan new point: " + JSON.stringify(newPoint));
+      // updateSettings({ surveyPoints: newPoints });
     } catch (error) {
-      alertMessage = `An error occurred: ${error}`;
+      setAlertMessage(`An error occurred: ${error}`);
       measurementStatus = "error";
       toast({
         title: "An error occurred",
@@ -511,6 +497,10 @@ export default function ClickableFloorplan(): ReactNode {
           )}
         </div>
       </div>
+      <Alert variant="destructive">
+        <AlertTitle>Error</AlertTitle>
+        <AlertDescription>{alertMessage}</AlertDescription>
+      </Alert>
       <div className="relative" ref={containerRef}>
         <div
           className={`absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-lg ${
@@ -529,27 +519,18 @@ export default function ClickableFloorplan(): ReactNode {
           onClick={handleCanvasClick}
           className="border border-gray-300 rounded-lg cursor-pointer"
         />
-        {/* {selectedPoint && (
-              <div
-                style={{
-                  position: "absolute",
-                  left: `${popupPosition.x}px`,
-                  top: `${popupPosition.y}px`,
-                  transform: "translate(10px, -50%)",
-                }}
-              >
-                <PopupDetails
-                  point={selectedPoint}
-                  apMapping={apMapping}
-                  onClose={() => setSelectedPoint(null)}
-                  updateDatapoint={updateDatapoint}
-                  onDelete={(ids) => {
-                    onDelete(ids);
-                    setSelectedPoint(null);
-                  }}
-                />
-              </div>
-            )} */}
+
+        <div
+          style={{
+            position: "absolute",
+            left: `${popupPosition.x}px`,
+            top: `${popupPosition.y}px`,
+            transform: "translate(10px, -50%)",
+          }}
+        >
+          <PopupDetails point={selectedPoint} />
+        </div>
+
         <Toaster />
       </div>
     </div>
