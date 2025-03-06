@@ -7,6 +7,7 @@ import { runIperfTest } from "./iperfRunner";
 import { updateDatabaseField, writeDatabase } from "./database";
 import { SurveyPoint, OS, HeatmapSettings } from "./types";
 import { execAsync } from "./server-utils";
+import { updateSettings } from "@/components/GlobalSettings";
 
 export async function startSurvey(
   x: number,
@@ -100,3 +101,28 @@ export async function inferWifiDeviceIdOnLinux(): Promise<string> {
   );
   return stdout.trim();
 }
+
+// NOT USED HERE - Bundle them into the component (couldn't figure out how to pass
+// these functions to the child components)
+// (No way to call updateSettings()...)
+/**
+ * addPoint() - add a point to the surveyPoints
+ * @param point
+ * @returns
+ */
+const addPoint = (point: SurveyPoint) => {
+  const newPoints = [...settings.surveyPoints, point];
+  updateSettings({ surveyPoints: newPoints });
+};
+
+/**
+ * deletePoint() - remove a point from the surveyPoints
+ * @param point
+ * @returns
+ */
+const deletePoint = (point: SurveyPoint) => {
+  const newPoints = settings.surveyPoints.filter(
+    (aPoint: SurveyPoint) => aPoint != point,
+  );
+  updateSettings({ surveyPoints: newPoints });
+};

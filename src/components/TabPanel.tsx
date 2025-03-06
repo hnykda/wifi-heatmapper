@@ -4,7 +4,7 @@ import SettingsViewer from "@/components/SettingsViewer";
 import SettingsEditor from "@/components/SettingsEditor";
 import ClickableFloorplan from "@/components/Floorplan";
 import { Toaster } from "./ui/toaster";
-// import PopupDetails from "@/components/PopupDetails";
+import PopupDetails from "@/components/PopupDetails";
 
 export default function TabPanel() {
   const [activeTab, setActiveTab] = useState("tab1"); // State to track the active tab
@@ -57,7 +57,7 @@ export default function TabPanel() {
         <Tabs.Content value="tab2" className="p-4">
           <ClickableFloorplan />
           <Toaster />
-          {/* <PopupDetails /> */}
+          <PopupDetails />
         </Tabs.Content>
 
         <Tabs.Content value="tab3" className="p-4">

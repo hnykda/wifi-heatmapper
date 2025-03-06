@@ -51,6 +51,8 @@ export interface HeatmapSettings {
   testDuration: number;
   apMapping: ApMapping[];
   sudoerPassword: string; // passed around, removed before writing to file
+  // addAPoint(pt: SurveyPoint): void; // function to add a point
+  // delAPoint(pt: SurveyPoint): void; // function to delete a point
   // ultimately advanced settings and TCP/UDP speed test settings
   // BUT NOT
   // platform: it will be determined each time we need it

@@ -1,25 +1,12 @@
 import { HeatmapSettings } from "./types";
 
-export const getDefaults = (): HeatmapSettings => {
-  return {
-    surveyPoints: [],
-    floorplanImagePath: "foo.png",
-    iperfServerAdrs: "127.0.0.1",
-    apMapping: [],
-    testDuration: 10,
-    sudoerPassword: "",
-    // dbPath: "",
-    // platform: "",
-  };
-};
-
-export async function readSettingsFromFile(): Promise<HeatmapSettings> {
+export async function readSettingsFromFile(): Promise<HeatmapSettings | null> {
   try {
     const data = localStorage.getItem("projectSettings"); // Simulating file storage
-    return data ? JSON.parse(data) : getDefaults();
+    return data ? JSON.parse(data) : null;
   } catch (error) {
     console.error("Error reading settings:", error);
-    return getDefaults();
+    return null;
   }
 }
 

@@ -1,4 +1,4 @@
-import { useSettings } from "./GlobalSettings";
+import { useSettings } from "@/components/GlobalSettings";
 
 export default function SettingsEditor() {
   const { settings, updateSettings } = useSettings();
