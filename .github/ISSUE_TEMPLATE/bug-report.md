@@ -20,3 +20,6 @@ assignees: ''
  - Version [e.g. Mac Sequita, Win 11, Ubuntu 22]
 
 **Additional context**
+
+
+If relevant, consider running minimal execution path that leads to the problem with `LOG_LEVEL=1 npm run dev | tee -a out.log` and share that `out.log` with us here or via https://gist.github.com/.
