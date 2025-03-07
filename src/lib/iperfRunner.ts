@@ -8,18 +8,13 @@ import {
 } from "./types";
 import { scanWifi } from "./wifiScanner";
 import { getLogger } from "./logger";
+import { execAsync } from "./server-utils";
 
 const logger = getLogger("iperfRunner");
 
-const execAsync = (command: string) => {
-  logger.trace("Executing command:", command);
-  const result = util.promisify(exec)(command);
-  return result;
-};
-
 const validateWifiDataConsistency = (
   wifiDataBefore: WifiNetwork,
-  wifiDataAfter: WifiNetwork,
+  wifiDataAfter: WifiNetwork
 ) => {
   return (
     wifiDataBefore.bssid === wifiDataAfter.bssid &&
@@ -32,7 +27,7 @@ const validateWifiDataConsistency = (
 export async function runIperfTest(
   server: string,
   duration: number,
-  settings: ScannerSettings,
+  settings: ScannerSettings
 ): Promise<{ iperfResults: IperfResults; wifiData: WifiNetwork }> {
   try {
     const maxRetries = 3;
@@ -52,7 +47,7 @@ export async function runIperfTest(
 
         if (!validateWifiDataConsistency(wifiDataBefore, wifiDataAfter)) {
           throw new Error(
-            "Wifi data inconsistency between scans! Cancelling instead of giving wrong results.",
+            "Wifi data inconsistency between scans! Cancelling instead of giving wrong results."
           );
         }
 
@@ -89,7 +84,7 @@ async function runSingleTest(
   server: string,
   duration: number,
   isDownload: boolean,
-  isUdp: boolean,
+  isUdp: boolean
 ): Promise<IperfTestProperty> {
   let port = "";
   if (server.includes(":")) {
