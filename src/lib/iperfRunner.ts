@@ -98,24 +98,136 @@ async function runSingleTest(
   const { stdout } = await execAsync(command);
   const result = JSON.parse(stdout);
   logger.trace("Iperf JSON-parsed result:", result);
-  const extracted = extractIperfResults(result);
+  const extracted = extractIperfResults(result, isUdp);
   logger.trace("Iperf extracted results:", extracted);
   return extracted;
 }
 
-function extractIperfResults(result: {
-  end: {
-    sum_received: { bits_per_second: number };
-    sum_sent: { retransmits: number };
-    sum?: { jitter_ms: number; lost_packets: number; packets: number };
-  };
-}): IperfTestProperty {
-  const end = result.end;
+/**
+ * Extracts TCP test results from iperf3 output
+ */
+export function extractTcpResults(result: any): Partial<IperfTestProperty> {
   return {
-    bitsPerSecond: end.sum_received.bits_per_second,
-    retransmits: end.sum_sent.retransmits,
-    jitterMs: end.sum?.jitter_ms,
-    lostPackets: end.sum?.lost_packets,
-    packetsReceived: end.sum?.packets,
+    bitsPerSecond: result.end?.sum_received?.bits_per_second,
+    retransmits: result.end?.sum_sent?.retransmits,
+  };
+}
+
+/**
+ * Attempts to extract UDP results from the streams[0].udp path
+ * This seemed to happen on the ubuntu
+ */
+export function extractUdpFromStreamPath(
+  result: any
+): Partial<IperfTestProperty> | null {
+  if (!result.end?.streams?.[0]?.udp) {
+    return null;
+  }
+
+  const udpResult = result.end.streams[0].udp;
+  return {
+    bitsPerSecond: udpResult.bits_per_second,
+    jitterMs: udpResult.jitter_ms,
+    lostPackets: udpResult.lost_packets,
+    packetsReceived: udpResult.packets,
+  };
+}
+
+/**
+ * Attempts to extract UDP results from the sum path
+ */
+export function extractUdpFromSumPath(
+  result: any
+): Partial<IperfTestProperty> | null {
+  if (!result.end?.sum) {
+    return null;
+  }
+
+  return {
+    bitsPerSecond: result.end.sum.bits_per_second,
+    jitterMs: result.end.sum.jitter_ms,
+    lostPackets: result.end.sum.lost_packets,
+    packetsReceived: result.end.sum.packets,
+  };
+}
+
+/**
+ * Attempts to extract UDP results from the sum_received path
+ */
+export function extractUdpFromSumReceivedPath(
+  result: any
+): Partial<IperfTestProperty> | null {
+  if (!result.end?.sum_received?.bits_per_second) {
+    return null;
+  }
+
+  return {
+    bitsPerSecond: result.end.sum_received.bits_per_second,
+  };
+}
+
+/**
+ * Extracts UDP test results from iperf3 output by trying multiple paths
+ */
+export function extractUdpResults(result: any): Partial<IperfTestProperty> {
+  try {
+    // Try each extraction path in order
+    const fromStream = extractUdpFromStreamPath(result);
+    if (fromStream?.bitsPerSecond) {
+      logger.trace("UDP results extracted from streams[0].udp path");
+      return fromStream;
+    }
+
+    const fromSum = extractUdpFromSumPath(result);
+    if (fromSum?.bitsPerSecond) {
+      logger.trace("UDP results extracted from sum path");
+      return fromSum;
+    }
+
+    const fromSumReceived = extractUdpFromSumReceivedPath(result);
+    if (fromSumReceived?.bitsPerSecond) {
+      logger.trace("UDP results extracted from sum_received path");
+      return fromSumReceived;
+    }
+
+    logger.warn("Failed to extract UDP results from any path");
+    return {};
+  } catch (error) {
+    logger.error("Error extracting UDP test results:", error);
+    logger.debug(
+      "UDP test result structure:",
+      JSON.stringify(result.end, null, 2)
+    );
+    return {};
+  }
+}
+
+export function extractIperfResults(
+  result: any,
+  isUdp: boolean
+): IperfTestProperty {
+  // Extract results based on test type
+  const extractedResults = isUdp
+    ? extractUdpResults(result)
+    : extractTcpResults(result);
+
+  // Log the extraction results for debugging
+  logger.trace(
+    `${isUdp ? "UDP" : "TCP"} extraction complete, bitsPerSecond:`,
+    extractedResults.bitsPerSecond
+  );
+
+  // Validate we have the minimum required data
+  if (!extractedResults.bitsPerSecond) {
+    throw new Error("No bits per second value found in iperf result");
+  }
+
+  // Return with all expected properties
+  return {
+    bitsPerSecond: extractedResults.bitsPerSecond,
+    retransmits: extractedResults.retransmits,
+    jitterMs: extractedResults.jitterMs,
+    lostPackets: extractedResults.lostPackets,
+    packetsReceived: extractedResults.packetsReceived,
   };
 }
