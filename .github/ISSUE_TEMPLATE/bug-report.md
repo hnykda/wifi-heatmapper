@@ -14,10 +14,11 @@ assignees: ''
 
 **Screenshots**
 
-**Desktop (please complete the following information):**
+**Environment (please complete the following information, it's printed in the terminal after you start it):**
  - OS: [e.g. iOS, Windows, Linux]
- - Browser [e.g. chrome, safari]
  - Version [e.g. Mac Sequita, Win 11, Ubuntu 22]
+ - Browser [e.g. chrome, safari]
+ - `iperf` version (`iperf3 --version`):
 
 **Additional context**
 
