@@ -1,9 +1,9 @@
 export interface IperfTestProperty {
   bitsPerSecond: number;
   retransmits?: number;
-  jitterMs?: number;
-  lostPackets?: number;
-  packetsReceived?: number;
+  jitterMs: number | null;
+  lostPackets: number | null;
+  packetsReceived: number | null;
 }
 // could be stricter as per type
 
