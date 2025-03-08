@@ -5,11 +5,11 @@ import path from "path";
 
 // Load the sample test data
 const iperfUdpMacResult = JSON.parse(
-  fs.readFileSync(path.join(__dirname, "data/iperf_udp_mac.json"), "utf-8")
+  fs.readFileSync(path.join(__dirname, "data/iperf_udp_mac.json"), "utf-8"),
 );
 
 const iperfUdpUbuntuResult = JSON.parse(
-  fs.readFileSync(path.join(__dirname, "data/iperf_udp_ubuntu.json"), "utf-8")
+  fs.readFileSync(path.join(__dirname, "data/iperf_udp_ubuntu.json"), "utf-8"),
 );
 
 describe("extractIperfResults", () => {
@@ -48,7 +48,7 @@ describe("extractIperfResults", () => {
 
       // In Mac version for UDP, should get bandwidth from sum (not sum_received)
       expect(result.bitsPerSecond).toBe(
-        iperfUdpMacResult.end.sum.bits_per_second
+        iperfUdpMacResult.end.sum.bits_per_second,
       );
       expect(result.jitterMs).toBe(iperfUdpMacResult.end.sum.jitter_ms);
     });
@@ -59,7 +59,7 @@ describe("extractIperfResults", () => {
 
       // In Ubuntu version, everything comes from sum
       expect(result.bitsPerSecond).toBe(
-        iperfUdpUbuntuResult.end.sum.bits_per_second
+        iperfUdpUbuntuResult.end.sum.bits_per_second,
       );
       expect(result.jitterMs).toBe(iperfUdpUbuntuResult.end.sum.jitter_ms);
     });
@@ -72,7 +72,7 @@ describe("extractIperfResults", () => {
 
       // In Mac version for TCP, should get bandwidth from sum_received
       expect(tcpResult.bitsPerSecond).toBe(
-        iperfUdpMacResult.end.sum_received.bits_per_second
+        iperfUdpMacResult.end.sum_received.bits_per_second,
       );
       // UDP metrics should be null for TCP tests
       expect(tcpResult.jitterMs).toBeNull();
@@ -99,7 +99,7 @@ describe("extractIperfResults", () => {
       badData.end.sum.bits_per_second = undefined;
 
       expect(() => extractIperfResults(badData, true)).toThrow(
-        "No bits per second found in iperf results"
+        "No bits per second found in iperf results",
       );
     });
   });

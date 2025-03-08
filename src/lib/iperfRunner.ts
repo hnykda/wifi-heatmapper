@@ -1,5 +1,3 @@
-import { exec } from "child_process";
-import util from "util";
 import os from "os";
 import {
   IperfResults,
@@ -13,12 +11,8 @@ import { execAsync } from "./server-utils";
 
 const logger = getLogger("iperfRunner");
 
-/**
- * Logs system information at startup to help with debugging
- */
 export async function logSystemInfo(): Promise<void> {
   try {
-    // Log OS information
     const platform = os.platform();
     const release = os.release();
     const version = os.version();
@@ -28,7 +22,6 @@ export async function logSystemInfo(): Promise<void> {
     logger.info(`OS Version: ${release}`);
     logger.info(`OS Details: ${version}`);
 
-    // Try to get iperf3 version
     try {
       const { stdout } = await execAsync("iperf3 --version");
       logger.info(`iperf3 version: ${stdout.trim()}`);
@@ -49,7 +42,7 @@ logSystemInfo().catch((error) => {
 
 const validateWifiDataConsistency = (
   wifiDataBefore: WifiNetwork,
-  wifiDataAfter: WifiNetwork
+  wifiDataAfter: WifiNetwork,
 ) => {
   return (
     wifiDataBefore.bssid === wifiDataAfter.bssid &&
@@ -62,7 +55,7 @@ const validateWifiDataConsistency = (
 export async function runIperfTest(
   server: string,
   duration: number,
-  settings: ScannerSettings
+  settings: ScannerSettings,
 ): Promise<{ iperfResults: IperfResults; wifiData: WifiNetwork }> {
   try {
     const maxRetries = 3;
@@ -82,7 +75,7 @@ export async function runIperfTest(
 
         if (!validateWifiDataConsistency(wifiDataBefore, wifiDataAfter)) {
           throw new Error(
-            "Wifi data inconsistency between scans! Cancelling instead of giving wrong results."
+            "Wifi data inconsistency between scans! Cancelling instead of giving wrong results.",
           );
         }
 
@@ -119,7 +112,7 @@ async function runSingleTest(
   server: string,
   duration: number,
   isDownload: boolean,
-  isUdp: boolean
+  isUdp: boolean,
 ): Promise<IperfTestProperty> {
   let port = "";
   if (server.includes(":")) {
@@ -138,7 +131,6 @@ async function runSingleTest(
   return extracted;
 }
 
-// Export this function to make it testable
 export function extractIperfResults(
   result: {
     end: {
@@ -162,7 +154,7 @@ export function extractIperfResults(
     };
     version?: string;
   },
-  isUdp: boolean = false // Make it optional with default for backward compatibility
+  isUdp: boolean,
 ): IperfTestProperty {
   const end = result.end;
 
@@ -192,7 +184,7 @@ export function extractIperfResults(
 
   if (!bitsPerSecond) {
     throw new Error(
-      "No bits per second found in iperf results. This is fatal."
+      "No bits per second found in iperf results. This is fatal.",
     );
   }
 
