@@ -9,8 +9,39 @@ import {
 import { scanWifi } from "./wifiScanner";
 import { getLogger } from "./logger";
 import { execAsync } from "./server-utils";
+import os from "os";
 
 const logger = getLogger("iperfRunner");
+
+// Collect system information once at startup
+(async () => {
+  try {
+    // Get OS information
+    const platform = os.platform();
+    const release = os.release();
+    const version = os.version();
+    const arch = os.arch();
+
+    // Get iperf3 version
+    let iperfVersion = "unknown";
+    try {
+      const { stdout } = await execAsync("iperf3 --version");
+      iperfVersion = stdout.trim();
+    } catch (error) {
+      logger.warn("Failed to get iperf3 version:", error);
+    }
+
+    // Log system information for debugging
+    logger.info("=== System Information ===");
+    logger.info(`OS: ${platform} ${release}`);
+    logger.info(`OS Version: ${version}`);
+    logger.info(`Architecture: ${arch}`);
+    logger.info(`iperf3 Version: ${iperfVersion}`);
+    logger.info("=========================");
+  } catch (error) {
+    logger.error("Failed to collect system information:", error);
+  }
+})();
 
 const validateWifiDataConsistency = (
   wifiDataBefore: WifiNetwork,
