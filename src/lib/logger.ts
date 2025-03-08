@@ -6,6 +6,7 @@ const rootLogger = new Logger({
   minLevel: parseInt(process.env.LOG_LEVEL || "3"),
   hideLogPositionForProduction: true,
   prettyLogTemplate: "[{{rawIsoStr}}] [{{name}}:{{logLevelName}}] ",
+  stylePrettyLogs: false,
 });
 
 export function getLogger(name: string) {
