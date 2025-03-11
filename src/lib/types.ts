@@ -49,10 +49,9 @@ export interface HeatmapSettings {
   floorplanImagePath: string;
   iperfServerAdrs: string;
   testDuration: number;
-  apMapping: ApMapping[];
   sudoerPassword: string; // passed around, removed before writing to file
-  // addAPoint(pt: SurveyPoint): void; // function to add a point
-  // delAPoint(pt: SurveyPoint): void; // function to delete a point
+  apMapping: ApMapping[];
+  grumble: string;
   // ultimately advanced settings and TCP/UDP speed test settings
   // BUT NOT
   // platform: it will be determined each time we need it
@@ -93,3 +92,9 @@ export type ScannerSettings = {
 };
 
 export type OS = "macos" | "windows" | "linux";
+
+export interface SurveyPointActions {
+  add: (newPoint: SurveyPoint) => void;
+  update: (id: string, updatedData: Partial<SurveyPoint>) => void;
+  delete: (id: string) => void;
+}

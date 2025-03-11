@@ -12,17 +12,6 @@ import PopupDetails from "@/components/PopupDetails";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 export default function ClickableFloorplan(): ReactNode {
-  // {
-  // image,
-  // points,
-  // onPointClick,
-  // dimensions,
-  // setDimensions,
-  // apMapping,
-  // status,
-  // onDelete,
-  // updateDatapoint,
-  // }
   const [imageLoaded, setImageLoaded] = useState(false);
   const imageRef = useRef<HTMLImageElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -32,16 +21,14 @@ export default function ClickableFloorplan(): ReactNode {
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [scale, setScale] = useState(1);
   const [alertMessage, setAlertMessage] = useState("");
-  const { settings, updateSettings } = useSettings();
+  const { settings, updateSettings, surveyPointActions } = useSettings();
   // const dimensions = { width: 0, height: 0 };
   const { toast } = useToast();
 
-  // let alertMessage = "";
   let measurementStatus = "";
 
   /**
    * Load the image (and the canvas) when the component is mounted
-   *
    */
 
   useEffect(() => {
@@ -81,16 +68,6 @@ export default function ClickableFloorplan(): ReactNode {
   }, []);
 
   /**
-   * addPoint() - add a point to the surveyPoints
-   * @param point
-   * @returns
-   */
-  const addPoint = (point: SurveyPoint) => {
-    const newPoints = [...settings.surveyPoints, point];
-    updateSettings({ surveyPoints: newPoints });
-  };
-
-  /**
    * measureSurveyPoint - make measurements for point at x/y
    * Triggered by a click on the canvas that _isn't_ an existin
    *    surveypoint
@@ -114,7 +91,10 @@ export default function ClickableFloorplan(): ReactNode {
 
     const runningPlatform = process.platform;
 
-    if (!settings.sudoerPassword && runningPlatform == "darwin") {
+    if (
+      runningPlatform == "darwin" &&
+      (!settings.sudoerPassword || settings.sudoerPassword == "")
+    ) {
       console.warn(
         "No sudoer password set, but running on macOS where it's required for wdutil info command",
       );
@@ -138,7 +118,7 @@ export default function ClickableFloorplan(): ReactNode {
     try {
       const newPoint = await startSurvey(x, y, settings);
 
-      addPoint(newPoint);
+      surveyPointActions.add(newPoint);
       // const newPoints = [...settings.surveyPoints, newPoint];
       // // console.log("Floorplan new point: " + JSON.stringify(newPoint));
       // updateSettings({ surveyPoints: newPoints });
@@ -175,6 +155,12 @@ export default function ClickableFloorplan(): ReactNode {
     }
   };
 
+  /**
+   * Close the popup window by setting selectedPoint to null
+   */
+  const closePopup = (): void => {
+    setSelectedPoint(null);
+  };
   /**
    * drawPoints - draw the list of points in the specified context
    * @param ctx
@@ -236,8 +222,8 @@ export default function ClickableFloorplan(): ReactNode {
         `drawPoint: ${JSON.stringify(point)} ${JSON.stringify(ctx)} `,
       );
       const wifiInfo = point.wifiData;
-      const iperfInfo = point.iperfResults;
-      const frequencyBand = wifiInfo.channel > 14 ? "5GHz" : "2.4GHz";
+      // const iperfInfo = point.iperfResults;
+      // const frequencyBand = wifiInfo.channel > 14 ? "5GHz" : "2.4GHz";
       // const apLabel =
       //   apMapping.find((ap) => ap.macAddress === wifiInfo.bssid)
       //     ?.apName ?? wifiInfo.bssid + " " + wifiInfo.rssi;
@@ -421,7 +407,7 @@ export default function ClickableFloorplan(): ReactNode {
   //   return () => {
   //     cancelAnimationFrame(animationFrameId);
   //   };
-  // }, [points, dimensions, apMapping]);
+  // }, [settings.surveyPoints, dimensions, settings.apMapping]);
 
   /**
    * handleCanvasClick - a click anywhere in the canvas
@@ -431,6 +417,7 @@ export default function ClickableFloorplan(): ReactNode {
 
   const handleCanvasClick = (event: React.MouseEvent<HTMLCanvasElement>) => {
     // if a point was selected, they have "clicked away"
+    // also closes PopupDetails by clicking away
     if (selectedPoint) {
       setSelectedPoint(null);
       return;
@@ -444,10 +431,15 @@ export default function ClickableFloorplan(): ReactNode {
     const x = (event.clientX - rect.left) / scale;
     const y = (event.clientY - rect.top) / scale;
 
+    // look for a surveyPoint that's "close enough" (10 units?) to the click
+    // sets clickedPoint to that point or null (?)
     const clickedPoint = settings.surveyPoints.find(
       (point) => Math.sqrt((point.x - x) ** 2 + (point.y - y) ** 2) < 10,
     );
 
+    // if they clicked an existing point, set the selected point
+    // and display the PopupDetails
+    // (not sure what all this machinery does - why not just setSelectedPoint(clickedPoint)?)
     if (clickedPoint) {
       setSelectedPoint(selectedPoint == clickedPoint ? null : clickedPoint);
       setPopupPosition({
@@ -455,6 +447,7 @@ export default function ClickableFloorplan(): ReactNode {
         y: clickedPoint.y * scale,
       });
     } else {
+      // no selected point - just start a measurement
       setSelectedPoint(null);
       // round the coordinates,
       // heatmap expects integer values
@@ -462,31 +455,13 @@ export default function ClickableFloorplan(): ReactNode {
     }
   };
 
-  // if (!imageLoaded) {
-  //   return (
-  //     <div className="flex items-center justify-center h-64 bg-gray-100 rounded-lg">
-  //       Loading...
-  //     </div>
-  //   );
-  // }
-
-  // if (settings.floorplanImagePath != "") {
-  //   const img = new Image();
-  //   img.onload = () => {
-  //     dimensions = { width: img.width, height: img.height };
-  //     imageLoaded = true;
-  //     imageRef = img;
-  //   };
-  //   img.src = settings.floorplanImagePath; // load the image from the path
-  // }
-
   return (
     <div className="bg-white p-6 rounded-lg shadow-md">
       <h2 className="text-2xl font-semibold text-gray-800">
         Interactive Floorplan
       </h2>
       <div className="p-2 rounded-md text-sm">
-        <p>Click on the plan to start a new measurement</p>
+        <p>Click on the plan to start a new measurement.</p>
         <p>
           Click on existing points to see the measurement details. You need at
           least two active (not disabled) measurements.
@@ -528,8 +503,12 @@ export default function ClickableFloorplan(): ReactNode {
             transform: "translate(10px, -50%)",
           }}
         >
-          <PopupDetails point={selectedPoint} />
-        </div>
+          <PopupDetails
+            point={selectedPoint}
+            settings={settings}
+            surveyPointActions={surveyPointActions}
+            onClose={closePopup} // This function makes the popup disappear          />
+          </div>
 
         <Toaster />
       </div>

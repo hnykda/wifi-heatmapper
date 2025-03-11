@@ -10,7 +10,6 @@ import { execAsync } from "./server-utils";
 import { getLogger } from "./logger";
 
 const logger = getLogger("actions");
-import { updateSettings } from "@/components/GlobalSettings";
 
 export async function startSurvey(
   x: number,
@@ -38,7 +37,7 @@ export async function startSurvey(
     id: nanoid(3),
     isDisabled: false,
   };
-  console.log("Created new point: " + JSON.stringify(newPoint));
+  // console.log("Created new point: " + JSON.stringify(newPoint));
   // await addSurveyPoint(dbPath, newPoint);
 
   return newPoint;
@@ -113,19 +112,19 @@ export async function inferWifiDeviceIdOnLinux(): Promise<string> {
  * @param point
  * @returns
  */
-const addPoint = (point: SurveyPoint) => {
-  const newPoints = [...settings.surveyPoints, point];
-  updateSettings({ surveyPoints: newPoints });
-};
+// const addPoint = (point: SurveyPoint) => {
+//   const newPoints = [...settings.surveyPoints, point];
+//   updateSettings({ surveyPoints: newPoints });
+// };
 
-/**
- * deletePoint() - remove a point from the surveyPoints
- * @param point
- * @returns
- */
-const deletePoint = (point: SurveyPoint) => {
-  const newPoints = settings.surveyPoints.filter(
-    (aPoint: SurveyPoint) => aPoint != point,
-  );
-  updateSettings({ surveyPoints: newPoints });
-};
+// /**
+//  * deletePoint() - remove a point from the surveyPoints
+//  * @param point
+//  * @returns
+//  */
+// const deletePoint = (point: SurveyPoint) => {
+//   const newPoints = settings.surveyPoints.filter(
+//     (aPoint: SurveyPoint) => aPoint != point,
+//   );
+//   updateSettings({ surveyPoints: newPoints });
+// };

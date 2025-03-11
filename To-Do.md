@@ -30,6 +30,8 @@ Random questions that arise at the start of the project.
 * If only one survey point exists, the <Heatmap> floor plan should appear, but with a message like "Not enough points"
 * The signal strength heat map should always have a scale of 0-100% because people deserve to know when their wifi strength is low.
 * If `Floorplan` cannot open the image, display a sensible message
+* Opening a new Floorplan should change the saved file name to match
+* Uncontrolled input: https://react.dev/reference/react-dom/components/input#controlling-an-input-with-a-state-variable
 
 ## Questions
 

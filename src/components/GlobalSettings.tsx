@@ -8,7 +8,7 @@ import {
   ReactNode,
 } from "react";
 import { readSettingsFromFile, writeSettingsToFile } from "../lib/fileHandler";
-import { HeatmapSettings } from "../lib/types";
+import { HeatmapSettings, SurveyPoint, SurveyPointActions } from "../lib/types";
 
 /**
  * getDefaults()
@@ -20,10 +20,9 @@ const getDefaults = (): HeatmapSettings => {
     floorplanImagePath: "media/EmptyFloor.png",
     iperfServerAdrs: "127.0.0.1",
     apMapping: [],
-    testDuration: 10,
+    testDuration: 1,
     sudoerPassword: "",
-    // addAPoint: addPoint,
-    // delAPoint: deletePoint,
+    grumble: "grumble",
   };
 };
 
@@ -31,6 +30,7 @@ const getDefaults = (): HeatmapSettings => {
 interface SettingsContextType {
   settings: HeatmapSettings;
   updateSettings: (newSettings: Partial<HeatmapSettings>) => void;
+  surveyPointActions: SurveyPointActions;
 }
 
 // Create the context
@@ -48,6 +48,8 @@ export function useSettings() {
 
 // Context provider component
 export function SettingsProvider({ children }: { children: ReactNode }) {
+  const [settings, setSettings] = useState<HeatmapSettings>(getDefaults());
+
   // Load settings from file on mount
   useEffect(() => {
     async function loadSettings() {
@@ -65,16 +67,39 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const updateSettings = (newSettings: Partial<HeatmapSettings>) => {
     setSettings((prev) => {
       const updatedSettings = { ...prev, ...newSettings };
-      // writeSettingsToFile(updatedSettings); // Save to file
       writeSettingsToFile(updatedSettings); // Save to file
+      console.log(`Writing to settings`);
       return updatedSettings;
     });
   };
 
-  const [settings, setSettings] = useState<HeatmapSettings>(getDefaults());
+  // SurveyPoint actions
+  // pass add, update, and delete grouped into an object
+  const surveyPointActions: SurveyPointActions = {
+    add: (newPoint: SurveyPoint) => {
+      const newPoints = [...settings.surveyPoints, newPoint];
+      updateSettings({ surveyPoints: newPoints });
+    },
+
+    update: (id: string, updatedData: object) => {
+      const newPoints = settings.surveyPoints.map((point) =>
+        point.id === id ? { ...point, ...updatedData } : point,
+      );
+      updateSettings({ surveyPoints: newPoints });
+    },
+
+    delete: (id: string) => {
+      const newPoints = settings.surveyPoints.filter(
+        (point) => point.id !== id,
+      );
+      updateSettings({ surveyPoints: newPoints });
+    },
+  };
 
   return (
-    <SettingsContext.Provider value={{ settings, updateSettings }}>
+    <SettingsContext.Provider
+      value={{ settings, updateSettings, surveyPointActions }}
+    >
       {children}
     </SettingsContext.Provider>
   );
