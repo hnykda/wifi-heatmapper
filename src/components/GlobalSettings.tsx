@@ -22,7 +22,7 @@ const getDefaults = (): HeatmapSettings => {
     apMapping: [],
     testDuration: 1,
     sudoerPassword: "",
-    grumble: "grumble",
+    dimensions: { width: 0, height: 0 },
   };
 };
 
@@ -55,7 +55,11 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     async function loadSettings() {
       let newHeatmapSettings: HeatmapSettings | null =
         await readSettingsFromFile();
-      if (!newHeatmapSettings) {
+      if (newHeatmapSettings) {
+        // we read from a file, but that won't contain the password
+        newHeatmapSettings.sudoerPassword = "";
+      } else {
+        // just use the defaults, if no settings came from file
         newHeatmapSettings = getDefaults();
       }
       setSettings(newHeatmapSettings);
@@ -74,7 +78,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   };
 
   // SurveyPoint actions
-  // pass add, update, and delete grouped into an object
+  // add, update, and delete a point in the surveyPoints array
+  // grouped into an object
   const surveyPointActions: SurveyPointActions = {
     add: (newPoint: SurveyPoint) => {
       const newPoints = [...settings.surveyPoints, newPoint];

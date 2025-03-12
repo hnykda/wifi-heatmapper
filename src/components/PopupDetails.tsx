@@ -93,14 +93,6 @@ const PopupDetails: React.FC<PopupDetailsProps> = ({
     });
   };
 
-  //  const handleToggle = () => {
-  //   setIsDisabled((prev) => {
-  //     const newDisabledState = !prev; // Ensure we work with the latest state
-  //     surveyPointActions.update(point.id, { isDisabled: newDisabledState });
-  //     return newDisabledState;
-  //   });
-  // };
-
   /**
    * User clicked the Delete button
    * Report back to the parent

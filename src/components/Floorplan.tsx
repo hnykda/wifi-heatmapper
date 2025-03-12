@@ -11,16 +11,17 @@ import PopupDetails from "@/components/PopupDetails";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 export default function ClickableFloorplan(): ReactNode {
+  const { settings, updateSettings, surveyPointActions } = useSettings();
+
   const [imageLoaded, setImageLoaded] = useState(false);
   const imageRef = useRef<HTMLImageElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [selectedPoint, setSelectedPoint] = useState<SurveyPoint | null>(null);
   const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 });
-  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+  const [dimensions, setDimensions] = useState(settings.dimensions);
   const [scale, setScale] = useState(1);
   const [alertMessage, setAlertMessage] = useState("");
-  const { settings, updateSettings, surveyPointActions } = useSettings();
   // const dimensions = { width: 0, height: 0 };
   const { toast } = useToast();
 
@@ -34,7 +35,8 @@ export default function ClickableFloorplan(): ReactNode {
     if (settings.floorplanImagePath != "") {
       const img = new Image();
       img.onload = () => {
-        setDimensions({ width: img.width, height: img.height });
+        const newDimensions = { width: img.width, height: img.height };
+        updateSettings({ dimensions: newDimensions });
         setImageLoaded(true);
         imageRef.current = img;
       };
@@ -506,7 +508,7 @@ export default function ClickableFloorplan(): ReactNode {
             point={selectedPoint}
             settings={settings}
             surveyPointActions={surveyPointActions}
-            onClose={closePopup} // This function makes the popup disappear
+            onClose={closePopup}
           />
         </div>
 

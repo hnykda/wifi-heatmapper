@@ -66,7 +66,7 @@ export default function SettingsEditor() {
             />
           </td>
         </tr>
-        <tr>
+        {/* <tr>
           <td className="text-right pr-4">
             <label>grumble:</label>
           </td>
@@ -78,7 +78,7 @@ export default function SettingsEditor() {
               onChange={(e) => updateSettings({ grumble: e.target.value })}
             />
           </td>
-        </tr>
+        </tr> */}
         {/* <label>Auto-Save:</label>
       <input
         type="checkbox"

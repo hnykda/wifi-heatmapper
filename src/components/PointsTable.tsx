@@ -51,7 +51,7 @@ type FlattenedSurveyPoint = {
   udpDownloadMbps: number;
   udpUploadMbps: number;
   timestamp: string;
-  isDisabled: boolean;
+  isEnabled: boolean;
 };
 
 interface SurveyPointsTableProps {
@@ -129,14 +129,14 @@ const SurveyPointsTable: React.FC<SurveyPointsTableProps> = ({
         ),
         cell: ({ row }) => (
           <Switch
-            checked={row.original.isDisabled}
+            checked={row.original.isEnabled}
             onCheckedChange={(value) => {
               const id = row.original.id;
-              updateDatapoint(id, { isDisabled: value });
+              updateDatapoint(id, { isEnabled: value });
             }}
           />
         ),
-        accessorKey: "isDisabled",
+        accessorKey: "isEnabled",
         enableSorting: true,
       },
       {
@@ -283,10 +283,10 @@ const SurveyPointsTable: React.FC<SurveyPointsTableProps> = ({
       (index) => flattenedData[parseInt(index)].id,
     );
     const allHidden = selectedIds.every(
-      (id) => flattenedData.find((point) => point.id === id)?.isDisabled,
+      (id) => flattenedData.find((point) => point.id === id)?.isEnabled,
     );
     selectedIds.forEach((id) => {
-      updateDatapoint(id, { isDisabled: !allHidden });
+      updateDatapoint(id, { isEnabled: !allHidden });
     });
   }, [rowSelection, flattenedData, updateDatapoint]);
 
