@@ -234,9 +234,9 @@ export default function ClickableFloorplan(): ReactNode {
       // Draw the main point
       ctx.beginPath();
       ctx.arc(point.x, point.y, 8, 0, 2 * Math.PI);
-      ctx.fillStyle = point.isDisabled
-        ? "rgba(156, 163, 175, 0.9)"
-        : getGradientColor(rssiToPercentage(wifiInfo.rssi));
+      ctx.fillStyle = point.isEnabled
+        ? getGradientColor(rssiToPercentage(wifiInfo.rssi))
+        : "rgba(156, 163, 175, 0.9)";
       ctx.fill();
 
       // Draw a grey border
@@ -507,8 +507,9 @@ export default function ClickableFloorplan(): ReactNode {
             point={selectedPoint}
             settings={settings}
             surveyPointActions={surveyPointActions}
-            onClose={closePopup} // This function makes the popup disappear          />
-          </div>
+            onClose={closePopup} // This function makes the popup disappear
+          />
+        </div>
 
         <Toaster />
       </div>
