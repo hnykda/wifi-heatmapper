@@ -1,13 +1,17 @@
 import * as Tabs from "@radix-ui/react-tabs";
 import { useState } from "react";
-import SettingsViewer from "@/components/SettingsViewer";
+import { useSettings } from "./GlobalSettings";
+
+// import SettingsViewer from "@/components/SettingsViewer";
+
 import SettingsEditor from "@/components/SettingsEditor";
 import ClickableFloorplan from "@/components/Floorplan";
-import { Toaster } from "./ui/toaster";
-import PopupDetails from "@/components/PopupDetails";
+import { Heatmaps } from "@/components/Heatmaps";
+import PointsTable from "@/components/PointsTable";
 
 export default function TabPanel() {
   const [activeTab, setActiveTab] = useState("tab1"); // State to track the active tab
+  const { settings, updateSettings, surveyPointActions } = useSettings();
 
   return (
     <div className="w-full">
@@ -56,17 +60,26 @@ export default function TabPanel() {
 
         <Tabs.Content value="tab2" className="p-4">
           <ClickableFloorplan />
-          <Toaster />
-          <PopupDetails />
         </Tabs.Content>
 
         <Tabs.Content value="tab3" className="p-4">
           <p>This displays Heat Maps.</p>
+          <Heatmaps
+            image={settings.floorplanImagePath}
+            points={settings.surveyPoints}
+            dimensions={settings.dimensions}
+          />
         </Tabs.Content>
 
         <Tabs.Content value="tab4" className="p-4">
-          <SettingsViewer />
+          {/* <SettingsViewer /> */}
           <p>This displays Survey Points</p>
+          <PointsTable
+            data={settings.surveyPoints}
+            onDelete={surveyPointActions.delete}
+            updateDatapoint={surveyPointActions.update}
+            apMapping={settings.apMapping}
+          />
         </Tabs.Content>
       </Tabs.Root>
     </div>

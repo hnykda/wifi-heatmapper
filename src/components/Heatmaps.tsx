@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
+
 import h337 from "heatmap.js";
 import {
   SurveyPoint,
@@ -70,6 +71,10 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
   dimensions,
   image,
 }) => {
+  // const { settings, updateSettings, surveyPointActions } = useSettings();
+
+  // console.log(`Dimensions: ${JSON.stringify(dimensions)}`);
+
   const [heatmaps, setHeatmaps] = useState<{ [key: string]: string | null }>(
     {},
   );
@@ -130,7 +135,7 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
   const generateHeatmapData = useCallback(
     (metric: MeasurementTestType, testType?: keyof IperfTestProperty) => {
       const data = points
-        .filter((p) => !p.isDisabled)
+        .filter((p) => p.isEnabled)
         .map((point) => {
           const value = getMetricValue(point, metric, testType);
           return value !== null ? { x: point.x, y: point.y, value } : null;
@@ -271,6 +276,9 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
         ctx.fillStyle = "white";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+        /**
+         * load the background image
+         */
         const backgroundImage = new Image();
         backgroundImage.onload = () => {
           ctx.drawImage(
