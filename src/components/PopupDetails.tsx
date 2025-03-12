@@ -15,7 +15,7 @@ interface PopupDetailsProps {
   point: SurveyPoint | null;
   settings: HeatmapSettings;
   surveyPointActions: SurveyPointActions;
-  onClose: () => void;
+  onClose: (event: React.MouseEvent<HTMLButtonElement>) => void;
 }
 
 /**
@@ -38,8 +38,7 @@ const PopupDetails: React.FC<PopupDetailsProps> = ({
   if (!point) return;
 
   // const { settings, updateSettings } = useSettings();
-  const [isDisabled, setIsDisabled] = useState(point.isDisabled);
-  // const [checked, setChecked] = useState(point.isDisabled);
+  const [isEnabled, setIsEnabled] = useState(point.isEnabled);
   const rows = [
     { label: "ID", value: point.id },
     { label: "RSSI", value: `${point.wifiData?.rssi} dBm` },
@@ -87,10 +86,21 @@ const PopupDetails: React.FC<PopupDetailsProps> = ({
    * Report back to the parent
    */
   const handleToggle = () => {
-    const disabled = !point.isDisabled;
-    setIsDisabled(disabled);
-    surveyPointActions.update(point.id, { isDisabled: disabled });
+    setIsEnabled((prev) => {
+      const newState = !prev;
+      surveyPointActions.update(point.id, { isEnabled: newState });
+      return newState;
+    });
   };
+
+  //  const handleToggle = () => {
+  //   setIsDisabled((prev) => {
+  //     const newDisabledState = !prev; // Ensure we work with the latest state
+  //     surveyPointActions.update(point.id, { isDisabled: newDisabledState });
+  //     return newDisabledState;
+  //   });
+  // };
+
   /**
    * User clicked the Delete button
    * Report back to the parent
@@ -104,7 +114,7 @@ const PopupDetails: React.FC<PopupDetailsProps> = ({
       <div className="flex justify-between items-center bg-gray-100 px-2 py-1">
         <h3 className="font-semibold text-sm">Measurement Details</h3>
         <button className="text-gray-500 hover:text-gray-700">
-          onClick={onClose()}
+          {/* onClick={handleClose} */}
           <X size={16} />
         </button>
       </div>
@@ -125,8 +135,8 @@ const PopupDetails: React.FC<PopupDetailsProps> = ({
       </Table>
       <div className="flex justify-between items-center px-2 py-2 bg-gray-100">
         <div className="flex items-center space-x-2">
-          <Switch checked={isDisabled} onCheckedChange={handleToggle} />
-          <span>Disable</span>
+          <Switch checked={isEnabled} onCheckedChange={handleToggle} />
+          <span>Enabled</span>
         </div>
         <AlertDialogModal
           title="Delete Measurement?"

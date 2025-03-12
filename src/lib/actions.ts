@@ -32,7 +32,7 @@ export async function startSurvey(
     iperfResults,
     timestamp: new Date().toISOString(),
     id: nanoid(3),
-    isDisabled: false,
+    isEnabled: true,
   };
   // console.log("Created new point: " + JSON.stringify(newPoint));
   // await addSurveyPoint(dbPath, newPoint);
