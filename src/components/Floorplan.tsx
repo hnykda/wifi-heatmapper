@@ -2,7 +2,6 @@ import React, { ReactNode, useRef, useState } from "react";
 import { useEffect } from "react";
 import { rssiToPercentage } from "../lib/utils";
 import { useSettings } from "./GlobalSettings";
-// import SurveyPointsTable from "./PointsTable";
 import { SurveyPoint } from "../lib/types";
 import { Loader } from "@/components/Loader";
 import { startSurvey } from "@/lib/actions";
