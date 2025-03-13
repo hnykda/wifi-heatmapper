@@ -2,7 +2,7 @@ import React, { ReactNode, useRef, useState } from "react";
 import { useEffect } from "react";
 import { rssiToPercentage } from "../lib/utils";
 import { useSettings } from "./GlobalSettings";
-import { SurveyPoint } from "../lib/types";
+import { SurveyPoint, RGB, Gradient } from "../lib/types";
 import { Loader } from "@/components/Loader";
 import { startSurvey } from "@/lib/actions";
 import { useToast } from "@/components/ui/use-toast";
@@ -172,6 +172,70 @@ export default function ClickableFloorplan(): ReactNode {
     points.forEach((point) => drawPoint(point, ctx));
   };
 
+  /**
+   * Converts a rgba to an {r, g, b, a} object.
+   */
+  function rgbaToObject(rgba: string): RGB {
+    const match = rgba.match(/rgba?\((\d+),\s*(\d+),\s*(\d+),?\s*([\d.]+)?\)/);
+
+    if (!match) return null; // Invalid input
+
+    return {
+      r: parseInt(match[1], 10),
+      g: parseInt(match[2], 10),
+      b: parseInt(match[3], 10),
+      a: match[4] !== undefined ? parseFloat(match[4]) : 1, // Default alpha to 1 if missing
+    };
+  }
+
+  // Example Usage:
+  const rgbaString = "rgba(255, 100, 50, 0.5)";
+  const result = rgbaToObject(rgbaString);
+  console.log(result); // { r: 255, g: 100, b: 50, a: 0.5 }
+
+  /**
+   * Interpolates between two RGBA colors.
+   */
+  function interpolateColor(color1: RGB, color2: RGB, factor: number): RGB {
+    return {
+      r: Math.round(color1.r + (color2.r - color1.r) * factor),
+      g: Math.round(color1.g + (color2.g - color1.g) * factor),
+      b: Math.round(color1.b + (color2.b - color1.b) * factor),
+      a: color1.a + (color2.a - color1.a) * factor,
+    };
+  }
+
+  /**
+   * Returns the interpolated RGBA color for a given value (0-1) from a gradient.
+   */
+  function getColorAt(value: number, gradient: Gradient): string {
+    // sort the keys to be in increasing order
+    const keys = Object.keys(gradient)
+      .map(Number)
+      .sort((a, b) => a - b);
+
+    // Constrain theValue to be 0..1
+    const theValue = Math.min(1.0, Math.max(0.0, value));
+
+    for (let i = 0; i < keys.length - 1; i++) {
+      const lower = keys[i];
+      const upper = keys[i + 1];
+
+      if (theValue >= lower && theValue <= upper) {
+        const factor = (theValue - lower) / (upper - lower);
+        const color1 = rgbaToObject(gradient[lower]);
+        const color2 = rgbaToObject(gradient[upper]);
+
+        const interpolated = interpolateColor(color1, color2, factor);
+        return `rgba(${interpolated.r}, ${interpolated.g}, ${interpolated.b}, ${interpolated.a.toFixed(2)})`;
+      }
+    }
+
+    // Return the last gradient color if out of bounds
+    const lastColor = rgbaToObject(gradient[keys[keys.length - 1]]);
+    return `rgba(${lastColor.r}, ${lastColor.g}, ${lastColor.b}, ${lastColor.a.toFixed(2)})`;
+  }
+
   const drawPoint = (point: SurveyPoint, ctx: CanvasRenderingContext2D) => {
     // const i = index;
     // Create a gradient for the point
@@ -236,7 +300,7 @@ export default function ClickableFloorplan(): ReactNode {
       ctx.beginPath();
       ctx.arc(point.x, point.y, 8, 0, 2 * Math.PI);
       ctx.fillStyle = point.isEnabled
-        ? getGradientColor(rssiToPercentage(wifiInfo.rssi))
+        ? getColorAt(rssiToPercentage(wifiInfo.rssi) / 100, settings.gradient)
         : "rgba(156, 163, 175, 0.9)";
       ctx.fill();
 

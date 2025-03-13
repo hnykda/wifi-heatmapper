@@ -11,6 +11,23 @@ import { readSettingsFromFile, writeSettingsToFile } from "../lib/fileHandler";
 import { HeatmapSettings, SurveyPoint, SurveyPointActions } from "../lib/types";
 
 /**
+  * Pct	   dBm		   dBm	Pct		   dBm  Pct
+ * 0%  -100dBm	 -100dBm	0%	 -100dBm	0%
+ * 10%	-94dBm		-94dBm	10%		-90dBm	17%
+ * 20%	-88dBm		-88dBm	20%		-80dBm	33%
+ * 25%	-85dBm		-85dBm	25%		-75dBm	42%
+ * 30%	-82dBm		-82dBm	30%		-70dBm	50%
+ * 40%	-76dBm		-76dBm	40%		-65dBm	58%
+ * 50%	-70dBm		-70dBm	50%		-60dBm	67%
+ * 60%	-64dBm		-64dBm	60%		-55dBm	75%
+ * 70%	-58dBm		-58dBm	70%		-50dBm	83%
+ * 75%	-55dBm		-55dBm	75%		-45dBm	92%
+ * 80%	-52dBm		-52dBm	80%		-40dBm	100%
+ * 90%	-46dBm		-46dBm	90%		
+ * 100%	-40dBm		-40dBm	100%
+ * /
+   
+/**
  * getDefaults()
  * @returns Set of default settings
  */
@@ -23,6 +40,28 @@ const getDefaults = (): HeatmapSettings => {
     testDuration: 1,
     sudoerPassword: "",
     dimensions: { width: 0, height: 0 },
+    radiusDivider: 1,
+    maxOpacity: 0.7,
+    minOpacity: 0.2,
+    blur: 0.99,
+    gradient: {
+      0: "rgba(255, 0, 0, 0.6)", // 0%, -100 dBm
+      0.35: "rgba(255, 255, 0, 0.6)", // 35%, -83 dBm
+      // 0.5: "rgba(0, 0, 0, 0.6)", // -% --dBm
+      0.4: "rgba(0, 0, 255, 0.6)", // 40%, -76 dBm
+      0.6: "rgba(0, 255, 255, 0.6)", // 60%, -64 dBm
+      0.9: "rgba(0, 255, 0, 0.6)", // 90%, -46 dBm
+      1.0: "rgba(0, 255, 0, 0.6)", // 100%, -40 dBm
+    },
+    // Original gradient color mapping
+    //  gradient: {
+    //   0.05: "rgba(0, 0, 0, 0.6)", // throw some grey in there
+    //   0.1: "rgba(0, 0, 255, 0.6)", // 40%, -80 dBm
+    //   0.25: "rgba(0, 255, 255, 0.6)", // 60%, -70 dBm
+    //   0.5: "rgba(0, 255, 0, 0.6)", // 70%, -60 dBm
+    //   0.75: "rgba(255, 255, 0, 0.6)", // 85%, -50 dBm
+    //   1.0: "rgba(255, 0, 0, 0.6)", // 100%, -40 dBm
+    // },
   };
 };
 
