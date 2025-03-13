@@ -76,8 +76,7 @@ export default function TabPanel() {
           <p>This displays Survey Points</p>
           <PointsTable
             data={settings.surveyPoints}
-            onDelete={surveyPointActions.delete}
-            updateDatapoint={surveyPointActions.update}
+            surveyPointActions={surveyPointActions}
             apMapping={settings.apMapping}
           />
         </Tabs.Content>

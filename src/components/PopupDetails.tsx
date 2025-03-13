@@ -88,7 +88,7 @@ const PopupDetails: React.FC<PopupDetailsProps> = ({
   const handleToggle = () => {
     setIsEnabled((prev) => {
       const newState = !prev;
-      surveyPointActions.update(point.id, { isEnabled: newState });
+      surveyPointActions.update(point, { isEnabled: newState });
       return newState;
     });
   };
@@ -98,7 +98,7 @@ const PopupDetails: React.FC<PopupDetailsProps> = ({
    * Report back to the parent
    */
   const handleDelete = (point: SurveyPoint) => {
-    surveyPointActions.delete(point.id);
+    surveyPointActions.delete([point]); // single-element array containing the point
     onClose();
   };
 
