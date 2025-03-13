@@ -63,7 +63,6 @@ export default function TabPanel() {
         </Tabs.Content>
 
         <Tabs.Content value="tab3" className="p-4">
-          <p>This displays Heat Maps.</p>
           <Heatmaps
             image={settings.floorplanImagePath}
             points={settings.surveyPoints}
@@ -73,7 +72,6 @@ export default function TabPanel() {
 
         <Tabs.Content value="tab4" className="p-4">
           {/* <SettingsViewer /> */}
-          <p>This displays Survey Points</p>
           <PointsTable
             data={settings.surveyPoints}
             surveyPointActions={surveyPointActions}

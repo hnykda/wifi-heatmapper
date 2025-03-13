@@ -43,6 +43,8 @@ export interface ApMapping {
   apName: string;
   macAddress: string;
 }
+export type RGB = { r: number; g: number; b: number; a: number };
+export type Gradient = Record<number, string>; // Maps 0-1 values to colors
 
 export interface HeatmapSettings {
   surveyPoints: SurveyPoint[];
@@ -52,11 +54,11 @@ export interface HeatmapSettings {
   sudoerPassword: string; // passed around, removed before writing to file
   apMapping: ApMapping[];
   dimensions: { width: number; height: number };
-  // ultimately advanced settings and TCP/UDP speed test settings
-  // BUT NOT
-  // platform: it will be determined each time we need it
-  // dbPath: since that's how we find the data in the first place
-  // wifiInterface: let the wifiScanner discover this
+  radiusDivider: number;
+  maxOpacity: number;
+  minOpacity: number;
+  blur: number;
+  gradient: Gradient;
 }
 
 export interface SurveyPoint {
