@@ -95,6 +95,6 @@ export type OS = "macos" | "windows" | "linux";
 
 export interface SurveyPointActions {
   add: (newPoint: SurveyPoint) => void;
-  update: (id: string, updatedData: Partial<SurveyPoint>) => void;
-  delete: (id: string) => void;
+  update: (point: SurveyPoint, updatedData: Partial<SurveyPoint>) => void;
+  delete: (points: SurveyPoint[]) => void;
 }

@@ -104,27 +104,61 @@ export async function inferWifiDeviceIdOnLinux(): Promise<string> {
   return stdout.trim();
 }
 
-// NOT USED HERE - Bundle them into the component (couldn't figure out how to pass
-// these functions to the child components)
-// (No way to call updateSettings()...)
-/**
- * addPoint() - add a point to the surveyPoints
- * @param point
- * @returns
- */
-// const addPoint = (point: SurveyPoint) => {
-//   const newPoints = [...settings.surveyPoints, point];
-//   updateSettings({ surveyPoints: newPoints });
-// };
+type RGB = { r: number; g: number; b: number; a: number };
+type Gradient = Record<number, string>; // Maps 0-1 values to colors
 
-// /**
-//  * deletePoint() - remove a point from the surveyPoints
-//  * @param point
-//  * @returns
-//  */
-// const deletePoint = (point: SurveyPoint) => {
-//   const newPoints = settings.surveyPoints.filter(
-//     (aPoint: SurveyPoint) => aPoint != point,
-//   );
-//   updateSettings({ surveyPoints: newPoints });
-// };
+/**
+ * Converts a CSS color (hex, named, rgba, etc.) to an {r, g, b, a} object.
+ */
+function colorToRgba(color: string): RGB {
+  const ctx = document.createElement("canvas").getContext("2d")!;
+  ctx.fillStyle = color;
+  const computedColor = ctx.fillStyle; // Convert to standardized format
+  ctx.fillStyle = computedColor;
+
+  // Extract color values from rgba() format
+  const match = ctx.fillStyle.match(/\d+(\.\d+)?/g);
+  if (!match) throw new Error(`Invalid color: ${color}`);
+
+  const [r, g, b, a = "1"] = match.map(Number);
+  return { r, g, b, a: parseFloat(a) };
+}
+
+/**
+ * Interpolates between two RGBA colors.
+ */
+function interpolateColor(color1: RGB, color2: RGB, factor: number): RGB {
+  return {
+    r: Math.round(color1.r + (color2.r - color1.r) * factor),
+    g: Math.round(color1.g + (color2.g - color1.g) * factor),
+    b: Math.round(color1.b + (color2.b - color1.b) * factor),
+    a: color1.a + (color2.a - color1.a) * factor,
+  };
+}
+
+/**
+ * Returns the interpolated RGBA color for a given value (0-1) from a gradient.
+ */
+export function getColorAt(value: number, gradient: Gradient): string {
+  const keys = Object.keys(gradient)
+    .map(Number)
+    .sort((a, b) => a - b);
+
+  for (let i = 0; i < keys.length - 1; i++) {
+    const lower = keys[i];
+    const upper = keys[i + 1];
+
+    if (value >= lower && value <= upper) {
+      const factor = (value - lower) / (upper - lower);
+      const color1 = colorToRgba(gradient[lower]);
+      const color2 = colorToRgba(gradient[upper]);
+
+      const interpolated = interpolateColor(color1, color2, factor);
+      return `rgba(${interpolated.r}, ${interpolated.g}, ${interpolated.b}, ${interpolated.a.toFixed(2)})`;
+    }
+  }
+
+  // Return the last gradient color if out of bounds
+  const lastColor = colorToRgba(gradient[keys[keys.length - 1]]);
+  return `rgba(${lastColor.r}, ${lastColor.g}, ${lastColor.b}, ${lastColor.a.toFixed(2)})`;
+}

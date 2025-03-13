@@ -86,16 +86,22 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       updateSettings({ surveyPoints: newPoints });
     },
 
-    update: (id: string, updatedData: object) => {
+    update: (thePoint: SurveyPoint, updatedData: object) => {
       const newPoints = settings.surveyPoints.map((point) =>
-        point.id === id ? { ...point, ...updatedData } : point,
+        point.id === thePoint.id ? { ...point, ...updatedData } : point,
       );
       updateSettings({ surveyPoints: newPoints });
     },
 
-    delete: (id: string) => {
+    //     function removePointsById(points: { id: number }[], targetArray: { id: number }[]): { id: number }[] {
+    //     const idsToRemove = new Set(points.map(point => point.id));
+    //     return targetArray.filter(point => !idsToRemove.has(point.id));
+    // }
+
+    delete: (points: SurveyPoint[]) => {
+      const pointsToRemove = new Set(points.map((point) => point.id));
       const newPoints = settings.surveyPoints.filter(
-        (point) => point.id !== id,
+        (point) => !pointsToRemove.has(point.id),
       );
       updateSettings({ surveyPoints: newPoints });
     },
