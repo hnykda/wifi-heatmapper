@@ -7,7 +7,7 @@ export default function App() {
   return (
     <SettingsProvider>
       <h1 className="text-3xl font-bold mb-8 text-center text-blue-600">
-        WiFi Heatmap
+        WiFi Heatmapper
       </h1>
       <TabPanel />
     </SettingsProvider>

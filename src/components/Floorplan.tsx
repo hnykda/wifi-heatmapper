@@ -283,9 +283,9 @@ export default function ClickableFloorplan(): ReactNode {
     // ctx = canvas.getContext("2d");
 
     if (point.wifiData) {
-      console.log(
-        `drawPoint: ${JSON.stringify(point)} ${JSON.stringify(ctx)} `,
-      );
+      // console.log(
+      //   `drawPoint: ${JSON.stringify(point)} ${JSON.stringify(ctx)} `,
+      // );
       const wifiInfo = point.wifiData;
       // const iperfInfo = point.iperfResults;
       // const frequencyBand = wifiInfo.channel > 14 ? "5GHz" : "2.4GHz";
