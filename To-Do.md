@@ -1,7 +1,6 @@
 # To-Do
 
-Random questions that arise at the start of the project.
-
+Random questions that arise at the start of the project
 
 * Update the Toast progress indicators to stay on-screen during entire survey process. Display:
   * Starting measurement... X seconds remaining (and count down)
@@ -31,16 +30,11 @@ Random questions that arise at the start of the project.
 * Change Floor Plan `<input>` to be a "Browse..." field
 * Change Password field to conceal the characters
 
-
 ## Questions
 
 * What's the best gradient for signal strength? Linear between -40 and -80 dBM?
   Emphasize differences between good (-40 to -60?) Emphasize the bad?
   Good rule might be "green or above (yellow, orange, red) is good...
-* Alternative: Different color scale: Can heat map colors go (good to bad)
-  _Green - Turquoise - Blue - Grey - Yellow - Red_
-  to comport with "normal meanings" of "Green is good, red is bad"? (Advice would then be blue or above is OK...)
-sGrey could then be a narrow band (numeric range) between blue and yellow that is the divider between good and not-so-good
 * I think the magic of this heat map system is that if drawing
   is not actually to scale it'll still give good "relative strength" info
   relative to other places on the drawing
@@ -62,7 +56,7 @@ sGrey could then be a narrow band (numeric range) between blue and yellow that i
   in a flat structure so they can be passed around and
   modified by the children
 * `fileHandler.ts` removes sudoerPassword before saving
-* Don't dislay Platform in the Settings Pane 
+* Don't dislay Platform in the Settings Pane
 * Obviously `wifiScanner.ts` must determine the platorm,
   but none of the other code needs to know the platform.
   We can decide on-the-fly when `platform` is needed
@@ -81,4 +75,5 @@ sGrey could then be a narrow band (numeric range) between blue and yellow that i
 * ~~Is there a difference between using the currently subscribed SSID and using the sum of all SSIDs?~~ Yes. `wifi-heatmapper` only uses the current SSID, and doesn't see other SSIDs.
 * ~~It's odd that "Floorplan Image" can be empty and show a floor plan...~~
 * ~~Does a mDNS name work for the iperf3 server address?~~ Yes
-* ~~Uncontrolled input: https://react.dev/reference/react-dom/components/input#controlling-an-input-with-a-state-variable~~ Fixed (I think) by setting sudoerPassword after reading other settings from a file
+* ~~Uncontrolled input: https://react.dev/reference/react-dom/components/input#controlling-an-input-with-a-state-variable~~ Done (I think) by setting sudoerPassword after reading other settings from a file
+* ~~Alternative: Different color scale: Can heat map colors go (good to bad) _Green - Turquoise - Blue - Grey - Yellow - Red_ to comport with "normal meanings" of "Green is good, red is bad"? (Advice would then be blue or above is OK...) Grey could then be a narrow band (numeric range) between blue and yellow that is the divider between good and not-so-good~~ Done.

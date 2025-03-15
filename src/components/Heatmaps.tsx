@@ -311,12 +311,12 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
             (totalX + totalY) / points.length / points.length / 2;
           console.log(`averageNumPoints: ${averageNumPoints}`);
 
-          console.log(`minFloorplan: ${dimensions.width} ${dimensions.height}`);
+          console.log(`FloorplanDim: ${dimensions.width} ${dimensions.height}`);
           console.log(`readingsDim: ${maxX - minX}, ${maxY - minY}`);
           const ratio =
-            Math.min(dimensions.width, dimensions.height) / averageNumPoints;
+            Math.max(dimensions.width, dimensions.height) / averageNumPoints;
           // Math.min(maxX - minX, maxY - minY) / averageNumPoints;
-          console.log(`average points: ${totalX}, ${totalY}, ${ratio}`);
+          console.log(`average points: ${totalX}, ${totalY}, Ratio: ${ratio}`);
 
           return ratio;
         }
@@ -334,7 +334,7 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
         const heatmapInstance = h337.create({
           container: heatmapContainer,
           radius: ratio,
-          // Math.min(dimensions.width, dimensions.height) / ratio,
+          // Math.min(dimensions.width, dimensions.height) /
           // heatmapConfig.radiusDivider,
           // newDivider,
           maxOpacity: heatmapConfig.maxOpacity,
