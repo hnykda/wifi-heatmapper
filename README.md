@@ -26,7 +26,7 @@ This utility relies on parsing outputs of the following CLI commands.
 | Linux    | `iw`              | `iw` might need to be installed via your distro package manager, you will need to provide your wireless device id (e.g. "wlp4s0", we do try to infer it)|
 
 > [!IMPORTANT]  
-> In all cases, `iperf3` must be available in `PATH`. For Windows you might have to do something like `set PATH=%PATH%;C:\path\to\iperf3`, e.g. do `set PATH=%PATH%;C:\iperf3` (or `setx` to make it permanent) before running `npm run dev`.
+> In all cases, `iperf3` must be available in `PATH`. For Windows you might have to do something like `set PATH=%PATH%;C:\path\to\iperf3`, e.g. do `set PATH=%PATH%;C:\iperf3` (or `setx` to make it permanent) before running `npm run dev`. The version of at least 3.17 is weakly recommended for `iperf3` on both server and client (ideally the same version, but that's not strictly necessary). 
 
 ## Installation
 
