@@ -89,7 +89,7 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
     useState(true);
 
   const [heatmapConfig, setHeatmapConfig] = useState<HeatmapConfig>({
-    radiusDivider: 1,
+    radius: computeRatio(points),
     maxOpacity: 0.7,
     minOpacity: 0.2,
     blur: 0.99,
@@ -195,6 +195,43 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
     [showSignalStrengthAsPercentage],
   );
 
+  /**
+   * Compute ratio from average number of points in X and Y direction
+   * spread across the dimensions of the floor plan
+   * @param points
+   * @returns
+   */
+  function computeRatio(points: SurveyPoint[]): number {
+    if (points.length === 0) {
+      return 1; // Handle empty array case
+    }
+    const minX = points.reduce(
+      (min: any, obj: any) => Math.min(min, obj.x),
+      Infinity,
+    );
+    const minY = points.reduce(
+      (min: any, obj: any) => Math.min(min, obj.y),
+      Infinity,
+    );
+    const maxX = points.reduce((max: any, obj: any) => Math.max(max, obj.x), 0);
+    const maxY = points.reduce((max: any, obj: any) => Math.max(max, obj.x), 0);
+    const totalX = points.reduce((sum, point) => sum + (point.x - minX), 0);
+    const totalY = points.reduce((sum, point) => sum + (point.y - minY), 0);
+    // console.log(totalX / points.length, totalY / points.length);
+    const averageNumPoints =
+      (totalX + totalY) / points.length / points.length / 2;
+    console.log(`averageNumPoints: ${averageNumPoints}`);
+
+    console.log(`FloorplanDim: ${dimensions.width} ${dimensions.height}`);
+    console.log(`readingsDim: ${maxX - minX}, ${maxY - minY}`);
+    const ratio =
+      Math.max(dimensions.width, dimensions.height) / averageNumPoints;
+    // Math.min(maxX - minX, maxY - minY) / averageNumPoints;
+    console.log(`average points: ${totalX}, ${totalY}, Ratio: ${ratio}`);
+
+    return ratio;
+  }
+
   const renderHeatmap = useCallback(
     (
       metric: MeasurementTestType,
@@ -252,7 +289,6 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
         );
         const dimX = maxX - minX;
         const dimY = maxY - minY;
-        const newDivider = Math.sqrt((dimX * dimY) / numPoints);
         /**
          * meanDistance between points - doesn't help
          */
@@ -272,71 +308,18 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
         //   return count > 0 ? totalDistance / count : 0;
         // }
 
-        /**
-         * Compute ratio from average number of points in X and Y direction
-         * spread across the dimensions of the floor plan
-         * @param points
-         * @returns
-         */
-        function computeRatio(points: SurveyPoint[]): number {
-          if (points.length === 0) {
-            return 1; // Handle empty array case
-          }
-          const minX = points.reduce(
-            (min: any, obj: any) => Math.min(min, obj.x),
-            Infinity,
-          );
-          const minY = points.reduce(
-            (min: any, obj: any) => Math.min(min, obj.y),
-            Infinity,
-          );
-          const maxX = points.reduce(
-            (max: any, obj: any) => Math.max(max, obj.x),
-            0,
-          );
-          const maxY = points.reduce(
-            (max: any, obj: any) => Math.max(max, obj.x),
-            0,
-          );
-          const totalX = points.reduce(
-            (sum, point) => sum + (point.x - minX),
-            0,
-          );
-          const totalY = points.reduce(
-            (sum, point) => sum + (point.y - minY),
-            0,
-          );
-          // console.log(totalX / points.length, totalY / points.length);
-          const averageNumPoints =
-            (totalX + totalY) / points.length / points.length / 2;
-          console.log(`averageNumPoints: ${averageNumPoints}`);
-
-          console.log(`FloorplanDim: ${dimensions.width} ${dimensions.height}`);
-          console.log(`readingsDim: ${maxX - minX}, ${maxY - minY}`);
-          const ratio =
-            Math.max(dimensions.width, dimensions.height) / averageNumPoints;
-          // Math.min(maxX - minX, maxY - minY) / averageNumPoints;
-          console.log(`average points: ${totalX}, ${totalY}, Ratio: ${ratio}`);
-
-          return ratio;
-        }
-
-        const ratio = computeRatio(points);
+        // heatmapConfig.radius = computeRatio(points);
         // const ratio = (result.avgX + result.avgY) / 2;
         // console.log(`average points: ${JSON.stringify(result)}, ${ratio}`); // { avgX: 15, avgY: 25 }
 
-        // console.log(`newDivider: ${dimX} ${dimY} ${numPoints} ${newDivider}`);
-
         // console.log(`meanDistance: ${meanDistance(points)}`);
-        // heatmapConfig.radiusDivider = newDivider;
         // setHeatmapConfig(heatmapConfig);
 
         const heatmapInstance = h337.create({
           container: heatmapContainer,
-          radius: ratio,
-          // Math.min(dimensions.width, dimensions.height) /
-          // heatmapConfig.radiusDivider,
-          // newDivider,
+          radius:
+            // Math.min(dimensions.width, dimensions.height) /
+            heatmapConfig.radius,
           maxOpacity: heatmapConfig.maxOpacity,
           minOpacity: heatmapConfig.minOpacity,
           blur: heatmapConfig.blur,

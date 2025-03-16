@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { PopoverHelper } from "@/components/PopoverHelpText";
 
 export type HeatmapConfig = {
-  radiusDivider: number;
+  radius: number;
   maxOpacity: number;
   minOpacity: number;
   blur: number;
@@ -82,12 +82,9 @@ const HeatmapAdvancedConfig = ({
                 id="radiusDivider"
                 type="number"
                 step="0.1"
-                value={localConfig.radiusDivider}
+                value={localConfig.radius}
                 onChange={(e) =>
-                  handleConfigChange(
-                    "radiusDivider",
-                    parseFloat(e.target.value),
-                  )
+                  handleConfigChange("radius", parseFloat(e.target.value))
                 }
                 className="h-9"
               />
