@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { calculateRadiusByBoundingBox } from "../lib/radius";
 
 import h337 from "heatmap.js";
 import {
@@ -89,18 +90,20 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
     useState(true);
 
   const [heatmapConfig, setHeatmapConfig] = useState<HeatmapConfig>({
-    radius: computeRatio(points),
+    radius: calculateRadiusByBoundingBox(points),
     maxOpacity: 0.7,
     minOpacity: 0.2,
     blur: 0.99,
     gradient: {
+      // "green-based" intensity: Green is good; red is bad
       0: "rgba(255, 0, 0, 0.6)",
       0.35: "rgba(255, 255, 0, 0.6)",
       // 0.5: "rgba(0, 0, 0, 0.6)",
-      0.4: "rgba(0, 0, 255, 0.6)",
-      0.6: "rgba(0, 255, 255, 0.6)",
-      1.0: "rgba(0, 255, 0, 0.6)",
+      0.4: "rgba(72, 72, 242, 0.6)",
+      0.6: "rgba(4, 229, 229, 0.6)",
+      1.0: "rgba(2, 236, 2, 0.6)",
     },
+    // Original gradient - red is highest intensity
     //  gradient: {
     //   0.05: "rgba(0, 0, 0, 0.6)", // throw some grey in there
     //   0.1: "rgba(0, 0, 255, 0.6)", // 40%, -80 dBm
