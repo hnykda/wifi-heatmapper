@@ -48,9 +48,9 @@ Random questions that arise at the start of the project
   Might experiment with something like `divider = sqrt(h x w / #points)`
 * Does "winking" WiFi off and then back on before measurement improve the values?
 * How should "saved files" work (not in `localstorage()`)?
-  Opening a new Floorplan should probably 
+  Opening a new Floorplan should probably
   change the saved file name to match
-
+* Would it improve the heatmap if small dots were placed at the locations of SurveyPoints?
 
 ## Decisions
 
