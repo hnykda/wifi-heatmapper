@@ -1,5 +1,9 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { calculateRadiusByBoundingBox } from "../lib/radius";
+import {
+  calculateOptimalRadius,
+  calculateRadiusByBoundingBox,
+  calculateRadiusByDensity,
+} from "../lib/radius";
 
 import h337 from "heatmap.js";
 import {
@@ -89,8 +93,12 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
   const [showSignalStrengthAsPercentage, setShowSignalStrengthAsPercentage] =
     useState(true);
 
+  const r1 = calculateRadiusByDensity; // bad for small numbers of points
+  const r2 = calculateRadiusByBoundingBox;
+  const r3 = calculateOptimalRadius; // bad for small numbers of points
+
   const [heatmapConfig, setHeatmapConfig] = useState<HeatmapConfig>({
-    radius: calculateRadiusByBoundingBox(points),
+    radius: r2(points),
     maxOpacity: 0.7,
     minOpacity: 0.2,
     blur: 0.99,
