@@ -25,6 +25,7 @@ export async function GET(req: NextRequest) {
 
       const newClient: SSEClient = { id: clientId, controller };
       clients.push(newClient);
+      console.log(`Clients: ${JSON.stringify(clients)}`);
 
       console.log(`Client ${clientId} connected`);
       send(`Client ${clientId} connected to SSE server`);
