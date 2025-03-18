@@ -8,9 +8,10 @@ import fs from "fs/promises";
 import { nanoid } from "nanoid";
 
 import { runIperfTest } from "./iperfRunner";
-import { updateDatabaseField, writeDatabase } from "./database";
+import { updateDatabaseField } from "./database";
 import { SurveyPoint, OS, HeatmapSettings } from "./types";
 import { execAsync } from "./server-utils";
+import { sendSSEMessage } from "@/app/api/events/route";
 
 export async function startSurvey(
   x: number,
@@ -62,21 +63,21 @@ export async function updateFloorplanImage(
   await updateDatabaseField(dbPath, "floorplanImage", imagePath);
 }
 
-export async function updateDbField(
-  dbPath: string,
-  fieldName: keyof Database,
-  value: Database[keyof Database],
-): Promise<void> {
-  return await updateDatabaseField(dbPath, fieldName, value);
-}
+// export async function updateDbField(
+//   dbPath: string,
+//   fieldName: keyof Database,
+//   value: Database[keyof Database],
+// ): Promise<void> {
+//   return await updateDatabaseField(dbPath, fieldName, value);
+// }
 
-export async function writeSurveyData(
-  dbPath: string,
-  data: Database,
-): Promise<void> {
-  console.log("Writing survey data to database");
-  await writeDatabase(dbPath, data);
-}
+// export async function writeSurveyData(
+//   dbPath: string,
+//   data: Database,
+// ): Promise<void> {
+//   console.log("Writing survey data to database");
+//   await writeDatabase(dbPath, data);
+// }
 
 export const uploadImage = async (dbPath: string, formData: FormData) => {
   const file = formData.get("file") as File;
@@ -103,4 +104,43 @@ export async function inferWifiDeviceIdOnLinux(): Promise<string> {
     "iw dev | awk '$1==\"Interface\"{print $2}' | head -n1",
   );
   return stdout.trim();
+}
+
+/**
+ * serverFunction() - NewToast client component has server events sent to it
+ */
+
+let isCanceled = false;
+
+// Simulate a long-running process with polling updates
+export async function startTask() {
+  isCanceled = false;
+
+  console.log("Sending Step 1");
+  sendSSEMessage("Step 1: Initializing...");
+  await delay(5000);
+  if (isCanceled) return sendSSEMessage("Task Canceled ❌");
+
+  console.log("Sending Step 2");
+  sendSSEMessage("Step 2: Processing...");
+  await delay(5000);
+  if (isCanceled) return sendSSEMessage("Task Canceled ❌");
+
+  console.log("Sending Step 3");
+  sendSSEMessage("Step 3: Almost done...");
+  await delay(5000);
+  if (isCanceled) return sendSSEMessage("Task Canceled ❌");
+
+  console.log("Sending Done!");
+  sendSSEMessage("Done! 🎉");
+}
+
+// Cancel the running task
+export async function cancelTask() {
+  isCanceled = true;
+}
+
+// Helper function for delays
+function delay(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
