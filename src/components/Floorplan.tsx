@@ -7,6 +7,7 @@ import { Loader } from "@/components/Loader";
 import { startSurvey } from "@/lib/actions";
 import { useToast } from "@/components/ui/use-toast";
 import { Toaster } from "@/components/ui/toaster";
+import NewToast from "@/components/NewToast";
 import PopupDetails from "@/components/PopupDetails";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
@@ -189,9 +190,9 @@ export default function ClickableFloorplan(): ReactNode {
   }
 
   // Example Usage:
-  const rgbaString = "rgba(255, 100, 50, 0.5)";
-  const result = rgbaToObject(rgbaString);
-  console.log(result); // { r: 255, g: 100, b: 50, a: 0.5 }
+  // const rgbaString = "rgba(255, 100, 50, 0.5)";
+  // const result = rgbaToObject(rgbaString);
+  // console.log(result); // { r: 255, g: 100, b: 50, a: 0.5 }
 
   /**
    * Interpolates between two RGBA colors.
@@ -577,6 +578,7 @@ export default function ClickableFloorplan(): ReactNode {
         </div>
 
         <Toaster />
+        <NewToast />
       </div>
     </div>
   );

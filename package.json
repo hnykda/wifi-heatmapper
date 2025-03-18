@@ -38,6 +38,7 @@
     "tailwind-merge": "^2.4.0",
     "tailwindcss-animate": "^1.0.7",
     "tslog": "^4.9.3"
+    "ws": "^8.18.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.21.0",
