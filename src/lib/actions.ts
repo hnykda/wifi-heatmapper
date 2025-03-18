@@ -120,26 +120,27 @@ export async function startTask() {
   isCanceled = false;
 
   console.log("Sending Step 1");
-  sendSSEMessage("Step 1: Initializing...");
-  await delay(5000);
+  sendSSEMessage("RSSI:\nSpeed test:");
+  await delay(3000);
   if (isCanceled) return sendSSEMessage("Task Canceled ❌");
 
   console.log("Sending Step 2");
-  sendSSEMessage("Step 2: Processing...");
-  await delay(5000);
+  sendSSEMessage("RSSI: -72\nSpeed test:");
+  await delay(3000);
   if (isCanceled) return sendSSEMessage("Task Canceled ❌");
 
   console.log("Sending Step 3");
-  sendSSEMessage("Step 3: Almost done...");
-  await delay(5000);
+  sendSSEMessage("RSSI: -72\nSpeed test: ...");
+  await delay(3000);
   if (isCanceled) return sendSSEMessage("Task Canceled ❌");
 
   console.log("Sending Done!");
-  sendSSEMessage("Done! 🎉");
+  sendSSEMessage("Done\nRSSI: -72\nSpeed test:100/100");
 }
 
 // Cancel the running task
 export async function cancelTask() {
+  console.log(`Received cancelTask`);
   isCanceled = true;
 }
 
