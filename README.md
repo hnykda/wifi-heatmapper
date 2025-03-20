@@ -2,8 +2,8 @@
 
 This project is a WiFi heatmapper solution for macOS/Windows/Linux, inspired by [python-wifi-survey-heatmap](https://github.com/jantman/python-wifi-survey-heatmap). I wanted to create a heatmap of my WiFi coverage, but the original project didn't work because I am running on Mac (Apple Sillicon). I also wanted just something that might be slightly easier to use, i.e. via browser.
 
-![Screenshot](various/top1.jpg)
-![Screenshot](various/top2.jpg)
+![Screenshot](docs/top1.jpg)
+![Screenshot](docs/top2.jpg)
 
 ## Recording
 

@@ -117,27 +117,31 @@ export async function startTask() {
   isCanceled = false;
 
   console.log("Sending Step 1");
-  sendSSEMessage("RSSI:\nSpeed test:");
+  sendSSEMessage({ type: "update", status: "RSSI:\nSpeed test:" });
   await delay(3000);
-  if (isCanceled) return sendSSEMessage("Task Canceled ❌");
+  if (isCanceled)
+    return sendSSEMessage({ type: "done", status: "Task Canceled ❌" });
 
   console.log("Sending Step 2");
-  sendSSEMessage("RSSI: -72\nSpeed test:");
+  sendSSEMessage({ type: "update", status: "RSSI: -72\nSpeed test:" });
   await delay(3000);
-  if (isCanceled) return sendSSEMessage("Task Canceled ❌");
+  if (isCanceled)
+    return sendSSEMessage({ type: "done", status: "Task Canceled ❌" });
 
   console.log("Sending Step 3");
-  sendSSEMessage("RSSI: -72\nSpeed test: ...");
+  sendSSEMessage({ type: "update", status: "RSSI: -72\nSpeed test: ..." });
   await delay(3000);
-  if (isCanceled) return sendSSEMessage("Task Canceled ❌");
+  if (isCanceled)
+    return sendSSEMessage({ type: "done", status: "Task Canceled ❌" });
 
   console.log("Sending Done!");
-  sendSSEMessage("Done\nRSSI: -72\nSpeed test:100/100");
+  sendSSEMessage({ type: "done", status: "RSSI: -72\nSpeed test:100/100" });
 }
 
 // Cancel the running task
 export async function cancelTask() {
   console.log(`Received cancelTask`);
+  sendSSEMessage({ status: "Task Canceled ❌", type: "error" });
   isCanceled = true;
 }
 

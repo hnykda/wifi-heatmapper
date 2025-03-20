@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import * as Toast from "@radix-ui/react-toast";
 
-export default function ClientComponent() {
+export default function NewToast() {
   const [status, setStatus] = useState("Not startedX");
   const [toastOpen, setToastOpen] = useState(false);
   const [taskRunning, setTaskRunning] = useState(false);
@@ -13,18 +13,18 @@ export default function ClientComponent() {
 
     eventSource.onmessage = (event: MessageEvent) => {
       try {
-        const data: { message: string } = JSON.parse(event.data);
-        let statusStr = data.message;
-        console.log(`received status update: ${data.message}`);
-        if (statusStr.substring(0, 5) == "Done\n") {
+        const data: { status: string; type: string } = JSON.parse(event.data);
+        setStatus(data.status);
+        console.log(`received status update: ${JSON.stringify(data)}`);
+
+        if (data.type == "done") {
           setToastHeader("Complete");
-          statusStr = statusStr.slice(5);
+          // eventSource.close();
           setTimeout(() => {
             setToastOpen(false); // ✅ Close the toast after 3 seconds
             setTaskRunning(false);
           }, 3000);
         }
-        setStatus(statusStr);
       } catch (error) {
         console.error("Error parsing SSE message:", error);
       }
@@ -47,12 +47,6 @@ export default function ClientComponent() {
     console.log(`starting survey task`);
     await fetch("/api/start-task?action=start", { method: "POST" });
   };
-
-  // const handleStart = async () => {
-  //   setTaskRunning(true);
-  //   setToastOpen(true);
-  //   await startTask();
-  // };
 
   const handleCancel = async () => {
     await fetch("/api/start-task?action=stop", { method: "POST" });
