@@ -2,11 +2,11 @@
 import { useState, useEffect } from "react";
 import * as Toast from "@radix-ui/react-toast";
 
-export default function NewToast() {
-  const [status, setStatus] = useState("Not startedX");
-  const [toastOpen, setToastOpen] = useState(false);
-  const [taskRunning, setTaskRunning] = useState(false);
+export default function NewToast({ onClose }: { onClose: () => void }) {
   const [toastHeader, setToastHeader] = useState("Survey in progress");
+  const [toastStatus, setToastStatus] = useState("Not startedX");
+  // const [toastOpen, setToastOpen] = useState(false);
+  const [taskRunning, setTaskRunning] = useState(false);
 
   useEffect(() => {
     const eventSource = new EventSource("/api/events"); // issue GET to open connection to the SSE server
@@ -14,15 +14,16 @@ export default function NewToast() {
     eventSource.onmessage = (event: MessageEvent) => {
       try {
         const data: { status: string; type: string } = JSON.parse(event.data);
-        setStatus(data.status);
+        setToastStatus(data.status);
         console.log(`received status update: ${JSON.stringify(data)}`);
 
         if (data.type == "done") {
           setToastHeader("Complete");
           // eventSource.close();
           setTimeout(() => {
-            setToastOpen(false); // ✅ Close the toast after 3 seconds
+            // setToastOpen(false); // ✅ Close the toast after 3 seconds
             setTaskRunning(false);
+            onClose();
           }, 3000);
         }
       } catch (error) {
@@ -42,7 +43,7 @@ export default function NewToast() {
 
   const startTask = async () => {
     setTaskRunning(true);
-    setToastOpen(true);
+    // setToastOpen(true);
     setToastHeader("Survey in progress");
     console.log(`starting survey task`);
     await fetch("/api/start-task?action=start", { method: "POST" });
@@ -50,9 +51,9 @@ export default function NewToast() {
 
   const handleCancel = async () => {
     await fetch("/api/start-task?action=stop", { method: "POST" });
-    setStatus("Task Canceled ❌");
+    setToastStatus("Task Canceled ❌");
     setTaskRunning(false);
-    setTimeout(() => setToastOpen(false), 3000);
+    setTimeout(() => onClose, 3000);
   };
 
   return (
@@ -66,15 +67,15 @@ export default function NewToast() {
 
       <Toast.Root
         className="bg-gray-800 text-white p-4 rounded shadow-md flex justify-between items-center"
-        open={toastOpen}
-        onOpenChange={setToastOpen}
+        // open={toastOpen}
+        // onOpenChange={setToastOpen}
         duration={Infinity} // Keeps open until manually closed
       >
         <div>
           <Toast.Title className="font-bold">{toastHeader}</Toast.Title>
           {/* Convert \n into actual <br /> elements */}
           <Toast.Description className="text-sm text-gray-700 leading-relaxed">
-            {status.split("\n").map((line, index) => (
+            {toastStatus.split("\n").map((line, index) => (
               <span key={index}>
                 {line}
                 <br />

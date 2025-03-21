@@ -25,6 +25,7 @@ export default function ClickableFloorplan(): ReactNode {
   const [alertMessage, setAlertMessage] = useState("");
   // const dimensions = { width: 0, height: 0 };
   const { toast } = useToast();
+  const [isToastOpen, setIsToastOpen] = useState(false);
 
   let measurementStatus = "";
 
@@ -68,6 +69,14 @@ export default function ClickableFloorplan(): ReactNode {
       drawCanvas();
     }
   }, []);
+  /**
+   * pseudoMeasure - start the fake measurement process
+   */
+
+  const pseudoMeasure = async () => {
+    await fetch("/api/start-task?action=start", { method: "POST" });
+    setIsToastOpen(true);
+  };
 
   /**
    * measureSurveyPoint - make measurements for point at x/y
@@ -532,6 +541,12 @@ export default function ClickableFloorplan(): ReactNode {
           Click on existing points to see the measurement details. You need at
           least two active (not disabled) measurements.
         </p>
+        <button
+          onClick={() => pseudoMeasure()}
+          className="bg-blue-500 text-white px-4 py-2 rounded"
+        >
+          Start NewToast gizmo
+        </button>
         <div className="space-y-2 flex flex-col">
           {settings.surveyPoints?.length > 0 && (
             <div>Total Measurements: {settings.surveyPoints.length}</div>
@@ -578,7 +593,7 @@ export default function ClickableFloorplan(): ReactNode {
         </div>
 
         <Toaster />
-        <NewToast />
+        {isToastOpen && <NewToast onClose={() => setIsToastOpen(false)} />}
       </div>
     </div>
   );
