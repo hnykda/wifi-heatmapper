@@ -9,8 +9,9 @@ type SSEClient = {
   controller: ReadableStreamDefaultController;
 };
 export type SSEMessageType = {
-  status: string;
-  type: string;
+  type: string; // done, update (error is a "done" type)
+  header: string; // header string to be displayed
+  status: string; // status string to be displayed
 };
 
 let clients: SSEClient[] = [];
@@ -23,7 +24,11 @@ export async function GET(req: NextRequest) {
   const stream = new ReadableStream({
     start(controller) {
       const clientId = clientIdCounter++;
-      const send = (message: { status: string; type: string }) => {
+      const send = (message: {
+        status: string;
+        type: string;
+        header: string;
+      }) => {
         controller.enqueue(`data: ${JSON.stringify(message)}\n\n`);
       };
 
@@ -35,6 +40,7 @@ export async function GET(req: NextRequest) {
       send({
         status: `Client ${clientId} connected to SSE server`,
         type: "info",
+        header: "",
       });
 
       req.signal.addEventListener("abort", () => {
@@ -58,6 +64,7 @@ export async function GET(req: NextRequest) {
  * Sends a message to all connected SSE clients
  */
 export function sendSSEMessage(message: SSEMessageType): void {
+  console.log(`sendSSEMessage: ${JSON.stringify(message)}`);
   clients.forEach((client) => {
     try {
       client.controller.enqueue(`data: ${JSON.stringify(message)}\n\n`);

@@ -1,4 +1,7 @@
 import os from "os";
+"use server";
+import { exec } from "child_process";
+import util from "util";
 import {
   HeatmapSettings,
   IperfResults,
@@ -9,6 +12,8 @@ import { scanWifi } from "./wifiScanner";
 import { getLogger } from "./logger";
 import { execAsync } from "./server-utils";
 import { rssiToPercentage } from "./utils";
+import { sendSSEMessage } from "@/app/api/events/route";
+import { getHostPlatform } from "./actions";
 
 const logger = getLogger("iperfRunner");
 
@@ -53,13 +58,51 @@ const validateWifiDataConsistency = (
   );
 };
 
-// export async function runIperfTest(
-//   server: string,
-//   duration: number,
-//   settings: ScannerSettings,
+/**
+ * checkSettings - check whether the settings are "primed" to run a test
+ * @param settings
+ * @returns
+ */
+export const checkSettings = async (settings: HeatmapSettings) => {
+  let settingsAreOK = true;
+  console.log(
+    `checkSettings: "${settings.iperfServerAdrs}" "${settings.sudoerPassword}"`,
+  );
+  if (!settings?.iperfServerAdrs) {
+    sendSSEMessage({
+      type: "done",
+      status: "Please set iperf server address",
+      header: "Error",
+    });
+    settingsAreOK = false;
+  }
+
+  const runningPlatform = await getHostPlatform();
+  // console.log(`platform: ${runningPlatform}`);
+
+  if (
+    runningPlatform == "macos" &&
+    (!settings.sudoerPassword || settings.sudoerPassword == "")
+  ) {
+    console.warn(
+      "No sudoer password set, but running on macOS where it's required for wdutil info command",
+    );
+    sendSSEMessage({
+      type: "done",
+      header: "Error",
+      status: "Please set sudoer password. It is required on macOS.",
+    });
+    settingsAreOK = false;
+  }
+  return settingsAreOK;
+};
+
 export async function runIperfTest(
   settings: HeatmapSettings,
 ): Promise<{ iperfResults: IperfResults; wifiData: WifiNetwork }> {
+  // if (!checkSettings(settings)) {
+  //   return;
+  // }
   try {
     const maxRetries = 3;
     let attempts = 0;

@@ -5,6 +5,8 @@
 "use server";
 import path from "path";
 import fs from "fs/promises";
+import os from "os";
+
 import { nanoid } from "nanoid";
 
 import { runIperfTest } from "./iperfRunner";
@@ -93,10 +95,11 @@ export const uploadImage = async (dbPath: string, formData: FormData) => {
   );
 };
 
-export async function getPlatform(): Promise<OS> {
-  return process.platform === "darwin"
+export async function getHostPlatform(): Promise<OS> {
+  const platform: NodeJS.Platform = os.platform();
+  return platform === "darwin"
     ? "macos"
-    : process.platform === "win32"
+    : platform === "win32"
       ? "windows"
       : "linux";
 }
@@ -111,6 +114,11 @@ export async function inferWifiDeviceIdOnLinux(): Promise<string> {
 
 /**
  * serverFunction() - NewToast client component has server events sent to it
+ *
+ * emits the following events:
+ * header: updates the header
+ * type: "update", "status" updates text in the NewToast gizmo
+ * type: "done", final update, "status" replaces text
  */
 
 let isCanceled = false;
@@ -120,31 +128,59 @@ export async function startTask() {
   isCanceled = false;
 
   console.log("Sending Step 1");
-  sendSSEMessage({ type: "update", status: "RSSI:\nSpeed test:" });
+  sendSSEMessage({
+    type: "update",
+    status: "RSSI:\nSpeed test:",
+    header: "BOO!",
+  });
   await delay(3000);
   if (isCanceled)
-    return sendSSEMessage({ type: "done", status: "Task Canceled ❌" });
+    return sendSSEMessage({
+      type: "done",
+      status: "Task Canceled ❌",
+      header: "BOO!",
+    });
 
   console.log("Sending Step 2");
-  sendSSEMessage({ type: "update", status: "RSSI: -72\nSpeed test:" });
+  sendSSEMessage({
+    type: "update",
+    status: "RSSI: -72\nSpeed test:",
+    header: "BOO!",
+  });
   await delay(3000);
   if (isCanceled)
-    return sendSSEMessage({ type: "done", status: "Task Canceled ❌" });
+    return sendSSEMessage({
+      type: "done",
+      status: "Task Canceled ❌",
+      header: "BOO!",
+    });
 
   console.log("Sending Step 3");
-  sendSSEMessage({ type: "update", status: "RSSI: -72\nSpeed test: ..." });
+  sendSSEMessage({
+    type: "update",
+    status: "RSSI: -72\nSpeed test: ...",
+    header: "BOO!",
+  });
   await delay(3000);
   if (isCanceled)
-    return sendSSEMessage({ type: "done", status: "Task Canceled ❌" });
+    return sendSSEMessage({
+      type: "done",
+      status: "Task Canceled ❌",
+      header: "BOO!",
+    });
 
   console.log("Sending Done!");
-  sendSSEMessage({ type: "done", status: "RSSI: -72\nSpeed test:100/100" });
+  sendSSEMessage({
+    type: "done",
+    status: "RSSI: -72\nSpeed test:100/100",
+    header: "BOO!",
+  });
 }
 
 // Cancel the running task
 export async function cancelTask() {
   console.log(`Received cancelTask`);
-  sendSSEMessage({ status: "Task Canceled ❌", type: "error" });
+  sendSSEMessage({ status: "Task Canceled ❌", type: "error", header: "BOO!" });
   isCanceled = true;
 }
 
