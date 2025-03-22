@@ -2,17 +2,19 @@
 import { useState, useEffect } from "react";
 import * as Toast from "@radix-ui/react-toast";
 
-interface Props {
+interface NewToastProps {
   onClose: () => void;
   toastIsReady: () => void;
 }
-export default function NewToast({ onClose, toastIsReady }: Props) {
+export default function NewToast({ onClose, toastIsReady }: NewToastProps) {
   const [toastHeader, setToastHeader] = useState("");
   const [toastStatus, setToastStatus] = useState("");
   // const [toastOpen, setToastOpen] = useState(false);
   const [taskRunning, setTaskRunning] = useState(true);
 
   const eventSource = new EventSource("/api/events"); // issue GET to open connection to the SSE server
+
+  console.log(`NewToast has opened`);
 
   useEffect(() => {
     eventSource.onmessage = (event: MessageEvent) => {

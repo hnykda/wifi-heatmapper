@@ -1,5 +1,6 @@
 /**
  * Server-Sent-Events
+ * These are triggered by a GET to /api/events
  */
 
 import { NextRequest } from "next/server";
@@ -36,7 +37,7 @@ export async function GET(req: NextRequest) {
       clients.push(newClient);
       console.log(`Clients: ${JSON.stringify(clients)}`);
 
-      console.log(`Client ${clientId} connected`);
+      console.log(`Client ${clientId} connected (${clients.length})`);
       send({
         status: `Client ${clientId} connected to SSE server`,
         type: "info",
@@ -46,7 +47,7 @@ export async function GET(req: NextRequest) {
       req.signal.addEventListener("abort", () => {
         clients = clients.filter((client) => client.id !== clientId);
         controller.close();
-        console.log(`Client ${clientId} disconnected`);
+        console.log(`Client ${clientId} disconnected (${clients.length})`);
       });
     },
   });

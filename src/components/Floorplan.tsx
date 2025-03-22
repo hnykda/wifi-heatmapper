@@ -74,6 +74,11 @@ export default function ClickableFloorplan(): ReactNode {
     await fetch("/api/start-task?action=start", { method: "POST" });
   };
 
+  const handleToastIsReady = (): void => {
+    console.log(`handleToastIsReady called...`);
+    measureSurveyPoint(surveyClick);
+  };
+
   /**
    * measureSurveyPoint - make measurements for point at x/y
    * Triggered by a click on the canvas that _isn't_ an existin
@@ -476,6 +481,7 @@ export default function ClickableFloorplan(): ReactNode {
     const rect = canvas.getBoundingClientRect();
     const x = (event.clientX - rect.left) / scale;
     const y = (event.clientY - rect.top) / scale;
+    setSurveyClick({ x: x, y: y }); // retain the X/Y of the clicked point
 
     // Find closest surveyPoint (within 10 units?)
     const clickedPoint = settings.surveyPoints.find(
@@ -496,7 +502,6 @@ export default function ClickableFloorplan(): ReactNode {
       setSelectedPoint(null);
       setAlertMessage("");
       setIsToastOpen(true);
-      setSurveyClick({ x: x, y: y }); // retain the X/Y of the clicked point
       // measureSurveyPoint(Math.round(x), Math.round(y));
     }
   };
@@ -569,7 +574,7 @@ export default function ClickableFloorplan(): ReactNode {
         {isToastOpen && (
           <NewToast
             onClose={() => setIsToastOpen(false)}
-            toastIsReady={() => measureSurveyPoint}
+            toastIsReady={handleToastIsReady}
           />
         )}
       </div>
