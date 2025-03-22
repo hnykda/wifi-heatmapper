@@ -3,9 +3,8 @@ import { useEffect } from "react";
 import { rssiToPercentage } from "../lib/utils";
 import { useSettings } from "./GlobalSettings";
 import { SurveyPoint, RGB, Gradient } from "../lib/types";
-import { Loader } from "@/components/Loader";
 import { startSurvey } from "@/lib/actions";
-import { useToast } from "@/components/ui/use-toast";
+import { checkSettings } from "@/lib/iperfRunner";
 import { Toaster } from "@/components/ui/toaster";
 import NewToast from "@/components/NewToast";
 import PopupDetails from "@/components/PopupDetails";
@@ -23,12 +22,8 @@ export default function ClickableFloorplan(): ReactNode {
   const [dimensions, setDimensions] = useState(settings.dimensions);
   const [scale, setScale] = useState(1);
   const [alertMessage, setAlertMessage] = useState("");
-  // const dimensions = { width: 0, height: 0 };
-  const { toast } = useToast();
   const [isToastOpen, setIsToastOpen] = useState(false);
-
-  let measurementStatus = "";
-
+  const [surveyClick, setSurveyClick] = useState({ x: 0, y: 0 });
   /**
    * Load the image (and the canvas) when the component is mounted
    */
@@ -74,8 +69,9 @@ export default function ClickableFloorplan(): ReactNode {
    */
 
   const pseudoMeasure = async () => {
+    await setIsToastOpen(true);
+    // Tell the fake measurement process to begin
     await fetch("/api/start-task?action=start", { method: "POST" });
-    setIsToastOpen(true);
   };
 
   /**
@@ -86,46 +82,21 @@ export default function ClickableFloorplan(): ReactNode {
    * @param y
    * @returns
    */
-  const measureSurveyPoint = async (x: number, y: number) => {
-    setAlertMessage("");
-    measurementStatus = "running";
-    if (!settings?.iperfServerAdrs) {
-      setAlertMessage("Please set iperf server address");
-      measurementStatus = "error";
-      toast({
-        title: "An error occurred",
-        description: "Please set iperf server address",
-        variant: "destructive",
-      });
-      return;
+  const measureSurveyPoint = async (surveyClick: { x: number; y: number }) => {
+    // setAlertMessage("");
+
+    // setIsToastOpen(true); // opens the Toast, starts event connection
+    // Start the fake process
+    // await fetch("/api/start-task?action=start", { method: "POST" });
+    const x = Math.round(surveyClick.x);
+    const y = Math.round(surveyClick.y);
+
+    console.log(`Checking Settings...`);
+    const settingsAreOK = await checkSettings(settings);
+    if (!settingsAreOK) {
+      return null; // no additional comment (Toast takes care of it)
     }
 
-    const runningPlatform = process.platform;
-
-    if (
-      runningPlatform == "darwin" &&
-      (!settings.sudoerPassword || settings.sudoerPassword == "")
-    ) {
-      console.warn(
-        "No sudoer password set, but running on macOS where it's required for wdutil info command",
-      );
-      setAlertMessage(
-        "Please set sudoer password so we can run wdutil info command",
-      );
-      toast({
-        title: "Please set sudoer password",
-        description:
-          "Please set sudoer password so we can run wdutil info command",
-        variant: "destructive",
-      });
-      measurementStatus = "error";
-      return;
-    }
-
-    toast({
-      title: "Starting measurement...",
-      description: "Please wait...",
-    });
     try {
       const newPoint = await startSurvey(x, y, settings);
 
@@ -135,19 +106,19 @@ export default function ClickableFloorplan(): ReactNode {
       // updateSettings({ surveyPoints: newPoints });
     } catch (error) {
       setAlertMessage(`An error occurred: ${error}`);
-      measurementStatus = "error";
-      toast({
-        title: "An error occurred",
-        description: "Something went wrong, please check the logs",
-        variant: "destructive",
-      });
+      // measurementStatus = "error";
+      // toast({
+      //   title: "An error occurred",
+      //   description: "Something went wrong, please check the logs",
+      //   variant: "destructive",
+      // });
       return;
     }
-    measurementStatus = "ready";
-    toast({
-      title: "Measurement complete",
-      description: "Measurement complete",
-    });
+    // measurementStatus = "ready";
+    // toast({
+    //   title: "Measurement complete",
+    //   description: "Measurement complete",
+    // });
   };
 
   /**
@@ -188,7 +159,7 @@ export default function ClickableFloorplan(): ReactNode {
   function rgbaToObject(rgba: string): RGB {
     const match = rgba.match(/rgba?\((\d+),\s*(\d+),\s*(\d+),?\s*([\d.]+)?\)/);
 
-    if (!match) return null; // Invalid input
+    if (!match) return { r: 0, g: 0, b: 0, a: 1.0 }; // Invalid input - black
 
     return {
       r: parseInt(match[1], 10),
@@ -393,59 +364,59 @@ export default function ClickableFloorplan(): ReactNode {
 
   // Takes a percentage signal strength
   // returns a rgba() giving a color gradient between red (100%) and blue (0%)
-  function getGradientColor(value: number): string {
-    // Define key color points
-    const colorStops: {
-      value: number;
-      color: [number, number, number, number];
-    }[] = [
-      { value: 100, color: [255, 0, 0, 1] }, // Red
-      { value: 75, color: [255, 255, 0, 1] }, // Yellow
-      { value: 50, color: [0, 255, 0, 1] }, // Green
-      { value: 35, color: [0, 255, 255, 1] }, // Turquoise
-      { value: 0, color: [0, 0, 255, 1] }, // Blue
-      // Color experiment - Green is good, blue is OK, red and yellow are bad
-      // the following values don't quite work...
-      // { value: 100, color: [0, 255, 0, 1] }, // Green
-      // { value: 75, color: [0, 255, 255, 1] }, // Turquoise
-      // { value: 50, color: [0, 0, 255, 1] }, // Blue
-      // { value: 45, color: [255, 255, 255, 1] }, // Grey
-      // { value: 40, color: [255, 255, 0, 1] }, // Yellow
-      // { value: 0, color: [255, 0, 0, 1] }, // Red
-    ];
+  // function getGradientColor(value: number): string {
+  //   // Define key color points
+  //   const colorStops: {
+  //     value: number;
+  //     color: [number, number, number, number];
+  //   }[] = [
+  //     { value: 100, color: [255, 0, 0, 1] }, // Red
+  //     { value: 75, color: [255, 255, 0, 1] }, // Yellow
+  //     { value: 50, color: [0, 255, 0, 1] }, // Green
+  //     { value: 35, color: [0, 255, 255, 1] }, // Turquoise
+  //     { value: 0, color: [0, 0, 255, 1] }, // Blue
+  //     // Color experiment - Green is good, blue is OK, red and yellow are bad
+  //     // the following values don't quite work...
+  //     // { value: 100, color: [0, 255, 0, 1] }, // Green
+  //     // { value: 75, color: [0, 255, 255, 1] }, // Turquoise
+  //     // { value: 50, color: [0, 0, 255, 1] }, // Blue
+  //     // { value: 45, color: [255, 255, 255, 1] }, // Grey
+  //     // { value: 40, color: [255, 255, 0, 1] }, // Yellow
+  //     // { value: 0, color: [255, 0, 0, 1] }, // Red
+  //   ];
 
-    // Handle out-of-range values
-    value = Math.min(100, value);
-    value = Math.max(0, value);
+  //   // Handle out-of-range values
+  //   value = Math.min(100, value);
+  //   value = Math.max(0, value);
 
-    // Find the two closest stops
-    let lowerStop = colorStops[colorStops.length - 1];
-    let upperStop = colorStops[0];
+  //   // Find the two closest stops
+  //   let lowerStop = colorStops[colorStops.length - 1];
+  //   let upperStop = colorStops[0];
 
-    for (let i = 0; i < colorStops.length - 1; i++) {
-      if (value <= colorStops[i].value && value >= colorStops[i + 1].value) {
-        lowerStop = colorStops[i + 1];
-        upperStop = colorStops[i];
-        break;
-      }
-    }
+  //   for (let i = 0; i < colorStops.length - 1; i++) {
+  //     if (value <= colorStops[i].value && value >= colorStops[i + 1].value) {
+  //       lowerStop = colorStops[i + 1];
+  //       upperStop = colorStops[i];
+  //       break;
+  //     }
+  //   }
 
-    // Normalize value to a range between 0 and 1
-    const t = (value - lowerStop.value) / (upperStop.value - lowerStop.value);
+  //   // Normalize value to a range between 0 and 1
+  //   const t = (value - lowerStop.value) / (upperStop.value - lowerStop.value);
 
-    // Interpolate RGB values
-    const r = Math.round(
-      lowerStop.color[0] + t * (upperStop.color[0] - lowerStop.color[0]),
-    );
-    const g = Math.round(
-      lowerStop.color[1] + t * (upperStop.color[1] - lowerStop.color[1]),
-    );
-    const b = Math.round(
-      lowerStop.color[2] + t * (upperStop.color[2] - lowerStop.color[2]),
-    );
+  //   // Interpolate RGB values
+  //   const r = Math.round(
+  //     lowerStop.color[0] + t * (upperStop.color[0] - lowerStop.color[0]),
+  //   );
+  //   const g = Math.round(
+  //     lowerStop.color[1] + t * (upperStop.color[1] - lowerStop.color[1]),
+  //   );
+  //   const b = Math.round(
+  //     lowerStop.color[2] + t * (upperStop.color[2] - lowerStop.color[2]),
+  //   );
 
-    return `rgba(${r}, ${g}, ${b}, 1.0)`; // Always return full opacity
-  }
+  //   return `rgba(${r}, ${g}, ${b}, 1.0)`; // Always return full opacity
+  // }
 
   // Example usage
   // console.log(getGradientColor(100)); // [255, 0, 0, 1] (Red)
@@ -506,8 +477,7 @@ export default function ClickableFloorplan(): ReactNode {
     const x = (event.clientX - rect.left) / scale;
     const y = (event.clientY - rect.top) / scale;
 
-    // look for a surveyPoint that's "close enough" (10 units?) to the click
-    // sets clickedPoint to that point or null (?)
+    // Find closest surveyPoint (within 10 units?)
     const clickedPoint = settings.surveyPoints.find(
       (point) => Math.sqrt((point.x - x) ** 2 + (point.y - y) ** 2) < 10,
     );
@@ -522,11 +492,12 @@ export default function ClickableFloorplan(): ReactNode {
         y: clickedPoint.y * scale,
       });
     } else {
-      // no selected point - just start a measurement
+      // start a measurement
       setSelectedPoint(null);
-      // round the coordinates,
-      // heatmap expects integer values
-      measureSurveyPoint(Math.round(x), Math.round(y));
+      setAlertMessage("");
+      setIsToastOpen(true);
+      setSurveyClick({ x: x, y: y }); // retain the X/Y of the clicked point
+      // measureSurveyPoint(Math.round(x), Math.round(y));
     }
   };
 
@@ -553,21 +524,23 @@ export default function ClickableFloorplan(): ReactNode {
           )}
         </div>
       </div>
-      <Alert variant="destructive">
-        <AlertTitle>Error</AlertTitle>
-        <AlertDescription>{alertMessage}</AlertDescription>
-      </Alert>
+      {alertMessage != "" && (
+        <Alert variant="destructive">
+          <AlertTitle>Error Summary</AlertTitle>
+          <AlertDescription>{alertMessage}</AlertDescription>
+        </Alert>
+      )}
       <div className="relative" ref={containerRef}>
-        <div
+        {/* <div
           className={`absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-lg ${
-            status === "running" ? "" : "hidden"
+            measurementStatus === "running" ? "" : "hidden"
           }`}
         >
           <div className="flex flex-col items-center">
             <Loader className="w-24 h-24 text-blue-500" />
             <p className="text-white text-lg font-medium">Running...</p>
           </div>
-        </div>
+        </div> */}
         <canvas
           ref={canvasRef}
           width={dimensions.width}
@@ -593,7 +566,12 @@ export default function ClickableFloorplan(): ReactNode {
         </div>
 
         <Toaster />
-        {isToastOpen && <NewToast onClose={() => setIsToastOpen(false)} />}
+        {isToastOpen && (
+          <NewToast
+            onClose={() => setIsToastOpen(false)}
+            toastIsReady={() => measureSurveyPoint}
+          />
+        )}
       </div>
     </div>
   );

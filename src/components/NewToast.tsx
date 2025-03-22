@@ -2,26 +2,37 @@
 import { useState, useEffect } from "react";
 import * as Toast from "@radix-ui/react-toast";
 
-export default function NewToast({ onClose }: { onClose: () => void }) {
-  const [toastHeader, setToastHeader] = useState("Survey in progress");
-  const [toastStatus, setToastStatus] = useState("Not startedX");
+interface Props {
+  onClose: () => void;
+  toastIsReady: () => void;
+}
+export default function NewToast({ onClose, toastIsReady }: Props) {
+  const [toastHeader, setToastHeader] = useState("");
+  const [toastStatus, setToastStatus] = useState("");
   // const [toastOpen, setToastOpen] = useState(false);
-  const [taskRunning, setTaskRunning] = useState(false);
+  const [taskRunning, setTaskRunning] = useState(true);
+
+  const eventSource = new EventSource("/api/events"); // issue GET to open connection to the SSE server
 
   useEffect(() => {
-    const eventSource = new EventSource("/api/events"); // issue GET to open connection to the SSE server
-
     eventSource.onmessage = (event: MessageEvent) => {
       try {
-        const data: { status: string; type: string } = JSON.parse(event.data);
-        setToastStatus(data.status);
-        console.log(`received status update: ${JSON.stringify(data)}`);
+        const data: { status: string; type: string; header: string } =
+          JSON.parse(event.data);
+        console.log(`received update: ${JSON.stringify(data)}`);
+
+        if (data.type === "update") {
+          // just an update
+          setToastHeader(data.header);
+          setToastStatus(data.status);
+        }
 
         if (data.type == "done") {
-          setToastHeader("Complete");
-          // eventSource.close();
+          // we're done (complete, error, canceled)
+          setToastHeader(data.header);
+          setToastStatus(data.status);
+          eventSource.close();
           setTimeout(() => {
-            // setToastOpen(false); // ✅ Close the toast after 3 seconds
             setTaskRunning(false);
             onClose();
           }, 3000);
@@ -29,6 +40,11 @@ export default function NewToast({ onClose }: { onClose: () => void }) {
       } catch (error) {
         console.error("Error parsing SSE message:", error);
       }
+    };
+
+    eventSource.onopen = () => {
+      console.log(`toast opened connection`);
+      toastIsReady();
     };
 
     eventSource.onerror = (error: Event) => {
@@ -44,16 +60,18 @@ export default function NewToast({ onClose }: { onClose: () => void }) {
   const startTask = async () => {
     setTaskRunning(true);
     // setToastOpen(true);
-    setToastHeader("Survey in progress");
+    // setToastHeader("Survey in progress");
     console.log(`starting survey task`);
-    await fetch("/api/start-task?action=start", { method: "POST" });
+    // tell the fake server to start the survey process
+    // await fetch("/api/start-task?action=start", { method: "POST" });
   };
 
   const handleCancel = async () => {
+    // tell the server to stop doing work
     await fetch("/api/start-task?action=stop", { method: "POST" });
     setToastStatus("Task Canceled ❌");
     setTaskRunning(false);
-    setTimeout(() => onClose, 3000);
+    setTimeout(() => onClose(), 3000);
   };
 
   return (

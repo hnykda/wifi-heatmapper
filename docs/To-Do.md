@@ -77,3 +77,4 @@ Random questions that arise at the start of the project
 * ~~Does a mDNS name work for the iperf3 server address?~~ Yes
 * ~~Uncontrolled input: https://react.dev/reference/react-dom/components/input#controlling-an-input-with-a-state-variable~~ Done (I think) by setting sudoerPassword after reading other settings from a file
 * ~~Alternative: Different color scale: Can heat map colors go (good to bad) _Green - Turquoise - Blue - Grey - Yellow - Red_ to comport with "normal meanings" of "Green is good, red is bad"? (Advice would then be blue or above is OK...) Grey could then be a narrow band (numeric range) between blue and yellow that is the divider between good and not-so-good~~ Done.
+
