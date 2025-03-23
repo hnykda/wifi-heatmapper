@@ -13,7 +13,7 @@ import { runIperfTest } from "./iperfRunner";
 import { updateDatabaseField } from "./database";
 import { SurveyPoint, OS, HeatmapSettings } from "./types";
 import { execAsync } from "./server-utils";
-import { sendSSEMessage } from "@/app/api/events/route";
+import { sendSSEMessage } from "./sseGlobal";
 
 export async function startSurvey(
   x: number,

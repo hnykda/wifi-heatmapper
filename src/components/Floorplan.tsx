@@ -24,6 +24,7 @@ export default function ClickableFloorplan(): ReactNode {
   const [alertMessage, setAlertMessage] = useState("");
   const [isToastOpen, setIsToastOpen] = useState(false);
   const [surveyClick, setSurveyClick] = useState({ x: 0, y: 0 });
+
   /**
    * Load the image (and the canvas) when the component is mounted
    */
@@ -53,23 +54,24 @@ export default function ClickableFloorplan(): ReactNode {
     }
   }, [imageLoaded, dimensions, settings.surveyPoints]);
 
-  useEffect(() => {
-    if (imageLoaded && canvasRef.current) {
-      const canvas = canvasRef.current;
-      const containerWidth = containerRef.current?.clientWidth || canvas.width;
-      const scaleX = containerWidth / dimensions.width;
-      setScale(scaleX);
-      canvas.style.width = "100%";
-      canvas.style.height = "auto";
-      drawCanvas();
-    }
-  }, []);
+  // useEffect(() => {
+  //   if (imageLoaded && canvasRef.current) {
+  //     const canvas = canvasRef.current;
+  //     const containerWidth = containerRef.current?.clientWidth || canvas.width;
+  //     const scaleX = containerWidth / dimensions.width;
+  //     setScale(scaleX);
+  //     canvas.style.width = "100%";
+  //     canvas.style.height = "auto";
+  //     drawCanvas();
+  //   }
+  // }, []);
   /**
    * pseudoMeasure - start the fake measurement process
    */
 
   const pseudoMeasure = async () => {
-    await setIsToastOpen(true);
+    // await setIsToastOpen(true);
+    setIsToastOpen(true);
     // Tell the fake measurement process to begin
     await fetch("/api/start-task?action=start", { method: "POST" });
   };
@@ -97,9 +99,11 @@ export default function ClickableFloorplan(): ReactNode {
     const y = Math.round(surveyClick.y);
 
     console.log(`Checking Settings...`);
-    const settingsAreOK = await checkSettings(settings);
-    if (!settingsAreOK) {
-      return null; // no additional comment (Toast takes care of it)
+    const settingsErrorMessage = await checkSettings(settings);
+    console.log(`settings check: ${settingsErrorMessage}`);
+    if (settingsErrorMessage !== "") {
+      setAlertMessage(settingsErrorMessage);
+      return null;
     }
 
     try {
@@ -499,6 +503,7 @@ export default function ClickableFloorplan(): ReactNode {
       });
     } else {
       // start a measurement
+      console.log(`starting a measurement`);
       setSelectedPoint(null);
       setAlertMessage("");
       setIsToastOpen(true);

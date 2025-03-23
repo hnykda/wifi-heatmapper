@@ -4,6 +4,11 @@
 //  */
 
 import { NextRequest } from "next/server";
+import {
+  registerSSESender,
+  clearSSESender,
+  sendSSEMessage,
+} from "../../../lib/sseGlobal";
 
 export type SSEMessageType = {
   type: string;
@@ -11,34 +16,39 @@ export type SSEMessageType = {
   status: string;
 };
 
-let sendToClient: ((msg: SSEMessageType) => void) | null = null;
+// sendToClient is a function that encodes and sends the mgs
+// Initialize it to null; it'll be created when /api/events arrives
+// let sendToClient: ((msg: SSEMessageType) => void) | null = null;
 
-export function sendSSEMessage(msg: SSEMessageType) {
-  if (sendToClient) {
-    sendToClient(msg);
-  } else {
-    console.warn("No SSE client to send to");
-  }
-}
+// export async function sendSSEMessage(msg: SSEMessageType) {
+//   console.log(`SSE message to send: ${JSON.stringify(msg)}`);
+//   if (sendToClient) {
+//     sendToClient(msg);
+//   } else {
+//     console.warn("No SSE client to send to");
+//   }
+// }
 
 export async function GET(req: NextRequest) {
   const encoder = new TextEncoder();
   const stream = new TransformStream();
   const writer = stream.writable.getWriter();
 
-  // SSE stream must send something immediately for Safari/Firefox
-  writer.write(encoder.encode(": connected\n\n")); // comment line
-  writer.write(encoder.encode(": ".padEnd(2049, " ") + "\n")); // padding to force flush
+  // Safari buffering hack: pad with 2KB of comment lines
+  const prelude = ": ".padEnd(2049, " ") + "\r\n";
+  writer.write(encoder.encode(prelude));
+  writer.write(encoder.encode(": connected\r\n\r\n"));
 
   // Assign the live send function
-  sendToClient = (msg: SSEMessageType) => {
-    const data = `data: ${JSON.stringify(msg)}\n\n`;
+  const sendToClient = (msg: SSEMessageType) => {
+    const data = `data: ${JSON.stringify(msg)}\r\n\r\n`;
     writer.write(encoder.encode(data));
   };
+  registerSSESender(sendToClient); // 🔧 moved here
 
   // Send a ready event
   console.log("SSE client connected");
-  sendToClient({
+  sendSSEMessage({
     type: "ready",
     header: "",
     status: "SSE connection established",
@@ -46,7 +56,8 @@ export async function GET(req: NextRequest) {
 
   // Heartbeat every 5 seconds
   const heartbeat = setInterval(() => {
-    sendToClient?.({
+    // console.log(`heartbeat`);
+    sendSSEMessage({
       type: "heartbeat",
       header: "",
       status: new Date().toISOString(),
@@ -55,15 +66,15 @@ export async function GET(req: NextRequest) {
 
   // Cleanup on client disconnect
   req.signal.addEventListener("abort", () => {
-    console.log("SSE client disconnected");
     clearInterval(heartbeat);
-    sendToClient = null;
+    clearSSESender();
     writer.close();
+    console.log("SSE client disconnected");
   });
 
   return new Response(stream.readable, {
     headers: {
-      "Content-Type": "text/event-stream",
+      "Content-Type": "text/event-stream; charset=utf-8",
       "Cache-Control": "no-cache, no-transform, must-revalidate",
       Connection: "keep-alive",
       "X-Accel-Buffering": "no",
@@ -71,31 +82,3 @@ export async function GET(req: NextRequest) {
     },
   });
 }
-
-// // app/api/events/route.ts
-// import { NextRequest } from "next/server";
-
-// export async function GET(_req: NextRequest) {
-//   const encoder = new TextEncoder();
-//   const stream = new TransformStream();
-//   const writer = stream.writable.getWriter();
-
-//   // Flush something immediately
-//   writer.write(encoder.encode(`data: "hello"\n\n`));
-//   writer.write(encoder.encode(": ".padEnd(2049, " ") + "\n")); // Safari flush trick
-
-//   // Send a second message after 2 seconds
-//   setTimeout(() => {
-//     writer.write(encoder.encode(`data: "second message"\n\n`));
-//   }, 2000);
-
-//   return new Response(stream.readable, {
-//     headers: {
-//       "Content-Type": "text/event-stream",
-//       "Cache-Control": "no-cache, no-transform, must-revalidate",
-//       Connection: "keep-alive",
-//       "X-Accel-Buffering": "no",
-//       "Content-Encoding": "none",
-//     },
-//   });
-// }
