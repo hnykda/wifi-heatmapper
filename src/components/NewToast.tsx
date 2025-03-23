@@ -13,8 +13,7 @@ export default function NewToast({ onClose, toastIsReady }: NewToastProps) {
   const [taskRunning, setTaskRunning] = useState(true);
 
   const eventSource = new EventSource("/api/events"); // issue GET to open connection to the SSE server
-
-  console.log(`NewToast has opened`);
+  console.log(`NewToast has opened: ${JSON.stringify(eventSource)}`);
 
   useEffect(() => {
     eventSource.onmessage = (event: MessageEvent) => {
@@ -23,6 +22,11 @@ export default function NewToast({ onClose, toastIsReady }: NewToastProps) {
           JSON.parse(event.data);
         console.log(`received update: ${JSON.stringify(data)}`);
 
+        if (data.type === "ready") {
+          console.log(`toast opened connection`);
+          toastIsReady();
+          return;
+        }
         if (data.type === "update") {
           // just an update
           setToastHeader(data.header);
@@ -44,10 +48,10 @@ export default function NewToast({ onClose, toastIsReady }: NewToastProps) {
       }
     };
 
-    eventSource.onopen = () => {
-      console.log(`toast opened connection`);
-      toastIsReady();
-    };
+    // eventSource.onopen = () => {
+    //   console.log(`toast opened connection`);
+    //   toastIsReady();
+    // };
 
     eventSource.onerror = (error: Event) => {
       console.error("SSE error:", error);
@@ -57,7 +61,7 @@ export default function NewToast({ onClose, toastIsReady }: NewToastProps) {
     return () => {
       eventSource.close();
     };
-  }, []);
+  }, [toastIsReady]);
 
   const startTask = async () => {
     setTaskRunning(true);

@@ -185,6 +185,6 @@ export async function cancelTask() {
 }
 
 // Helper function for delays
-function delay(ms: number) {
+export async function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
