@@ -1,7 +1,7 @@
-/**
- * Server-Sent-Events
- * These are triggered by a GET to /api/events
- */
+// /**
+//  * Server-Sent-Events
+//  * These are triggered by a GET to /api/events
+//  */
 
 import { NextRequest } from "next/server";
 
@@ -23,72 +23,79 @@ export function sendSSEMessage(msg: SSEMessageType) {
 
 export async function GET(req: NextRequest) {
   const encoder = new TextEncoder();
+  const stream = new TransformStream();
+  const writer = stream.writable.getWriter();
 
-  // Create a proper streaming response
-  const responseStream = new ReadableStream({
-    start(controller) {
-      controller.enqueue(encoder.encode(": ping\n\n"));
-      // Set up the send function for external access
-      sendToClient = (msg: SSEMessageType) => {
-        const data = `data: ${JSON.stringify(msg)}\n\n`;
-        controller.enqueue(encoder.encode(data));
-      };
+  // SSE stream must send something immediately for Safari/Firefox
+  writer.write(encoder.encode(": connected\n\n")); // comment line
+  writer.write(encoder.encode(": ".padEnd(2049, " ") + "\n")); // padding to force flush
 
-      // Send initial ready message
-      console.log(`Client connected`);
-      sendToClient({
-        type: "ready",
-        status: `Client connected to SSE server`,
-        header: "",
-      });
+  // Assign the live send function
+  sendToClient = (msg: SSEMessageType) => {
+    const data = `data: ${JSON.stringify(msg)}\n\n`;
+    writer.write(encoder.encode(data));
+  };
 
-      // Setup heartbeat
-      const heartbeat = setInterval(() => {
-        console.log(`heartbeat`);
-        if (sendToClient) {
-          sendToClient({
-            type: "heartbeat",
-            header: "",
-            status: new Date().toISOString(),
-          });
-        } else {
-          clearInterval(heartbeat);
-        }
-      }, 5000);
-
-      // Clean up on disconnect
-      req.signal.addEventListener("abort", () => {
-        clearInterval(heartbeat);
-        sendToClient = null;
-        controller.close();
-        console.log(`Client disconnected`);
-      });
-    },
+  // Send a ready event
+  console.log("SSE client connected");
+  sendToClient({
+    type: "ready",
+    header: "",
+    status: "SSE connection established",
   });
 
-  return new Response(responseStream, {
+  // Heartbeat every 5 seconds
+  const heartbeat = setInterval(() => {
+    sendToClient?.({
+      type: "heartbeat",
+      header: "",
+      status: new Date().toISOString(),
+    });
+  }, 5000);
+
+  // Cleanup on client disconnect
+  req.signal.addEventListener("abort", () => {
+    console.log("SSE client disconnected");
+    clearInterval(heartbeat);
+    sendToClient = null;
+    writer.close();
+  });
+
+  return new Response(stream.readable, {
     headers: {
       "Content-Type": "text/event-stream",
       "Cache-Control": "no-cache, no-transform, must-revalidate",
       Connection: "keep-alive",
-      // These are crucial to prevent buffering
-      "Content-Encoding": "none",
       "X-Accel-Buffering": "no",
+      "Content-Encoding": "none",
     },
   });
 }
 
-/**
- * Sends a message to all connected SSE clients
- */
-// export function sendSSEMessage(message: SSEMessageType): void {
-//   console.log(`sendSSEMessage: ${JSON.stringify(message)}`);
-//   clients.forEach((client) => {
-//     try {
-//       client.controller.enqueue(`data: ${JSON.stringify(message)}\n\n`);
-//     } catch (error) {
-//       console.error(`Error sending message to client ${client.id}:`, error);
-//       clients = clients.filter((c) => c.id !== client.id);
-//     }
+// // app/api/events/route.ts
+// import { NextRequest } from "next/server";
+
+// export async function GET(_req: NextRequest) {
+//   const encoder = new TextEncoder();
+//   const stream = new TransformStream();
+//   const writer = stream.writable.getWriter();
+
+//   // Flush something immediately
+//   writer.write(encoder.encode(`data: "hello"\n\n`));
+//   writer.write(encoder.encode(": ".padEnd(2049, " ") + "\n")); // Safari flush trick
+
+//   // Send a second message after 2 seconds
+//   setTimeout(() => {
+//     writer.write(encoder.encode(`data: "second message"\n\n`));
+//   }, 2000);
+
+//   return new Response(stream.readable, {
+//     headers: {
+//       "Content-Type": "text/event-stream",
+//       "Cache-Control": "no-cache, no-transform, must-revalidate",
+//       Connection: "keep-alive",
+//       "X-Accel-Buffering": "no",
+//       "Content-Encoding": "none",
+//     },
 //   });
 // }
