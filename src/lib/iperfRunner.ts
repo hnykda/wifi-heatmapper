@@ -12,7 +12,7 @@ import { scanWifi } from "./wifiScanner";
 import { getLogger } from "./logger";
 import { execAsync } from "./server-utils";
 import { rssiToPercentage } from "./utils";
-import { sendSSEMessage } from "@/app/api/events/route";
+import { sendSSEMessage } from "./sseGlobal";
 import { getHostPlatform } from "./actions";
 
 const logger = getLogger("iperfRunner");
@@ -61,20 +61,21 @@ const validateWifiDataConsistency = (
 /**
  * checkSettings - check whether the settings are "primed" to run a test
  * @param settings
- * @returns
+ * @returns string
  */
 export const checkSettings = async (settings: HeatmapSettings) => {
-  let settingsAreOK = true;
+  let settingsErrorMessage = "";
   console.log(
     `checkSettings: "${settings.iperfServerAdrs}" "${settings.sudoerPassword}"`,
   );
-  if (!settings?.iperfServerAdrs) {
+  if (!settings.iperfServerAdrs) {
+    settingsErrorMessage = "Please set iperf server address";
+
     sendSSEMessage({
       type: "done",
-      status: "Please set iperf server address",
+      status: settingsErrorMessage,
       header: "Error",
     });
-    settingsAreOK = false;
   }
 
   const runningPlatform = await getHostPlatform();
@@ -87,14 +88,15 @@ export const checkSettings = async (settings: HeatmapSettings) => {
     console.warn(
       "No sudoer password set, but running on macOS where it's required for wdutil info command",
     );
+    settingsErrorMessage =
+      "Please set sudoer password. It is required on macOS.";
     sendSSEMessage({
       type: "done",
       header: "Error",
-      status: "Please set sudoer password. It is required on macOS.",
+      status: settingsErrorMessage,
     });
-    settingsAreOK = false;
   }
-  return settingsAreOK;
+  return settingsErrorMessage;
 };
 
 export async function runIperfTest(
@@ -116,8 +118,18 @@ export async function runIperfTest(
         const duration = settings.testDuration;
 
         const wifiDataBefore = await scanWifi(settings);
+        sendSSEMessage({
+          type: "update",
+          header: "Measurement in progress",
+          status: "Some kinda RSSI",
+        });
         const tcpDownload = await runSingleTest(server, duration, true, false);
         const tcpUpload = await runSingleTest(server, duration, false, false);
+        sendSSEMessage({
+          type: "update",
+          header: "Measurement in progress",
+          status: "Some kinda RSSI\nSome kinda speed",
+        });
         const udpDownload = await runSingleTest(server, duration, true, true);
         const udpUpload = await runSingleTest(server, duration, false, true);
         const wifiDataAfter = await scanWifi(settings);
@@ -127,6 +139,11 @@ export async function runIperfTest(
             "Wifi configuration changed between scans! Cancelling instead of giving wrong results.",
           );
         }
+        sendSSEMessage({
+          type: "done",
+          header: "Measurement complete",
+          status: "Some kinda RSSI\nSome kinda speed",
+        });
 
         results = {
           tcpDownload,

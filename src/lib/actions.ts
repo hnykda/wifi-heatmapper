@@ -16,7 +16,8 @@ import { execAsync } from "./server-utils";
 import { getLogger } from "./logger";
 
 const logger = getLogger("actions");
-import { sendSSEMessage } from "@/app/api/events/route";
+// import { sendSSEMessage } from "@/app/api/events/route";
+import { sendSSEMessage } from "./sseGlobal";
 
 export async function startSurvey(
   x: number,

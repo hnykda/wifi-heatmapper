@@ -12,18 +12,20 @@ export default function NewToast({ onClose, toastIsReady }: NewToastProps) {
   // const [toastOpen, setToastOpen] = useState(false);
   const [taskRunning, setTaskRunning] = useState(true);
 
-  const eventSource = new EventSource("/api/events"); // issue GET to open connection to the SSE server
-  console.log(`NewToast has opened: ${JSON.stringify(eventSource)}`);
-
   useEffect(() => {
+    const eventSource = new EventSource("/api/events"); // issue GET to open connection to the SSE server
+    console.log(
+      `NewToast has opened a connection: ${JSON.stringify(eventSource)}`,
+    );
+
     eventSource.onmessage = (event: MessageEvent) => {
       try {
         const data: { status: string; type: string; header: string } =
           JSON.parse(event.data);
-        console.log(`received update: ${JSON.stringify(data)}`);
+        console.log(`received message: ${JSON.stringify(data)}`);
 
         if (data.type === "ready") {
-          console.log(`toast opened connection`);
+          console.log(`received ready message`);
           toastIsReady();
           return;
         }
@@ -58,10 +60,20 @@ export default function NewToast({ onClose, toastIsReady }: NewToastProps) {
       eventSource.close();
     };
 
+    // 💡 Handle browser reload/unload
+    const handleUnload = () => {
+      eventSource.close(); // cleanly closes connection
+    };
+
+    window.addEventListener("beforeunload", handleUnload);
+    window.addEventListener("unload", handleUnload);
+
     return () => {
       eventSource.close();
+      window.removeEventListener("beforeunload", handleUnload);
+      window.removeEventListener("unload", handleUnload);
     };
-  }, [toastIsReady]);
+  }, []);
 
   const startTask = async () => {
     setTaskRunning(true);
