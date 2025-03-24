@@ -232,6 +232,12 @@ export async function runIperfTest(
     return { iperfResults: results!, wifiData: wifiData! };
   } catch (error) {
     logger.error("Error running iperf3 test:", error);
+    sendSSEMessage({
+      type: "done",
+      status: "Error running iperf3 test",
+      header: "Error",
+    });
+
     throw error;
   }
 }
@@ -283,7 +289,7 @@ export async function extractIperfResults(
     version?: string;
   },
   isUdp: boolean,
-): IperfTestProperty {
+): Promise<IperfTestProperty> {
   const end = result.end;
 
   // Check if we're dealing with newer iPerf (Mac - v3.17+) or older iPerf (Ubuntu - v3.9)
