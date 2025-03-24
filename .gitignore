@@ -39,3 +39,7 @@ next-env.d.ts
 public/media/
 
 .vscode
+
+# Exclude data from container
+datas/data/*
+datas/media/*
