@@ -111,70 +111,90 @@ function arrayAverage(arr: number[]): number {
   const sum = arr.reduce((acc, val) => acc + val, 0);
   return Math.round(sum / arr.length);
 }
+const initialStates = {
+  type: "update",
+  header: "Measurement beginning",
+  strength: 0,
+  tcp: "-/- Mbps",
+  udp: "-/- Mbps",
+};
 
-// measurement process updates these variables
-// which then are built into the updates
-let displayedType = "update";
-let displayedHeader = "In progress";
-let displayedStrength = 0; // numerical value
-let displayedTCP = "-/-";
-let displayedUDP = "-/-";
+// The measurement process updates these variables
+// which then are converted into update events
+let displayStates = {
+  type: "update",
+  header: "In progress",
+  strength: 0,
+  tcp: "-/- Mbps",
+  udp: "-/- Mbps",
+};
 
-function updatedMessage(): SSEMessageType {
+/**
+ * getUpdatedMessage - combine all the displayState values
+ * @returns (SSEMessageType) - the message to send
+ */
+function getUpdatedMessage(): SSEMessageType {
   return {
-    type: displayedType,
-    header: displayedHeader,
-    status: `Signal strength: ${displayedStrength}%\nTCP: ${displayedTCP} Mbps\nUDP: ${displayedUDP} Mbps`,
+    type: displayStates.type,
+    header: displayStates.header,
+    status: `Signal strength: ${displayStates.strength}%\nTCP: ${displayStates.tcp} Mbps\nUDP: ${displayStates.udp} Mbps`,
   };
 }
 
+/**
+ * runIperfTest() - get the WiFi and iperf readings
+ * @param settings
+ * @returns the WiFi and iperf results for this location
+ */
 export async function runIperfTest(
   settings: HeatmapSettings,
 ): Promise<{ iperfResults: IperfResults; wifiData: WifiNetwork }> {
-  // if (!checkSettings(settings)) {
-  //   return;
-  // }
   try {
     const maxRetries = 3;
     let attempts = 0;
     let results: IperfResults | null = null;
     let wifiData: WifiNetwork | null = null;
 
-    sendSSEMessage(updatedMessage()); // immediately send the template
-
     // TODO: only retry the one that failed
     while (attempts < maxRetries && !results) {
       try {
+        // set the initial states, then send an event to the client
+        displayStates = { ...displayStates, ...initialStates };
+        sendSSEMessage(getUpdatedMessage()); // immediately send initial values
+        displayStates.header = "Measurement in progress...";
+
         const server = settings.iperfServerAdrs;
         const duration = settings.testDuration;
         const wifiStrengths: number[] = []; // percentages
 
         const wifiDataBefore = await scanWifi(settings);
         wifiStrengths.push(wifiDataBefore.signalStrength);
-        displayedStrength = arrayAverage(wifiStrengths);
-        sendSSEMessage(updatedMessage());
+        displayStates.strength = arrayAverage(wifiStrengths);
+        sendSSEMessage(getUpdatedMessage());
 
         const tcpDownload = await runSingleTest(server, duration, true, false);
         const tcpUpload = await runSingleTest(server, duration, false, false);
-        displayedTCP = `${(tcpDownload.bitsPerSecond / 1000000).toFixed(2)} / ${(tcpUpload.bitsPerSecond / 1000000).toFixed(2)}`;
-        sendSSEMessage(updatedMessage());
+        displayStates.tcp = `${(tcpDownload.bitsPerSecond / 1000000).toFixed(2)} / ${(tcpUpload.bitsPerSecond / 1000000).toFixed(2)}`;
+        sendSSEMessage(getUpdatedMessage());
 
         const wifiDataMiddle = await scanWifi(settings);
         wifiStrengths.push(wifiDataMiddle.signalStrength);
-        displayedStrength = arrayAverage(wifiStrengths);
-        sendSSEMessage(updatedMessage());
+        displayStates.strength = arrayAverage(wifiStrengths);
+        sendSSEMessage(getUpdatedMessage());
 
         const udpDownload = await runSingleTest(server, duration, true, true);
         const udpUpload = await runSingleTest(server, duration, false, true);
-        displayedUDP = `${(udpDownload.bitsPerSecond / 1000000).toFixed(2)} / ${(udpUpload.bitsPerSecond / 1000000).toFixed(2)}`;
-        sendSSEMessage(updatedMessage());
+        displayStates.udp = `${(udpDownload.bitsPerSecond / 1000000).toFixed(2)} / ${(udpUpload.bitsPerSecond / 1000000).toFixed(2)}`;
+        sendSSEMessage(getUpdatedMessage());
 
         const wifiDataAfter = await scanWifi(settings);
         wifiStrengths.push(wifiDataAfter.signalStrength);
-        displayedStrength = arrayAverage(wifiStrengths);
-        displayedType = "done";
-        displayedHeader = "Complete";
-        sendSSEMessage(updatedMessage());
+        displayStates.strength = arrayAverage(wifiStrengths);
+
+        // Send the final update - type is "done"
+        displayStates.type = "done";
+        displayStates.header = "Measurement complete";
+        sendSSEMessage(getUpdatedMessage());
 
         if (!validateWifiDataConsistency(wifiDataBefore, wifiDataAfter)) {
           throw new Error(
@@ -188,21 +208,18 @@ export async function runIperfTest(
           udpDownload,
           udpUpload,
         };
-        // console.error(`Wifi: ${wifiDataBefore.rssi} & ${wifiDataAfter.rssi}`);
-        // display the average
-        // const averageStrength = arrayAverage(wifiStrengths);
-        console.log(
-          `signalStrength: ${JSON.stringify(wifiStrengths)}, ${displayedStrength}`,
-        );
+
+        // console.log(
+        //   `signalStrength: ${JSON.stringify(wifiStrengths)}, ${displayStates.strength}`,
+        // );
         wifiData = {
           ...wifiDataBefore,
-          signalStrength: displayedStrength,
+          signalStrength: displayStates.strength, // uses the average value
         };
         //
         wifiData = {
           ...wifiData,
-          // be more precise by averaging
-          rssi: percentageToRssi(displayedStrength),
+          rssi: percentageToRssi(displayStates.strength),
         };
       } catch (error) {
         logger.error(`Attempt ${attempts + 1} failed:`, error);

@@ -24,17 +24,7 @@ export async function startSurvey(
   y: number,
   settings: HeatmapSettings,
 ): Promise<SurveyPoint> {
-  // const db = await readDatabase(dbPath);
-  // const iperfServer = testConfig.iperfServerAdrs;
-
   const { iperfResults, wifiData } = await runIperfTest(settings);
-  // iperfServer,
-  // testConfig.testDuration,
-  // {
-  //   sudoerPassword: testConfig.sudoerPassword,
-  //   wlanInterfaceId: testConfig.wlanInterfaceId,
-  // },
-  // }
 
   const newPoint: SurveyPoint = {
     x,
@@ -51,10 +41,6 @@ export async function startSurvey(
   return newPoint;
 }
 
-// export async function getSurveyData(dbPath: string): Promise<Database> {
-//   return await readDatabase(dbPath);
-// }
-
 export async function updateIperfServer(
   dbPath: string,
   server: string,
@@ -67,22 +53,6 @@ export async function updateFloorplanImage(
   imagePath: string,
 ): Promise<void> {
   await updateDatabaseField(dbPath, "floorplanImage", imagePath);
-}
-
-// export async function updateDbField(
-//   dbPath: string,
-//   fieldName: keyof Database,
-//   value: Database[keyof Database],
-// ): Promise<void> {
-//   return await updateDatabaseField(dbPath, fieldName, value);
-// }
-
-export async function writeSurveyData(
-  dbPath: string,
-  data: Database,
-): Promise<void> {
-  logger.info("Writing survey data to database");
-  await writeDatabase(dbPath, data);
 }
 
 export const uploadImage = async (dbPath: string, formData: FormData) => {
@@ -113,18 +83,11 @@ export async function inferWifiDeviceIdOnLinux(): Promise<string> {
   return stdout.trim();
 }
 
-/**
- * serverFunction() - NewToast client component has server events sent to it
- *
- * emits the following events:
- * header: updates the header
- * type: "update", "status" updates text in the NewToast gizmo
- * type: "done", final update, "status" replaces text
- */
+// Simulate a long-running process with server-sent events
+// THIS IS A FAKE FUNCTION - ONLY USED FOR TESTING
 
 let isCanceled = false;
 
-// Simulate a long-running process with polling updates
 export async function startTask() {
   isCanceled = false;
 

@@ -9,7 +9,6 @@ interface NewToastProps {
 export default function NewToast({ onClose, toastIsReady }: NewToastProps) {
   const [toastHeader, setToastHeader] = useState("");
   const [toastStatus, setToastStatus] = useState("");
-  // const [toastOpen, setToastOpen] = useState(false);
   const [taskRunning, setTaskRunning] = useState(true);
 
   useEffect(() => {
@@ -75,14 +74,16 @@ export default function NewToast({ onClose, toastIsReady }: NewToastProps) {
     };
   }, []);
 
-  const startTask = async () => {
-    setTaskRunning(true);
-    // setToastOpen(true);
-    // setToastHeader("Survey in progress");
-    console.log(`starting survey task`);
-    // tell the fake server to start the survey process
-    // await fetch("/api/start-task?action=start", { method: "POST" });
-  };
+  // THESE WERE ADDED FOR TESTING - NO LONGER USED
+
+  // const startTask = async () => {
+  //   setTaskRunning(true);
+  //   // setToastOpen(true);
+  //   // setToastHeader("Survey in progress");
+  //   console.log(`starting survey task`);
+  //   // tell the fake server to start the survey process
+  //   // await fetch("/api/start-task?action=start", { method: "POST" });
+  // };
 
   const handleCancel = async () => {
     // tell the server to stop doing work
@@ -94,12 +95,12 @@ export default function NewToast({ onClose, toastIsReady }: NewToastProps) {
 
   return (
     <Toast.Provider swipeDirection="right">
-      <button
+      {/* <button
         onClick={startTask}
         className="bg-blue-500 text-white px-4 py-2 rounded"
       >
         Start Task
-      </button>
+      </button> */}
 
       <Toast.Root
         className="fixed bottom-[10px] right-[5px] w-96 bg-gray-800 text-white p-4 rounded shadow-md flex justify-between items-center"
