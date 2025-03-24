@@ -3,7 +3,6 @@ import { execAsync } from "./server-utils";
 import { getLogger } from "./logger";
 
 const logger = getLogger("wifiScanner");
-import { rssiToPercentage } from "./utils";
 import { percentageToRssi, rssiToPercentage } from "./utils";
 import { inferWifiDeviceIdOnLinux } from "./actions";
 

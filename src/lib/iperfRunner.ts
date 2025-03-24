@@ -1,7 +1,5 @@
-import os from "os";
 "use server";
-import { exec } from "child_process";
-import util from "util";
+import os from "os";
 import {
   HeatmapSettings,
   IperfResults,
@@ -11,7 +9,6 @@ import {
 import { scanWifi } from "./wifiScanner";
 import { getLogger } from "./logger";
 import { execAsync } from "./server-utils";
-import { rssiToPercentage } from "./utils";
 import { sendSSEMessage } from "./sseGlobal";
 import { getHostPlatform } from "./actions";
 import { percentageToRssi } from "./utils";
@@ -262,7 +259,7 @@ async function runSingleTest(
   return extracted;
 }
 
-export function extractIperfResults(
+export async function extractIperfResults(
   result: {
     end: {
       sum_received?: { bits_per_second: number };
