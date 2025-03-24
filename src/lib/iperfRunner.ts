@@ -14,6 +14,7 @@ import { execAsync } from "./server-utils";
 import { rssiToPercentage } from "./utils";
 import { sendSSEMessage } from "./sseGlobal";
 import { getHostPlatform } from "./actions";
+import { percentageToRssi } from "./utils";
 
 const logger = getLogger("iperfRunner");
 
@@ -64,6 +65,11 @@ const validateWifiDataConsistency = (
  * @returns string
  */
 export const checkSettings = async (settings: HeatmapSettings) => {
+  sendSSEMessage({
+    type: "update",
+    status: "",
+    header: "In progress",
+  });
   let settingsErrorMessage = "";
   console.log(
     `checkSettings: "${settings.iperfServerAdrs}" "${settings.sudoerPassword}"`,
@@ -99,6 +105,12 @@ export const checkSettings = async (settings: HeatmapSettings) => {
   return settingsErrorMessage;
 };
 
+function arrayAverage(arr: number[]): number {
+  if (arr.length === 0) return 0;
+  const sum = arr.reduce((acc, val) => acc + val, 0);
+  return Math.round(sum / arr.length);
+}
+
 export async function runIperfTest(
   settings: HeatmapSettings,
 ): Promise<{ iperfResults: IperfResults; wifiData: WifiNetwork }> {
@@ -110,29 +122,39 @@ export async function runIperfTest(
     let attempts = 0;
     let results: IperfResults | null = null;
     let wifiData: WifiNetwork | null = null;
-
+    sendSSEMessage({
+      type: "update",
+      header: "In progress",
+      status: "Signal strength:\nSpeeds:",
+    });
     // TODO: only retry the one that failed
     while (attempts < maxRetries && !results) {
       try {
         const server = settings.iperfServerAdrs;
         const duration = settings.testDuration;
+        const wifiStrengths: number[] = []; // percentages
 
         const wifiDataBefore = await scanWifi(settings);
+        wifiStrengths.push(wifiDataBefore.signalStrength);
         sendSSEMessage({
           type: "update",
-          header: "Measurement in progress",
-          status: "Some kinda RSSI",
+          header: "In progress",
+          status: `Signal strength: ${arrayAverage(wifiStrengths)}%\nSpeeds:`,
         });
         const tcpDownload = await runSingleTest(server, duration, true, false);
         const tcpUpload = await runSingleTest(server, duration, false, false);
         sendSSEMessage({
           type: "update",
-          header: "Measurement in progress",
-          status: "Some kinda RSSI\nSome kinda speed",
+          header: "In progress",
+          status: `Signal strength: ${arrayAverage(wifiStrengths)}%\nSpeeds:`,
         });
+        const wifiDataMiddle = await scanWifi(settings);
+        wifiStrengths.push(wifiDataMiddle.signalStrength);
+
         const udpDownload = await runSingleTest(server, duration, true, true);
         const udpUpload = await runSingleTest(server, duration, false, true);
         const wifiDataAfter = await scanWifi(settings);
+        wifiStrengths.push(wifiDataAfter.signalStrength);
 
         if (!validateWifiDataConsistency(wifiDataBefore, wifiDataAfter)) {
           throw new Error(
@@ -141,8 +163,8 @@ export async function runIperfTest(
         }
         sendSSEMessage({
           type: "done",
-          header: "Measurement complete",
-          status: "Some kinda RSSI\nSome kinda speed",
+          header: "Complete",
+          status: `Signal strength: ${arrayAverage(wifiStrengths)}%\nSpeeds:`,
         });
 
         results = {
@@ -151,17 +173,21 @@ export async function runIperfTest(
           udpDownload,
           udpUpload,
         };
-        console.error(`Wifi: ${wifiDataBefore.rssi} & ${wifiDataAfter.rssi}`);
-        // average the two rssi values
+        // console.error(`Wifi: ${wifiDataBefore.rssi} & ${wifiDataAfter.rssi}`);
+        // display the average
+        const averageStrength = arrayAverage(wifiStrengths);
+        console.log(
+          `signalStrength: ${JSON.stringify(wifiStrengths)}, ${averageStrength}`,
+        );
         wifiData = {
           ...wifiDataBefore,
-          // be more precise by averaging
-          rssi: Math.round((wifiDataAfter.rssi + wifiDataBefore.rssi) / 2),
+          signalStrength: averageStrength,
         };
-        // and convert rssi to equivalent percentage
+        //
         wifiData = {
           ...wifiData,
-          signalStrength: rssiToPercentage(wifiData.rssi),
+          // be more precise by averaging
+          rssi: percentageToRssi(averageStrength),
         };
       } catch (error) {
         logger.error(`Attempt ${attempts + 1} failed:`, error);

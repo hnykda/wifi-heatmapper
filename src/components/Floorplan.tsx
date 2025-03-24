@@ -301,7 +301,7 @@ export default function ClickableFloorplan(): ReactNode {
       ctx.stroke();
       // const t = getGradientColor(rssiToPercentage(wifiInfo.rssi));
 
-      const annotation = `${rssiToPercentage(wifiInfo.rssi)}%`;
+      const annotation = `${wifiInfo.signalStrength}%`;
       // These are no longer displayed
       // annotation += ` (${wifiInfo.rssi}dBm`;
       // annotation += ` ${frequencyBand})`;
