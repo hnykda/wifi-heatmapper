@@ -102,7 +102,7 @@ export default function NewToast({ onClose, toastIsReady }: NewToastProps) {
       </button>
 
       <Toast.Root
-        className="bg-gray-800 text-white p-4 rounded shadow-md flex justify-between items-center"
+        className="fixed bottom-[10px] right-[5px] w-96 bg-gray-800 text-white p-4 rounded shadow-md flex justify-between items-center"
         // open={toastOpen}
         // onOpenChange={setToastOpen}
         duration={Infinity} // Keeps open until manually closed

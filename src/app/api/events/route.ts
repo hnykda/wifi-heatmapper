@@ -8,6 +8,7 @@ import {
   registerSSESender,
   clearSSESender,
   sendSSEMessage,
+  setCancelFlag,
 } from "../../../lib/sseGlobal";
 
 export type SSEMessageType = {
@@ -15,19 +16,6 @@ export type SSEMessageType = {
   header: string;
   status: string;
 };
-
-// sendToClient is a function that encodes and sends the mgs
-// Initialize it to null; it'll be created when /api/events arrives
-// let sendToClient: ((msg: SSEMessageType) => void) | null = null;
-
-// export async function sendSSEMessage(msg: SSEMessageType) {
-//   console.log(`SSE message to send: ${JSON.stringify(msg)}`);
-//   if (sendToClient) {
-//     sendToClient(msg);
-//   } else {
-//     console.warn("No SSE client to send to");
-//   }
-// }
 
 export async function GET(req: NextRequest) {
   const encoder = new TextEncoder();
@@ -39,20 +27,22 @@ export async function GET(req: NextRequest) {
   writer.write(encoder.encode(prelude));
   writer.write(encoder.encode(": connected\r\n\r\n"));
 
-  // Assign the live send function
+  // sendToClient is a function that encodes and sends the mgs
+  // Assign the live send function, then register it globally
   const sendToClient = (msg: SSEMessageType) => {
     const data = `data: ${JSON.stringify(msg)}\r\n\r\n`;
     writer.write(encoder.encode(data));
   };
   registerSSESender(sendToClient); // 🔧 moved here
 
-  // Send a ready event
+  // Send a ready event and clear the (global) cancel flag
   console.log("SSE client connected");
   sendSSEMessage({
     type: "ready",
     header: "",
     status: "SSE connection established",
   });
+  setCancelFlag(false); // set the global flag to stop measuring
 
   // Heartbeat every 5 seconds
   const heartbeat = setInterval(() => {

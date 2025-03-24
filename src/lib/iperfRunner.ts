@@ -15,6 +15,7 @@ import { rssiToPercentage } from "./utils";
 import { sendSSEMessage } from "./sseGlobal";
 import { getHostPlatform } from "./actions";
 import { percentageToRssi } from "./utils";
+import { SSEMessageType } from "@/app/api/events/route";
 
 const logger = getLogger("iperfRunner");
 
@@ -111,6 +112,22 @@ function arrayAverage(arr: number[]): number {
   return Math.round(sum / arr.length);
 }
 
+// measurement process updates these variables
+// which then are built into the updates
+let displayedType = "update";
+let displayedHeader = "In progress";
+let displayedStrength = 0; // numerical value
+let displayedTCP = "-/-";
+let displayedUDP = "-/-";
+
+function updatedMessage(): SSEMessageType {
+  return {
+    type: displayedType,
+    header: displayedHeader,
+    status: `Signal strength: ${displayedStrength}%\nTCP: ${displayedTCP} Mbps\nUDP: ${displayedUDP} Mbps`,
+  };
+}
+
 export async function runIperfTest(
   settings: HeatmapSettings,
 ): Promise<{ iperfResults: IperfResults; wifiData: WifiNetwork }> {
@@ -122,11 +139,9 @@ export async function runIperfTest(
     let attempts = 0;
     let results: IperfResults | null = null;
     let wifiData: WifiNetwork | null = null;
-    sendSSEMessage({
-      type: "update",
-      header: "In progress",
-      status: "Signal strength:\nSpeeds:",
-    });
+
+    sendSSEMessage(updatedMessage()); // immediately send the template
+
     // TODO: only retry the one that failed
     while (attempts < maxRetries && !results) {
       try {
@@ -136,36 +151,36 @@ export async function runIperfTest(
 
         const wifiDataBefore = await scanWifi(settings);
         wifiStrengths.push(wifiDataBefore.signalStrength);
-        sendSSEMessage({
-          type: "update",
-          header: "In progress",
-          status: `Signal strength: ${arrayAverage(wifiStrengths)}%\nSpeeds:`,
-        });
+        displayedStrength = arrayAverage(wifiStrengths);
+        sendSSEMessage(updatedMessage());
+
         const tcpDownload = await runSingleTest(server, duration, true, false);
         const tcpUpload = await runSingleTest(server, duration, false, false);
-        sendSSEMessage({
-          type: "update",
-          header: "In progress",
-          status: `Signal strength: ${arrayAverage(wifiStrengths)}%\nSpeeds:`,
-        });
+        displayedTCP = `${(tcpDownload.bitsPerSecond / 1000000).toFixed(2)} / ${(tcpUpload.bitsPerSecond / 1000000).toFixed(2)}`;
+        sendSSEMessage(updatedMessage());
+
         const wifiDataMiddle = await scanWifi(settings);
         wifiStrengths.push(wifiDataMiddle.signalStrength);
+        displayedStrength = arrayAverage(wifiStrengths);
+        sendSSEMessage(updatedMessage());
 
         const udpDownload = await runSingleTest(server, duration, true, true);
         const udpUpload = await runSingleTest(server, duration, false, true);
+        displayedUDP = `${(udpDownload.bitsPerSecond / 1000000).toFixed(2)} / ${(udpUpload.bitsPerSecond / 1000000).toFixed(2)}`;
+        sendSSEMessage(updatedMessage());
+
         const wifiDataAfter = await scanWifi(settings);
         wifiStrengths.push(wifiDataAfter.signalStrength);
+        displayedStrength = arrayAverage(wifiStrengths);
+        displayedType = "done";
+        displayedHeader = "Complete";
+        sendSSEMessage(updatedMessage());
 
         if (!validateWifiDataConsistency(wifiDataBefore, wifiDataAfter)) {
           throw new Error(
             "Wifi configuration changed between scans! Cancelling instead of giving wrong results.",
           );
         }
-        sendSSEMessage({
-          type: "done",
-          header: "Complete",
-          status: `Signal strength: ${arrayAverage(wifiStrengths)}%\nSpeeds:`,
-        });
 
         results = {
           tcpDownload,
@@ -175,19 +190,19 @@ export async function runIperfTest(
         };
         // console.error(`Wifi: ${wifiDataBefore.rssi} & ${wifiDataAfter.rssi}`);
         // display the average
-        const averageStrength = arrayAverage(wifiStrengths);
+        // const averageStrength = arrayAverage(wifiStrengths);
         console.log(
-          `signalStrength: ${JSON.stringify(wifiStrengths)}, ${averageStrength}`,
+          `signalStrength: ${JSON.stringify(wifiStrengths)}, ${displayedStrength}`,
         );
         wifiData = {
           ...wifiDataBefore,
-          signalStrength: averageStrength,
+          signalStrength: displayedStrength,
         };
         //
         wifiData = {
           ...wifiData,
           // be more precise by averaging
-          rssi: percentageToRssi(averageStrength),
+          rssi: percentageToRssi(displayedStrength),
         };
       } catch (error) {
         logger.error(`Attempt ${attempts + 1} failed:`, error);

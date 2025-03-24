@@ -95,3 +95,32 @@ The file structure (using `tree --gitignore`) is:
 
 14 directories, 66 files
 ```
+
+## How the Toast progress notifier works
+
+When an empty space is clicked on the `Floorplan`,
+it triggers the measurement process
+and displays the progress of the measurements.
+Those updates are provided by Server-Sent Events,
+which is an astonishingly complicated process:
+
+* `Floorplan` sets `toastIsOpen` true.
+* The `NewToast` component is "conditionally rendered"
+  (because it is rendered with `{toastIsOpen && <NewToast... />}`)
+  The child component builds a connection to the server
+  calling `/api/events` and listens for updates on that connection.
+* The _/api/events/routes.ts_ server module
+  fields that GET request,
+  creates the `sendToClient()` function for sending updates,
+  and registers that function in the global _sseGlobal.ts_ module.
+  All server-side clients can import and use that function.
+* When `NewToast` receives a "ready" message from the server,
+  it calls back to the `Floorplan` with `toastIsOpen()`
+* That triggers the measurement process that uses `sendToClient()`
+  to send updates to `NewToast`.
+* When the user clicks the Cancel button of `NewToast`,
+  it sends a POST to _/api/start-task?action=stop_.
+  This calls global `setCancelFlag(true)`.
+  The measurement process notices this and halts the process
+  with appropriate status updates.
+  

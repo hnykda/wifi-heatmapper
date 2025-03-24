@@ -70,6 +70,7 @@ Random questions that arise at the start of the project
   Both receive the full list of points, and return an updated list back to `GlobalSettings`
 * **All measurements** are displayed and referenced to
   signal strength (%) and converted back to dBm where necessary.
+* `wiFiScanner.ts` ensures that both % & RSSI are set on return.
 
 ## DONE
 
