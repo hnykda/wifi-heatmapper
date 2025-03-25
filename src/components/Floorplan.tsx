@@ -18,7 +18,7 @@ export default function ClickableFloorplan(): ReactNode {
   const containerRef = useRef<HTMLDivElement>(null);
   const [selectedPoint, setSelectedPoint] = useState<SurveyPoint | null>(null);
   const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 });
-  const [dimensions, setDimensions] = useState(settings.dimensions);
+  // const [dimensions, setDimensions] = useState(settings.dimensions);
   const [scale, setScale] = useState(1);
   const [alertMessage, setAlertMessage] = useState("");
   const [isToastOpen, setIsToastOpen] = useState(false);
@@ -27,54 +27,47 @@ export default function ClickableFloorplan(): ReactNode {
   /**
    * Load the image (and the canvas) when the component is mounted
    */
-
   useEffect(() => {
     if (settings.floorplanImagePath != "") {
       const img = new Image();
+      img.src = settings.floorplanImagePath; // load the image from the path
+
       img.onload = () => {
         const newDimensions = { width: img.width, height: img.height };
         updateSettings({ dimensions: newDimensions });
+        console.log(
+          `useEffect for image ${JSON.stringify(settings.dimensions)}`,
+        );
         setImageLoaded(true);
         imageRef.current = img;
       };
-      img.src = settings.floorplanImagePath; // load the image from the path
+      img.onerror = () => {
+        console.log(`image error`);
+      };
     }
-  }, [settings.floorplanImagePath, setDimensions]);
+  }, []);
 
   useEffect(() => {
     if (imageLoaded && canvasRef.current) {
       const canvas = canvasRef.current;
       const containerWidth = containerRef.current?.clientWidth || canvas.width;
-      const scaleX = containerWidth / dimensions.width;
+      const scaleX = containerWidth / settings.dimensions.width;
       setScale(scaleX);
       canvas.style.width = "100%";
       canvas.style.height = "auto";
       drawCanvas();
     }
-  }, [imageLoaded, dimensions, settings.surveyPoints]);
-
-  // useEffect(() => {
-  //   if (imageLoaded && canvasRef.current) {
-  //     const canvas = canvasRef.current;
-  //     const containerWidth = containerRef.current?.clientWidth || canvas.width;
-  //     const scaleX = containerWidth / dimensions.width;
-  //     setScale(scaleX);
-  //     canvas.style.width = "100%";
-  //     canvas.style.height = "auto";
-  //     drawCanvas();
-  //   }
-  // }, []);
+  }, [imageLoaded, settings.dimensions, settings.surveyPoints]);
 
   /**
    * pseudoMeasure - start the fake measurement process
    */
-
-  const pseudoMeasure = async () => {
-    // await setIsToastOpen(true);
-    setIsToastOpen(true);
-    // Tell the fake measurement process to begin
-    await fetch("/api/start-task?action=start", { method: "POST" });
-  };
+  // const pseudoMeasure = async () => {
+  //   // await setIsToastOpen(true);
+  //   setIsToastOpen(true);
+  //   // Tell the fake measurement process to begin
+  //   await fetch("/api/start-task?action=start", { method: "POST" });
+  // };
 
   const handleToastIsReady = (): void => {
     console.log(`handleToastIsReady called...`);
@@ -90,11 +83,6 @@ export default function ClickableFloorplan(): ReactNode {
    * @returns
    */
   const measureSurveyPoint = async (surveyClick: { x: number; y: number }) => {
-    // setAlertMessage("");
-
-    // setIsToastOpen(true); // opens the Toast, starts event connection
-    // Start the fake process
-    // await fetch("/api/start-task?action=start", { method: "POST" });
     const x = Math.round(surveyClick.x);
     const y = Math.round(surveyClick.y);
 
@@ -107,43 +95,45 @@ export default function ClickableFloorplan(): ReactNode {
     }
 
     try {
-      const newPoint = await startSurvey(x, y, settings);
+      let newPoint = await startSurvey(settings);
+      // null is OK - it just means that measurement was cancelled
       if (!newPoint) {
         return;
       }
-      // otherwise, add the point
+      // otherwise, add the point, bumping the point number
+      const pointNum = settings.nextPointNum;
+      newPoint = {
+        ...newPoint,
+        x,
+        y,
+        isEnabled: true,
+        id: `Point_${pointNum}`,
+      };
+      updateSettings({ nextPointNum: pointNum + 1 });
+
       surveyPointActions.add(newPoint);
-      // const newPoints = [...settings.surveyPoints, newPoint];
-      // // console.log("Floorplan new point: " + JSON.stringify(newPoint));
-      // updateSettings({ surveyPoints: newPoints });
     } catch (error) {
       setAlertMessage(`An error occurred: ${error}`);
-      // measurementStatus = "error";
-      // toast({
-      //   title: "An error occurred",
-      //   description: "Something went wrong, please check the logs",
-      //   variant: "destructive",
-      // });
       return;
     }
-    // measurementStatus = "ready";
-    // toast({
-    //   title: "Measurement complete",
-    //   description: "Measurement complete",
-    // });
   };
 
   /**
    * drawCanvas - make the entire drawing go...
    */
   const drawCanvas = () => {
+    console.log(
+      `drawCanvas()  ${JSON.stringify(imageRef.current)}`, // ${JSON.stringify(canvasRef.current)}
+    );
     const canvas = canvasRef.current;
     if (canvas && imageRef.current) {
       const ctx = canvas.getContext("2d");
       if (ctx) {
+        // clear the canvas
         ctx.clearRect(0, 0, canvas.width, canvas.height);
+        // draw the image "behind" everything else
         ctx.drawImage(imageRef.current, 0, 0);
-
+        // draw the points on top
         drawPoints(settings.surveyPoints, ctx);
       }
     }
@@ -180,11 +170,6 @@ export default function ClickableFloorplan(): ReactNode {
       a: match[4] !== undefined ? parseFloat(match[4]) : 1, // Default alpha to 1 if missing
     };
   }
-
-  // Example Usage:
-  // const rgbaString = "rgba(255, 100, 50, 0.5)";
-  // const result = rgbaToObject(rgbaString);
-  // console.log(result); // { r: 255, g: 100, b: 50, a: 0.5 }
 
   /**
    * Interpolates between two RGBA colors.
@@ -230,64 +215,11 @@ export default function ClickableFloorplan(): ReactNode {
   }
 
   const drawPoint = (point: SurveyPoint, ctx: CanvasRenderingContext2D) => {
-    // const i = index;
-    // Create a gradient for the point
-    // const gradient = ctx.createRadialGradient(
-    //   point.x,
-    //   point.y,
-    //   0,
-    //   point.x,
-    //   point.y,
-    //   8,
-    // );
-    // gradient.addColorStop(
-    //   0,
-    //   point.isDisabled
-    //     ? "rgba(156, 163, 175, 0.9)"
-    //     : "rgba(59, 130, 246, 0.9)",
-    // );
-    // gradient.addColorStop(
-    //   1,
-    //   point.isDisabled
-    //     ? "rgba(75, 85, 99, 0.9)"
-    //     : "rgba(37, 99, 235, 0.9)",
-    // );
-    // Enhanced pulsing effect
-    // const pulseMaxSize = 20; // Increased from 8
-    // const pulseMinSize = 10; // New minimum size
-    // const pulseSize =
-    //   pulseMinSize +
-    //   ((Math.sin(Date.now() * 0.001 + index) + 1) / 2) *
-    //     (pulseMaxSize - pulseMinSize);
-
-    // Draw outer pulse
-    // ctx.beginPath();
-    // ctx.arc(point.x, point.y, pulseSize, 0, 2 * Math.PI);
-    // ctx.fillStyle = point.isDisabled
-    //   ? `rgba(75, 85, 99, ${0.4 - ((pulseSize - pulseMinSize) / (pulseMaxSize - pulseMinSize)) * 0.3})`
-    //   : `rgba(59, 130, 246, ${0.4 - ((pulseSize - pulseMinSize) / (pulseMaxSize - pulseMinSize)) * 0.3})`;
-    // ctx.fill();
-
-    // canvas = canvasRef.current;
-    // if (!canvas) {
-    //   console.log(`canvas is null`);
-    //   return;
-    // }
-    // ctx = canvas.getContext("2d");
-
     if (point.wifiData) {
       // console.log(
       //   `drawPoint: ${JSON.stringify(point)} ${JSON.stringify(ctx)} `,
       // );
       const wifiInfo = point.wifiData;
-      // const iperfInfo = point.iperfResults;
-      // const frequencyBand = wifiInfo.channel > 14 ? "5GHz" : "2.4GHz";
-      // const apLabel =
-      //   apMapping.find((ap) => ap.macAddress === wifiInfo.bssid)
-      //     ?.apName ?? wifiInfo.bssid + " " + wifiInfo.rssi;
-      // const annotation = `${frequencyBand}\n${apLabel}`;
-      // ctx.fillStyle = "blue"; // Set fill color
-      // ctx.fillRect(50, 50, 100, 75); // Draw a filled rectangle (x, y, width, height)
 
       // Draw the main point
       ctx.beginPath();
@@ -305,16 +237,6 @@ export default function ClickableFloorplan(): ReactNode {
       // const t = getGradientColor(rssiToPercentage(wifiInfo.rssi));
 
       const annotation = `${wifiInfo.signalStrength}%`;
-      // These are no longer displayed
-      // annotation += ` (${wifiInfo.rssi}dBm`;
-      // annotation += ` ${frequencyBand})`;
-      // annotation += `\n`;
-      // annotation += `${megabits(iperfInfo.tcpDownload.bitsPerSecond)} / `;
-      // annotation += `${megabits(iperfInfo.tcpUpload.bitsPerSecond)} `;
-      // annotation += `Mbps`;
-      // annotation += `\n${t}`;
-      // annotation += `${megabits(iperfInfo.udpDownload.bitsPerSecond)} / `;
-      // annotation += `${megabits(iperfInfo.udpUpload.bitsPerSecond)} `;
 
       ctx.font = "12px Arial";
       const lines = annotation.split("\n");
@@ -346,19 +268,6 @@ export default function ClickableFloorplan(): ReactNode {
       ctx.textAlign = "center";
       ctx.textBaseline = "top";
 
-      // gradient.addColorStop(
-      //   0,
-      //   point.isDisabled
-      //     ? "rgba(156, 163, 175, 0.9)"
-      //     : getGradientColor(rssiToPercentage(wifiInfo.rssi)),
-      // );
-
-      // // Re-draw the main point
-      // ctx.beginPath();
-      // ctx.arc(point.x, point.y, 6, 0, 2 * Math.PI);
-      // ctx.fillStyle = gradient;
-      // ctx.fill();
-
       lines.forEach((line, index) => {
         ctx.fillText(
           line,
@@ -368,104 +277,6 @@ export default function ClickableFloorplan(): ReactNode {
       });
     }
   };
-
-  // Convert a number of bits (typically megabits) into a string
-  // function megabits(value: number): string {
-  //   return `${(value / 1000000).toFixed(0)}`;
-  // }
-
-  // Takes a percentage signal strength
-  // returns a rgba() giving a color gradient between red (100%) and blue (0%)
-  // function getGradientColor(value: number): string {
-  //   // Define key color points
-  //   const colorStops: {
-  //     value: number;
-  //     color: [number, number, number, number];
-  //   }[] = [
-  //     { value: 100, color: [255, 0, 0, 1] }, // Red
-  //     { value: 75, color: [255, 255, 0, 1] }, // Yellow
-  //     { value: 50, color: [0, 255, 0, 1] }, // Green
-  //     { value: 35, color: [0, 255, 255, 1] }, // Turquoise
-  //     { value: 0, color: [0, 0, 255, 1] }, // Blue
-  //     // Color experiment - Green is good, blue is OK, red and yellow are bad
-  //     // the following values don't quite work...
-  //     // { value: 100, color: [0, 255, 0, 1] }, // Green
-  //     // { value: 75, color: [0, 255, 255, 1] }, // Turquoise
-  //     // { value: 50, color: [0, 0, 255, 1] }, // Blue
-  //     // { value: 45, color: [255, 255, 255, 1] }, // Grey
-  //     // { value: 40, color: [255, 255, 0, 1] }, // Yellow
-  //     // { value: 0, color: [255, 0, 0, 1] }, // Red
-  //   ];
-
-  //   // Handle out-of-range values
-  //   value = Math.min(100, value);
-  //   value = Math.max(0, value);
-
-  //   // Find the two closest stops
-  //   let lowerStop = colorStops[colorStops.length - 1];
-  //   let upperStop = colorStops[0];
-
-  //   for (let i = 0; i < colorStops.length - 1; i++) {
-  //     if (value <= colorStops[i].value && value >= colorStops[i + 1].value) {
-  //       lowerStop = colorStops[i + 1];
-  //       upperStop = colorStops[i];
-  //       break;
-  //     }
-  //   }
-
-  //   // Normalize value to a range between 0 and 1
-  //   const t = (value - lowerStop.value) / (upperStop.value - lowerStop.value);
-
-  //   // Interpolate RGB values
-  //   const r = Math.round(
-  //     lowerStop.color[0] + t * (upperStop.color[0] - lowerStop.color[0]),
-  //   );
-  //   const g = Math.round(
-  //     lowerStop.color[1] + t * (upperStop.color[1] - lowerStop.color[1]),
-  //   );
-  //   const b = Math.round(
-  //     lowerStop.color[2] + t * (upperStop.color[2] - lowerStop.color[2]),
-  //   );
-
-  //   return `rgba(${r}, ${g}, ${b}, 1.0)`; // Always return full opacity
-  // }
-
-  // Example usage
-  // console.log(getGradientColor(100)); // [255, 0, 0, 1] (Red)
-  // console.log(getGradientColor(75)); // [255, 255, 0, 1] (Yellow)
-  // console.log(getGradientColor(50)); // [0, 255, 0, 1] (Green)
-  // console.log(getGradientColor(-25)); // [0, 255, 255, 1] (Turquoise)
-  // console.log(getGradientColor(0)); // [0, 0, 255, 1] (Blue)
-  // console.log(getGradientColor(63)); // Interpolated color between Green and Yellow
-  // console.log(getGradientColor(-10)); // Interpolated color between Turquoise and Blue
-
-  // const drawCanvas = () => {
-  //   const canvas = canvasRef.current;
-  //   if (canvas && imageRef.current) {
-  //     const ctx = canvas.getContext("2d");
-  //     if (ctx) {
-  //       ctx.clearRect(0, 0, canvas.width, canvas.height);
-  //       ctx.drawImage(imageRef.current, 0, 0);
-
-  //       drawPoints(ctx, settings.surveyPoints);
-  //     }
-  //   }
-  // };
-
-  // useEffect(() => {
-  //   let animationFrameId: number;
-
-  //   const animate = () => {
-  //     drawCanvas();
-  //     animationFrameId = requestAnimationFrame(animate);
-  //   };
-
-  //   animate();
-
-  //   return () => {
-  //     cancelAnimationFrame(animationFrameId);
-  //   };
-  // }, [settings.surveyPoints, dimensions, settings.apMapping]);
 
   /**
    * handleCanvasClick - a click anywhere in the canvas
@@ -554,10 +365,11 @@ export default function ClickableFloorplan(): ReactNode {
             <p className="text-white text-lg font-medium">Running...</p>
           </div>
         </div> */}
+
         <canvas
           ref={canvasRef}
-          width={dimensions.width}
-          height={dimensions.height}
+          width={settings.dimensions.width}
+          height={settings.dimensions.height}
           onClick={handleCanvasClick}
           className="border border-gray-300 rounded-lg cursor-pointer"
         />

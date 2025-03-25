@@ -39,7 +39,8 @@ const getDefaults = (): HeatmapSettings => {
     apMapping: [],
     testDuration: 1,
     sudoerPassword: "",
-    dimensions: { width: 0, height: 0 },
+    nextPointNum: 1,
+    dimensions: { width: 100, height: 100 },
     radiusDivider: 1,
     maxOpacity: 0.7,
     minOpacity: 0.2,
@@ -100,6 +101,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       } else {
         // just use the defaults, if no settings came from file
         newHeatmapSettings = getDefaults();
+        writeSettingsToFile(newHeatmapSettings);
       }
       setSettings(newHeatmapSettings);
     }

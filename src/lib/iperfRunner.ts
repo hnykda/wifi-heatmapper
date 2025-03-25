@@ -8,44 +8,13 @@ import {
   SurveyPoint,
 } from "./types";
 import { scanWifi } from "./wifiScanner";
-import { getLogger } from "./logger";
+// import { getLogger } from "./logger";
 import { execAsync } from "./server-utils";
 import { getCancelFlag, sendSSEMessage } from "./sseGlobal";
 // import { getHostPlatform } from "./actions";
 import { percentageToRssi } from "./utils";
 import { SSEMessageType } from "@/app/api/events/route";
-import { nanoid } from "nanoid";
-
-const logger = getLogger("iperfRunner");
-
-export async function logSystemInfo(): Promise<void> {
-  try {
-    const platform = os.platform();
-    const release = os.release();
-    const version = os.version();
-
-    logger.info("=== System Information ===");
-    logger.info(`OS: ${platform}`);
-    logger.info(`OS Version: ${release}`);
-    logger.info(`OS Details: ${version}`);
-
-    try {
-      const { stdout } = await execAsync("iperf3 --version");
-      logger.info(`iperf3 version: ${stdout.trim()}`);
-    } catch (error) {
-      logger.warn("Could not determine iperf3 version:", error);
-    }
-
-    logger.info("=========================");
-  } catch (error) {
-    logger.error("Error collecting system information:", error);
-  }
-}
-
-// Run system info logging at module load time
-logSystemInfo().catch((error) => {
-  logger.error("Failed to log system information:", error);
-});
+import { getLogger } from "./logger";
 
 const validateWifiDataConsistency = (
   wifiDataBefore: WifiNetwork,
@@ -92,10 +61,10 @@ export const checkSettings = async (settings: HeatmapSettings) => {
     (!settings.sudoerPassword || settings.sudoerPassword == "")
   ) {
     console.warn(
-      "No sudoer password set, but running on macOS where it's required for wdutil info command",
+      "No sudo password set, but running on macOS where it's required for wdutil info command",
     );
     settingsErrorMessage =
-      "Please set sudoer password. It is required on macOS.";
+      "Please set sudo password.\nIt is required on macOS.";
     sendSSEMessage({
       type: "done",
       header: "Error",
@@ -107,8 +76,8 @@ export const checkSettings = async (settings: HeatmapSettings) => {
 
 // moved from actions.ts
 export async function startSurvey(
-  x: number,
-  y: number,
+  // x: number,
+  // y: number,
   settings: HeatmapSettings,
 ): Promise<SurveyPoint | null> {
   const { iperfResults, wifiData } = await runIperfTest(settings);
@@ -119,13 +88,13 @@ export async function startSurvey(
   }
 
   const newPoint: SurveyPoint = {
-    x,
-    y,
     wifiData,
     iperfResults,
     timestamp: new Date().toISOString(),
-    id: nanoid(3),
-    isEnabled: true,
+    x: 0, //assigned by the recipient
+    y: 0, //assigned by the recipient
+    id: "BAD ID", //assigned by the recipient
+    isEnabled: true, //assigned by the recipient
   };
   // console.log("Created new point: " + JSON.stringify(newPoint));
   // await addSurveyPoint(dbPath, newPoint);
@@ -180,6 +149,7 @@ export async function runIperfTest(settings: HeatmapSettings): Promise<{
   iperfResults: IperfResults | null;
   wifiData: WifiNetwork | null;
 }> {
+  const logger = getLogger("iperfRunner");
   try {
     const maxRetries = 3;
     let attempts = 0;
@@ -290,6 +260,8 @@ async function runSingleTest(
   isDownload: boolean,
   isUdp: boolean,
 ): Promise<IperfTestProperty> {
+  const logger = getLogger("runSingleTest");
+
   let port = "";
   if (server.includes(":")) {
     const [host, serverPort] = server.split(":");

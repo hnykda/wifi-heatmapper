@@ -3,7 +3,7 @@ import {
   calculateOptimalRadius,
   calculateRadiusByBoundingBox,
   calculateRadiusByDensity,
-} from "../lib/radius";
+} from "../lib/radiusCalculations";
 
 import h337 from "heatmap.js";
 import {

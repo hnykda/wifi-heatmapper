@@ -31,6 +31,7 @@ _This section follows the precepts of [Keep a Changelog](https://keepachangelog.
   and their readings in separate files.
 * Minimized the functions in _actions.ts_;
   moved many of those functions to the proper source file
+* Changed point IDs to be named sequentially, e.g., Point_1, Point_2, etc.
 
 ## Version 0.1.0 - 2025-01-25
 

@@ -2,27 +2,27 @@
 
 Random observations and questions that arise at the start of the project
 
-* Canceling a measurement doesn't stop flow of server-sent events
 * Create a "Signal strength only" setting for quicker surveys.
   It also removes the requirement of setting up a separate iperf3 server. Maybe also triggered by a "" setting for the iperf3 server.
-* "Pre-flight" button to check all settings prior to making a survey (catches empty password, no iperf3 server)
 * Retain the "Size Adjustment" setting (and other Advancd Configuration settings?) in the global object
-* Come up with a better mechanism (than random strings) for naming survey points 
-* Normalize data rate scale for throughput (use range of 200..700mbps with 100's dividers instead of 245..673mbps)
 * Clicking a heat map (signal strength or data rate) and clicking Back should not give http error
 * An expanded (clicked) heat map should always fit fully within the browser window (or scroll)
-* Clicking in Password field (and other fields) should select the field for editing; pressing Return should accept the new value
 * Setting browser view to 110% should not disarrange click points
   for survey data
 * Improve "fetch error" message when the web GUI has lost contact
   with the server (perhaps because `npm run dev` has been stopped)
 * If only one survey point exists, the <Heatmap> floor plan should appear, but with a message like "Not enough points"
-* The signal strength heat map should always have a scale of 0-100% because people deserve to know when their wifi strength is low.
-* If `Floorplan` cannot open the image, it should display a sensible message
+* The signal strength heat map should always display a scale of 0-100% because people deserve to know when their wifi strength is low.
+* But normalize data rate scale for throughput (use range of 200..700mbps with 100's dividers instead of 245..673mbps)
+* If `Floorplan` cannot open the image, it should display
+  a sensible message like "Can't open map_name..."
 * Change Floor Plan `<input>` to be a "Browse..." field
-* Change Password field to conceal the characters
+  Better yet, let the user drag it into the Floorplan window
 * Convert all references to the "advanced settings" of the Floorplan
   to use the `GlobalSettings` object instead of the Floorplan
+* Ultimately, `Database` might be called `SiteMap`, since it contains
+  all  the info required to reproduce the site's heatmap(s).
+  Interim step: rename localStorage() with "wifi-heatmap-IMAGE_NAME"?
 
 ## Questions
 
@@ -32,14 +32,8 @@ Random observations and questions that arise at the start of the project
 * I think the magic of this heat map system is that if drawing
   is not actually to scale it'll still give good "relative strength" info
   relative to other places on the drawing
-* How to reconcile difference between signal strength and throughput rates?
-* Autocompute `Radius_Divider`:
-  The answer on my map is 5. It has something to do
-  with the average space points occupy.
-  Currently using sqrt (h x w / #points)
-* ~~Add "Map lock" to prevent unintended clicks from surveying? (No - canceling will do the same thing.)~~
-* Ultimately, `Database` might be called `SiteMap`, since it contains all the info required to reproduce the site's heatmap(s)
-  Might experiment with something like `divider = sqrt(h x w / #points)`
+* How to explain the difference between signal strength and throughput rates?
+* Is it possible to automatically compute the h337 `radius`. Currently using the "bounding box" which is some measure of the point's density.
 * Does "winking" WiFi off and then back on before measurement improve the values?
 * How should "saved files" work (not in `localstorage()`)?
   Opening a new Floorplan should probably
@@ -48,21 +42,7 @@ Random observations and questions that arise at the start of the project
 * What _does_ **Access Point Mappings** do?
 * What problem does running `runIperfTest()` three times solve?
 
-## Decisions
-
-* _HeatmapSettings_ structure replaces _Database_, and
-  holds all prefs (including sudoerPasword)
-  in a flat structure so they can be passed around and
-  modified by the children
-* `fileHandler.ts` always removes sudoerPassword before saving
-* `GlobalSettings` owns/controls the array of surveyPoints.
-  `<Floorplan>` may add or delete a point;
-  `<PointsTable>` may remove one or many.
-  Both receive the full list of points, and return an updated list back to `GlobalSettings`
-* **All measurements** are displayed and referenced to
-  signal strength (%) and converted back to dBm where necessary.
-* `wiFiScanner.ts` ensures that both % & RSSI are always set on return.
-  Since Windows measures %, it converts back to RSSI before returning
+## Decisions to implement
 
 ## DONE
 
@@ -84,3 +64,24 @@ Random observations and questions that arise at the start of the project
 * ~~Coalesce all the settings into a single object that can then be saved to a file. (Remember to isolate the sudoer password - never save it).~~
 * ~~`wifiScanner` must throw quickly if sudoerPassword is _empty_~~
 * ~~Keep Platform on the server. Don't dislay in the Settings Pane. Obviously `wifiScanner.ts` must determine the platform, but none of the other code needs to know it. We can decide on-the-fly when `platform` is needed~~
+* Change Password field to conceal the characters
+* Come up with a better mechanism (than random strings) for naming survey points
+* Clicking in Password field (and other fields) should select the field for editing; pressing Return should accept the new value
+* Canceling a measurement now stops flow of server-sent events
+* Fix heatmap background image not appearing with the first
+  click on the Floorplan tab
+* ~~"Pre-flight" button to check all settings prior to making a survey (catches empty password, no iperf3 server)~~ less important now that the tests are quicker to detect failure
+* ~~Add "Map lock" to prevent unintended clicks from surveying? (No - canceling will do the same thing.)~~
+* **All measurements** are displayed and referenced to
+  signal strength (%) and converted back to dBm where necessary.
+* `wiFiScanner.ts` ensures that both % & RSSI are always set on return.
+  Since Windows measures %, it converts back to RSSI before returning
+* _HeatmapSettings_ structure replaces _Database_, and
+  holds all prefs (including sudoerPasword)
+  in a flat structure so they can be passed around and
+  modified by the children
+* `fileHandler.ts` always removes sudoerPassword before saving
+* `GlobalSettings` owns/controls the array of surveyPoints.
+  `<Floorplan>` may add or delete a point;
+  `<PointsTable>` may remove one or many.
+  Both receive the full list of points, and return an updated list back to `GlobalSettings`

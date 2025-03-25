@@ -53,6 +53,7 @@ export interface HeatmapSettings {
   testDuration: number;
   sudoerPassword: string; // passed around, removed before writing to file
   apMapping: ApMapping[];
+  nextPointNum: number;
   dimensions: { width: number; height: number };
   radiusDivider: number;
   maxOpacity: number;
