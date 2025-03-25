@@ -1,10 +1,11 @@
 import { HeatmapSettings, WifiNetwork } from "./types";
 import { execAsync } from "./server-utils";
 import { getLogger } from "./logger";
+import os from "os";
 
 const logger = getLogger("wifiScanner");
 import { percentageToRssi, rssiToPercentage } from "./utils";
-import { inferWifiDeviceIdOnLinux } from "./actions";
+// import { inferWifiDeviceIdOnLinux } from "./actions";
 
 const getDefaultWifiNetwork = (): WifiNetwork => ({
   ssid: "",
@@ -18,14 +19,6 @@ const getDefaultWifiNetwork = (): WifiNetwork => ({
   phyMode: "",
   security: "",
 });
-
-// const getPlatform = (): string => {
-//   return process.platform === "darwin"
-//     ? "macos"
-//     : process.platform === "win32"
-//       ? "windows"
-//       : "linux";
-// };
 
 const hasValidData = (wifiData: WifiNetwork): boolean => {
   if (!isValidMacAddress(wifiData.ssid)) {
@@ -52,7 +45,7 @@ export async function scanWifi(
   let wifiData: WifiNetwork | null = null;
 
   try {
-    const platform = process.platform;
+    const platform = os.platform(); // Platform for the server
 
     if (platform === "darwin") {
       wifiData = await scanWifiMacOS(settings); // Needs sudoerPassword
@@ -82,6 +75,15 @@ export async function scanWifi(
   }
 
   return wifiData;
+}
+
+// moved from action.ts
+async function inferWifiDeviceIdOnLinux(): Promise<string> {
+  logger.debug("Inferring WLAN interface ID on Linux");
+  const { stdout } = await execAsync(
+    "iw dev | awk '$1==\"Interface\"{print $2}' | head -n1",
+  );
+  return stdout.trim();
 }
 
 const normalizeMacAddress = (macAddress: string): string => {

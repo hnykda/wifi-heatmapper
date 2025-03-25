@@ -34,7 +34,7 @@ import { HeatmapSettings, SurveyPoint, SurveyPointActions } from "../lib/types";
 const getDefaults = (): HeatmapSettings => {
   return {
     surveyPoints: [],
-    floorplanImagePath: "media/EmptyFloor.png",
+    floorplanImagePath: "media/EmptyFloorPlan.png",
     iperfServerAdrs: "127.0.0.1",
     apMapping: [],
     testDuration: 1,

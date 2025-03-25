@@ -46,6 +46,7 @@ Random observations and questions that arise at the start of the project
   change the saved file name to match
 * Would it improve the heatmap if small dots were placed at the locations of SurveyPoints?
 * What _does_ **Access Point Mappings** do?
+* What problem does running `runIperfTest()` three times solve?
 
 ## Decisions
 
@@ -53,8 +54,7 @@ Random observations and questions that arise at the start of the project
   holds all prefs (including sudoerPasword)
   in a flat structure so they can be passed around and
   modified by the children
-* `fileHandler.ts` removes sudoerPassword before saving
-* ~~Keep Platform on the server. Don't dislay in the Settings Pane. Obviously `wifiScanner.ts` must determine the platform, but none of the other code needs to know it. We can decide on-the-fly when `platform` is needed~~
+* `fileHandler.ts` always removes sudoerPassword before saving
 * `GlobalSettings` owns/controls the array of surveyPoints.
   `<Floorplan>` may add or delete a point;
   `<PointsTable>` may remove one or many.
@@ -62,6 +62,7 @@ Random observations and questions that arise at the start of the project
 * **All measurements** are displayed and referenced to
   signal strength (%) and converted back to dBm where necessary.
 * `wiFiScanner.ts` ensures that both % & RSSI are always set on return.
+  Since Windows measures %, it converts back to RSSI before returning
 
 ## DONE
 
@@ -82,3 +83,4 @@ Random observations and questions that arise at the start of the project
 * ~~Need better error message when initially starting survey (empty password) on macOS~~
 * ~~Coalesce all the settings into a single object that can then be saved to a file. (Remember to isolate the sudoer password - never save it).~~
 * ~~`wifiScanner` must throw quickly if sudoerPassword is _empty_~~
+* ~~Keep Platform on the server. Don't dislay in the Settings Pane. Obviously `wifiScanner.ts` must determine the platform, but none of the other code needs to know it. We can decide on-the-fly when `platform` is needed~~

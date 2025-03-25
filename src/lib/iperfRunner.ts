@@ -1,20 +1,20 @@
 "use server";
 import os from "os";
-import { exec } from "child_process";
-import util from "util";
 import {
   HeatmapSettings,
   IperfResults,
   IperfTestProperty,
   WifiNetwork,
+  SurveyPoint,
 } from "./types";
 import { scanWifi } from "./wifiScanner";
 import { getLogger } from "./logger";
 import { execAsync } from "./server-utils";
-import { sendSSEMessage } from "./sseGlobal";
-import { getHostPlatform } from "./actions";
+import { getCancelFlag, sendSSEMessage } from "./sseGlobal";
+// import { getHostPlatform } from "./actions";
 import { percentageToRssi } from "./utils";
 import { SSEMessageType } from "@/app/api/events/route";
+import { nanoid } from "nanoid";
 
 const logger = getLogger("iperfRunner");
 
@@ -84,11 +84,11 @@ export const checkSettings = async (settings: HeatmapSettings) => {
     });
   }
 
-  const runningPlatform = await getHostPlatform();
+  const runningPlatform = os.platform();
   // console.log(`platform: ${runningPlatform}`);
 
   if (
-    runningPlatform == "macos" &&
+    runningPlatform == "darwin" &&
     (!settings.sudoerPassword || settings.sudoerPassword == "")
   ) {
     console.warn(
@@ -104,6 +104,34 @@ export const checkSettings = async (settings: HeatmapSettings) => {
   }
   return settingsErrorMessage;
 };
+
+// moved from actions.ts
+export async function startSurvey(
+  x: number,
+  y: number,
+  settings: HeatmapSettings,
+): Promise<SurveyPoint | null> {
+  const { iperfResults, wifiData } = await runIperfTest(settings);
+
+  if (!iperfResults || !wifiData) {
+    // null indicates measurement was canceled
+    return null;
+  }
+
+  const newPoint: SurveyPoint = {
+    x,
+    y,
+    wifiData,
+    iperfResults,
+    timestamp: new Date().toISOString(),
+    id: nanoid(3),
+    isEnabled: true,
+  };
+  // console.log("Created new point: " + JSON.stringify(newPoint));
+  // await addSurveyPoint(dbPath, newPoint);
+
+  return newPoint;
+}
 
 function arrayAverage(arr: number[]): number {
   if (arr.length === 0) return 0;
@@ -140,14 +168,18 @@ function getUpdatedMessage(): SSEMessageType {
   };
 }
 
+function checkForCancel() {
+  if (getCancelFlag()) throw new Error("cancelled");
+}
 /**
  * runIperfTest() - get the WiFi and iperf readings
  * @param settings
  * @returns the WiFi and iperf results for this location
  */
-export async function runIperfTest(
-  settings: HeatmapSettings,
-): Promise<{ iperfResults: IperfResults; wifiData: WifiNetwork }> {
+export async function runIperfTest(settings: HeatmapSettings): Promise<{
+  iperfResults: IperfResults | null;
+  wifiData: WifiNetwork | null;
+}> {
   try {
     const maxRetries = 3;
     let attempts = 0;
@@ -169,26 +201,31 @@ export async function runIperfTest(
         const wifiDataBefore = await scanWifi(settings);
         wifiStrengths.push(wifiDataBefore.signalStrength);
         displayStates.strength = arrayAverage(wifiStrengths);
+        checkForCancel();
         sendSSEMessage(getUpdatedMessage());
 
         const tcpDownload = await runSingleTest(server, duration, true, false);
         const tcpUpload = await runSingleTest(server, duration, false, false);
         displayStates.tcp = `${(tcpDownload.bitsPerSecond / 1000000).toFixed(2)} / ${(tcpUpload.bitsPerSecond / 1000000).toFixed(2)}`;
+        checkForCancel();
         sendSSEMessage(getUpdatedMessage());
 
         const wifiDataMiddle = await scanWifi(settings);
         wifiStrengths.push(wifiDataMiddle.signalStrength);
         displayStates.strength = arrayAverage(wifiStrengths);
+        checkForCancel();
         sendSSEMessage(getUpdatedMessage());
 
         const udpDownload = await runSingleTest(server, duration, true, true);
         const udpUpload = await runSingleTest(server, duration, false, true);
         displayStates.udp = `${(udpDownload.bitsPerSecond / 1000000).toFixed(2)} / ${(udpUpload.bitsPerSecond / 1000000).toFixed(2)}`;
+        checkForCancel();
         sendSSEMessage(getUpdatedMessage());
 
         const wifiDataAfter = await scanWifi(settings);
         wifiStrengths.push(wifiDataAfter.signalStrength);
         displayStates.strength = arrayAverage(wifiStrengths);
+        checkForCancel();
 
         // Send the final update - type is "done"
         displayStates.type = "done";
@@ -220,7 +257,10 @@ export async function runIperfTest(
           ...wifiData,
           rssi: percentageToRssi(displayStates.strength),
         };
-      } catch (error) {
+      } catch (error: any) {
+        if (error.message == "cancelled") {
+          return { iperfResults: null, wifiData: null };
+        }
         logger.error(`Attempt ${attempts + 1} failed:`, error);
         attempts++;
         if (attempts >= maxRetries) {

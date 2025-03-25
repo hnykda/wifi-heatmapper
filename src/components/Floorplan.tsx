@@ -3,8 +3,7 @@ import { useEffect } from "react";
 import { rssiToPercentage } from "../lib/utils";
 import { useSettings } from "./GlobalSettings";
 import { SurveyPoint, RGB, Gradient } from "../lib/types";
-import { startSurvey } from "@/lib/actions";
-import { checkSettings } from "@/lib/iperfRunner";
+import { checkSettings, startSurvey } from "@/lib/iperfRunner";
 import { Toaster } from "@/components/ui/toaster";
 import NewToast from "@/components/NewToast";
 import PopupDetails from "@/components/PopupDetails";
@@ -109,7 +108,10 @@ export default function ClickableFloorplan(): ReactNode {
 
     try {
       const newPoint = await startSurvey(x, y, settings);
-
+      if (!newPoint) {
+        return;
+      }
+      // otherwise, add the point
       surveyPointActions.add(newPoint);
       // const newPoints = [...settings.surveyPoints, newPoint];
       // // console.log("Floorplan new point: " + JSON.stringify(newPoint));

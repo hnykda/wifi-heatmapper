@@ -5,16 +5,17 @@ _This section follows the precepts of [Keep a Changelog](https://keepachangelog.
 ## Version 0.2.0 - 2025-03-??
 
 * Refactor the code base
-  to lift most state from the _page.tsx_ into a `GlobalSettings` 
+  to lift most state from the _page.tsx_ into a `GlobalSettings`
   component that wraps the remaining components.
+* Removed Autosave setting (code now always saves)
 * Separate the GUI into four tabs: Configuration; Floor Plan; Heat Maps; Survey Points.
   Each tab retains substantially the same function as earlier versions.
 * Update the heat maps to show "Green is good; red is bad"
 * Heat map scale is a gradient from green at 100%
-  to turquoise at 60%, 
+  to turquoise at 60%,
   then to blue at 40%,
   then yellow at 35%,
-  then to red at 0%. 
+  then to red at 0%.
   This tends to show good enough signal levels as green,
   with decreasing quality from turquoise to blue.
   Blue and above are "good enough".
@@ -28,6 +29,8 @@ _This section follows the precepts of [Keep a Changelog](https://keepachangelog.
 * Store all the `GlobalSettings` in `localStorage()`.
   This needs to be generalized to save different maps
   and their readings in separate files.
+* Minimized the functions in _actions.ts_;
+  moved many of those functions to the proper source file
 
 ## Version 0.1.0 - 2025-01-25
 

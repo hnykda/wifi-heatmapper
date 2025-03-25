@@ -89,6 +89,7 @@ export default function NewToast({ onClose, toastIsReady }: NewToastProps) {
     // tell the server to stop doing work
     await fetch("/api/start-task?action=stop", { method: "POST" });
     setToastStatus("Task Canceled ❌");
+    setToastHeader("Canceled");
     setTaskRunning(false);
     setTimeout(() => onClose(), 3000);
   };
