@@ -1,4 +1,6 @@
 import { useSettings } from "@/components/GlobalSettings";
+import { PasswordInput } from "./PasswordInput";
+// import { FileInput } from "./FileInput";
 
 export default function SettingsEditor() {
   const { settings, updateSettings } = useSettings();
@@ -21,6 +23,18 @@ export default function SettingsEditor() {
             />
           </td>
         </tr>
+        {/* <tr>
+          <td className="text-right pr-4">
+            <label>New Floor Plan:</label>
+          </td>
+          <td>
+            <FileInput
+              onFileSelect={(e) =>
+                updateSettings({ floorplanImagePath: `media/${e.name}` })
+              }
+            />
+          </td>
+        </tr> */}
         <tr>
           <td className="text-right pr-4">
             <label>iperfServer:</label>
@@ -51,7 +65,7 @@ export default function SettingsEditor() {
             />
           </td>
         </tr>
-        <tr>
+        {/* <tr>
           <td className="text-right pr-4">
             <label>sudoerPassword:</label>
           </td>
@@ -64,6 +78,26 @@ export default function SettingsEditor() {
                 updateSettings({ sudoerPassword: e.target.value })
               }
             />
+          </td>
+        </tr> */}
+        <tr>
+          <td className="text-right pr-4">
+            <label>sudo Password:</label>
+          </td>
+          <td>
+            <PasswordInput
+              value={settings.sudoerPassword}
+              onChange={(e) => updateSettings({ sudoerPassword: e })}
+            />
+
+            {/* <input
+              type="text"
+              className="border border-gray-200 rounded-sm p-2 focus:outline-none focus:ring focus:ring-blue-300 focus:border-blue-400"
+              value={settings.sudoerPassword}
+              onChange={(e) =>
+                updateSettings({ sudoerPassword: e.target.value })
+              }
+            /> */}
           </td>
         </tr>
         {/* <tr>
