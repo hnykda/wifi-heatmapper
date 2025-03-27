@@ -35,7 +35,7 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-/data
+/data/*.json
 public/media/
 
 .vscode
