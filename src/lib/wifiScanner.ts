@@ -4,7 +4,7 @@ import { getLogger } from "./logger";
 import os from "os";
 
 const logger = getLogger("wifiScanner");
-import { rssiToPercentage } from "./utils";
+import { rssiToPercentage, percentageToRssi } from "./utils";
 import { reverseLookup } from "./localization";
 // import { inferWifiDeviceIdOnLinux } from "./actions";
 
@@ -321,6 +321,14 @@ export async function parseNetshOutput(output: string): Promise<WifiNetwork> {
       );
     }
   }
+  if (!isValidMacAddress(networkInfo.bssid)) {
+    throw new Error(
+      `Invalid BSSID when parsing netsh output: ${networkInfo.bssid}`,
+    );
+  }
+  networkInfo.frequency = networkInfo.channel > 14 ? 5 : 2.4;
+  networkInfo.rssi = percentageToRssi(networkInfo.signalStrength);
+
   return networkInfo;
 }
 // old code to parse netsh... output
