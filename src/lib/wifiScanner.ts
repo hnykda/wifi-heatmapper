@@ -88,15 +88,6 @@ export async function scanWifi(
   return wifiData;
 }
 
-// moved from action.ts
-async function inferWifiDeviceIdOnLinux(): Promise<string> {
-  logger.debug("Inferring WLAN interface ID on Linux");
-  const { stdout } = await execAsync(
-    "iw dev | awk '$1==\"Interface\"{print $2}' | head -n1",
-  );
-  return stdout.trim();
-}
-
 const normalizeMacAddress = (macAddress: string): string => {
   return macAddress.replace(/[:-]/g, "").toLowerCase();
 };
@@ -182,9 +173,18 @@ async function scanWifiWindows(): Promise<WifiNetwork> {
   return parsed;
 }
 
-async function iwDevLink(interfaceId: string): Promise<string> {
+// moved from action.ts
+async function inferWifiDeviceIdOnLinux(): Promise<string> {
+  logger.debug("Inferring WLAN interface ID on Linux");
+  const { stdout } = await execAsync(
+    "iw dev | awk '$1==\"Interface\"{print $2}' | head -n1",
+  );
+  return stdout.trim();
+}
+
+async function iwDevLink(interfaceId: string, pw: string): Promise<string> {
   const command = `iw dev ${interfaceId} link`;
-  const { stdout } = await execAsync(command);
+  const { stdout } = await execAsync(`echo ${pw} | ${command}`);
   return stdout;
 }
 
@@ -198,15 +198,14 @@ async function iwDevInfo(interfaceId: string): Promise<string> {
  * scanWifiLinux() scan the Wifi for Linux
  * @returns a WiFiNetwork description to be added to the surveyPoints
  */
-async function scanWifiLinux(): Promise<WifiNetwork> {
-  //  if (platform === "linux" && !wlanInterfaceId) {
+async function scanWifiLinux(
+  heatmapsettings: HeatmapSettings,
+): Promise<WifiNetwork> {
   let wlanInterface: string = "";
-  inferWifiDeviceIdOnLinux().then((wlanInterfaceId) => {
-    wlanInterface = wlanInterfaceId;
-  });
-  // }
+  wlanInterface = await inferWifiDeviceIdOnLinux();
+
   const [linkOutput, infoOutput] = await Promise.all([
-    iwDevLink(wlanInterface),
+    iwDevLink(wlanInterface, heatmapsettings.sudoerPassword),
     iwDevInfo(wlanInterface),
   ]);
 

@@ -68,6 +68,12 @@
   }
 }
 
+/* make links blue */
+a {
+  @apply text-blue-500 hover:underline;
+}
+
+
 /* added for tab panel */
 
 /* Tab List (Container for Tabs) */
