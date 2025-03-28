@@ -3,6 +3,7 @@ import { copyToMediaFolder } from "../lib/actions";
 import { getLogger } from "./logger";
 import os from "os";
 import { execAsync } from "./server-utils";
+import { initLocalization } from "./localization";
 
 const logger = getLogger("initServer");
 
@@ -48,6 +49,7 @@ export async function initServer() {
     });
 
     copyToMediaFolder("EmptyFloorPlan.png"); // seed with empty image
+    await initLocalization(); // load up the localization files
 
     initialized = true;
     console.log(`Server initialization complete.`);

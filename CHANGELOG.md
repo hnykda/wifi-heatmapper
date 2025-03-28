@@ -2,7 +2,9 @@
 
 _This section follows the precepts of [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) so that future readers can understand the state and evolution of the project._
 
-## Version 0.2.0 - 2025-03-??
+## Unreleased
+
+## Version 0.2.0 - 2025-03-28
 
 * Refactor the code base
   to lift most state from the _page.tsx_ into a `GlobalSettings`
@@ -32,6 +34,10 @@ _This section follows the precepts of [Keep a Changelog](https://keepachangelog.
 * Minimized the functions in _actions.ts_;
   moved many of those functions to the proper source file
 * Changed point IDs to be named sequentially, e.g., Point_1, Point_2, etc.
+* Localize the Windows `wifiScanner.ts` for various language settings
+* Pass the sudo password to the Linux wifi code
+* Factor out the macOS, Windows, and Linux scanning code into separate
+  files for easier maintenance
 
 ## Version 0.1.0 - 2025-01-25
 

@@ -11,7 +11,7 @@ Random observations and questions that arise at the start of the project
   for survey data
 * Improve "fetch error" message when the web GUI has lost contact
   with the server (perhaps because `npm run dev` has been stopped)
-* If only one survey point exists, the <Heatmap> floor plan should appear, but with a message like "Not enough points"
+* If only one survey point exists, the `Heatmap` floor plan should appear, but with a message like "Not enough points"
 * The signal strength heat map should always display a scale of 0-100% because people deserve to know when their wifi strength is low.
 * But normalize data rate scale for throughput (use range of 200..700mbps with 100's dividers instead of 245..673mbps)
 * If `Floorplan` cannot open the image, it should display
@@ -23,6 +23,12 @@ Random observations and questions that arise at the start of the project
 * Ultimately, `Database` might be called `SiteMap`, since it contains
   all  the info required to reproduce the site's heatmap(s).
   Interim step: rename localStorage() with "wifi-heatmap-IMAGE_NAME"?
+* A click on the `Floorplan` pane should immediately display an
+  empty dot (no color) to indicate that's where the click was.
+* The "distance" of 10 in detecting a click is not big enough when
+  using some kind of tablet. An errant finger makes it look like a request
+  to make a new measurement, not examine that point's statistics.
+* Fix display of BSSID on Windows; parsing test code not updated
 
 ## Questions
 
@@ -41,8 +47,7 @@ Random observations and questions that arise at the start of the project
 * Would it improve the heatmap if small dots were placed at the locations of SurveyPoints?
 * What _does_ **Access Point Mappings** do?
 * What problem does running `runIperfTest()` three times solve?
-
-## Decisions to implement
+* Is it important to call `hasValidData()` in wifiScanner.ts? What information does that provide - that we can do anything about?
 
 ## DONE
 
@@ -80,7 +85,7 @@ Random observations and questions that arise at the start of the project
   holds all prefs (including sudoerPasword)
   in a flat structure so they can be passed around and
   modified by the children
-* `fileHandler.ts` always removes sudoerPassword before saving
+* `fileHandler.ts` always removes sudoerPassword before saving settings
 * `GlobalSettings` owns/controls the array of surveyPoints.
   `<Floorplan>` may add or delete a point;
   `<PointsTable>` may remove one or many.

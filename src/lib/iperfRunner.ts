@@ -40,9 +40,9 @@ export const checkSettings = async (settings: HeatmapSettings) => {
     header: "In progress",
   });
   let settingsErrorMessage = "";
-  console.log(
-    `checkSettings: "${settings.iperfServerAdrs}" "${settings.sudoerPassword}"`,
-  );
+  // console.log(
+  //   `checkSettings: "${settings.iperfServerAdrs}" "${settings.sudoerPassword}"`,
+  // );
   if (!settings.iperfServerAdrs) {
     settingsErrorMessage = "Please set iperf server address";
 
