@@ -104,11 +104,11 @@ and displays the progress of the measurements.
 Those updates are provided by Server-Sent Events,
 which is an astonishingly complicated process:
 
-* `Floorplan` sets `toastIsOpen` true.
+* A click on `Floorplan` sets `toastIsOpen` true.
 * The `NewToast` component is "conditionally rendered"
   (because it is rendered with `{toastIsOpen && <NewToast... />}`)
-  The child component builds a connection to the server
-  calling `/api/events` and listens for updates on that connection.
+  The child component builds a connection to the server by calling
+  `/api/events` and listens for status updates on that connection.
 * The _/api/events/routes.ts_ server module
   fields that GET request,
   creates the `sendToClient()` function for sending updates,

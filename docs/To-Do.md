@@ -23,6 +23,11 @@ Random observations and questions that arise at the start of the project
 * Ultimately, `Database` might be called `SiteMap`, since it contains
   all  the info required to reproduce the site's heatmap(s).
   Interim step: rename localStorage() with "wifi-heatmap-IMAGE_NAME"?
+* A click on the `Floorplan` pane should immediately display an
+  empty dot (no color) to indicate that's where the click was.
+* The "distance" of 10 in detecting a click is not big enough when
+  using some kind of tablet. An errant finger makes it look like a request
+  to make a new measurement, not examine that point's statistics.
 
 ## Questions
 
@@ -41,8 +46,6 @@ Random observations and questions that arise at the start of the project
 * Would it improve the heatmap if small dots were placed at the locations of SurveyPoints?
 * What _does_ **Access Point Mappings** do?
 * What problem does running `runIperfTest()` three times solve?
-
-## Decisions to implement
 
 ## DONE
 
@@ -80,7 +83,7 @@ Random observations and questions that arise at the start of the project
   holds all prefs (including sudoerPasword)
   in a flat structure so they can be passed around and
   modified by the children
-* `fileHandler.ts` always removes sudoerPassword before saving
+* `fileHandler.ts` always removes sudoerPassword before saving settings
 * `GlobalSettings` owns/controls the array of surveyPoints.
   `<Floorplan>` may add or delete a point;
   `<PointsTable>` may remove one or many.
