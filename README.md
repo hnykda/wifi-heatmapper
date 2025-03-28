@@ -19,11 +19,11 @@ This project is a WiFi heatmapper solution for macOS/Windows/Linux, inspired by 
 
 This utility relies on parsing outputs of the following CLI commands.
 
-| Platform | Commands          | Notes                                                                                                                                                   |
-| -------- | ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------|
-| macOS    | `wdutil`, `ioreg` | Both are usually part of the system, sudo password is needed for `wdutil`                                                                               |
-| Windows  | `netsh`           | Part of the system                                                                                                                                      |
-| Linux    | `iw`              | `iw` might need to be installed via your distro package manager, you will need to provide your wireless device id (e.g. "wlp4s0", we do try to infer it)|
+| Platform | Commands          | Notes                                                                                                                                                    |
+| -------- | ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| macOS    | `wdutil`, `ioreg` | Both are usually part of the system, sudo password is needed for `wdutil`                                                                                |
+| Windows  | `netsh`           | Part of the system                                                                                                                                       |
+| Linux    | `iw`              | `iw` might need to be installed via your distro package manager, you will need to provide your wireless device id (e.g. "wlp4s0", we do try to infer it) |
 
 > [!IMPORTANT]  
 > In all cases, `iperf3` must be available in `PATH`. For Windows you might have to do something like `set PATH=%PATH%;C:\path\to\iperf3`, e.g. do `set PATH=%PATH%;C:\iperf3` (or `setx` to make it permanent) before running `npm run dev`. The version of at least 3.17 is weakly recommended for `iperf3` on both server and client (ideally the same version, but that's not strictly necessary). 
@@ -54,6 +54,28 @@ This utility relies on parsing outputs of the following CLI commands.
 4. Upload your floor plan image. You might have to create it using some other software, such as `sweethome3d`.
 
 5. Follow the on-screen instructions to complete the WiFi survey and generate the heatmap.
+
+
+## Usage with Docker
+
+1. Build the Docker Image
+```
+docker build -t wifi-heatmapper .
+```
+
+2. Run the Container
+```
+docker run \
+  --net="host" \
+  --privileged \
+  -p 3000:3000 \
+  -v ./datas/data:/app/data \
+  -v ./datas/media:/app/public/media \
+  wifi-heatmapper
+```
+
+use `-v` options if you want to save db + floorplanpicture to the datas folder
+
 
 ## How does this work
 
