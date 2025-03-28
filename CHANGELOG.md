@@ -2,7 +2,9 @@
 
 _This section follows the precepts of [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) so that future readers can understand the state and evolution of the project._
 
-## Version 0.2.0 - 2025-03-??
+## Unreleased
+
+## Version 0.2.0 - 2025-03-28
 
 * Refactor the code base
   to lift most state from the _page.tsx_ into a `GlobalSettings`

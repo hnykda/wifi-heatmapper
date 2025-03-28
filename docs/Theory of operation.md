@@ -8,11 +8,11 @@ It produces a heat map for each set of
 measurement points ("surveyPoints")
 that show where signal/throughput are high and low.
 
-## Internals
+## File Layout
 
 The file structure (using `tree --gitignore`) is:
 
-```
+```text
 ├── LICENSE
 ├── README.md
 ├── To-Do.md

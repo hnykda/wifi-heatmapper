@@ -11,7 +11,7 @@ Random observations and questions that arise at the start of the project
   for survey data
 * Improve "fetch error" message when the web GUI has lost contact
   with the server (perhaps because `npm run dev` has been stopped)
-* If only one survey point exists, the <Heatmap> floor plan should appear, but with a message like "Not enough points"
+* If only one survey point exists, the `Heatmap` floor plan should appear, but with a message like "Not enough points"
 * The signal strength heat map should always display a scale of 0-100% because people deserve to know when their wifi strength is low.
 * But normalize data rate scale for throughput (use range of 200..700mbps with 100's dividers instead of 245..673mbps)
 * If `Floorplan` cannot open the image, it should display
@@ -28,6 +28,7 @@ Random observations and questions that arise at the start of the project
 * The "distance" of 10 in detecting a click is not big enough when
   using some kind of tablet. An errant finger makes it look like a request
   to make a new measurement, not examine that point's statistics.
+* Fix display of BSSID on Windows; parsing test code not updated
 
 ## Questions
 
