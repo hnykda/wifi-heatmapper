@@ -24,9 +24,9 @@ export function clearSSESender() {
 }
 
 export function sendSSEMessage(msg: SSEMessageType) {
-  console.log(
-    `[sseSession] sendSSEMessage", !!sendToClient ${JSON.stringify(msg)}`,
-  );
+  // console.log(
+  //   `[sseSession] sendSSEMessage", !!sendToClient ${JSON.stringify(msg)}`,
+  // );
   const fn = (globalThis as any)[SSE_KEY] as
     | ((msg: SSEMessageType) => void)
     | null;

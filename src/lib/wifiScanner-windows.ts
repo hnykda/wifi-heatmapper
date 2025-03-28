@@ -1,110 +1,108 @@
 import { HeatmapSettings, WifiNetwork } from "./types";
-// import { execAsync } from "./server-utils";
+import { execAsync } from "./server-utils";
 import { getLogger } from "./logger";
-import os from "os";
-
-import { scanWifiMacOS } from "./wifiScanner-macos";
-import { scanWifiWindows } from "./wifiScanner-windows";
-import { scanWifiLinux } from "./wifiScanner-linux";
-
-const logger = getLogger("wifiScanner");
-// import { rssiToPercentage, percentageToRssi } from "./utils";
+// import os from "os";
+import { getDefaultWifiNetwork } from "./wifiScanner";
+import { rssiToPercentage, percentageToRssi } from "./utils";
 // import { reverseLookup } from "./localization";
-// import { inferWifiDeviceIdOnLinux } from "./actions";
+import { isValidMacAddress,normalizeMacAddress } from "./wifiScanner";
+import { reverseLookup } from "./localization";
 
-export const getDefaultWifiNetwork = (): WifiNetwork => ({
-  ssid: "",
-  bssid: "",
-  rssi: 0,
-  signalStrength: 0,
-  channel: 0,
-  frequency: 0,
-  channelWidth: 0,
-  txRate: 0,
-  phyMode: "",
-  security: "",
-});
+const logger = getLogger("wifi-Windows");
 
-const hasValidData = (wifiData: WifiNetwork): boolean => {
-  if (!isValidMacAddress(wifiData.ssid)) {
-    logger.warn("Invalid SSID (we were not able to get it):", wifiData.ssid);
-  }
-  if (!isValidMacAddress(wifiData.bssid)) {
-    logger.warn("Invalid BSSID (we were not able to get it):", wifiData.bssid);
-  }
+//   ssid: "",
 
-  return (
-    // we also used to check for ssid and bssid, but at leaston MacOS 15.3.1
-    // these are not present in the output of any of the known OS commands
-    // either rssi or signalStrength must be non-zero
-    wifiData.rssi !== 0 || wifiData.signalStrength !== 0
-  );
-};
+//   bssid: "",
+//   rssi: 0,
+//   signalStrength: 0,
+//   channel: 0,
+//   frequency: 0,
+//   channelWidth: 0,
+//   txRate: 0,
+//   phyMode: "",
+//   security: "",
+// });
 
-/**
- * Gets the current WiFi network name, BSSID of the AP it's connected to, and the RSSI.
- */
-export async function scanWifi(
-  settings: HeatmapSettings,
-): Promise<WifiNetwork> {
-  let wifiData: WifiNetwork | null = null;
+// const hasValidData = (wifiData: WifiNetwork): boolean => {
+//   if (!isValidMacAddress(wifiData.ssid)) {
+//     logger.warn("Invalid SSID (we were not able to get it):", wifiData.ssid);
+//   }
+//   if (!isValidMacAddress(wifiData.bssid)) {
+//     logger.warn("Invalid BSSID (we were not able to get it):", wifiData.bssid);
+//   }
 
-  // console.log(`BSSID: ${await reverseLookup("BSSID")}`);
-  // console.log(`AP BSSID: ${await reverseLookup("AP BSSID")}`);
-  // console.log(`Signal: ${await reverseLookup("Signal")}`);
-  // console.log(`Autenticazione: ${await reverseLookup("Autenticazione")}`);
-  // console.log(
-  //   `Velocità trasmissione (Mbps): ${await reverseLookup("Velocità trasmissione (Mbps)")}`,
-  // );
-  // console.log(`foobar: ${await reverseLookup("foobar")}`);
+//   return (
+//     // we also used to check for ssid and bssid, but at leaston MacOS 15.3.1
+//     // these are not present in the output of any of the known OS commands
+//     // either rssi or signalStrength must be non-zero
+//     wifiData.rssi !== 0 || wifiData.signalStrength !== 0
+//   );
+// };
 
-  try {
-    const platform = os.platform(); // Platform for the server
-    // const defaultWiFiInfo = getDefaultWifiNetwork();
+// /**
+//  * Gets the current WiFi network name, BSSID of the AP it's connected to, and the RSSI.
+//  */
+// export async function scanWifi(
+//   settings: HeatmapSettings,
+// ): Promise<WifiNetwork> {
+//   let wifiData: WifiNetwork | null = null;
 
-    // await parseTestOutput("abc");
-    if (platform === "darwin") {
-      wifiData = await scanWifiMacOS(settings); // Needs sudoerPassword
-    } else if (platform === "win32") {
-      wifiData = await scanWifiWindows();
-    } else if (platform === "linux") {
-      wifiData = await scanWifiLinux(settings); // Needs sudoerPassword
-    } else {
-      throw new Error(`Unsupported platform: ${platform}`);
-    }
-  } catch (error_) {
-    const error = error_ as Error;
-    logger.error("Error scanning WiFi:", error);
-    if (error.message.includes("sudo")) {
-      logger.error(
-        "This command requires sudo privileges. Please run the application with sudo.",
-      );
-    }
-    throw error;
-  }
+//   // console.log(`BSSID: ${await reverseLookup("BSSID")}`);
+//   // console.log(`AP BSSID: ${await reverseLookup("AP BSSID")}`);
+//   // console.log(`Signal: ${await reverseLookup("Signal")}`);
+//   // console.log(`Autenticazione: ${await reverseLookup("Autenticazione")}`);
+//   // console.log(
+//   //   `Velocità trasmissione (Mbps): ${await reverseLookup("Velocità trasmissione (Mbps)")}`,
+//   // );
+//   // console.log(`foobar: ${await reverseLookup("foobar")}`);
 
-  // if (!hasValidData(wifiData)) {
-  //   throw new Error(
-  //     "Measurement failed. We were not able to get good enough WiFi data: " +
-  //       JSON.stringify(wifiData),
-  //   );
-  // }
+//   try {
+//     const platform = os.platform(); // Platform for the server
+//     const defaultWiFiInfo = getDefaultWifiNetwork();
 
-  return wifiData;
-}
+//     // await parseTestOutput("abc");
+//     if (platform === "darwin") {
+//       wifiData = await scanWifiMacOS( settings); // Needs sudoerPassword
+//     } else if (platform === "win32") {
+//       wifiData = await scanWifiWindows();
+//     } else if (platform === "linux") {
+//       wifiData = await scanWifiLinux(settings); // Needs sudoerPassword
+//     } else {
+//       throw new Error(`Unsupported platform: ${platform}`);
+//     }
+//   } catch (error_) {
+//     const error = error_ as Error;
+//     logger.error("Error scanning WiFi:", error);
+//     if (error.message.includes("sudo")) {
+//       logger.error(
+//         "This command requires sudo privileges. Please run the application with sudo.",
+//       );
+//     }
+//     throw error;
+//   }
 
-export const normalizeMacAddress = (macAddress: string): string => {
-  return macAddress.replace(/[:-]/g, "").toLowerCase();
-};
+//   // if (!hasValidData(wifiData)) {
+//   //   throw new Error(
+//   //     "Measurement failed. We were not able to get good enough WiFi data: " +
+//   //       JSON.stringify(wifiData),
+//   //   );
+//   // }
 
-export const isValidMacAddress = (macAddress: string): boolean => {
-  const cleanedMacAddress = normalizeMacAddress(macAddress);
-  if (cleanedMacAddress === "000000000000") {
-    // sometimes returned by ioreg, for example
-    return false;
-  }
-  return /^[0-9a-f]{12}$/.test(cleanedMacAddress);
-};
+//   return wifiData;
+// }
+
+// export const normalizeMacAddress = (macAddress: string): string => {
+//   return macAddress.replace(/[:-]/g, "").toLowerCase();
+// };
+
+// export const isValidMacAddress = (macAddress: string): boolean => {
+//   const cleanedMacAddress = normalizeMacAddress(macAddress);
+//   if (cleanedMacAddress === "000000000000") {
+//     // sometimes returned by ioreg, for example
+//     return false;
+//   }
+//   return /^[0-9a-f]{12}$/.test(cleanedMacAddress);
+// };
 
 // const getIoregSsid = async (): Promise<string> => {
 //   const { stdout } = await execAsync(
@@ -165,18 +163,18 @@ export const isValidMacAddress = (macAddress: string): boolean => {
 //   return wdutilNetworkInfo;
 // }
 
-// /**
-//  * scanWifiWindows() scan the Wifi for Windows
-//  * @returns a WiFiNetwork description to be added to the surveyPoints
-//  */
-// async function scanWifiWindows(): Promise<WifiNetwork> {
-//   const command = "netsh wlan show interfaces";
-//   const { stdout } = await execAsync(command);
-//   logger.trace("NETSH output:", stdout);
-//   const parsed = parseNetshOutput(stdout);
-//   logger.trace("Final WiFi data:", parsed);
-//   return parsed;
-// }
+/**
+ * scanWifiWindows() scan the Wifi for Windows
+ * @returns a WiFiNetwork description to be added to the surveyPoints
+ */
+export async function scanWifiWindows(): Promise<WifiNetwork> {
+  const command = "netsh wlan show interfaces";
+  const { stdout } = await execAsync(command);
+  logger.trace("NETSH output:", stdout);
+  const parsed = parseNetshOutput(stdout);
+  logger.trace("Final WiFi data:", parsed);
+  return parsed;
+}
 
 // // moved from action.ts
 // async function inferWifiDeviceIdOnLinux(): Promise<string> {
@@ -281,128 +279,128 @@ export const isValidMacAddress = (macAddress: string): boolean => {
 //   return networkInfo;
 // }
 
-// function assignWindowsNetworkInfoValue<K extends keyof WifiNetwork>(
-//   networkInfo: WifiNetwork,
-//   key: K,
-//   val: string,
-// ) {
-//   const current = networkInfo[key];
-//   if (typeof current === "number") {
-//     networkInfo[key] = parseInt(val, 10) as any;
-//   } else {
-//     networkInfo[key] = val as any;
-//   }
-//   // console.log(`After assignment: ${networkInfo[key]} ${val}`);
-// }
-// /**
-//  * Parses the output of the `netsh wlan show interfaces` command.
-//  *
-//  * The reason why it relies on the presence of the "Wi-Fi" line and ordering of the lines
-//  * is because the output is localized in the language of the system. The alternative would be
-//  * to maintain a language-specific parser for each language.
-//  *
-//  * This code has been superceded by code to look up the keys from the netsh... command
-//  * in a localization map that determines the proper key for the WifiNetwork
-//  */
-// export async function parseNetshOutput(output: string): Promise<WifiNetwork> {
-//   const networkInfo = getDefaultWifiNetwork();
-//   const lines = output.split("\n");
-//   for (const line of lines) {
-//     const pos = line.indexOf(":");
-//     if (pos == -1) continue; // no ":"? Just ignore line
-//     const key = line.slice(0, pos - 1).trim();
-//     let val = line.slice(pos + 1).trim();
-//     const result = await reverseLookup(key);
-//     console.log(`Key/Val/Result: "${key}" "${val}", ${result}`);
-//     if (key == "signalStrength") {
-//       val = val.replace("%", ""); // remove any "%"
-//     }
-//     // Yikes! This was a siege to get the warnings to go away...
-//     if (result == null) {
-//       // console.log(`Not added: ${key}`);
-//     } else {
-//       assignWindowsNetworkInfoValue(
-//         networkInfo,
-//         result as keyof WifiNetwork,
-//         val,
-//       );
-//     }
-//   }
+function assignWindowsNetworkInfoValue<K extends keyof WifiNetwork>(
+  networkInfo: WifiNetwork,
+  key: K,
+  val: string,
+) {
+  const current = networkInfo[key];
+  if (typeof current === "number") {
+    networkInfo[key] = parseInt(val, 10) as any;
+  } else {
+    networkInfo[key] = val as any;
+  }
+  // console.log(`After assignment: ${networkInfo[key]} ${val}`);
+}
+/**
+ * Parses the output of the `netsh wlan show interfaces` command.
+ *
+ * The reason why it relies on the presence of the "Wi-Fi" line and ordering of the lines
+ * is because the output is localized in the language of the system. The alternative would be
+ * to maintain a language-specific parser for each language.
+ *
+ * This code has been superceded by code to look up the keys from the netsh... command
+ * in a localization map that determines the proper key for the WifiNetwork
+ */
+export async function parseNetshOutput(output: string): Promise<WifiNetwork> {
+  const networkInfo = getDefaultWifiNetwork();
+  const lines = output.split("\n");
+  for (const line of lines) {
+    const pos = line.indexOf(":");
+    if (pos == -1) continue; // no ":"? Just ignore line
+    const key = line.slice(0, pos - 1).trim();
+    let val = line.slice(pos + 1).trim();
+    const result = await reverseLookup(key);
+    console.log(`Key/Val/Result: "${key}" "${val}", ${result}`);
+    if (key == "signalStrength") {
+      val = val.replace("%", ""); // remove any "%"
+    }
+    // Yikes! This was a siege to get the warnings to go away...
+    if (result == null) {
+      // console.log(`Not added: ${key}`);
+    } else {
+      assignWindowsNetworkInfoValue(
+        networkInfo,
+        result as keyof WifiNetwork,
+        val,
+      );
+    }
+  }
+  if (!isValidMacAddress(networkInfo.bssid)) {
+    throw new Error(
+      `Invalid BSSID when parsing netsh output: ${networkInfo.bssid}`,
+    );
+  }
+  networkInfo.frequency = networkInfo.channel > 14 ? 5 : 2.4;
+  networkInfo.rssi = percentageToRssi(networkInfo.signalStrength);
+
+  return networkInfo;
+}
+// old code to parse netsh... output
+//   const lines = output.split("\n").map((line) => line.trim());
+//   logger.trace("NETSH lines:", lines);
+//   // Find the Wi-Fi interface section
+//   const wifiLineIndex = lines.findIndex((line) => line.includes("Wi-Fi"));
+//   if (wifiLineIndex === -1) return networkInfo;
+
+//   // Find SSID and BSSID lines as they are consistent markers
+//   const ssidLineIndex = lines.findIndex(
+//     (line, index) =>
+//       index > wifiLineIndex && line.includes("SSID") && !line.includes("BSSID"),
+//   );
+//   logger.trace("SSID line index:", ssidLineIndex);
+//   if (ssidLineIndex === -1) return networkInfo;
+
+//   const bssidLineIndex = lines.findIndex(
+//     (line, index) => index > wifiLineIndex && line.includes("BSSID"),
+//   );
+//   logger.trace("BSSID line index:", bssidLineIndex);
+//   if (bssidLineIndex === -1) return networkInfo;
+
+//   // Parse values based on their position relative to BSSID line
+//   const getValue = (line: string): string => {
+//     const colonIndex = line.indexOf(":");
+//     return colonIndex !== -1 ? line.substring(colonIndex + 1).trim() : "";
+//   };
+
+//   // SSID is always present and consistent
+//   networkInfo.ssid = getValue(lines[ssidLineIndex]);
+//   logger.trace("SSID:", networkInfo.ssid);
+//   // BSSID is always present and consistent
+//   networkInfo.bssid = normalizeMacAddress(getValue(lines[bssidLineIndex]));
+//   logger.trace("BSSID:", networkInfo.bssid);
 //   if (!isValidMacAddress(networkInfo.bssid)) {
 //     throw new Error(
-//       `Invalid BSSID when parsing netsh output: ${networkInfo.bssid}`,
+//       "Invalid BSSID when parsing netsh output: " +
+//         networkInfo.bssid +
+//         ". Giving up as everything below relies on it order-wise.",
 //     );
 //   }
-//   networkInfo.frequency = networkInfo.channel > 14 ? 5 : 2.4;
+
+//   // Radio type is 2 lines after BSSID
+//   networkInfo.phyMode = getValue(lines[bssidLineIndex + 2]);
+//   logger.trace("PHY mode:", networkInfo.phyMode);
+//   // Authentication is 3 lines after BSSID
+//   networkInfo.security = getValue(lines[bssidLineIndex + 3]);
+//   logger.trace("Security:", networkInfo.security);
+//   // Channel is 6 lines after BSSID
+//   const channel = parseInt(getValue(lines[bssidLineIndex + 6]) || "0");
+//   networkInfo.channel = channel;
+//   networkInfo.frequency = channel > 14 ? 5 : 2.4;
+//   logger.trace("Frequency:", networkInfo.frequency);
+//   // Transmit rate is 7 lines after BSSID
+//   const txRate = getValue(lines[bssidLineIndex + 8]);
+//   networkInfo.txRate = parseFloat(txRate.split(" ")[0]);
+//   logger.trace("Transmit rate:", networkInfo.txRate);
+//   // Signal is 8 lines after BSSID
+//   const signal = getValue(lines[bssidLineIndex + 9]);
+//   networkInfo.signalStrength = parseInt(signal.replace("%", ""));
+//   logger.trace("Signal strength:", networkInfo.signalStrength);
+//   logger.trace("Final WiFi data:", networkInfo);
 //   networkInfo.rssi = percentageToRssi(networkInfo.signalStrength);
 
 //   return networkInfo;
 // }
-// // old code to parse netsh... output
-// //   const lines = output.split("\n").map((line) => line.trim());
-// //   logger.trace("NETSH lines:", lines);
-// //   // Find the Wi-Fi interface section
-// //   const wifiLineIndex = lines.findIndex((line) => line.includes("Wi-Fi"));
-// //   if (wifiLineIndex === -1) return networkInfo;
-
-// //   // Find SSID and BSSID lines as they are consistent markers
-// //   const ssidLineIndex = lines.findIndex(
-// //     (line, index) =>
-// //       index > wifiLineIndex && line.includes("SSID") && !line.includes("BSSID"),
-// //   );
-// //   logger.trace("SSID line index:", ssidLineIndex);
-// //   if (ssidLineIndex === -1) return networkInfo;
-
-// //   const bssidLineIndex = lines.findIndex(
-// //     (line, index) => index > wifiLineIndex && line.includes("BSSID"),
-// //   );
-// //   logger.trace("BSSID line index:", bssidLineIndex);
-// //   if (bssidLineIndex === -1) return networkInfo;
-
-// //   // Parse values based on their position relative to BSSID line
-// //   const getValue = (line: string): string => {
-// //     const colonIndex = line.indexOf(":");
-// //     return colonIndex !== -1 ? line.substring(colonIndex + 1).trim() : "";
-// //   };
-
-// //   // SSID is always present and consistent
-// //   networkInfo.ssid = getValue(lines[ssidLineIndex]);
-// //   logger.trace("SSID:", networkInfo.ssid);
-// //   // BSSID is always present and consistent
-// //   networkInfo.bssid = normalizeMacAddress(getValue(lines[bssidLineIndex]));
-// //   logger.trace("BSSID:", networkInfo.bssid);
-// //   if (!isValidMacAddress(networkInfo.bssid)) {
-// //     throw new Error(
-// //       "Invalid BSSID when parsing netsh output: " +
-// //         networkInfo.bssid +
-// //         ". Giving up as everything below relies on it order-wise.",
-// //     );
-// //   }
-
-// //   // Radio type is 2 lines after BSSID
-// //   networkInfo.phyMode = getValue(lines[bssidLineIndex + 2]);
-// //   logger.trace("PHY mode:", networkInfo.phyMode);
-// //   // Authentication is 3 lines after BSSID
-// //   networkInfo.security = getValue(lines[bssidLineIndex + 3]);
-// //   logger.trace("Security:", networkInfo.security);
-// //   // Channel is 6 lines after BSSID
-// //   const channel = parseInt(getValue(lines[bssidLineIndex + 6]) || "0");
-// //   networkInfo.channel = channel;
-// //   networkInfo.frequency = channel > 14 ? 5 : 2.4;
-// //   logger.trace("Frequency:", networkInfo.frequency);
-// //   // Transmit rate is 7 lines after BSSID
-// //   const txRate = getValue(lines[bssidLineIndex + 8]);
-// //   networkInfo.txRate = parseFloat(txRate.split(" ")[0]);
-// //   logger.trace("Transmit rate:", networkInfo.txRate);
-// //   // Signal is 8 lines after BSSID
-// //   const signal = getValue(lines[bssidLineIndex + 9]);
-// //   networkInfo.signalStrength = parseInt(signal.replace("%", ""));
-// //   logger.trace("Signal strength:", networkInfo.signalStrength);
-// //   logger.trace("Final WiFi data:", networkInfo);
-// //   networkInfo.rssi = percentageToRssi(networkInfo.signalStrength);
-
-// //   return networkInfo;
-// // }
 
 // /**
 //  * parseIwOutput from Linux host
