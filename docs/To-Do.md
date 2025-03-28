@@ -46,6 +46,7 @@ Random observations and questions that arise at the start of the project
 * Would it improve the heatmap if small dots were placed at the locations of SurveyPoints?
 * What _does_ **Access Point Mappings** do?
 * What problem does running `runIperfTest()` three times solve?
+* Is it important to call `hasValidData()` in wifiScanner.ts? What information does that provide - that we can do anything about?
 
 ## DONE
 

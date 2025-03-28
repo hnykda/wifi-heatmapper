@@ -10,28 +10,6 @@ import { normalizeMacAddress } from "./wifiScanner";
 
 const logger = getLogger("wifi-Linux");
 
-async function inferWifiDeviceIdOnLinux(): Promise<string> {
-  logger.debug("Inferring WLAN interface ID on Linux");
-  const { stdout } = await execAsync(
-    "iw dev | awk '$1==\"Interface\"{print $2}' | head -n1",
-  );
-  return stdout.trim();
-}
-
-async function iwDevLink(interfaceId: string, pw: string): Promise<string> {
-  const command = `echo "${pw}" | sudo -S iw dev ${interfaceId} link`;
-  const { stdout } = await execAsync(command);
-  // console.log(`=== Link:\n${stdout}`);
-  return stdout;
-}
-
-async function iwDevInfo(interfaceId: string): Promise<string> {
-  const command = `iw dev ${interfaceId} info`;
-  const { stdout } = await execAsync(command);
-  // console.log(`=== Info:\n${stdout}`);
-  return stdout;
-}
-
 /**
  * scanWifiLinux() scan the Wifi for Linux
  * @returns a WiFiNetwork description to be added to the surveyPoints
@@ -55,61 +33,26 @@ export async function scanWifiLinux(
   return parsed;
 }
 
-/**
- * Parse (Unix) wdutil output
- * @param (string) output
- * @returns WifiNetwork
- */
+async function inferWifiDeviceIdOnLinux(): Promise<string> {
+  logger.debug("Inferring WLAN interface ID on Linux");
+  const { stdout } = await execAsync(
+    "iw dev | awk '$1==\"Interface\"{print $2}' | head -n1",
+  );
+  return stdout.trim();
+}
 
-export function parseWdutilOutput(output: string): WifiNetwork {
-  const wifiSection = output.split("WIFI")[1].split("BLUETOOTH")[0];
-  const lines = wifiSection.split("\n");
-  logger.silly("WDUTIL lines:", lines);
-  const networkInfo = getDefaultWifiNetwork();
+async function iwDevLink(interfaceId: string, pw: string): Promise<string> {
+  const command = `echo "${pw}" | sudo -S iw dev ${interfaceId} link`;
+  const { stdout } = await execAsync(command);
+  // console.log(`=== Link:\n${stdout}`);
+  return stdout;
+}
 
-  lines.forEach((line) => {
-    if (line.includes(":")) {
-      const colonIndex = line.indexOf(":");
-      const key = line.substring(0, colonIndex).trim();
-      const value = line.substring(colonIndex + 1).trim();
-      switch (key) {
-        case "SSID":
-          networkInfo.ssid = value;
-          break;
-        case "BSSID":
-          networkInfo.bssid = normalizeMacAddress(value);
-          break;
-        case "RSSI":
-          networkInfo.rssi = parseInt(value.split(" ")[0]);
-          break;
-        case "Channel": {
-          const channelParts = value.split("/");
-          networkInfo.frequency = parseInt(
-            channelParts[0].match(/\d+/)?.[0] ?? "0",
-          );
-          networkInfo.channel = parseInt(channelParts[0].substring(2));
-          if (channelParts[1]) {
-            networkInfo.channelWidth = parseInt(channelParts[1]);
-          } else {
-            networkInfo.channelWidth = 0;
-          }
-          break;
-        }
-        case "Tx Rate":
-          networkInfo.txRate = parseFloat(value.split(" ")[0]);
-          break;
-        case "PHY Mode":
-          networkInfo.phyMode = value;
-          break;
-        case "Security":
-          networkInfo.security = value;
-          break;
-      }
-    }
-  });
-
-  logger.trace("Final WiFi data:", networkInfo);
-  return networkInfo;
+async function iwDevInfo(interfaceId: string): Promise<string> {
+  const command = `iw dev ${interfaceId} info`;
+  const { stdout } = await execAsync(command);
+  // console.log(`=== Info:\n${stdout}`);
+  return stdout;
 }
 
 /**

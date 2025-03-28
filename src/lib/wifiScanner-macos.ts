@@ -9,23 +9,9 @@ import { isValidMacAddress, normalizeMacAddress } from "./wifiScanner";
 
 const logger = getLogger("wifi-macOS");
 
-const getIoregSsid = async (): Promise<string> => {
-  const { stdout } = await execAsync(
-    "ioreg -l -n AirPortDriver | grep IO80211SSID | sed 's/^.*= \"\\(.*\\)\".*$/\\1/; s/ /_/g'",
-  );
-  return stdout.trim();
-};
-
-const getIoregBssid = async (): Promise<string> => {
-  const { stdout } = await execAsync(
-    "ioreg -l | grep \"IO80211BSSID\" | awk -F' = ' '{print $2}' | sed 's/[<>]//g'",
-  );
-  return stdout.trim();
-};
-
 /**
  * scanWifiMacOS() scan the Wifi for MacOS
- * @param settings - the full set of settins, including sudoerPassword
+ * @param settings - the full set of settings, including sudoerPassword
  * @returns a WiFiNetwork description to be added to the surveyPoints
  */
 export async function scanWifiMacOS(
@@ -67,6 +53,20 @@ export async function scanWifiMacOS(
   wdutilNetworkInfo.signalStrength = rssiToPercentage(wdutilNetworkInfo.rssi);
   return wdutilNetworkInfo;
 }
+
+const getIoregSsid = async (): Promise<string> => {
+  const { stdout } = await execAsync(
+    "ioreg -l -n AirPortDriver | grep IO80211SSID | sed 's/^.*= \"\\(.*\\)\".*$/\\1/; s/ /_/g'",
+  );
+  return stdout.trim();
+};
+
+const getIoregBssid = async (): Promise<string> => {
+  const { stdout } = await execAsync(
+    "ioreg -l | grep \"IO80211BSSID\" | awk -F' = ' '{print $2}' | sed 's/[<>]//g'",
+  );
+  return stdout.trim();
+};
 
 export function parseWdutilOutput(output: string): WifiNetwork {
   const wifiSection = output.split("WIFI")[1].split("BLUETOOTH")[0];

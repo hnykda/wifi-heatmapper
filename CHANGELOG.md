@@ -34,7 +34,7 @@ _This section follows the precepts of [Keep a Changelog](https://keepachangelog.
 * Changed point IDs to be named sequentially, e.g., Point_1, Point_2, etc.
 * Localize the Windows `wifiScanner.ts` for various language settings
 * Pass the sudo password to the Linux wifi code
-* Factor out the macOS, Windows, and Linux scanning code into separate 
+* Factor out the macOS, Windows, and Linux scanning code into separate
   files for easier maintenance
 
 ## Version 0.1.0 - 2025-01-25
