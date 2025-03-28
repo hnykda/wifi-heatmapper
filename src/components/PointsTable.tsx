@@ -21,7 +21,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ApMapping, SurveyPoint } from "@/lib/types";
+import { ApMapping, SurveyPoint, SurveyPointActions } from "@/lib/types";
 import { Switch } from "./ui/switch";
 import {
   DropdownMenu,
@@ -51,22 +51,28 @@ type FlattenedSurveyPoint = {
   udpDownloadMbps: number;
   udpUploadMbps: number;
   timestamp: string;
-  isDisabled: boolean;
+  isEnabled: boolean;
+  origPoint: SurveyPoint; // to remember the original point
 };
 
 interface SurveyPointsTableProps {
   data: SurveyPoint[];
-  onDelete: (ids: string[]) => void;
-  updateDatapoint: (id: string, data: Partial<SurveyPoint>) => void;
+  surveyPointActions: SurveyPointActions;
+  // onDelete: (ids: string[]) => void;
+  // updateDatapoint: (id: string, data: Partial<SurveyPoint>) => void;
   apMapping: ApMapping[];
 }
 
 const SurveyPointsTable: React.FC<SurveyPointsTableProps> = ({
   data,
-  onDelete,
-  updateDatapoint,
+  surveyPointActions,
+  // onDelete,
+  // updateDatapoint,
   apMapping,
 }) => {
+  const myUpdate = surveyPointActions.update;
+  const myDelete = surveyPointActions.delete;
+
   const [rowSelection, setRowSelection] = useState({});
   const [globalFilter, setGlobalFilter] = useState("");
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({
@@ -129,14 +135,17 @@ const SurveyPointsTable: React.FC<SurveyPointsTableProps> = ({
         ),
         cell: ({ row }) => (
           <Switch
-            checked={row.original.isDisabled}
+            checked={row.original.isEnabled}
             onCheckedChange={(value) => {
-              const id = row.original.id;
-              updateDatapoint(id, { isDisabled: value });
+              // const id = row.original.id;
+              // updateDatapoint(id, { isEnabled: value });
+              myUpdate(row.original.origPoint, {
+                isEnabled: value,
+              });
             }}
           />
         ),
-        accessorKey: "isDisabled",
+        accessorKey: "isEnabled",
         enableSorting: true,
       },
       {
@@ -209,7 +218,7 @@ const SurveyPointsTable: React.FC<SurveyPointsTableProps> = ({
         header: "Y",
       },
     ],
-    [updateDatapoint],
+    [myUpdate],
   );
 
   const convertToMbps = (bitsPerSecond: number) => {
@@ -228,6 +237,7 @@ const SurveyPointsTable: React.FC<SurveyPointsTableProps> = ({
         }
       }
       return {
+        origPoint: point,
         ...point,
         ...point.wifiData,
         bssid,
@@ -272,23 +282,23 @@ const SurveyPointsTable: React.FC<SurveyPointsTableProps> = ({
   });
 
   const handleDelete = useCallback(() => {
-    const selectedIds = Object.keys(rowSelection).map(
-      (index) => flattenedData[parseInt(index)].id,
+    const selectedPoints = Object.keys(rowSelection).map(
+      (index) => flattenedData[parseInt(index)].origPoint,
     );
-    onDelete(selectedIds);
-  }, [rowSelection, flattenedData, onDelete]);
+    myDelete(selectedPoints);
+  }, [rowSelection, flattenedData, myDelete]);
 
   const toggleDisableSelected = useCallback(() => {
-    const selectedIds = Object.keys(rowSelection).map(
-      (index) => flattenedData[parseInt(index)].id,
+    const selectedPoints = Object.keys(rowSelection).map(
+      (index) => flattenedData[parseInt(index)].origPoint,
     );
-    const allHidden = selectedIds.every(
-      (id) => flattenedData.find((point) => point.id === id)?.isDisabled,
+    const allHidden = selectedPoints.every(
+      (id) => flattenedData.find((point) => point.id === id)?.isEnabled,
     );
-    selectedIds.forEach((id) => {
-      updateDatapoint(id, { isDisabled: !allHidden });
+    selectedPoints.forEach((id) => {
+      myUpdate(id, { isEnabled: !allHidden });
     });
-  }, [rowSelection, flattenedData, updateDatapoint]);
+  }, [rowSelection, flattenedData, myUpdate]);
 
   return (
     <div className="space-y-4">

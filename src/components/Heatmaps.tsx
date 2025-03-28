@@ -1,4 +1,10 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import {
+  calculateOptimalRadius,
+  calculateRadiusByBoundingBox,
+  calculateRadiusByDensity,
+} from "../lib/radiusCalculations";
+
 import h337 from "heatmap.js";
 import {
   SurveyPoint,
@@ -70,6 +76,10 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
   dimensions,
   image,
 }) => {
+  // const { settings, updateSettings, surveyPointActions } = useSettings();
+
+  // console.log(`Dimensions: ${JSON.stringify(dimensions)}`);
+
   const [heatmaps, setHeatmaps] = useState<{ [key: string]: string | null }>(
     {},
   );
@@ -86,18 +96,33 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
   const [showSignalStrengthAsPercentage, setShowSignalStrengthAsPercentage] =
     useState(true);
 
+  const r1 = calculateRadiusByDensity; // bad for small numbers of points
+  const r2 = calculateRadiusByBoundingBox;
+  const r3 = calculateOptimalRadius; // bad for small numbers of points
+
   const [heatmapConfig, setHeatmapConfig] = useState<HeatmapConfig>({
-    radiusDivider: 1,
+    radius: r2(points),
     maxOpacity: 0.7,
     minOpacity: 0.2,
     blur: 0.99,
     gradient: {
-      0.0: "rgba(0, 0, 255, 0.6)",
-      0.25: "rgba(0, 255, 255, 0.6)",
-      0.5: "rgba(0, 255, 0, 0.6)",
-      0.75: "rgba(255, 255, 0, 0.6)",
-      1.0: "rgba(255, 0, 0, 0.6)",
+      // "green-based" intensity: Green is good; red is bad
+      0: "rgba(255, 0, 0, 0.6)",
+      0.35: "rgba(255, 255, 0, 0.6)",
+      // 0.5: "rgba(0, 0, 0, 0.6)",
+      0.4: "rgba(72, 72, 242, 0.6)",
+      0.6: "rgba(4, 229, 229, 0.6)",
+      1.0: "rgba(2, 236, 2, 0.6)",
     },
+    // Original gradient - red is highest intensity
+    //  gradient: {
+    //   0.05: "rgba(0, 0, 0, 0.6)", // throw some grey in there
+    //   0.1: "rgba(0, 0, 255, 0.6)", // 40%, -80 dBm
+    //   0.25: "rgba(0, 255, 255, 0.6)", // 60%, -70 dBm
+    //   0.5: "rgba(0, 255, 0, 0.6)", // 70%, -60 dBm
+    //   0.75: "rgba(255, 255, 0, 0.6)", // 85%, -50 dBm
+    //   1.0: "rgba(255, 0, 0, 0.6)", // 100%, -40 dBm
+    // },
   });
 
   const getMetricValue = useCallback(
@@ -130,7 +155,7 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
   const generateHeatmapData = useCallback(
     (metric: MeasurementTestType, testType?: keyof IperfTestProperty) => {
       const data = points
-        .filter((p) => !p.isDisabled)
+        .filter((p) => p.isEnabled)
         .map((point) => {
           const value = getMetricValue(point, metric, testType);
           return value !== null ? { x: point.x, y: point.y, value } : null;
@@ -184,6 +209,43 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
     [showSignalStrengthAsPercentage],
   );
 
+  /**
+   * Compute ratio from average number of points in X and Y direction
+   * spread across the dimensions of the floor plan
+   * @param points
+   * @returns
+   */
+  function computeRatio(points: SurveyPoint[]): number {
+    if (points.length === 0) {
+      return 1; // Handle empty array case
+    }
+    const minX = points.reduce(
+      (min: any, obj: any) => Math.min(min, obj.x),
+      Infinity,
+    );
+    const minY = points.reduce(
+      (min: any, obj: any) => Math.min(min, obj.y),
+      Infinity,
+    );
+    const maxX = points.reduce((max: any, obj: any) => Math.max(max, obj.x), 0);
+    const maxY = points.reduce((max: any, obj: any) => Math.max(max, obj.x), 0);
+    const totalX = points.reduce((sum, point) => sum + (point.x - minX), 0);
+    const totalY = points.reduce((sum, point) => sum + (point.y - minY), 0);
+    // console.log(totalX / points.length, totalY / points.length);
+    const averageNumPoints =
+      (totalX + totalY) / points.length / points.length / 2;
+    console.log(`averageNumPoints: ${averageNumPoints}`);
+
+    console.log(`FloorplanDim: ${dimensions.width} ${dimensions.height}`);
+    console.log(`readingsDim: ${maxX - minX}, ${maxY - minY}`);
+    const ratio =
+      Math.max(dimensions.width, dimensions.height) / averageNumPoints;
+    // Math.min(maxX - minX, maxY - minY) / averageNumPoints;
+    console.log(`average points: ${totalX}, ${totalY}, Ratio: ${ratio}`);
+
+    return ratio;
+  }
+
   const renderHeatmap = useCallback(
     (
       metric: MeasurementTestType,
@@ -218,19 +280,70 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
 
         offScreenContainerRef.current.appendChild(heatmapContainer);
 
+        // density is the "amount of space" taken up by points in the heatmap
+        // if points were spread evenly, they'd take (h x w) / (# points) pixels.
+        // take the square root of the # pixels to get average X & Y
+        // and throw in a fudge factor just because ... :-)
+        const numPoints = heatmapData.length;
+        const minX = points.reduce(
+          (min: any, obj: any) => Math.min(min, obj.x),
+          Infinity,
+        );
+        const minY = points.reduce(
+          (min: any, obj: any) => Math.min(min, obj.y),
+          Infinity,
+        );
+        const maxX = points.reduce(
+          (max: any, obj: any) => Math.max(max, obj.x),
+          0,
+        );
+        const maxY = points.reduce(
+          (max: any, obj: any) => Math.max(max, obj.x),
+          0,
+        );
+        const dimX = maxX - minX;
+        const dimY = maxY - minY;
+        /**
+         * meanDistance between points - doesn't help
+         */
+        // function meanDistance(points: SurveyPoint[]): number {
+        //   let totalDistance = 0;
+        //   let count = 0;
+
+        //   for (let i = 0; i < points.length; i++) {
+        //     for (let j = i + 1; j < points.length; j++) {
+        //       const dx = points[j].x - points[i].x;
+        //       const dy = points[j].y - points[i].y;
+        //       totalDistance += Math.sqrt(dx * dx + dy * dy);
+        //       count++;
+        //     }
+        //   }
+
+        //   return count > 0 ? totalDistance / count : 0;
+        // }
+
+        // heatmapConfig.radius = computeRatio(points);
+        // const ratio = (result.avgX + result.avgY) / 2;
+        // console.log(`average points: ${JSON.stringify(result)}, ${ratio}`); // { avgX: 15, avgY: 25 }
+
+        // console.log(`meanDistance: ${meanDistance(points)}`);
+        // setHeatmapConfig(heatmapConfig);
+
         const heatmapInstance = h337.create({
           container: heatmapContainer,
           radius:
-            Math.min(dimensions.width, dimensions.height) /
-            heatmapConfig.radiusDivider,
+            // Math.min(dimensions.width, dimensions.height) /
+            heatmapConfig.radius,
           maxOpacity: heatmapConfig.maxOpacity,
           minOpacity: heatmapConfig.minOpacity,
           blur: heatmapConfig.blur,
           gradient: heatmapConfig.gradient,
         });
 
-        const max = Math.max(...heatmapData.map((point) => point.value));
-        const min = Math.min(...heatmapData.map((point) => point.value));
+        // const max = Math.max(...heatmapData.map((point) => point.value));
+        // const min = Math.min(...heatmapData.map((point) => point.value));
+        const max = 100;
+        const min = 0;
 
         heatmapInstance.setData({
           max: max,
@@ -257,6 +370,9 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
         ctx.fillStyle = "white";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+        /**
+         * load the background image
+         */
         const backgroundImage = new Image();
         backgroundImage.onload = () => {
           ctx.drawImage(

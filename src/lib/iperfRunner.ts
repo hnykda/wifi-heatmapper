@@ -1,44 +1,20 @@
+"use server";
 import os from "os";
 import {
+  HeatmapSettings,
   IperfResults,
   IperfTestProperty,
   WifiNetwork,
-  ScannerSettings,
+  SurveyPoint,
 } from "./types";
 import { scanWifi } from "./wifiScanner";
-import { getLogger } from "./logger";
+// import { getLogger } from "./logger";
 import { execAsync } from "./server-utils";
-
-const logger = getLogger("iperfRunner");
-
-export async function logSystemInfo(): Promise<void> {
-  try {
-    const platform = os.platform();
-    const release = os.release();
-    const version = os.version();
-
-    logger.info("=== System Information ===");
-    logger.info(`OS: ${platform}`);
-    logger.info(`OS Version: ${release}`);
-    logger.info(`OS Details: ${version}`);
-
-    try {
-      const { stdout } = await execAsync("iperf3 --version");
-      logger.info(`iperf3 version: ${stdout.trim()}`);
-    } catch (error) {
-      logger.warn("Could not determine iperf3 version:", error);
-    }
-
-    logger.info("=========================");
-  } catch (error) {
-    logger.error("Error collecting system information:", error);
-  }
-}
-
-// Run system info logging at module load time
-logSystemInfo().catch((error) => {
-  logger.error("Failed to log system information:", error);
-});
+import { getCancelFlag, sendSSEMessage } from "./sseGlobal";
+// import { getHostPlatform } from "./actions";
+import { percentageToRssi } from "./utils";
+import { SSEMessageType } from "@/app/api/events/route";
+import { getLogger } from "./logger";
 
 const validateWifiDataConsistency = (
   wifiDataBefore: WifiNetwork,
@@ -52,11 +28,128 @@ const validateWifiDataConsistency = (
   );
 };
 
-export async function runIperfTest(
-  server: string,
-  duration: number,
-  settings: ScannerSettings,
-): Promise<{ iperfResults: IperfResults; wifiData: WifiNetwork }> {
+/**
+ * checkSettings - check whether the settings are "primed" to run a test
+ * @param settings
+ * @returns string
+ */
+export const checkSettings = async (settings: HeatmapSettings) => {
+  sendSSEMessage({
+    type: "update",
+    status: "",
+    header: "In progress",
+  });
+  let settingsErrorMessage = "";
+  console.log(
+    `checkSettings: "${settings.iperfServerAdrs}" "${settings.sudoerPassword}"`,
+  );
+  if (!settings.iperfServerAdrs) {
+    settingsErrorMessage = "Please set iperf server address";
+
+    sendSSEMessage({
+      type: "done",
+      status: settingsErrorMessage,
+      header: "Error",
+    });
+  }
+
+  const runningPlatform = os.platform();
+  // console.log(`platform: ${runningPlatform}`);
+
+  if (
+    runningPlatform == "darwin" &&
+    (!settings.sudoerPassword || settings.sudoerPassword == "")
+  ) {
+    console.warn(
+      "No sudo password set, but running on macOS where it's required for wdutil info command",
+    );
+    settingsErrorMessage =
+      "Please set sudo password.\nIt is required on macOS.";
+    sendSSEMessage({
+      type: "done",
+      header: "Error",
+      status: settingsErrorMessage,
+    });
+  }
+  return settingsErrorMessage;
+};
+
+// moved from actions.ts
+export async function startSurvey(
+  // x: number,
+  // y: number,
+  settings: HeatmapSettings,
+): Promise<SurveyPoint | null> {
+  const { iperfResults, wifiData } = await runIperfTest(settings);
+
+  if (!iperfResults || !wifiData) {
+    // null indicates measurement was canceled
+    return null;
+  }
+
+  const newPoint: SurveyPoint = {
+    wifiData,
+    iperfResults,
+    timestamp: new Date().toISOString(),
+    x: 0, //assigned by the recipient
+    y: 0, //assigned by the recipient
+    id: "BAD ID", //assigned by the recipient
+    isEnabled: true, //assigned by the recipient
+  };
+  // console.log("Created new point: " + JSON.stringify(newPoint));
+  // await addSurveyPoint(dbPath, newPoint);
+
+  return newPoint;
+}
+
+function arrayAverage(arr: number[]): number {
+  if (arr.length === 0) return 0;
+  const sum = arr.reduce((acc, val) => acc + val, 0);
+  return Math.round(sum / arr.length);
+}
+const initialStates = {
+  type: "update",
+  header: "Measurement beginning",
+  strength: 0,
+  tcp: "-/- Mbps",
+  udp: "-/- Mbps",
+};
+
+// The measurement process updates these variables
+// which then are converted into update events
+let displayStates = {
+  type: "update",
+  header: "In progress",
+  strength: 0,
+  tcp: "-/- Mbps",
+  udp: "-/- Mbps",
+};
+
+/**
+ * getUpdatedMessage - combine all the displayState values
+ * @returns (SSEMessageType) - the message to send
+ */
+function getUpdatedMessage(): SSEMessageType {
+  return {
+    type: displayStates.type,
+    header: displayStates.header,
+    status: `Signal strength: ${displayStates.strength}%\nTCP: ${displayStates.tcp} Mbps\nUDP: ${displayStates.udp} Mbps`,
+  };
+}
+
+function checkForCancel() {
+  if (getCancelFlag()) throw new Error("cancelled");
+}
+/**
+ * runIperfTest() - get the WiFi and iperf readings
+ * @param settings
+ * @returns the WiFi and iperf results for this location
+ */
+export async function runIperfTest(settings: HeatmapSettings): Promise<{
+  iperfResults: IperfResults | null;
+  wifiData: WifiNetwork | null;
+}> {
+  const logger = getLogger("iperfRunner");
   try {
     const maxRetries = 3;
     let attempts = 0;
@@ -66,16 +159,52 @@ export async function runIperfTest(
     // TODO: only retry the one that failed
     while (attempts < maxRetries && !results) {
       try {
+        // set the initial states, then send an event to the client
+        displayStates = { ...displayStates, ...initialStates };
+        sendSSEMessage(getUpdatedMessage()); // immediately send initial values
+        displayStates.header = "Measurement in progress...";
+
+        const server = settings.iperfServerAdrs;
+        const duration = settings.testDuration;
+        const wifiStrengths: number[] = []; // percentages
+
         const wifiDataBefore = await scanWifi(settings);
+        wifiStrengths.push(wifiDataBefore.signalStrength);
+        displayStates.strength = arrayAverage(wifiStrengths);
+        checkForCancel();
+        sendSSEMessage(getUpdatedMessage());
+
         const tcpDownload = await runSingleTest(server, duration, true, false);
         const tcpUpload = await runSingleTest(server, duration, false, false);
+        displayStates.tcp = `${(tcpDownload.bitsPerSecond / 1000000).toFixed(2)} / ${(tcpUpload.bitsPerSecond / 1000000).toFixed(2)}`;
+        checkForCancel();
+        sendSSEMessage(getUpdatedMessage());
+
+        const wifiDataMiddle = await scanWifi(settings);
+        wifiStrengths.push(wifiDataMiddle.signalStrength);
+        displayStates.strength = arrayAverage(wifiStrengths);
+        checkForCancel();
+        sendSSEMessage(getUpdatedMessage());
+
         const udpDownload = await runSingleTest(server, duration, true, true);
         const udpUpload = await runSingleTest(server, duration, false, true);
+        displayStates.udp = `${(udpDownload.bitsPerSecond / 1000000).toFixed(2)} / ${(udpUpload.bitsPerSecond / 1000000).toFixed(2)}`;
+        checkForCancel();
+        sendSSEMessage(getUpdatedMessage());
+
         const wifiDataAfter = await scanWifi(settings);
+        wifiStrengths.push(wifiDataAfter.signalStrength);
+        displayStates.strength = arrayAverage(wifiStrengths);
+        checkForCancel();
+
+        // Send the final update - type is "done"
+        displayStates.type = "done";
+        displayStates.header = "Measurement complete";
+        sendSSEMessage(getUpdatedMessage());
 
         if (!validateWifiDataConsistency(wifiDataBefore, wifiDataAfter)) {
           throw new Error(
-            "Wifi data inconsistency between scans! Cancelling instead of giving wrong results.",
+            "Wifi configuration changed between scans! Cancelling instead of giving wrong results.",
           );
         }
 
@@ -85,12 +214,23 @@ export async function runIperfTest(
           udpDownload,
           udpUpload,
         };
+
+        // console.log(
+        //   `signalStrength: ${JSON.stringify(wifiStrengths)}, ${displayStates.strength}`,
+        // );
         wifiData = {
           ...wifiDataBefore,
-          // be more precise by averaging
-          rssi: Math.round((wifiDataAfter.rssi + wifiDataBefore.rssi) / 2),
+          signalStrength: displayStates.strength, // uses the average value
         };
-      } catch (error) {
+        //
+        wifiData = {
+          ...wifiData,
+          rssi: percentageToRssi(displayStates.strength),
+        };
+      } catch (error: any) {
+        if (error.message == "cancelled") {
+          return { iperfResults: null, wifiData: null };
+        }
         logger.error(`Attempt ${attempts + 1} failed:`, error);
         attempts++;
         if (attempts >= maxRetries) {
@@ -104,6 +244,12 @@ export async function runIperfTest(
     return { iperfResults: results!, wifiData: wifiData! };
   } catch (error) {
     logger.error("Error running iperf3 test:", error);
+    sendSSEMessage({
+      type: "done",
+      status: "Error running iperf3 test",
+      header: "Error",
+    });
+
     throw error;
   }
 }
@@ -114,6 +260,8 @@ async function runSingleTest(
   isDownload: boolean,
   isUdp: boolean,
 ): Promise<IperfTestProperty> {
+  const logger = getLogger("runSingleTest");
+
   let port = "";
   if (server.includes(":")) {
     const [host, serverPort] = server.split(":");
@@ -131,7 +279,7 @@ async function runSingleTest(
   return extracted;
 }
 
-export function extractIperfResults(
+export async function extractIperfResults(
   result: {
     end: {
       sum_received?: { bits_per_second: number };
@@ -155,7 +303,7 @@ export function extractIperfResults(
     version?: string;
   },
   isUdp: boolean,
-): IperfTestProperty {
+): Promise<IperfTestProperty> {
   const end = result.end;
 
   // Check if we're dealing with newer iPerf (Mac - v3.17+) or older iPerf (Ubuntu - v3.9)
