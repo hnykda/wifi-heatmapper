@@ -1,11 +1,11 @@
-import { HeatmapSettings, WifiNetwork } from "./types";
+import { WifiNetwork } from "./types";
 import { execAsync } from "./server-utils";
 import { getLogger } from "./logger";
 // import os from "os";
 import { getDefaultWifiNetwork } from "./wifiScanner";
-import { rssiToPercentage, percentageToRssi } from "./utils";
+import { percentageToRssi } from "./utils";
 // import { reverseLookup } from "./localization";
-import { isValidMacAddress,normalizeMacAddress } from "./wifiScanner";
+import { isValidMacAddress } from "./wifiScanner";
 import { reverseLookup } from "./localization";
 
 const logger = getLogger("wifi-Windows");
@@ -311,11 +311,11 @@ export async function parseNetshOutput(output: string): Promise<WifiNetwork> {
     const key = line.slice(0, pos - 1).trim();
     let val = line.slice(pos + 1).trim();
     const result = await reverseLookup(key);
-    console.log(`Key/Val/Result: "${key}" "${val}", ${result}`);
+    // console.log(`Key/Val/Result: "${key}" "${val}", ${result}`);
     if (key == "signalStrength") {
       val = val.replace("%", ""); // remove any "%"
     }
-    // Yikes! This was a siege to get the warnings to go away...
+    // Yikes! This was a siege to get the Typescript warnings to go away...
     if (result == null) {
       // console.log(`Not added: ${key}`);
     } else {
