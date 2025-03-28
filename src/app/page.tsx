@@ -12,8 +12,8 @@ export default function App() {
       <p className="w-1/2 mx-auto">
         Measure Wi-Fi signal strength and network throughput, and draw heat maps
         of the resulting data. For more information, see{" "}
-        <a href="https://github.com/hnykda/wifi-heatmapper">the Github repo</a>
-        <br />.
+        <a href="https://github.com/hnykda/wifi-heatmapper">the Github repo</a>.
+        <br />
       </p>
       <TabPanel />
     </SettingsProvider>

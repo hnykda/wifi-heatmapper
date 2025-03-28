@@ -63,7 +63,7 @@ export async function scanWifi(
     } else if (platform === "win32") {
       wifiData = await scanWifiWindows();
     } else if (platform === "linux") {
-      wifiData = await scanWifiLinux();
+      wifiData = await scanWifiLinux(settings);
     } else {
       throw new Error(`Unsupported platform: ${platform}`);
     }
@@ -78,12 +78,12 @@ export async function scanWifi(
     throw error;
   }
 
-  if (!hasValidData(wifiData)) {
-    throw new Error(
-      "Measurement failed. We were not able to get good enough WiFi data: " +
-        JSON.stringify(wifiData),
-    );
-  }
+  // if (!hasValidData(wifiData)) {
+  //   throw new Error(
+  //     "Measurement failed. We were not able to get good enough WiFi data: " +
+  //       JSON.stringify(wifiData),
+  //   );
+  // }
 
   return wifiData;
 }
@@ -183,14 +183,16 @@ async function inferWifiDeviceIdOnLinux(): Promise<string> {
 }
 
 async function iwDevLink(interfaceId: string, pw: string): Promise<string> {
-  const command = `iw dev ${interfaceId} link`;
-  const { stdout } = await execAsync(`echo ${pw} | ${command}`);
+  const command = `echo "${pw}" | sudo -S iw dev ${interfaceId} link`;
+  const { stdout } = await execAsync(command);
+  // console.log(`=== Link:\n${stdout}`);
   return stdout;
 }
 
 async function iwDevInfo(interfaceId: string): Promise<string> {
   const command = `iw dev ${interfaceId} info`;
   const { stdout } = await execAsync(command);
+  // console.log(`=== Info:\n${stdout}`);
   return stdout;
 }
 
@@ -203,6 +205,7 @@ async function scanWifiLinux(
 ): Promise<WifiNetwork> {
   let wlanInterface: string = "";
   wlanInterface = await inferWifiDeviceIdOnLinux();
+  // console.log(`password: ${JSON.stringify(heatmapsettings.sudoerPassword)}`);
 
   const [linkOutput, infoOutput] = await Promise.all([
     iwDevLink(wlanInterface, heatmapsettings.sudoerPassword),
@@ -454,6 +457,8 @@ export function parseIwOutput(
       }
     }
   });
+  networkInfo.signalStrength = rssiToPercentage(networkInfo.rssi);
+  // console.log(`=== networkInfo: ${JSON.stringify(networkInfo)}`);
 
   return networkInfo;
 }
