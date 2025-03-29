@@ -59,16 +59,6 @@ export default function ClickableFloorplan(): ReactNode {
     }
   }, [imageLoaded, settings.dimensions, settings.surveyPoints]);
 
-  /**
-   * pseudoMeasure - start the fake measurement process
-   */
-  // const pseudoMeasure = async () => {
-  //   // await setIsToastOpen(true);
-  //   setIsToastOpen(true);
-  //   // Tell the fake measurement process to begin
-  //   await fetch("/api/start-task?action=start", { method: "POST" });
-  // };
-
   const handleToastIsReady = (): void => {
     console.log(`handleToastIsReady called...`);
     measureSurveyPoint(surveyClick);
@@ -325,6 +315,17 @@ export default function ClickableFloorplan(): ReactNode {
     }
   };
 
+  /**
+   * pseudoMeasure - start the fake measurement process
+   * This was used to debug the NewToast component
+   */
+  // const pseudoMeasure = async () => {
+  //   // await setIsToastOpen(true);
+  //   setIsToastOpen(true);
+  //   // Tell the fake measurement process to begin
+  //   await fetch("/api/start-task?action=start", { method: "POST" });
+  // };
+
   return (
     <div className="bg-white p-6 rounded-lg shadow-md">
       <h2 className="text-2xl font-semibold text-gray-800">
@@ -355,17 +356,6 @@ export default function ClickableFloorplan(): ReactNode {
         </Alert>
       )}
       <div className="relative" ref={containerRef}>
-        {/* <div
-          className={`absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-lg ${
-            measurementStatus === "running" ? "" : "hidden"
-          }`}
-        >
-          <div className="flex flex-col items-center">
-            <Loader className="w-24 h-24 text-blue-500" />
-            <p className="text-white text-lg font-medium">Running...</p>
-          </div>
-        </div> */}
-
         <canvas
           ref={canvasRef}
           width={settings.dimensions.width}

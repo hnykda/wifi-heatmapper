@@ -5,60 +5,10 @@
 "use server";
 import path from "path";
 import fs from "fs/promises";
-// import { promises as fs } from 'fs';
-// import path from 'path';
 
-// import { nanoid } from "nanoid";
-
-// import { runIperfTest } from "./iperfRunner";
-// import { SurveyPoint, HeatmapSettings } from "./types";
-// import { execAsync } from "./server-utils";
 import { getLogger } from "./logger";
 
 const logger = getLogger("actions");
-// import { sendSSEMessage } from "@/app/api/events/route";
-// import { sendSSEMessage } from "./sseGlobal";
-
-// export async function startSurvey(
-//   x: number,
-//   y: number,
-//   settings: HeatmapSettings,
-// ): Promise<SurveyPoint | null> {
-//   const { iperfResults, wifiData } = await runIperfTest(settings);
-
-//   if (!iperfResults || !wifiData) {
-//     // null indicates measurement was canceled
-//     return null;
-//   }
-
-//   const newPoint: SurveyPoint = {
-//     x,
-//     y,
-//     wifiData,
-//     iperfResults,
-//     timestamp: new Date().toISOString(),
-//     id: nanoid(3),
-//     isEnabled: true,
-//   };
-//   // console.log("Created new point: " + JSON.stringify(newPoint));
-//   // await addSurveyPoint(dbPath, newPoint);
-
-//   return newPoint;
-// }
-
-// export async function updateIperfServer(
-//   dbPath: string,
-//   server: string,
-// ): Promise<void> {
-//   await updateDatabaseField(dbPath, "iperfServer", server);
-// }
-
-// export async function updateFloorplanImage(
-//   dbPath: string,
-//   imagePath: string,
-// ): Promise<void> {
-//   await updateDatabaseField(dbPath, "floorplanImage", imagePath);
-// }
 
 export const uploadImage = async (dbPath: string, formData: FormData) => {
   const file = formData.get("file") as File;
@@ -83,8 +33,9 @@ export async function copyToMediaFolder(filename: string) {
   console.log(`Copied ${filename} to /public/media`);
 }
 
+// THIS IS A FAKE FUNCTION - ONLY USED FOR TESTING NewToast
+
 // Simulate a long-running process with server-sent events
-// THIS IS A FAKE FUNCTION - ONLY USED FOR TESTING
 
 // let isCanceled = false;
 

@@ -209,43 +209,6 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
     [showSignalStrengthAsPercentage],
   );
 
-  /**
-   * Compute ratio from average number of points in X and Y direction
-   * spread across the dimensions of the floor plan
-   * @param points
-   * @returns
-   */
-  function computeRatio(points: SurveyPoint[]): number {
-    if (points.length === 0) {
-      return 1; // Handle empty array case
-    }
-    const minX = points.reduce(
-      (min: any, obj: any) => Math.min(min, obj.x),
-      Infinity,
-    );
-    const minY = points.reduce(
-      (min: any, obj: any) => Math.min(min, obj.y),
-      Infinity,
-    );
-    const maxX = points.reduce((max: any, obj: any) => Math.max(max, obj.x), 0);
-    const maxY = points.reduce((max: any, obj: any) => Math.max(max, obj.x), 0);
-    const totalX = points.reduce((sum, point) => sum + (point.x - minX), 0);
-    const totalY = points.reduce((sum, point) => sum + (point.y - minY), 0);
-    // console.log(totalX / points.length, totalY / points.length);
-    const averageNumPoints =
-      (totalX + totalY) / points.length / points.length / 2;
-    console.log(`averageNumPoints: ${averageNumPoints}`);
-
-    console.log(`FloorplanDim: ${dimensions.width} ${dimensions.height}`);
-    console.log(`readingsDim: ${maxX - minX}, ${maxY - minY}`);
-    const ratio =
-      Math.max(dimensions.width, dimensions.height) / averageNumPoints;
-    // Math.min(maxX - minX, maxY - minY) / averageNumPoints;
-    console.log(`average points: ${totalX}, ${totalY}, Ratio: ${ratio}`);
-
-    return ratio;
-  }
-
   const renderHeatmap = useCallback(
     (
       metric: MeasurementTestType,
@@ -280,55 +243,6 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
 
         offScreenContainerRef.current.appendChild(heatmapContainer);
 
-        // density is the "amount of space" taken up by points in the heatmap
-        // if points were spread evenly, they'd take (h x w) / (# points) pixels.
-        // take the square root of the # pixels to get average X & Y
-        // and throw in a fudge factor just because ... :-)
-        const numPoints = heatmapData.length;
-        const minX = points.reduce(
-          (min: any, obj: any) => Math.min(min, obj.x),
-          Infinity,
-        );
-        const minY = points.reduce(
-          (min: any, obj: any) => Math.min(min, obj.y),
-          Infinity,
-        );
-        const maxX = points.reduce(
-          (max: any, obj: any) => Math.max(max, obj.x),
-          0,
-        );
-        const maxY = points.reduce(
-          (max: any, obj: any) => Math.max(max, obj.x),
-          0,
-        );
-        const dimX = maxX - minX;
-        const dimY = maxY - minY;
-        /**
-         * meanDistance between points - doesn't help
-         */
-        // function meanDistance(points: SurveyPoint[]): number {
-        //   let totalDistance = 0;
-        //   let count = 0;
-
-        //   for (let i = 0; i < points.length; i++) {
-        //     for (let j = i + 1; j < points.length; j++) {
-        //       const dx = points[j].x - points[i].x;
-        //       const dy = points[j].y - points[i].y;
-        //       totalDistance += Math.sqrt(dx * dx + dy * dy);
-        //       count++;
-        //     }
-        //   }
-
-        //   return count > 0 ? totalDistance / count : 0;
-        // }
-
-        // heatmapConfig.radius = computeRatio(points);
-        // const ratio = (result.avgX + result.avgY) / 2;
-        // console.log(`average points: ${JSON.stringify(result)}, ${ratio}`); // { avgX: 15, avgY: 25 }
-
-        // console.log(`meanDistance: ${meanDistance(points)}`);
-        // setHeatmapConfig(heatmapConfig);
-
         const heatmapInstance = h337.create({
           container: heatmapContainer,
           radius:
@@ -342,6 +256,7 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
 
         // const max = Math.max(...heatmapData.map((point) => point.value));
         // const min = Math.min(...heatmapData.map((point) => point.value));
+        // Hard-code to 0..100 for Wi-Fi heat map
         const max = 100;
         const min = 0;
 

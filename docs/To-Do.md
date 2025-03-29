@@ -29,6 +29,12 @@ Random observations and questions that arise at the start of the project
   using some kind of tablet. An errant finger makes it look like a request
   to make a new measurement, not examine that point's statistics.
 * Fix display of BSSID on Windows; parsing test code not updated
+* Need to solve the "saving to files" problem.
+  Currently, all settings are saved in a single `localStorage()` named `wifi-heatmap`.
+  This would imply: selecting a background image from the Settings pane;
+  saving it somewhere;
+  saving the resulting "heat map settings" somewhere where in the file system,
+  and then re-opening it on demand.
 
 ## Questions
 

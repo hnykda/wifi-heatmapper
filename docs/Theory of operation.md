@@ -8,9 +8,181 @@ It produces a heat map for each set of
 measurement points ("surveyPoints")
 that show where signal/throughput are high and low.
 
+## Component Hierarchy
+
+This is a fairly standard Next.js project:
+
+* `page.tsx` defines the top level _App()_ component
+* `layout.tsx` buttresses it, and also provides a hook for
+  global initialization code
+* `api` folder contains the routes
+* `global.css` uses TailwindCSS for styling the components
+
+The _App()_ in `page.tsx` returns two major GUI components:
+
+  * `SettingsProvider` that initializes and passes all the settings
+  to its children
+  * `TabPanel` that contains each of these four components
+    * `SettingsEditor` for updating the settings
+    * `Floorplan` that displays the plan, and uses clicks to start
+      the measurement process
+    * `Heatmaps` displays the computed heat maps
+    * `PointsTable` displays and edits the points collected
+
+These components and source files are not currently used,
+but have not yet been removed from the code base:
+
+* `EditableField`
+* `FileInput`
+* `Loader`
+* `SettingsViewer` 
+* `database.ts`
+
+## Routes in the Next app
+
+* The _api/events/route.ts_ file listens for a GET request,
+  then keeps open a connection that sends 
+  `sseMessageType` events to the client.
+  These indicate the state of the measurement, or a Cancel event.
+* The _api/start-task/route.ts_ file listens for a POST
+  to start or end a server-side task.
+  The parameter is `action=start|stop`.
+  At this time, the `start` action is not used.
+  The `stop` action cancels the measurement process and returns
+  a `done` `sseMessage` containing "canceled".
+* NB: The measurement process on the sever is initiated
+  by the client directly calling the server side 
+  `measureSurveyPoint()` function.
+  It's likely this could also have been triggered by
+  `action=start` but the direct call predated the SSE code.
+
+## How the Toast progress notifier works
+
+When an empty space is clicked on the `Floorplan`,
+it triggers the measurement process
+and displays the progress of the measurements.
+Those updates are provided by Server-Sent Events (see below),
+which is an astonishingly complicated process:
+
+* A click on `Floorplan` sets `toastIsOpen` true.
+* The `NewToast` component is "conditionally rendered"
+  (because it is rendered with `{toastIsOpen && <NewToast... />}`)
+  The child component builds a connection to the server by calling
+  `/api/events` and listens for status updates on that connection.
+* The _/api/events/routes.ts_ server module
+  fields that GET request,
+  creates the `sendToClient()` function for sending updates,
+  and registers that function in the global _sseGlobal.ts_ module.
+  All server-side clients can import and use that function.
+* When `NewToast` receives a "ready" message from the server,
+  it calls back to the `Floorplan` with `toastIsOpen()`
+* That triggers the measurement process that uses `sendToClient()`
+  to send updates to `NewToast`.
+* When the user clicks the Cancel button of `NewToast`,
+  it sends a POST to _/api/start-task?action=stop_.
+  This calls global `setCancelFlag(true)`.
+  The measurement process notices this and halts the process
+  with appropriate status updates.
+  
+## Server-Sent Events - sseMessage
+
+The server sends [server-sent events](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events)
+to the client.
+SSEs have these fields:
+
+```
+export type SSEMessageType = {
+  type: string;//info, ready, update, done
+  header: string;
+  status: string; 
+};
+```
+
+* `info` is a general message - ignored by NewToast
+* `ready` signals NewToast to tell its parent to
+  begin the measurements
+* `update` simply updates the header and status
+* `done` updates the header and status, then starts a timer to
+  remove the NewToast after a number of seconds.
+
+## RSSI and Signal Strength
+
+The percentage signal strength (0-100%) is an intuitive measure
+of the Wi-Fi signal.
+Some OS utilities provide it as a percentage, others use "dBm".
+The `rssiToPercentage()` and `percentageToRSSI()` functions
+in _lib/utils.ts_ convert from one to the other.
+At the end of each measurement, the code saves both values.
+
+NB: In practice, any value below -75 dBM (~ 40%) is too low
+to be useful, and the color in the heatmap should be discouraging.
+
+Arguably, the zero point of the percentage scale should be
+-90dBm (not -100dBm) since the noise floor
+(at which background noise swamps the WiFi signal)
+frequently sits around -90dBm.
+[Room for further experimentation.]
+
+This table shows readings both ways: RSSI (dBm) <-> Percentage
+   
+| Pct | dBm |   | dBm | Pct | dBm | Pct |
+|-----|-----|---|-----|-----|-----|-----|
+| 0% | -100dBm |  | -100dBm | 0% |  -100dBm | 0% |
+| 10% | -94dBm |  |  -94dBm | 10% |  -90dBm | 17% |
+| 20% | -88dBm |  |  -88dBm | 20% |  -80dBm | 33% |
+| 25% | -85dBm |  |  -85dBm | 25% |  -75dBm | 42% |
+| 30% | -82dBm |  |  -82dBm | 30% |  -70dBm | 50% |
+| 40% | -76dBm |  |  -76dBm | 40% |  -65dBm | 58% |
+| 50% | -70dBm |  |  -70dBm | 50% |  -60dBm | 67% |
+| 60% | -64dBm |  |  -64dBm | 60% |  -55dBm | 75% |
+| 70% | -58dBm |  |  -58dBm | 70% |  -50dBm | 83% |
+| 75% | -55dBm |  |  -55dBm | 75% |  -45dBm | 92% |
+| 80% | -52dBm |  |  -52dBm | 80% |  -40dBm | 100% |
+| 90% | -46dBm |  |  -46dBm | 90% |   |
+| 100% | -40dBm |  |  -40dBm | 100% | |
+
+## Localization
+
+The Windows `netsh wlan show interfaces` code is localized for the
+system's language setting.
+Curiously, different English systems also use slightly different
+labels (e.g. "AP BSSID" vs "BSSID").
+Consequently, there is no obvious algorithm for retriving values
+from the `netsh...` output. 
+
+At server startup, the _lib/localization.ts_ code reads a set of
+_en.json_, _it.json_ files to build a reverse lookup table of
+(localized string) to the corresponding WifiNetwork property
+(or null).
+ 
+The Windows parsing code then retrieves each label from the
+`netsh ...` command, does a reverse lookup, and sets the
+appropriate property.
+
+## Radius Calculations
+
+The `h337.create()` function takes a `radius` parameter that
+determines "how much space" the value of each survey point
+should occupy.
+Reasonable values seem to be between 100 and 500,
+and are shown in the Advanced Heatmap Config.
+
+The _lib/radiusCalculations.ts_ file implements several algorithms suggested by AI as experiments.
+The code currently uses the `r2` function that
+computes the radius using something like the density of
+points within the bounding box.
+
+_Note:_ The Android [NetSpot](https://www.netspotapp.com/netspot-wifi-analyzer-for-android.html)
+app incorporates a "distance" measurement for the background image.
+That may give a further hint about the size of the survey points.
+
+This needs considerable more experimentation to attain a
+pleasing metric.
+
 ## File Layout
 
-The file structure (using `tree --gitignore`) is:
+The file structure (using `tree --gitignore`) appears to be
+a fairly standard Next.js layout:
 
 ```text
 ├── LICENSE
@@ -96,31 +268,3 @@ The file structure (using `tree --gitignore`) is:
 14 directories, 66 files
 ```
 
-## How the Toast progress notifier works
-
-When an empty space is clicked on the `Floorplan`,
-it triggers the measurement process
-and displays the progress of the measurements.
-Those updates are provided by Server-Sent Events,
-which is an astonishingly complicated process:
-
-* A click on `Floorplan` sets `toastIsOpen` true.
-* The `NewToast` component is "conditionally rendered"
-  (because it is rendered with `{toastIsOpen && <NewToast... />}`)
-  The child component builds a connection to the server by calling
-  `/api/events` and listens for status updates on that connection.
-* The _/api/events/routes.ts_ server module
-  fields that GET request,
-  creates the `sendToClient()` function for sending updates,
-  and registers that function in the global _sseGlobal.ts_ module.
-  All server-side clients can import and use that function.
-* When `NewToast` receives a "ready" message from the server,
-  it calls back to the `Floorplan` with `toastIsOpen()`
-* That triggers the measurement process that uses `sendToClient()`
-  to send updates to `NewToast`.
-* When the user clicks the Cancel button of `NewToast`,
-  it sends a POST to _/api/start-task?action=stop_.
-  This calls global `setCancelFlag(true)`.
-  The measurement process notices this and halts the process
-  with appropriate status updates.
-  
