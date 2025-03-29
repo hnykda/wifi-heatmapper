@@ -14,7 +14,7 @@ import { getLogger } from "@/lib/logger";
 
 const logger = getLogger("HeatmapAdvancedConfig");
 export type HeatmapConfig = {
-  radiusDivider: number;
+  radius: number;
   maxOpacity: number;
   minOpacity: number;
   blur: number;
@@ -77,19 +77,16 @@ const HeatmapAdvancedConfig = ({
           <div className="flex flex-row gap-4">
             <div>
               <Label htmlFor="radiusDivider">
-                Radius Divider
-                <PopoverHelper text="Divides the minimum of width and height to calculate the radius. Lower values create larger heat spots. Can be decimal." />
+                Size Adjustment
+                <PopoverHelper text="Adjusts the size of the heat spots to fit the base drawing. Values are generally 1 to 10 - lower values create larger spots. Can be float." />
               </Label>
               <Input
                 id="radiusDivider"
                 type="number"
                 step="0.1"
-                value={localConfig.radiusDivider}
+                value={localConfig.radius}
                 onChange={(e) =>
-                  handleConfigChange(
-                    "radiusDivider",
-                    parseFloat(e.target.value),
-                  )
+                  handleConfigChange("radius", parseFloat(e.target.value))
                 }
                 className="h-9"
               />
