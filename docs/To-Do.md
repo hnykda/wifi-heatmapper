@@ -2,41 +2,33 @@
 
 Random observations and questions that arise at the start of the project
 
+## Features and Behavior improvements
+
 * Create a "Signal strength only" setting for quicker surveys.
   It also removes the requirement of setting up a separate iperf3 server. Maybe also triggered by a "" setting for the iperf3 server.
-* Retain the "Size Adjustment" setting (and other Advancd Configuration settings?) in the global object
-* Clicking a heat map (signal strength or data rate) and clicking Back should not give http error
-* An expanded (clicked) heat map should always fit fully within the browser window (or scroll)
-* Setting browser view to 110% should not disarrange click points
-  for survey data
-* Improve "fetch error" message when the web GUI has lost contact
-  with the server (perhaps because `npm run dev` has been stopped)
 * If only one survey point exists, the `Heatmap` floor plan should appear, but with a message like "Not enough points"
-* The signal strength heat map should always display a scale of 0-100% because people deserve to know when their wifi strength is low.
 * But normalize data rate scale for throughput (use range of 200..700mbps with 100's dividers instead of 245..673mbps)
 * If `Floorplan` cannot open the image, it should display
   a sensible message like "Can't open map_name..."
 * Change Floor Plan `<input>` to be a "Browse..." field
-  Better yet, let the user drag it into the Floorplan window
-* Convert all references to the "advanced settings" of the Floorplan
-  to use the `GlobalSettings` object instead of the Floorplan
-* Ultimately, `Database` might be called `SiteMap`, since it contains
-  all  the info required to reproduce the site's heatmap(s).
-  Interim step: rename localStorage() with "wifi-heatmap-IMAGE_NAME"?
+* Better yet, let the user drag it into the Floorplan window
+* An expanded (clicked) heat map should always fit fully within the browser window (or scroll)
 * A click on the `Floorplan` pane should immediately display an
   empty dot (no color) to indicate that's where the click was.
 * The "distance" of 10 in detecting a click is not big enough when
   using some kind of tablet. An errant finger makes it look like a request
   to make a new measurement, not examine that point's statistics.
+
+## Bugs
+
+* Clicking a heat map (signal strength or data rate) and clicking Back should not give http error
+* Setting browser view to 110% should not disarrange click points
+  for survey data
+* Improve "fetch error" message when the web GUI has lost contact
+  with the server (perhaps because `npm run dev` has been stopped)
 * Fix display of BSSID; Windows parsing test code not updated;
   macOS shows `<R-ED-AC-TED>` or some such nonsense (SB "Not available")
-* Fix display of dBm in the heatmap scale when not showing as %
-* Add slider to heatmap. Always set it to the computed value, unless
-  user has changed it, then remember that value in the global settings.
-  Initialize it to null: a numeric value indicates it has been changed.
-  Sliding the value to 0 should re-set the value to null.
-* Remove Scale size/radius divider from AdvancedHeatMap settings.
-  All the above logic should remain within the Heatmap component
+* Fix display of dBm in the heatmap scale when not showing as %. (Currently, it shows 100dBm (positive number) as green, with 0 dBm as red. The scale should use the limits of the rssiToPercentage() function.
 
 ## Questions
 
@@ -47,14 +39,14 @@ Random observations and questions that arise at the start of the project
   is not actually to scale it'll still give good "relative strength" info
   relative to other places on the drawing
 * How to explain the difference between signal strength and throughput rates?
-* Is it possible to automatically compute the h337 `radius`. Currently using the "bounding box" which is some measure of the point's density.
+* Is it possible to automatically compute the h337 `radius`. Currently using the "bounding box" which is some measure of the point's density. The (new) slide makes this somewhat better, but how do we tell people where "the right setting" is?
 * Does "winking" WiFi off and then back on before measurement improve the values?
-* How should "saved files" work (not in `localstorage()`)?
+* How should "saved files" work (now in `localstorage()`)?
   Opening a new Floorplan should probably
   change the saved file name to match
 * Would it improve the heatmap if small dots were placed at the locations of SurveyPoints?
 * What _does_ **Access Point Mappings** do?
-* What problem does running `runIperfTest()` three times solve?
+* The current code runs `runIperfTest()` three times if there was an error. What problem does that solve? What caused that enhancement?
 * Is it important to call `hasValidData()` in wifiScanner.ts? What information does that provide - that we can do anything about?
 
 ## DONE
@@ -98,3 +90,12 @@ Random observations and questions that arise at the start of the project
   `<Floorplan>` may add or delete a point;
   `<PointsTable>` may remove one or many.
   Both receive the full list of points, and return an updated list back to `GlobalSettings`
+* ~~Add slider to heatmap. Always set it to the computed value, unless user has changed it, then remember that value in the global settings. Initialize it to null: a numeric value indicates it has been changed. Sliding the value to 0 should re-set the value to null.~~
+* ~~Remove Scale size/radius divider from AdvancedHeatMap settings. All the above logic should remain within the Heatmap component~~
+* ~~Retain the "Size Adjustment" setting (and other Advancd Configuration settings?) in the global object~~
+* ~~The Wi-Fi signal strength heat map should always display a scale of 0-100% because people deserve to know when their wifi strength is low.~~
+* Convert all references to the "advanced settings" of the Floorplan
+  to use the `GlobalSettings` object instead of the Floorplan
+* Ultimately, `Database` might be called `SiteMap`, since it contains
+  all  the info required to reproduce the site's heatmap(s).
+  Interim step: rename localStorage() with "wifi-heatmap-IMAGE_NAME"?
