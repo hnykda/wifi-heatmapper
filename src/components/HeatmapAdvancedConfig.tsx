@@ -39,7 +39,7 @@ const hexToRgba = (hex: string, alpha: number) => {
 export function HeatmapAdvancedConfig() {
   const { settings, updateSettings } = useSettings();
 
-  logger.info(`${JSON.stringify(settings)}`);
+  // logger.info(`${JSON.stringify(settings)}`);
 
   // const [localConfig, setLocalConfig] = useState(config);
 
@@ -71,166 +71,175 @@ export function HeatmapAdvancedConfig() {
   return (
     <Accordion type="single" collapsible>
       <AccordionItem value="advanced-config">
-        <AccordionTrigger>
-          Advanced Configuration &nbsp;<i>(optional)</i>
-        </AccordionTrigger>
+        <AccordionTrigger>Advanced Configuration</AccordionTrigger>
         <AccordionContent>
-          <div className="flex flex-row gap-4">
-            {/* <div>
-              <Label htmlFor="radiusDivider">
-                Size Adjustment
-                <PopoverHelper text="Adjusts the size of the heat spots to fit the base drawing. Values are generally 1 to 10 - lower values create larger spots. Can be float." />
-              </Label>
-              <Input
-                id="radiusDivider"
-                type="number"
-                step="0.1"
-                value={settings.radiusDivider}
-                onChange={
-                  (e) =>
-                    debouncedUpdateSettings({
-                      radiusDivider: parseFloat(e.target.value),
-                    })
-                  // handleConfigChange("radius", parseFloat(e.target.value))
-                }
-                className="h-9"
-              />
-            </div> */}
+          <table className="flex flex-row gap-4">
+            <tbody>
+              <tr>
+                <td>
+                  <Label htmlFor="maxOpacity">
+                    Max Opacity&nbsp;
+                    <PopoverHelper text="The maximum opacity of the heatmap points. Values range from 0 to 1." />
+                  </Label>
+                </td>
+                <td>
+                  <Input
+                    id="maxOpacity"
+                    type="number"
+                    min="0"
+                    max="1"
+                    step="0.1"
+                    value={settings.maxOpacity}
+                    onChange={(e) =>
+                      debouncedUpdateSettings({
+                        maxOpacity: parseFloat(e.target.value),
+                      })
+                    }
+                    className="h-9"
+                  />
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <Label htmlFor="minOpacity">
+                    Min Opacity&nbsp;
+                    <PopoverHelper text="The minimum opacity of the heatmap points. Values range from 0 to 1." />
+                  </Label>
+                </td>
+                <td>
+                  <Input
+                    id="minOpacity"
+                    type="number"
+                    min="0"
+                    max="1"
+                    step="0.1"
+                    value={settings.minOpacity}
+                    onChange={(e) =>
+                      debouncedUpdateSettings({
+                        minOpacity: parseFloat(e.target.value),
+                      })
+                    }
+                    className="h-9"
+                  />
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <Label htmlFor="blur">
+                    Blur&nbsp;
+                    <PopoverHelper text="The amount of blur applied to the heatmap. Values range from 0 to 1." />
+                  </Label>
+                </td>
+                <td>
+                  <Input
+                    id="blur"
+                    type="number"
+                    min="0"
+                    max="1"
+                    step="0.01"
+                    value={settings.blur}
+                    onChange={(e) =>
+                      debouncedUpdateSettings({
+                        blur: parseFloat(e.target.value),
+                      })
+                    }
+                    className="h-9"
+                  />
+                </td>
+              </tr>
+              <tr>
+                <td className="align-top p-4">
+                  <Label>
+                    Gradient&nbsp;
+                    <PopoverHelper text="Define the color gradient for the heatmap. Each key represents a point in the gradient (0 to 1), and the value is the color. See heatmap.js gradient configuration." />
+                  </Label>
+                </td>
+                <td colSpan={2}>
+                  {" "}
+                  <div>
+                    <div className="flex items-center space-x-2 mt-2 mb-1 font-semibold">
+                      <span className="w-20 text-center">Position</span>
+                      <span className="w-20 text-center">Color</span>
+                      <span className="w-20 text-center">Opacity</span>
+                    </div>
+                    {sortedGradientEntries().map(([key, value]) => {
+                      const hexColor = rgbaToHex(value);
+                      const alpha = parseFloat(value.split(",")[3]) || 1;
 
-            <div>
-              <Label htmlFor="maxOpacity">
-                Max Opacity
-                <PopoverHelper text="The maximum opacity of the heatmap points. Values range from 0 to 1." />
-              </Label>
-              <Input
-                id="maxOpacity"
-                type="number"
-                min="0"
-                max="1"
-                step="0.1"
-                value={settings.maxOpacity}
-                onChange={(e) =>
-                  debouncedUpdateSettings({
-                    maxOpacity: parseFloat(e.target.value),
-                  })
-                }
-                className="h-9"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="minOpacity">
-                Min Opacity
-                <PopoverHelper text="The minimum opacity of the heatmap points. Values range from 0 to 1." />
-              </Label>
-              <Input
-                id="minOpacity"
-                type="number"
-                min="0"
-                max="1"
-                step="0.1"
-                value={settings.minOpacity}
-                onChange={(e) =>
-                  debouncedUpdateSettings({
-                    minOpacity: parseFloat(e.target.value),
-                  })
-                }
-                className="h-9"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="blur">
-                Blur
-                <PopoverHelper text="The amount of blur applied to the heatmap. Values range from 0 to 1." />
-              </Label>
-              <Input
-                id="blur"
-                type="number"
-                min="0"
-                max="1"
-                step="0.01"
-                value={settings.blur}
-                onChange={(e) =>
-                  debouncedUpdateSettings({ blur: parseFloat(e.target.value) })
-                }
-                className="h-9"
-              />
-            </div>
-            <div>
-              <Label>
-                Gradient
-                <PopoverHelper text="Define the color gradient for the heatmap. Each key represents a point in the gradient (0 to 1), and the value is the color. See heatmap.js gradient configuration." />
-              </Label>
-              <div className="flex items-center space-x-2 mt-2 mb-1 font-semibold">
-                <span className="w-20 text-center">Position</span>
-                <span className="w-20 text-center">Color</span>
-                <span className="w-20 text-center">Opacity</span>
-              </div>
-              {sortedGradientEntries().map(([key, value]) => {
-                const hexColor = rgbaToHex(value);
-                const alpha = parseFloat(value.split(",")[3]) || 1;
-
-                return (
-                  <div key={key} className="flex items-center space-x-2 mt-2">
-                    <Input
-                      type="text"
-                      value={key}
-                      onChange={(e) => {
-                        const newGradient = { ...settings.gradient };
-                        delete newGradient[key];
-                        newGradient[e.target.value] = value;
-                        debouncedUpdateSettings({ gradient: newGradient });
-                      }}
-                      className="w-20 h-9"
-                    />
-                    <Input
-                      type="color"
-                      value={hexColor}
-                      onChange={(e) => {
-                        const newColor = hexToRgba(e.target.value, alpha);
+                      return (
+                        <div
+                          key={key}
+                          className="flex items-center space-x-2 mt-2"
+                        >
+                          <Input
+                            type="text"
+                            value={key}
+                            onChange={(e) => {
+                              const newGradient = { ...settings.gradient };
+                              delete newGradient[key];
+                              newGradient[e.target.value] = value;
+                              debouncedUpdateSettings({
+                                gradient: newGradient,
+                              });
+                            }}
+                            className="w-20 h-9"
+                          />
+                          <Input
+                            type="color"
+                            value={hexColor}
+                            onChange={(e) => {
+                              const newColor = hexToRgba(e.target.value, alpha);
+                              const newGradient = {
+                                ...settings.gradient,
+                                [key]: newColor,
+                              };
+                              debouncedUpdateSettings({
+                                gradient: newGradient,
+                              });
+                            }}
+                            className="w-20 h-9"
+                          />
+                          <Input
+                            type="number"
+                            min="0"
+                            max="1"
+                            step="0.1"
+                            value={alpha}
+                            onChange={(e) => {
+                              const newAlpha = parseFloat(e.target.value);
+                              const newColor = hexToRgba(hexColor, newAlpha);
+                              const newGradient = {
+                                ...settings.gradient,
+                                [key]: newColor,
+                              };
+                              debouncedUpdateSettings({
+                                gradient: newGradient,
+                              });
+                            }}
+                            className="w-20 h-9"
+                          />
+                        </div>
+                      );
+                    })}
+                    <button
+                      onClick={() => {
                         const newGradient = {
                           ...settings.gradient,
-                          [key]: newColor,
+                          [""]: "rgba(0, 0, 0, 1)",
                         };
                         debouncedUpdateSettings({ gradient: newGradient });
                       }}
-                      className="w-20 h-9"
-                    />
-                    <Input
-                      type="number"
-                      min="0"
-                      max="1"
-                      step="0.1"
-                      value={alpha}
-                      onChange={(e) => {
-                        const newAlpha = parseFloat(e.target.value);
-                        const newColor = hexToRgba(hexColor, newAlpha);
-                        const newGradient = {
-                          ...settings.gradient,
-                          [key]: newColor,
-                        };
-                        debouncedUpdateSettings({ gradient: newGradient });
-                      }}
-                      className="w-20 h-9"
-                    />
+                      className="mt-2 px-2 py-1 bg-blue-500 text-white rounded"
+                    >
+                      Add Color Stop
+                    </button>
                   </div>
-                );
-              })}
-              <button
-                onClick={() => {
-                  const newGradient = {
-                    ...settings.gradient,
-                    [""]: "rgba(0, 0, 0, 1)",
-                  };
-                  debouncedUpdateSettings({ gradient: newGradient });
-                }}
-                className="mt-2 px-2 py-1 bg-blue-500 text-white rounded"
-              >
-                Add Color Stop
-              </button>
-            </div>
-          </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          {/* </div> */}
         </AccordionContent>
       </AccordionItem>
     </Accordion>
