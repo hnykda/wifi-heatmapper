@@ -11,23 +11,6 @@ import { readSettingsFromFile, writeSettingsToFile } from "../lib/fileHandler";
 import { HeatmapSettings, SurveyPoint, SurveyPointActions } from "../lib/types";
 
 /**
-  * Pct	   dBm		   dBm	Pct		   dBm  Pct
- * 0%  -100dBm	 -100dBm	0%	 -100dBm	0%
- * 10%	-94dBm		-94dBm	10%		-90dBm	17%
- * 20%	-88dBm		-88dBm	20%		-80dBm	33%
- * 25%	-85dBm		-85dBm	25%		-75dBm	42%
- * 30%	-82dBm		-82dBm	30%		-70dBm	50%
- * 40%	-76dBm		-76dBm	40%		-65dBm	58%
- * 50%	-70dBm		-70dBm	50%		-60dBm	67%
- * 60%	-64dBm		-64dBm	60%		-55dBm	75%
- * 70%	-58dBm		-58dBm	70%		-50dBm	83%
- * 75%	-55dBm		-55dBm	75%		-45dBm	92%
- * 80%	-52dBm		-52dBm	80%		-40dBm	100%
- * 90%	-46dBm		-46dBm	90%		
- * 100%	-40dBm		-40dBm	100%
- * /
-   
-/**
  * getDefaults()
  * @returns Set of default settings
  */

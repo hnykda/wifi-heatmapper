@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   description: "A tool to measure WiFi signal in a floorplan.",
 };
 
-await initServer(); // fire up all the server-side stu
+await initServer(); // fire up all the server-side stuff
 
 export default function RootLayout({
   children,
