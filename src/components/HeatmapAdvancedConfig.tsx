@@ -71,7 +71,9 @@ export function HeatmapAdvancedConfig() {
   return (
     <Accordion type="single" collapsible>
       <AccordionItem value="advanced-config">
-        <AccordionTrigger>Advanced Configuration</AccordionTrigger>
+        <AccordionTrigger>
+          Advanced Configuration &nbsp;<i>(optional)</i>
+        </AccordionTrigger>
         <AccordionContent>
           <div className="flex flex-row gap-4">
             {/* <div>

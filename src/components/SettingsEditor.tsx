@@ -1,5 +1,7 @@
 import { useSettings } from "@/components/GlobalSettings";
 import { PasswordInput } from "./PasswordInput";
+import HeatmapAdvancedConfig from "./HeatmapAdvancedConfig";
+
 // import { FileInput } from "./FileInput";
 
 export default function SettingsEditor() {
@@ -100,19 +102,15 @@ export default function SettingsEditor() {
             /> */}
           </td>
         </tr>
-        {/* <tr>
-          <td className="text-right pr-4">
-            <label>grumble:</label>
-          </td>
-          <td>
-            <input
-              type="text"
-              className="border border-gray-200 rounded-sm p-2 focus:outline-none focus:ring focus:ring-blue-300 focus:border-blue-400"
-              value={settings.grumble}
-              onChange={(e) => updateSettings({ grumble: e.target.value })}
+        <tr>
+          <td colSpan={2} className="text-right pr-4">
+            <HeatmapAdvancedConfig
+            // settings={settings}
+            // // config={heatmapConfig}
+            // // setConfig={setHeatmapConfig}
             />
           </td>
-        </tr> */}
+        </tr>
         {/* <label>Auto-Save:</label>
       <input
         type="checkbox"
