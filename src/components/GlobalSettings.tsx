@@ -41,7 +41,7 @@ const getDefaults = (): HeatmapSettings => {
     sudoerPassword: "",
     nextPointNum: 1,
     dimensions: { width: 100, height: 100 },
-    radiusDivider: 1,
+    radiusDivider: null,
     maxOpacity: 0.7,
     minOpacity: 0.2,
     blur: 0.99,

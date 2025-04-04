@@ -28,7 +28,15 @@ Random observations and questions that arise at the start of the project
 * The "distance" of 10 in detecting a click is not big enough when
   using some kind of tablet. An errant finger makes it look like a request
   to make a new measurement, not examine that point's statistics.
-* Fix display of BSSID on Windows; parsing test code not updated
+* Fix display of BSSID; Windows parsing test code not updated;
+  macOS shows `<R-ED-AC-TED>` or some such nonsense (SB "Not available")
+* Fix display of dBm in the heatmap scale when not showing as %
+* Add slider to heatmap. Always set it to the computed value, unless
+  user has changed it, then remember that value in the global settings.
+  Initialize it to null: a numeric value indicates it has been changed.
+  Sliding the value to 0 should re-set the value to null.
+* Remove Scale size/radius divider from AdvancedHeatMap settings.
+  All the above logic should remain within the Heatmap component
 
 ## Questions
 

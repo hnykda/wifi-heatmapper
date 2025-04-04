@@ -46,6 +46,14 @@ export interface ApMapping {
 export type RGB = { r: number; g: number; b: number; a: number };
 export type Gradient = Record<number, string>; // Maps 0-1 values to colors
 
+export type HeatmapConfig = {
+  radius: number;
+  maxOpacity: number;
+  minOpacity: number;
+  blur: number;
+  gradient: Record<string, string>;
+};
+
 export interface HeatmapSettings {
   surveyPoints: SurveyPoint[];
   floorplanImagePath: string;
@@ -55,7 +63,7 @@ export interface HeatmapSettings {
   apMapping: ApMapping[];
   nextPointNum: number;
   dimensions: { width: number; height: number };
-  radiusDivider: number;
+  radiusDivider: number | null; // null - use calculated value
   maxOpacity: number;
   minOpacity: number;
   blur: number;

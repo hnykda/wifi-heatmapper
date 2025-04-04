@@ -1,4 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
+
+import { useSettings } from "@/components/GlobalSettings";
+
 import {
   calculateOptimalRadius,
   calculateRadiusByBoundingBox,
@@ -20,8 +23,8 @@ import {
 } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
-import HeatmapAdvancedConfig, { HeatmapConfig } from "./HeatmapAdvancedConfig";
 import { Download } from "lucide-react";
+import { HeatmapSlider } from "./Slider";
 
 import { IperfTestProperty } from "@/lib/types";
 import {
@@ -65,20 +68,16 @@ const getAvailableProperties = (
   }
 };
 
-interface HeatmapProps {
-  points: SurveyPoint[];
-  dimensions: { width: number; height: number };
-  image: string;
-}
+// interface HeatmapProps {
+//   points: SurveyPoint[];
+//   dimensions: { width: number; height: number };
+//   image: string;
+// }
 
-export const Heatmaps: React.FC<HeatmapProps> = ({
-  points,
-  dimensions,
-  image,
-}) => {
-  // const { settings, updateSettings, surveyPointActions } = useSettings();
+export function Heatmaps() {
+  const { settings, updateSettings } = useSettings();
 
-  // console.log(`Dimensions: ${JSON.stringify(dimensions)}`);
+  console.log(`opening Heatmaps: ${JSON.stringify(settings)}`);
 
   const [heatmaps, setHeatmaps] = useState<{ [key: string]: string | null }>(
     {},
@@ -87,12 +86,14 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
     src: string;
     alt: string;
   } | null>(null);
+
   const [selectedMetrics, setSelectedMetrics] = useState<MeasurementTestType[]>(
     ["signalStrength", "tcpDownload", "tcpUpload"],
   );
   const [selectedProperties, setSelectedProperties] = useState<
     (keyof IperfTestProperty)[]
   >(["bitsPerSecond"]);
+
   const [showSignalStrengthAsPercentage, setShowSignalStrengthAsPercentage] =
     useState(true);
 
@@ -100,30 +101,45 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
   const r2 = calculateRadiusByBoundingBox;
   const r3 = calculateOptimalRadius; // bad for small numbers of points
 
-  const [heatmapConfig, setHeatmapConfig] = useState<HeatmapConfig>({
-    radius: r2(points),
-    maxOpacity: 0.7,
-    minOpacity: 0.2,
-    blur: 0.99,
-    gradient: {
-      // "green-based" intensity: Green is good; red is bad
-      0: "rgba(255, 0, 0, 0.6)",
-      0.35: "rgba(255, 255, 0, 0.6)",
-      // 0.5: "rgba(0, 0, 0, 0.6)",
-      0.4: "rgba(72, 72, 242, 0.6)",
-      0.6: "rgba(4, 229, 229, 0.6)",
-      1.0: "rgba(2, 236, 2, 0.6)",
-    },
-    // Original gradient - red is highest intensity
-    //  gradient: {
-    //   0.05: "rgba(0, 0, 0, 0.6)", // throw some grey in there
-    //   0.1: "rgba(0, 0, 255, 0.6)", // 40%, -80 dBm
-    //   0.25: "rgba(0, 255, 255, 0.6)", // 60%, -70 dBm
-    //   0.5: "rgba(0, 255, 0, 0.6)", // 70%, -60 dBm
-    //   0.75: "rgba(255, 255, 0, 0.6)", // 85%, -50 dBm
-    //   1.0: "rgba(255, 0, 0, 0.6)", // 100%, -40 dBm
-    // },
-  });
+  const points = settings.surveyPoints;
+  const displayedRadius = settings.radiusDivider // if settings value is non-null
+    ? settings.radiusDivider // use it
+    : Math.round(r2(points));
+
+  // updateSettings({ radiusDivider: r2(points) });
+  // const [heatmapConfig, setHeatmapConfig] = useState<HeatmapConfig>({
+  //   radius: r2(points),
+  //   maxOpacity: 0.7,
+  //   minOpacity: 0.2,
+  //   blur: 0.99,
+  //   gradient: {
+  //     // "green-based" intensity: Green is good; red is bad
+  //     0: "rgba(255, 0, 0, 0.6)",
+  //     0.35: "rgba(255, 255, 0, 0.6)",
+  //     // 0.5: "rgba(0, 0, 0, 0.6)",
+  //     0.4: "rgba(72, 72, 242, 0.6)",
+  //     0.6: "rgba(4, 229, 229, 0.6)",
+  //     1.0: "rgba(2, 236, 2, 0.6)",
+  //   },
+  //   // Original gradient - red is highest intensity
+  //   //  gradient: {
+  //   //   0.05: "rgba(0, 0, 0, 0.6)", // throw some grey in there
+  //   //   0.1: "rgba(0, 0, 255, 0.6)", // 40%, -80 dBm
+  //   //   0.25: "rgba(0, 255, 255, 0.6)", // 60%, -70 dBm
+  //   //   0.5: "rgba(0, 255, 0, 0.6)", // 70%, -60 dBm
+  //   //   0.75: "rgba(255, 255, 0, 0.6)", // 85%, -50 dBm
+  //   //   1.0: "rgba(255, 0, 0, 0.6)", // 100%, -40 dBm
+  //   // },
+  // });
+
+  const handleRadiusChange = (r: number) => {
+    console.log(`handleRadiusChange: ${r}`);
+    let savedVal: number | null = null;
+    if (r != 0) {
+      savedVal = r;
+    }
+    updateSettings({ radiusDivider: savedVal });
+  };
 
   const getMetricValue = useCallback(
     (
@@ -149,7 +165,7 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
           return 0;
       }
     },
-    [showSignalStrengthAsPercentage],
+    [showSignalStrengthAsPercentage, settings.radiusDivider],
   );
 
   const generateHeatmapData = useCallback(
@@ -209,42 +225,42 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
     [showSignalStrengthAsPercentage],
   );
 
-  /**
-   * Compute ratio from average number of points in X and Y direction
-   * spread across the dimensions of the floor plan
-   * @param points
-   * @returns
-   */
-  function computeRatio(points: SurveyPoint[]): number {
-    if (points.length === 0) {
-      return 1; // Handle empty array case
-    }
-    const minX = points.reduce(
-      (min: any, obj: any) => Math.min(min, obj.x),
-      Infinity,
-    );
-    const minY = points.reduce(
-      (min: any, obj: any) => Math.min(min, obj.y),
-      Infinity,
-    );
-    const maxX = points.reduce((max: any, obj: any) => Math.max(max, obj.x), 0);
-    const maxY = points.reduce((max: any, obj: any) => Math.max(max, obj.x), 0);
-    const totalX = points.reduce((sum, point) => sum + (point.x - minX), 0);
-    const totalY = points.reduce((sum, point) => sum + (point.y - minY), 0);
-    // console.log(totalX / points.length, totalY / points.length);
-    const averageNumPoints =
-      (totalX + totalY) / points.length / points.length / 2;
-    console.log(`averageNumPoints: ${averageNumPoints}`);
+  // /**
+  //  * Compute ratio from average number of points in X and Y direction
+  //  * spread across the dimensions of the floor plan
+  //  * @param points
+  //  * @returns
+  //  */
+  // function computeRatio(points: SurveyPoint[]): number {
+  //   if (points.length === 0) {
+  //     return 1; // Handle empty array case
+  //   }
+  //   const minX = points.reduce(
+  //     (min: any, obj: any) => Math.min(min, obj.x),
+  //     Infinity,
+  //   );
+  //   const minY = points.reduce(
+  //     (min: any, obj: any) => Math.min(min, obj.y),
+  //     Infinity,
+  //   );
+  //   const maxX = points.reduce((max: any, obj: any) => Math.max(max, obj.x), 0);
+  //   const maxY = points.reduce((max: any, obj: any) => Math.max(max, obj.x), 0);
+  //   const totalX = points.reduce((sum, point) => sum + (point.x - minX), 0);
+  //   const totalY = points.reduce((sum, point) => sum + (point.y - minY), 0);
+  //   // console.log(totalX / points.length, totalY / points.length);
+  //   const averageNumPoints =
+  //     (totalX + totalY) / points.length / points.length / 2;
+  //   console.log(`averageNumPoints: ${averageNumPoints}`);
 
-    console.log(`FloorplanDim: ${dimensions.width} ${dimensions.height}`);
-    console.log(`readingsDim: ${maxX - minX}, ${maxY - minY}`);
-    const ratio =
-      Math.max(dimensions.width, dimensions.height) / averageNumPoints;
-    // Math.min(maxX - minX, maxY - minY) / averageNumPoints;
-    console.log(`average points: ${totalX}, ${totalY}, Ratio: ${ratio}`);
+  //   console.log(`FloorplanDim: ${dimensions.width} ${dimensions.height}`);
+  //   console.log(`readingsDim: ${maxX - minX}, ${maxY - minY}`);
+  //   const ratio =
+  //     Math.max(dimensions.width, dimensions.height) / averageNumPoints;
+  //   // Math.min(maxX - minX, maxY - minY) / averageNumPoints;
+  //   console.log(`average points: ${totalX}, ${totalY}, Ratio: ${ratio}`);
 
-    return ratio;
-  }
+  //   return ratio;
+  // }
 
   const renderHeatmap = useCallback(
     (
@@ -253,8 +269,8 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
     ): Promise<string | null> => {
       return new Promise((resolve) => {
         if (
-          dimensions.width === 0 ||
-          dimensions.height === 0 ||
+          settings.dimensions.width === 0 ||
+          settings.dimensions.height === 0 ||
           !offScreenContainerRef.current
         ) {
           logger.error(
@@ -275,8 +291,8 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
         }
 
         const heatmapContainer = document.createElement("div");
-        heatmapContainer.style.width = `${dimensions.width}px`;
-        heatmapContainer.style.height = `${dimensions.height}px`;
+        heatmapContainer.style.width = `${settings.dimensions.width}px`;
+        heatmapContainer.style.height = `${settings.dimensions.height}px`;
 
         offScreenContainerRef.current.appendChild(heatmapContainer);
 
@@ -284,25 +300,25 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
         // if points were spread evenly, they'd take (h x w) / (# points) pixels.
         // take the square root of the # pixels to get average X & Y
         // and throw in a fudge factor just because ... :-)
-        const numPoints = heatmapData.length;
-        const minX = points.reduce(
-          (min: any, obj: any) => Math.min(min, obj.x),
-          Infinity,
-        );
-        const minY = points.reduce(
-          (min: any, obj: any) => Math.min(min, obj.y),
-          Infinity,
-        );
-        const maxX = points.reduce(
-          (max: any, obj: any) => Math.max(max, obj.x),
-          0,
-        );
-        const maxY = points.reduce(
-          (max: any, obj: any) => Math.max(max, obj.x),
-          0,
-        );
-        const dimX = maxX - minX;
-        const dimY = maxY - minY;
+        // const numPoints = heatmapData.length;
+        // const minX = points.reduce(
+        //   (min: any, obj: any) => Math.min(min, obj.x),
+        //   Infinity,
+        // );
+        // const minY = points.reduce(
+        //   (min: any, obj: any) => Math.min(min, obj.y),
+        //   Infinity,
+        // );
+        // const maxX = points.reduce(
+        //   (max: any, obj: any) => Math.max(max, obj.x),
+        //   0,
+        // );
+        // const maxY = points.reduce(
+        //   (max: any, obj: any) => Math.max(max, obj.x),
+        //   0,
+        // );
+        // const dimX = maxX - minX;
+        // const dimY = maxY - minY;
         /**
          * meanDistance between points - doesn't help
          */
@@ -331,13 +347,13 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
 
         const heatmapInstance = h337.create({
           container: heatmapContainer,
-          radius:
-            // Math.min(dimensions.width, dimensions.height) /
-            heatmapConfig.radius,
-          maxOpacity: heatmapConfig.maxOpacity,
-          minOpacity: heatmapConfig.minOpacity,
-          blur: heatmapConfig.blur,
-          gradient: heatmapConfig.gradient,
+          radius: !settings.radiusDivider
+            ? displayedRadius
+            : settings.radiusDivider,
+          maxOpacity: settings.maxOpacity,
+          minOpacity: settings.minOpacity,
+          blur: settings.blur,
+          gradient: settings.gradient,
         });
 
         // const max = Math.max(...heatmapData.map((point) => point.value));
@@ -357,8 +373,11 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
 
         const canvas = document.createElement("canvas");
         canvas.width =
-          dimensions.width + colorBarWidth + labelWidth + canvasRightPadding;
-        canvas.height = dimensions.height + 40;
+          settings.dimensions.width +
+          colorBarWidth +
+          labelWidth +
+          canvasRightPadding;
+        canvas.height = settings.dimensions.height + 40;
         const ctx = canvas.getContext("2d", { willReadFrequently: true });
         if (!ctx) {
           logger.error("Failed to get 2D context");
@@ -379,8 +398,8 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
             backgroundImage,
             0,
             20,
-            dimensions.width,
-            dimensions.height,
+            settings.dimensions.width,
+            settings.dimensions.height,
           );
 
           const heatmapCanvas = heatmapContainer.querySelector("canvas");
@@ -395,8 +414,8 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
 
             // Draw color bar
             const colorBarWidth = 50; // Increased width
-            const colorBarHeight = dimensions.height;
-            const colorBarX = dimensions.width + 40; // Adjusted position
+            const colorBarHeight = settings.dimensions.height;
+            const colorBarX = settings.dimensions.width + 40; // Adjusted position
             const colorBarY = 20;
 
             const gradient = ctx.createLinearGradient(
@@ -405,7 +424,7 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
               0,
               colorBarY,
             );
-            Object.entries(heatmapConfig.gradient).forEach(([stop, color]) => {
+            Object.entries(settings.gradient).forEach(([stop, color]) => {
               gradient.addColorStop(parseFloat(stop), color);
             });
 
@@ -454,10 +473,15 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
             resolve(null);
           }
         };
-        backgroundImage.src = image;
+        backgroundImage.src = settings.floorplanImagePath;
       });
     },
-    [dimensions, generateHeatmapData, image, heatmapConfig],
+    [
+      settings.dimensions,
+      generateHeatmapData,
+      settings.floorplanImagePath,
+      settings,
+    ],
   );
 
   const generateAllHeatmaps = useCallback(async () => {
@@ -535,11 +559,11 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
   };
 
   useEffect(() => {
-    if (dimensions.width > 0 && dimensions.height > 0) {
+    if (settings.dimensions.width > 0 && settings.dimensions.height > 0) {
       generateAllHeatmaps();
     }
   }, [
-    dimensions,
+    settings.dimensions,
     generateAllHeatmaps,
     points,
     selectedMetrics,
@@ -623,10 +647,13 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
         </div>
       </div>
 
-      <HeatmapAdvancedConfig
-        config={heatmapConfig}
-        setConfig={setHeatmapConfig}
-      />
+      <HeatmapSlider value={displayedRadius} onChange={handleRadiusChange} />
+
+      {/* <HeatmapAdvancedConfig
+        settings={settings}
+        // config={heatmapConfig}
+        // setConfig={setHeatmapConfig}
+      /> */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {selectedMetrics.map((metric) => (
           <div key={metric} className="bg-gray-50 p-4 rounded-lg">
@@ -717,4 +744,4 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
       </Dialog>
     </div>
   );
-};
+}

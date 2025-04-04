@@ -1,5 +1,4 @@
-import React, { useState } from "react";
-import { debounce } from "lodash";
+import React from "react";
 
 import {
   Accordion,
@@ -11,15 +10,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PopoverHelper } from "@/components/PopoverHelpText";
 import { getLogger } from "@/lib/logger";
+// import { HeatmapConfig } from "@/lib/types";
+import { useSettings } from "@/components/GlobalSettings";
+import { HeatmapSettings } from "@/lib/types";
+import { debounce } from "lodash";
 
 const logger = getLogger("HeatmapAdvancedConfig");
-export type HeatmapConfig = {
-  radius: number;
-  maxOpacity: number;
-  minOpacity: number;
-  blur: number;
-  gradient: Record<string, string>;
-};
 
 const rgbaToHex = (rgba: string) => {
   const parts = rgba.match(/[\d.]+/g);
@@ -40,29 +36,32 @@ const hexToRgba = (hex: string, alpha: number) => {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 };
 
-const HeatmapAdvancedConfig = ({
-  config,
-  setConfig,
-}: {
-  config: HeatmapConfig;
-  setConfig: (config: HeatmapConfig) => void;
-}) => {
-  const [localConfig, setLocalConfig] = useState(config);
+export function HeatmapAdvancedConfig() {
+  const { settings, updateSettings } = useSettings();
 
-  const debouncedSetConfig = debounce(setConfig, 500);
+  logger.info(`${JSON.stringify(settings)}`);
 
-  const handleConfigChange = (
-    key: keyof HeatmapConfig,
-    value: number | Record<string, string>,
-  ) => {
-    logger.info(key, value, new Date());
-    const newConfig = { ...localConfig, [key]: value };
-    setLocalConfig(newConfig);
-    debouncedSetConfig(newConfig);
-  };
+  // const [localConfig, setLocalConfig] = useState(config);
+
+  // function debouncedUpdateSettings(x: Partial<HeatmapSettings>) {
+  //   return;
+  // }
+  const debouncedUpdateSettings = debounce(
+    (settings: Partial<HeatmapSettings>) => updateSettings(settings),
+    500,
+  );
+  // const handleConfigChange = (
+  //   key: keyof HeatmapConfig,
+  //   value: number | Record<string, string>,
+  // ) => {
+  //   logger.info(key, value, new Date());
+  //   const newConfig = { ...localConfig, [key]: value };
+  //   setLocalConfig(newConfig);
+  //   debouncedSetConfig(newConfig);
+  // };
 
   const sortedGradientEntries = () => {
-    return Object.entries(localConfig.gradient).sort(([a], [b]) => {
+    return Object.entries(settings.gradient).sort(([a], [b]) => {
       const numA = parseFloat(a);
       const numB = parseFloat(b);
       return isNaN(numA) || isNaN(numB) ? 0 : numA - numB;
@@ -75,7 +74,7 @@ const HeatmapAdvancedConfig = ({
         <AccordionTrigger>Advanced Configuration</AccordionTrigger>
         <AccordionContent>
           <div className="flex flex-row gap-4">
-            <div>
+            {/* <div>
               <Label htmlFor="radiusDivider">
                 Size Adjustment
                 <PopoverHelper text="Adjusts the size of the heat spots to fit the base drawing. Values are generally 1 to 10 - lower values create larger spots. Can be float." />
@@ -84,13 +83,17 @@ const HeatmapAdvancedConfig = ({
                 id="radiusDivider"
                 type="number"
                 step="0.1"
-                value={localConfig.radius}
-                onChange={(e) =>
-                  handleConfigChange("radius", parseFloat(e.target.value))
+                value={settings.radiusDivider}
+                onChange={
+                  (e) =>
+                    debouncedUpdateSettings({
+                      radiusDivider: parseFloat(e.target.value),
+                    })
+                  // handleConfigChange("radius", parseFloat(e.target.value))
                 }
                 className="h-9"
               />
-            </div>
+            </div> */}
 
             <div>
               <Label htmlFor="maxOpacity">
@@ -103,9 +106,11 @@ const HeatmapAdvancedConfig = ({
                 min="0"
                 max="1"
                 step="0.1"
-                value={localConfig.maxOpacity}
+                value={settings.maxOpacity}
                 onChange={(e) =>
-                  handleConfigChange("maxOpacity", parseFloat(e.target.value))
+                  debouncedUpdateSettings({
+                    maxOpacity: parseFloat(e.target.value),
+                  })
                 }
                 className="h-9"
               />
@@ -122,9 +127,11 @@ const HeatmapAdvancedConfig = ({
                 min="0"
                 max="1"
                 step="0.1"
-                value={localConfig.minOpacity}
+                value={settings.minOpacity}
                 onChange={(e) =>
-                  handleConfigChange("minOpacity", parseFloat(e.target.value))
+                  debouncedUpdateSettings({
+                    minOpacity: parseFloat(e.target.value),
+                  })
                 }
                 className="h-9"
               />
@@ -141,9 +148,9 @@ const HeatmapAdvancedConfig = ({
                 min="0"
                 max="1"
                 step="0.01"
-                value={localConfig.blur}
+                value={settings.blur}
                 onChange={(e) =>
-                  handleConfigChange("blur", parseFloat(e.target.value))
+                  debouncedUpdateSettings({ blur: parseFloat(e.target.value) })
                 }
                 className="h-9"
               />
@@ -168,10 +175,10 @@ const HeatmapAdvancedConfig = ({
                       type="text"
                       value={key}
                       onChange={(e) => {
-                        const newGradient = { ...localConfig.gradient };
+                        const newGradient = { ...settings.gradient };
                         delete newGradient[key];
                         newGradient[e.target.value] = value;
-                        handleConfigChange("gradient", newGradient);
+                        debouncedUpdateSettings({ gradient: newGradient });
                       }}
                       className="w-20 h-9"
                     />
@@ -181,10 +188,10 @@ const HeatmapAdvancedConfig = ({
                       onChange={(e) => {
                         const newColor = hexToRgba(e.target.value, alpha);
                         const newGradient = {
-                          ...localConfig.gradient,
+                          ...settings.gradient,
                           [key]: newColor,
                         };
-                        handleConfigChange("gradient", newGradient);
+                        debouncedUpdateSettings({ gradient: newGradient });
                       }}
                       className="w-20 h-9"
                     />
@@ -198,10 +205,10 @@ const HeatmapAdvancedConfig = ({
                         const newAlpha = parseFloat(e.target.value);
                         const newColor = hexToRgba(hexColor, newAlpha);
                         const newGradient = {
-                          ...localConfig.gradient,
+                          ...settings.gradient,
                           [key]: newColor,
                         };
-                        handleConfigChange("gradient", newGradient);
+                        debouncedUpdateSettings({ gradient: newGradient });
                       }}
                       className="w-20 h-9"
                     />
@@ -211,10 +218,10 @@ const HeatmapAdvancedConfig = ({
               <button
                 onClick={() => {
                   const newGradient = {
-                    ...localConfig.gradient,
+                    ...settings.gradient,
                     [""]: "rgba(0, 0, 0, 1)",
                   };
-                  handleConfigChange("gradient", newGradient);
+                  debouncedUpdateSettings({ gradient: newGradient });
                 }}
                 className="mt-2 px-2 py-1 bg-blue-500 text-white rounded"
               >
@@ -226,6 +233,6 @@ const HeatmapAdvancedConfig = ({
       </AccordionItem>
     </Accordion>
   );
-};
+}
 
 export default HeatmapAdvancedConfig;

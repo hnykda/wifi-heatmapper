@@ -64,9 +64,9 @@ export default function TabPanel() {
 
         <Tabs.Content value="tab3" className="p-4">
           <Heatmaps
-            image={settings.floorplanImagePath}
-            points={settings.surveyPoints}
-            dimensions={settings.dimensions}
+          // image={settings.floorplanImagePath}
+          // points={settings.surveyPoints}
+          // dimensions={settings.dimensions}
           />
         </Tabs.Content>
 

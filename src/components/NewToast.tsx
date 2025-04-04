@@ -21,7 +21,7 @@ export default function NewToast({ onClose, toastIsReady }: NewToastProps) {
       try {
         const data: { status: string; type: string; header: string } =
           JSON.parse(event.data);
-        console.log(`received message: ${JSON.stringify(data)}`);
+        // console.log(`received message: ${JSON.stringify(data)}`);
 
         if (data.type === "ready") {
           console.log(`received ready message`);
