@@ -4,6 +4,8 @@ _This section follows the precepts of [Keep a Changelog](https://keepachangelog.
 
 ## [Unreleased]
 
+* Significant editorial work on README and othe pages in _docs_
+
 ## Version 0.2.1 - 2025-04-04
 
 * Change the **Radius Divider** to a slider in the `Heatmap` pane.

@@ -8,6 +8,26 @@ It produces a heat map for each set of
 measurement points ("surveyPoints")
 that show where signal/throughput are high and low.
 
+## Platform-Specific Wifi Commands
+
+This utility relies on parsing outputs of the following CLI commands.
+
+| Platform | Commands          | Notes                                                                                                                                                    |
+| -------- | ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| macOS    | `wdutil`, `ioreg` | Both are usually part of the system, sudo password is needed for `wdutil`                                                                                |
+| Windows  | `netsh`           | Part of the system                                                                                                                                       |
+| Linux    | `iw`              | `iw` might need to be installed via your distro package manager, you will need to provide your wireless device id (e.g. "wlp4s0", we do try to infer it) |
+
+> [!IMPORTANT]  
+> In all cases, `iperf3` must be available in `PATH`. For Windows you might have to do something like `set PATH=%PATH%;C:\path\to\iperf3`, e.g. do `set PATH=%PATH%;C:\iperf3` (or `setx` to make it permanent) before running `npm run dev`. The version of at least 3.17 is weakly recommended for `iperf3` on both server and client (ideally the same version, but that's not strictly necessary). 
+
+## How does this work
+
+It's actually pretty simple. The app is written in Next.js. To get the information, we invoke the `iperf3`, `wdutil` and `ioreg` commands (or equivalent on different platforms) via JS `child_process` and parse the output. The webapp then just stores everything in simple JSON "database" file.
+
+## Running with higher LOG_LEVEL
+You can use `LOG_LEVEL=<number from 0 to 6>` to control logging, where the levels are `0: silly, 1: trace, 2: debug, 3: info, 4: warn, 5: error, 6: fatal`. Use this when submitting the bug reports.
+
 ## Component Hierarchy
 
 This is a fairly standard Next.js project:

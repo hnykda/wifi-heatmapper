@@ -2,8 +2,13 @@
 
 Random observations and questions that arise at the start of the project
 
-## Features and Behavior improvements
+## Feature and Behavior Improvements
 
+* Bundle this into a nice installable (electron?) app so it can be easily installed on a tablet
+* Make the app more user-friendly and informative (step by step wizard for the measurements)
+* Serialize the image to the database file so it can be loaded later
+* Add leaflet to make the maps interactive
+* Load/save heatmap config to database
 * Create a "Signal strength only" setting for quicker surveys.
   It also removes the requirement of setting up a separate iperf3 server. Maybe also triggered by a "" setting for the iperf3 server.
 * If only one survey point exists, the `Heatmap` floor plan should appear, but with a message like "Not enough points"
@@ -29,6 +34,7 @@ Random observations and questions that arise at the start of the project
 * Fix display of BSSID; Windows parsing test code not updated;
   macOS shows `<R-ED-AC-TED>` or some such nonsense (SB "Not available")
 * Fix display of dBm in the heatmap scale when not showing as %. (Currently, it shows 100dBm (positive number) as green, with 0 dBm as red. The scale should use the limits of the rssiToPercentage() function.
+* Make version 0.2.1 work with Docker (currently gives error attempting to locate the _localization_ directory)
 
 ## Questions
 
@@ -99,3 +105,5 @@ Random observations and questions that arise at the start of the project
 * Ultimately, `Database` might be called `SiteMap`, since it contains
   all  the info required to reproduce the site's heatmap(s).
   Interim step: rename localStorage() with "wifi-heatmap-IMAGE_NAME"?
+* ~~Find out how to get RSSI and other stuff from `ioreg` so sudo is not needed (for `wdutil`)~~ _Likely, not possible_
+* ~~Infer the relevant command/OS version and use the relevant commands and parser based on that to make this multi-platform.~~ Done
