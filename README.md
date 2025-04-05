@@ -18,7 +18,7 @@ The screen shot below shows a sample heat map:
 
 There are more details about the operation of **wifi-heatmapper** at:
 
-* [User Interace](docs/User_Interace.md)
+* [User Interace](docs/User_Interface.md)
 * [Theory of Operation](docs/Theory_of_Operation.md)
 * [FAQ](docs/FAQ.md)
 * [To-Do](docs/To-Do.md)
