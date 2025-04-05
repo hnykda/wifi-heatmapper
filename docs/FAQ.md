@@ -1,9 +1,10 @@
 # FAQ
 
-1. **Why do I see `<redacted>` or `000000000000` or similar instead of an address**: 
-Apple appears to have tightened up security in macOS 15 and later.
-Even with sudo access, the SSID and BSSID are not available.
-It appears that an application needs Location Access permissions to obtain this information.
+1. **Why do I see `<redacted>` or `000000000000` or similar instead of a SSID or address?**  
+Apple appears to have changed the security mechanism in macOS 15 and later.
+Even with sudo access, the SSID and BSSID are no longer available.
+It appears that a macOS application now needs Location Access
+permissions to obtain this information.
 
 ## Notes
 
