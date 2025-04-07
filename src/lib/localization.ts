@@ -1,3 +1,5 @@
+"use server";
+
 import { readdirSync, readFileSync } from "fs";
 import { join } from "path";
 
@@ -5,14 +7,24 @@ type LocalizationMap = Record<string, string>;
 const reverseMap: Map<string, string> = new Map();
 
 export async function initLocalization() {
-  const rootPath = process.cwd();
-  const localizationDir = join(rootPath, "data", "localization");
-  // console.log(`localization dir: ${localizationDir}`);
+  // const rootPath = process.cwd();
+  const localizationDir = join(
+    // __dirname,
+    // "..",
+    // "..",
+    // "..",
+    "data",
+    "localization",
+  );
+  console.log(`__dirname: ${__dirname}`);
+  console.log(`localization dir: ${localizationDir}`);
+
   const files = readdirSync(localizationDir).filter((f) => f.endsWith(".json"));
 
   // Build a reverse map: value -> key
   for (const file of files) {
     const filePath = join(localizationDir, file);
+    console.log(`JSON file found: ${filePath}`);
 
     // 🔥 Read and strip comment lines from the .json files
     const raw = readFileSync(filePath, "utf-8");

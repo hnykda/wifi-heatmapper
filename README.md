@@ -18,21 +18,18 @@ The screen shot below shows a sample heat map:
 
 There are more details about the operation of **wifi-heatmapper** at:
 
-* [User Interace](docs/User_Interface.md)
+* [User Interface](docs/User_Interface.md)
 * [Theory of Operation](docs/Theory_of_Operation.md)
 * [FAQ](docs/FAQ.md)
 * [To-Do](docs/To-Do.md)
 
 ## Usage
 
-**Install wifi-heatmapper**
-on a laptop computer since you need to move it around
+**Install wifi-heatmapper** on a laptop computer since you use it
 to measure signal strength at various locations.
-See
-[Installation](#installing and running)
-for details.
+See [Installation](#installing-and-running) for details.
 Then browse to
-[http://localhost:3000](http://localhost:3000). 
+[http://localhost:3000](http://localhost:3000).
 
 **Settings pane:** Enter the address of an iperf3 server
 and provide a sudo password for macOS or Linux.
@@ -45,9 +42,8 @@ _NB: Importing a new background image is currently awkward... Copy the PNG/JPG f
 **Start a measurement** by clicking the floor plan at a point
 that reflects the laptop's location.
 **wifi-heatmapper** measures the WiFi signal strength and
-measures throughput at that point.
-The signal strength at that spot appears on the floor plan,
-its color indicates the signal strength.
+the throughput at that point.
+The floor plan displays a dot colored by its signal stength.
 Click the dot to get more information.
 
 **Move to other locations** and make further measuements.
@@ -59,26 +55,26 @@ Areas with strong signal will be green,
 lower signal levels will follow the
 Green -> Tuquoise -> Blue -> Yellow - Red transition.
 Adjust the **Radius** slider until the spots grow together.
-Go back to the Floor Plan tab to make moe measuements if needed.
+Go back to the Floor Plan tab to make more measuements if needed.
 
-**Survey Points tab** shows all the survey points,
+**Click the Survey Points tab** to see all the survey points,
 with details of the measurements taken.
 Remove errant points using this tab.
 
-[^1]: 
-
 ## Installing and Running
 
-You should install `wifi-heatmapper` on a laptop device so you can move it around.
-To do this:
+Install **wifi-heatmapper** on a laptop device
+so you can move from place to place.
+To install the software:
 
 1. Pull the repo, and install the `npm` dependencies.
 
-  ```bash
-  git clone https://github.com/hnykda/wifi-heatmapper.git
-  cd wifi-heatmapper
-  npm install
-  ```
+   ```bash
+   git clone https://github.com/hnykda/wifi-heatmapper.git
+   cd wifi-heatmapper
+   npm install
+   ```
+
 2. Install `iperf3` on your laptop.
 3. Install `iperf3` on another computer.
    We call this the "iperf3 server".
@@ -92,32 +88,32 @@ To do this:
 6. Browse to [http://localhost:3000](http://localhost:3000)
    and follow the steps at the top of this page
 
-
 ## Usage with Docker
 
 WiFi Heatmapper includes a Dockerfile that automates much of
 the installation process.
 
 1. Build the Docker Image
-```
-docker build -t wifi-heatmapper .
-```
+
+   ```bash
+   docker build -t wifi-heatmapper .
+   ```
 
 2. Run the Container
-```
-docker run \
-  --net="host" \
-  --privileged \
-  -p 3000:3000 \
-  -v ./datas/data:/app/data \
-  -v ./datas/media:/app/public/media \
-  wifi-heatmapper
-```
+
+   ```bash
+   docker run \
+   --net="host" \
+   --privileged \
+   -p 3000:3000 \
+   -v ./datas/data:/app/data \
+   -v ./datas/media:/app/public/media \
+   wifi-heatmapper
+   ```
 
 use `-v` options if you want to save db + floorplanpicture to the _datas_ folder
 
-_NB: The Dockerfile currently does **not** work with the 0.2.1
-version of **wifi-heatmapper**._
+_NB: The Dockerfile does not work on macOS or Windows. See the note in the Dockerfile for more information._
 
 ## History
 
@@ -126,7 +122,7 @@ This project is a WiFi heatmapper solution for macOS/Windows/Linux, inspired by 
 ## Screen Recording
 
 This is a video recording of an earlier version of `wifi-heatmapper`.
-It shows the basic operation, but looks different now:
+The basic operation is the same, but looks different now:
 all the user interface was in one page,
 and it used a different color scheme: red is "hot" (strong signal),
 blue was "cool" (weak).
