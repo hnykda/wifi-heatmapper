@@ -7,8 +7,6 @@ interface HeatmapSliderProps {
 }
 
 export function HeatmapSlider({ value, onChange }: HeatmapSliderProps) {
-  // const [value, setValue] = useState([50]);
-
   return (
     <div className="w-64">
       <label className="block mb-2 text-sm font-medium text-gray-700">

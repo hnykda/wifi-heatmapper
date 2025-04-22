@@ -15,14 +15,6 @@ export default function TabPanel() {
 
   return (
     <div className="w-full">
-      {/* Button to change tabs dynamically
-      <button
-        className="mb-2 p-2 bg-blue-500 text-white rounded"
-        onClick={() => setActiveTab("tab2")}
-      >
-        Go to Tab 2
-      </button> */}
-
       {/* Tabs Root with controlled state */}
       <Tabs.Root value={activeTab} onValueChange={setActiveTab}>
         {/* Tab List */}
@@ -63,11 +55,7 @@ export default function TabPanel() {
         </Tabs.Content>
 
         <Tabs.Content value="tab3" className="p-4">
-          <Heatmaps
-          // image={settings.floorplanImagePath}
-          // points={settings.surveyPoints}
-          // dimensions={settings.dimensions}
-          />
+          <Heatmaps />
         </Tabs.Content>
 
         <Tabs.Content value="tab4" className="p-4">

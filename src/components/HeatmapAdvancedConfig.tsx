@@ -39,26 +39,10 @@ const hexToRgba = (hex: string, alpha: number) => {
 export function HeatmapAdvancedConfig() {
   const { settings, updateSettings } = useSettings();
 
-  // logger.info(`${JSON.stringify(settings)}`);
-
-  // const [localConfig, setLocalConfig] = useState(config);
-
-  // function debouncedUpdateSettings(x: Partial<HeatmapSettings>) {
-  //   return;
-  // }
   const debouncedUpdateSettings = debounce(
     (settings: Partial<HeatmapSettings>) => updateSettings(settings),
     500,
   );
-  // const handleConfigChange = (
-  //   key: keyof HeatmapConfig,
-  //   value: number | Record<string, string>,
-  // ) => {
-  //   logger.info(key, value, new Date());
-  //   const newConfig = { ...localConfig, [key]: value };
-  //   setLocalConfig(newConfig);
-  //   debouncedSetConfig(newConfig);
-  // };
 
   const sortedGradientEntries = () => {
     return Object.entries(settings.gradient).sort(([a], [b]) => {

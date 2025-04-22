@@ -5,7 +5,6 @@ export interface IperfTestProperty {
   lostPackets: number | null;
   packetsReceived: number | null;
 }
-// could be stricter as per type
 
 export interface IperfResults {
   tcpDownload: IperfTestProperty;

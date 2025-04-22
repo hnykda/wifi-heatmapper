@@ -7,15 +7,7 @@ type LocalizationMap = Record<string, string>;
 const reverseMap: Map<string, string> = new Map();
 
 export async function initLocalization() {
-  // const rootPath = process.cwd();
-  const localizationDir = join(
-    // __dirname,
-    // "..",
-    // "..",
-    // "..",
-    "data",
-    "localization",
-  );
+  const localizationDir = join("data", "localization");
   console.log(`__dirname: ${__dirname}`);
   console.log(`localization dir: ${localizationDir}`);
 
@@ -26,7 +18,7 @@ export async function initLocalization() {
     const filePath = join(localizationDir, file);
     console.log(`JSON file found: ${filePath}`);
 
-    // 🔥 Read and strip comment lines from the .json files
+    // Read and strip comment lines from the .json files
     const raw = readFileSync(filePath, "utf-8");
     const cleaned = raw
       .split("\n")
@@ -38,7 +30,6 @@ export async function initLocalization() {
     for (const [key, value] of Object.entries(content)) {
       if (!reverseMap.has(value)) {
         reverseMap.set(value, key); // First match wins
-        // console.log(`localization value: ${value} key: ${key} `);
       } else {
         // console.log(`localization value: ${value} key: ${key} duplicate `);
       }

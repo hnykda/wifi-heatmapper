@@ -8,10 +8,8 @@ import {
   SurveyPoint,
 } from "./types";
 import { scanWifi } from "./wifiScanner";
-// import { getLogger } from "./logger";
 import { execAsync } from "./server-utils";
 import { getCancelFlag, sendSSEMessage } from "./sseGlobal";
-// import { getHostPlatform } from "./actions";
 import { percentageToRssi } from "./utils";
 import { SSEMessageType } from "@/app/api/events/route";
 import { getLogger } from "./logger";
@@ -40,9 +38,7 @@ export const checkSettings = async (settings: HeatmapSettings) => {
     header: "In progress",
   });
   let settingsErrorMessage = "";
-  // console.log(
-  //   `checkSettings: "${settings.iperfServerAdrs}" "${settings.sudoerPassword}"`,
-  // );
+
   if (!settings.iperfServerAdrs) {
     settingsErrorMessage = "Please set iperf server address";
 
@@ -54,7 +50,6 @@ export const checkSettings = async (settings: HeatmapSettings) => {
   }
 
   const runningPlatform = os.platform();
-  // console.log(`platform: ${runningPlatform}`);
 
   if (
     runningPlatform == "darwin" &&
@@ -76,8 +71,6 @@ export const checkSettings = async (settings: HeatmapSettings) => {
 
 // moved from actions.ts
 export async function startSurvey(
-  // x: number,
-  // y: number,
   settings: HeatmapSettings,
 ): Promise<SurveyPoint | null> {
   const { iperfResults, wifiData } = await runIperfTest(settings);
@@ -96,8 +89,6 @@ export async function startSurvey(
     id: "BAD ID", //assigned by the recipient
     isEnabled: true, //assigned by the recipient
   };
-  // console.log("Created new point: " + JSON.stringify(newPoint));
-  // await addSurveyPoint(dbPath, newPoint);
 
   return newPoint;
 }
@@ -156,7 +147,6 @@ export async function runIperfTest(settings: HeatmapSettings): Promise<{
     let results: IperfResults | null = null;
     let wifiData: WifiNetwork | null = null;
 
-    // TODO: only retry the one that failed
     while (attempts < maxRetries && !results) {
       try {
         // set the initial states, then send an event to the client
@@ -215,9 +205,6 @@ export async function runIperfTest(settings: HeatmapSettings): Promise<{
           udpUpload,
         };
 
-        // console.log(
-        //   `signalStrength: ${JSON.stringify(wifiStrengths)}, ${displayStates.strength}`,
-        // );
         wifiData = {
           ...wifiDataBefore,
           signalStrength: displayStates.strength, // uses the average value

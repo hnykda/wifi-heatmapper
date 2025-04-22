@@ -224,7 +224,6 @@ export default function ClickableFloorplan(): ReactNode {
       ctx.lineWidth = 2;
       ctx.closePath();
       ctx.stroke();
-      // const t = getGradientColor(rssiToPercentage(wifiInfo.rssi));
 
       const annotation = `${wifiInfo.signalStrength}%`;
 
@@ -311,20 +310,8 @@ export default function ClickableFloorplan(): ReactNode {
       setSelectedPoint(null);
       setAlertMessage("");
       setIsToastOpen(true);
-      // measureSurveyPoint(Math.round(x), Math.round(y));
     }
   };
-
-  /**
-   * pseudoMeasure - start the fake measurement process
-   * This was used to debug the NewToast component
-   */
-  // const pseudoMeasure = async () => {
-  //   // await setIsToastOpen(true);
-  //   setIsToastOpen(true);
-  //   // Tell the fake measurement process to begin
-  //   await fetch("/api/start-task?action=start", { method: "POST" });
-  // };
 
   return (
     <div className="bg-white p-6 rounded-lg shadow-md">
@@ -337,12 +324,7 @@ export default function ClickableFloorplan(): ReactNode {
           Click on existing points to see the measurement details. You need at
           least two active (not disabled) measurements.
         </p>
-        {/* <button
-          onClick={() => pseudoMeasure()}
-          className="bg-blue-500 text-white px-4 py-2 rounded"
-        >
-          Start NewToast gizmo
-        </button> */}
+
         <div className="space-y-2 flex flex-col">
           {settings.surveyPoints?.length > 0 && (
             <div>Total Measurements: {settings.surveyPoints.length}</div>

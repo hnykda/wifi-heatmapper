@@ -21,7 +21,6 @@ export default function NewToast({ onClose, toastIsReady }: NewToastProps) {
       try {
         const data: { status: string; type: string; header: string } =
           JSON.parse(event.data);
-        // console.log(`received message: ${JSON.stringify(data)}`);
 
         if (data.type === "ready") {
           console.log(`received ready message`);
@@ -49,17 +48,12 @@ export default function NewToast({ onClose, toastIsReady }: NewToastProps) {
       }
     };
 
-    // eventSource.onopen = () => {
-    //   console.log(`toast opened connection`);
-    //   toastIsReady();
-    // };
-
     eventSource.onerror = (error: Event) => {
       console.error("SSE error:", error);
       eventSource.close();
     };
 
-    // 💡 Handle browser reload/unload
+    // Handle browser reload/unload
     const handleUnload = () => {
       eventSource.close(); // cleanly closes connection
     };
@@ -74,17 +68,6 @@ export default function NewToast({ onClose, toastIsReady }: NewToastProps) {
     };
   }, []);
 
-  // THESE WERE ADDED FOR TESTING - NO LONGER USED
-
-  // const startTask = async () => {
-  //   setTaskRunning(true);
-  //   // setToastOpen(true);
-  //   // setToastHeader("Survey in progress");
-  //   console.log(`starting survey task`);
-  //   // tell the fake server to start the survey process
-  //   // await fetch("/api/start-task?action=start", { method: "POST" });
-  // };
-
   const handleCancel = async () => {
     // tell the server to stop doing work
     await fetch("/api/start-task?action=stop", { method: "POST" });
@@ -96,17 +79,8 @@ export default function NewToast({ onClose, toastIsReady }: NewToastProps) {
 
   return (
     <Toast.Provider swipeDirection="right">
-      {/* <button
-        onClick={startTask}
-        className="bg-blue-500 text-white px-4 py-2 rounded"
-      >
-        Start Task
-      </button> */}
-
       <Toast.Root
         className="fixed bottom-[10px] right-[5px] w-96 bg-gray-800 text-white p-4 rounded shadow-md flex justify-between items-center"
-        // open={toastOpen}
-        // onOpenChange={setToastOpen}
         duration={Infinity} // Keeps open until manually closed
       >
         <div>

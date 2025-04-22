@@ -2,11 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 
 import { useSettings } from "@/components/GlobalSettings";
 
-import {
-  calculateOptimalRadius,
-  calculateRadiusByBoundingBox,
-  calculateRadiusByDensity,
-} from "../lib/radiusCalculations";
+import { calculateRadiusByBoundingBox } from "../lib/radiusCalculations";
 
 import h337 from "heatmap.js";
 import {
@@ -68,12 +64,6 @@ const getAvailableProperties = (
   }
 };
 
-// interface HeatmapProps {
-//   points: SurveyPoint[];
-//   dimensions: { width: number; height: number };
-//   image: string;
-// }
-
 export function Heatmaps() {
   const { settings, updateSettings } = useSettings();
 
@@ -97,40 +87,14 @@ export function Heatmaps() {
   const [showSignalStrengthAsPercentage, setShowSignalStrengthAsPercentage] =
     useState(true);
 
-  const r1 = calculateRadiusByDensity; // bad for small numbers of points
+  // const r1 = calculateRadiusByDensity; // bad for small numbers of points
   const r2 = calculateRadiusByBoundingBox;
-  const r3 = calculateOptimalRadius; // bad for small numbers of points
+  // const r3 = calculateOptimalRadius; // bad for small numbers of points
 
   const points = settings.surveyPoints;
   const displayedRadius = settings.radiusDivider // if settings value is non-null
     ? settings.radiusDivider // use it
     : Math.round(r2(points));
-
-  // updateSettings({ radiusDivider: r2(points) });
-  // const [heatmapConfig, setHeatmapConfig] = useState<HeatmapConfig>({
-  //   radius: r2(points),
-  //   maxOpacity: 0.7,
-  //   minOpacity: 0.2,
-  //   blur: 0.99,
-  //   gradient: {
-  //     // "green-based" intensity: Green is good; red is bad
-  //     0: "rgba(255, 0, 0, 0.6)",
-  //     0.35: "rgba(255, 255, 0, 0.6)",
-  //     // 0.5: "rgba(0, 0, 0, 0.6)",
-  //     0.4: "rgba(72, 72, 242, 0.6)",
-  //     0.6: "rgba(4, 229, 229, 0.6)",
-  //     1.0: "rgba(2, 236, 2, 0.6)",
-  //   },
-  //   // Original gradient - red is highest intensity
-  //   //  gradient: {
-  //   //   0.05: "rgba(0, 0, 0, 0.6)", // throw some grey in there
-  //   //   0.1: "rgba(0, 0, 255, 0.6)", // 40%, -80 dBm
-  //   //   0.25: "rgba(0, 255, 255, 0.6)", // 60%, -70 dBm
-  //   //   0.5: "rgba(0, 255, 0, 0.6)", // 70%, -60 dBm
-  //   //   0.75: "rgba(255, 255, 0, 0.6)", // 85%, -50 dBm
-  //   //   1.0: "rgba(255, 0, 0, 0.6)", // 100%, -40 dBm
-  //   // },
-  // });
 
   const handleRadiusChange = (r: number) => {
     console.log(`handleRadiusChange: ${r}`);
@@ -564,11 +528,6 @@ export function Heatmaps() {
 
       <HeatmapSlider value={displayedRadius} onChange={handleRadiusChange} />
 
-      {/* <HeatmapAdvancedConfig
-        settings={settings}
-        // config={heatmapConfig}
-        // setConfig={setHeatmapConfig}
-      /> */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {selectedMetrics.map((metric) => (
           <div key={metric} className="bg-gray-50 p-4 rounded-lg">

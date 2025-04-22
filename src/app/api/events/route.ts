@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
     const data = `data: ${JSON.stringify(msg)}\r\n\r\n`;
     writer.write(encoder.encode(data));
   };
-  registerSSESender(sendToClient); // 🔧 moved here
+  registerSSESender(sendToClient);
 
   // Send a ready event and clear the (global) cancel flag
   console.log("SSE client connected");

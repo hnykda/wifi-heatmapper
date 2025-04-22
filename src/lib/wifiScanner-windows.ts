@@ -1,10 +1,8 @@
 import { WifiNetwork } from "./types";
 import { execAsync } from "./server-utils";
 import { getLogger } from "./logger";
-// import os from "os";
 import { getDefaultWifiNetwork } from "./wifiScanner";
 import { percentageToRssi } from "./utils";
-// import { reverseLookup } from "./localization";
 import { isValidMacAddress } from "./wifiScanner";
 import { reverseLookup } from "./localization";
 
@@ -34,16 +32,11 @@ function assignWindowsNetworkInfoValue<K extends keyof WifiNetwork>(
   } else {
     networkInfo[key] = val as any;
   }
-  // console.log(`After assignment: ${networkInfo[key]} ${val}`);
 }
 /**
- * Parses the output of the `netsh wlan show interfaces` command.
+ * Parse the output of the `netsh wlan show interfaces` command.
  *
- * The reason why it relies on the presence of the "Wi-Fi" line and ordering of the lines
- * is because the output is localized in the language of the system. The alternative would be
- * to maintain a language-specific parser for each language.
- *
- * This code has been superceded by code to look up the keys from the netsh... command
+ * This code looks up the keys from the netsh... command
  * in a localization map that determines the proper key for the WifiNetwork
  */
 export async function parseNetshOutput(output: string): Promise<WifiNetwork> {
@@ -59,7 +52,6 @@ export async function parseNetshOutput(output: string): Promise<WifiNetwork> {
     if (key == "signalStrength") {
       val = val.replace("%", ""); // remove any "%"
     }
-    // Yikes! This was a siege to get the Typescript warnings to go away...
     if (result == null) {
       // console.log(`Not added: ${key}`);
     } else {
@@ -84,6 +76,8 @@ export async function parseNetshOutput(output: string): Promise<WifiNetwork> {
 /**
  * Test the Windows parsing code on macOS...
  */
+
+// This should be moved into a separate test file
 
 // export async function parseTestOutput(output: string): Promise<WifiNetwork> {
 //   const networkInfo = getDefaultWifiNetwork();

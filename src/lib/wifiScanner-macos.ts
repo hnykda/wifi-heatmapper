@@ -1,10 +1,8 @@
 import { HeatmapSettings, WifiNetwork } from "./types";
 import { execAsync } from "./server-utils";
 import { getLogger } from "./logger";
-// import os from "os";
 import { getDefaultWifiNetwork } from "./wifiScanner";
 import { rssiToPercentage } from "./utils";
-// import { reverseLookup } from "./localization";
 import { isValidMacAddress, normalizeMacAddress } from "./wifiScanner";
 
 const logger = getLogger("wifi-macOS");

@@ -37,15 +37,6 @@ const getDefaults = (): HeatmapSettings => {
       0.9: "rgba(0, 255, 0, 0.6)", // 90%, -46 dBm
       1.0: "rgba(0, 255, 0, 0.6)", // 100%, -40 dBm
     },
-    // Original gradient color mapping
-    //  gradient: {
-    //   0.05: "rgba(0, 0, 0, 0.6)", // throw some grey in there
-    //   0.1: "rgba(0, 0, 255, 0.6)", // 40%, -80 dBm
-    //   0.25: "rgba(0, 255, 255, 0.6)", // 60%, -70 dBm
-    //   0.5: "rgba(0, 255, 0, 0.6)", // 70%, -60 dBm
-    //   0.75: "rgba(255, 255, 0, 0.6)", // 85%, -50 dBm
-    //   1.0: "rgba(255, 0, 0, 0.6)", // 100%, -40 dBm
-    // },
   };
 };
 
@@ -116,11 +107,6 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       );
       updateSettings({ surveyPoints: newPoints });
     },
-
-    //     function removePointsById(points: { id: number }[], targetArray: { id: number }[]): { id: number }[] {
-    //     const idsToRemove = new Set(points.map(point => point.id));
-    //     return targetArray.filter(point => !idsToRemove.has(point.id));
-    // }
 
     delete: (points: SurveyPoint[]) => {
       const pointsToRemove = new Set(points.map((point) => point.id));

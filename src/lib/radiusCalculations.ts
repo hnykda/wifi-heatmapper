@@ -38,7 +38,8 @@ export function calculateRadiusByDensity(points: SurveyPoint[]): number {
 }
 
 /**
- * Calculates radius based on bounding box and data point count
+ * Calculate radius based on bounding box and data point count
+ * This is the function currently used in the app
  */
 export function calculateRadiusByBoundingBox(points: SurveyPoint[]): number {
   if (points.length === 0) return 30;
@@ -104,29 +105,3 @@ export function calculateOptimalRadius(points: SurveyPoint[]): number {
   // Use the smaller of the two to preserve detail, but with a minimum threshold
   return Math.max(Math.min(densityRadius, spreadRadius), 10);
 }
-
-/**
- * Generate individual radii for each point based on intensity
- *
- * THIS IS NOT RELEVANT FOR THIS APPLICATION
- */
-
-// export function calculateIntensityBasedRadii(points: SurveyPoint[]): number[] {
-//   if (points.length === 0) return [];
-
-//   // Calculate base radius
-//   const baseRadius = calculateOptimalRadius(points);
-
-//   // Find max intensity
-//   let maxIntensity = -Infinity;
-//   for (const point of points) {
-//     maxIntensity = Math.max(maxIntensity, point.value);
-//   }
-
-//   // Generate radius for each point
-//   return points.map((point) => {
-//     // Scale radius by intensity (higher intensity = slightly larger radius)
-//     const intensityFactor = 0.7 + (point.value / maxIntensity) * 0.6;
-//     return baseRadius * intensityFactor;
-//   });
-// }

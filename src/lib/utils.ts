@@ -47,8 +47,3 @@ export const metricFormatter = (
   }
   return value.toFixed(2);
 };
-
-// // Helper function for delays
-// export async function delay(ms: number) {
-//   return new Promise((resolve) => setTimeout(resolve, ms));
-// }

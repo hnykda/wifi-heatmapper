@@ -66,8 +66,6 @@ interface SurveyPointsTableProps {
 const SurveyPointsTable: React.FC<SurveyPointsTableProps> = ({
   data,
   surveyPointActions,
-  // onDelete,
-  // updateDatapoint,
   apMapping,
 }) => {
   const myUpdate = surveyPointActions.update;
@@ -137,8 +135,6 @@ const SurveyPointsTable: React.FC<SurveyPointsTableProps> = ({
           <Switch
             checked={row.original.isEnabled}
             onCheckedChange={(value) => {
-              // const id = row.original.id;
-              // updateDatapoint(id, { isEnabled: value });
               myUpdate(row.original.origPoint, {
                 isEnabled: value,
               });

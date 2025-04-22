@@ -4,13 +4,16 @@ Random observations and questions that arise at the start of the project
 
 ## Feature and Behavior Improvements
 
-* Bundle this into a nice installable (electron?) app so it can be easily installed on a tablet
+Ideas for making the program better - in no particular order:
+
 * Make the app more user-friendly and informative (step by step wizard for the measurements)
-* Serialize the image to the database file so it can be loaded later
-* Add leaflet to make the maps interactive
-* Load/save heatmap config to database
+* Serialize the datapoints and image to the saved file so it can be loaded later
+* Alternative: Save the JSON data to localStorage() with a name like
+`wifi-heatmapper-floorPlanImagename`,
+  and come up with a means of selecting one or the other.
 * Create a "Signal strength only" setting for quicker surveys.
-  It also removes the requirement of setting up a separate iperf3 server. Maybe also triggered by a "" setting for the iperf3 server.
+  Doing this also removes the requirement of setting up a separate iperf3 server.
+  Maybe also triggered by a "" setting for the iperf3 server.
 * If only one survey point exists, the `Heatmap` floor plan should appear, but with a message like "Not enough points"
 * But normalize data rate scale for throughput (use range of 200..700mbps with 100's dividers instead of 245..673mbps)
 * If `Floorplan` cannot open the image, it should display
@@ -23,6 +26,13 @@ Random observations and questions that arise at the start of the project
 * The "distance" of 10 in detecting a click is not big enough when
   using some kind of tablet. An errant finger makes it look like a request
   to make a new measurement, not examine that point's statistics.
+* During the FloorPlan measurement process, display the wifi signal
+  strength heatmap underneath. This helps the user determine if they need
+  more measurements (finer granularity) for the map.
+  NB: This also tests the coloring of the dots vs the color of the
+  underlying heat map
+* Bundle this into a nice installable (electron?) app so it can be easily installed on a tablet
+* Add leaflet to make the maps interactive
 
 ## Bugs
 
@@ -32,9 +42,13 @@ Random observations and questions that arise at the start of the project
 * Improve "fetch error" message when the web GUI has lost contact
   with the server (perhaps because `npm run dev` has been stopped)
 * Fix display of BSSID; Windows parsing test code not updated;
-  macOS shows `<R-ED-AC-TED>` or some such nonsense (SB "Not available")
-* Fix display of dBm in the heatmap scale when not showing as %. (Currently, it shows 100dBm (positive number) as green, with 0 dBm as red. The scale should use the limits of the rssiToPercentage() function.
-* Make version 0.2.1 work with Docker (currently gives error attempting to locate the _localization_ directory)
+  macOS shows `<R-ED-AC-TED>` or some such nonsense (should be "Not available")
+* Fix display of dBm in the heatmap scale when not showing as %. Currently, it shows 100dBm (positive number) as green, with 0 dBm as red. The scale should use the limits of the rssiToPercentage() function.
+* If browser window is at 30%, the TabPanel looks too small, yet the FloorPlan is OK.
+  Do we need to give an indication of this?
+* Using different size images for the floor plan image didn't work well.
+  This is a placeholder: I don't currently have good debugging info
+* Test code from wifiScanner_windows should be moved to a separate \_test.ts file
 
 ## Questions
 
@@ -107,3 +121,5 @@ Random observations and questions that arise at the start of the project
   Interim step: rename localStorage() with "wifi-heatmap-IMAGE_NAME"?
 * ~~Find out how to get RSSI and other stuff from `ioreg` so sudo is not needed (for `wdutil`)~~ _Likely, not possible_
 * ~~Infer the relevant command/OS version and use the relevant commands and parser based on that to make this multi-platform.~~ Done
+* ~~Make version 0.2.1 work with Docker (currently gives error attempting to locate the _localization_ directory)~~
+* ~~Load/save heatmap config to database~~

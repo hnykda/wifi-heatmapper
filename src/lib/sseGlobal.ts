@@ -14,7 +14,6 @@ const SSE_KEY = "__sseSend__";
 const CANCEL_KEY = "__sseFlag__";
 
 export function registerSSESender(fn: (msg: SSEMessageType) => void) {
-  // console.log("[sseSession] registerSSESender");
   (globalThis as any)[SSE_KEY] = fn;
 }
 
@@ -24,9 +23,6 @@ export function clearSSESender() {
 }
 
 export function sendSSEMessage(msg: SSEMessageType) {
-  // console.log(
-  //   `[sseSession] sendSSEMessage", !!sendToClient ${JSON.stringify(msg)}`,
-  // );
   const fn = (globalThis as any)[SSE_KEY] as
     | ((msg: SSEMessageType) => void)
     | null;
@@ -37,7 +33,7 @@ export function sendSSEMessage(msg: SSEMessageType) {
   }
 }
 
-// === Boolean flag to cancel the measurement ===
+// === Boolean flag to cancel the measurement process ===
 
 export function setCancelFlag(value: boolean) {
   (globalThis as any)[CANCEL_KEY] = value;

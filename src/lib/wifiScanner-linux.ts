@@ -114,7 +114,6 @@ export function parseIwOutput(
     }
   });
   networkInfo.signalStrength = rssiToPercentage(networkInfo.rssi);
-  // console.log(`=== networkInfo: ${JSON.stringify(networkInfo)}`);
 
   return networkInfo;
 }

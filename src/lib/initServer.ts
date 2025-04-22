@@ -38,7 +38,7 @@ async function logSystemInfo(): Promise<void> {
  */
 export async function initServer() {
   // one-time setup (e.g., DB pool, metrics, cache)
-  console.log("🔧 Initializing server...");
+  console.log("Initializing server...");
 
   let initialized = false;
 
