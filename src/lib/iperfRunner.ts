@@ -10,7 +10,7 @@ import {
 import { scanWifi } from "./wifiScanner";
 import { execAsync } from "./server-utils";
 import { getCancelFlag, sendSSEMessage } from "./sseGlobal";
-import { percentageToRssi } from "./utils";
+import { percentageToRssi, toMbps } from "./utils";
 import { SSEMessageType } from "@/app/api/events/route";
 import { getLogger } from "./logger";
 
@@ -124,7 +124,7 @@ function getUpdatedMessage(): SSEMessageType {
   return {
     type: displayStates.type,
     header: displayStates.header,
-    status: `Signal strength: ${displayStates.strength}%\nTCP: ${displayStates.tcp} Mbps\nUDP: ${displayStates.udp} Mbps`,
+    status: `Signal strength: ${displayStates.strength}%\nTCP: ${displayStates.tcp}\nUDP: ${displayStates.udp}`,
   };
 }
 
@@ -140,6 +140,9 @@ export async function runIperfTest(settings: HeatmapSettings): Promise<{
   iperfResults: IperfResults | null;
   wifiData: WifiNetwork | null;
 }> {
+  const performIperfTest =
+    settings.iperfServerAdrs != "localhost" &&
+    settings.iperfServerAdrs != "127.0.0.1";
   const logger = getLogger("iperfRunner");
   try {
     const maxRetries = 3;
@@ -157,6 +160,18 @@ export async function runIperfTest(settings: HeatmapSettings): Promise<{
         const server = settings.iperfServerAdrs;
         const duration = settings.testDuration;
         const wifiStrengths: number[] = []; // percentages
+        const emptyIperfTestProperty: IperfTestProperty = {
+          bitsPerSecond: 0,
+          retransmits: 0,
+          jitterMs: 0,
+          lostPackets: 0,
+          packetsReceived: 0,
+        };
+
+        let tcpDownload = emptyIperfTestProperty;
+        let tcpUpload = emptyIperfTestProperty;
+        let udpDownload = emptyIperfTestProperty;
+        let udpUpload = emptyIperfTestProperty;
 
         const wifiDataBefore = await scanWifi(settings);
         wifiStrengths.push(wifiDataBefore.signalStrength);
@@ -164,9 +179,13 @@ export async function runIperfTest(settings: HeatmapSettings): Promise<{
         checkForCancel();
         sendSSEMessage(getUpdatedMessage());
 
-        const tcpDownload = await runSingleTest(server, duration, true, false);
-        const tcpUpload = await runSingleTest(server, duration, false, false);
-        displayStates.tcp = `${(tcpDownload.bitsPerSecond / 1000000).toFixed(2)} / ${(tcpUpload.bitsPerSecond / 1000000).toFixed(2)}`;
+        if (performIperfTest) {
+          tcpDownload = await runSingleTest(server, duration, true, false);
+          tcpUpload = await runSingleTest(server, duration, false, false);
+          displayStates.tcp = `${toMbps(tcpDownload.bitsPerSecond)} / ${toMbps(tcpUpload.bitsPerSecond)} Mbps`;
+        } else {
+          displayStates.tcp = "Not performed";
+        }
         checkForCancel();
         sendSSEMessage(getUpdatedMessage());
 
@@ -176,9 +195,13 @@ export async function runIperfTest(settings: HeatmapSettings): Promise<{
         checkForCancel();
         sendSSEMessage(getUpdatedMessage());
 
-        const udpDownload = await runSingleTest(server, duration, true, true);
-        const udpUpload = await runSingleTest(server, duration, false, true);
-        displayStates.udp = `${(udpDownload.bitsPerSecond / 1000000).toFixed(2)} / ${(udpUpload.bitsPerSecond / 1000000).toFixed(2)}`;
+        if (performIperfTest) {
+          udpDownload = await runSingleTest(server, duration, true, true);
+          udpUpload = await runSingleTest(server, duration, false, true);
+          displayStates.udp = `${toMbps(udpDownload.bitsPerSecond)} / ${toMbps(udpUpload.bitsPerSecond)} Mbps`;
+        } else {
+          displayStates.udp = "Not performed";
+        }
         checkForCancel();
         sendSSEMessage(getUpdatedMessage());
 

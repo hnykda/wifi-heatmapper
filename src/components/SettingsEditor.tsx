@@ -18,7 +18,7 @@ export default function SettingsEditor() {
               className="border border-gray-200 rounded-sm p-2 focus:outline-none focus:ring focus:ring-blue-300 focus:border-blue-400"
               value={settings.floorplanImagePath}
               onChange={(e) =>
-                updateSettings({ floorplanImagePath: e.target.value })
+                updateSettings({ floorplanImagePath: e.target.value.trim() })
               }
             />
           </td>
@@ -34,7 +34,7 @@ export default function SettingsEditor() {
               className="border border-gray-200 rounded-sm p-2 focus:outline-none focus:ring focus:ring-blue-300 focus:border-blue-400"
               value={settings.iperfServerAdrs}
               onChange={(e) =>
-                updateSettings({ iperfServerAdrs: e.target.value })
+                updateSettings({ iperfServerAdrs: e.target.value.trim() })
               }
             />
           </td>
@@ -49,7 +49,7 @@ export default function SettingsEditor() {
               className="border border-gray-200 rounded-sm p-2 focus:outline-none focus:ring focus:ring-blue-300 focus:border-blue-400"
               value={settings.testDuration}
               onChange={(e) =>
-                updateSettings({ testDuration: Number(e.target.value) })
+                updateSettings({ testDuration: Number(e.target.value.trim()) })
               }
             />
           </td>
