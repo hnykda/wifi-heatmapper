@@ -6,9 +6,8 @@
 import path from "path";
 import fs from "fs/promises";
 
-import { getLogger } from "./logger";
-
-const logger = getLogger("actions");
+// import { getLogger } from "./logger";
+// const logger = getLogger("actions");
 
 export const uploadImage = async (dbPath: string, formData: FormData) => {
   const file = formData.get("file") as File;
@@ -30,5 +29,4 @@ export async function copyToMediaFolder(filename: string) {
 
   // Copy file (will overwrite if it exists)
   await fs.copyFile(srcPath, destPath);
-  console.log(`Copied ${filename} to /public/media`);
 }

@@ -48,13 +48,10 @@ export async function parseNetshOutput(output: string): Promise<WifiNetwork> {
     const key = line.slice(0, pos - 1).trim();
     let val = line.slice(pos + 1).trim();
     const result = await reverseLookup(key);
-    // console.log(`Key/Val/Result: "${key}" "${val}", ${result}`);
     if (key == "signalStrength") {
       val = val.replace("%", ""); // remove any "%"
     }
-    if (result == null) {
-      // console.log(`Not added: ${key}`);
-    } else {
+    if (result != null) {
       assignWindowsNetworkInfoValue(
         networkInfo,
         result as keyof WifiNetwork,

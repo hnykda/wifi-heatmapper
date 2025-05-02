@@ -8,31 +8,35 @@ const reverseMap: Map<string, string> = new Map();
 
 export async function initLocalization() {
   const localizationDir = join("data", "localization");
-  console.log(`__dirname: ${__dirname}`);
-  console.log(`localization dir: ${localizationDir}`);
+  // console.log(`__dirname: ${__dirname}`);
+  // console.log(`localization dir: ${localizationDir}`);
 
   const files = readdirSync(localizationDir).filter((f) => f.endsWith(".json"));
 
   // Build a reverse map: value -> key
   for (const file of files) {
-    const filePath = join(localizationDir, file);
-    console.log(`JSON file found: ${filePath}`);
+    try {
+      const filePath = join(localizationDir, file);
 
-    // Read and strip comment lines from the .json files
-    const raw = readFileSync(filePath, "utf-8");
-    const cleaned = raw
-      .split("\n")
-      .filter((line) => !line.trim().startsWith("//"))
-      .join("\n");
+      // Read and strip comment lines from the .json files
+      const raw = readFileSync(filePath, "utf-8");
+      const cleaned = raw
+        .split("\n")
+        .filter((line) => !line.trim().startsWith("//"))
+        .join("\n");
 
-    const content: LocalizationMap = JSON.parse(cleaned);
+      const content: LocalizationMap = JSON.parse(cleaned);
 
-    for (const [key, value] of Object.entries(content)) {
-      if (!reverseMap.has(value)) {
-        reverseMap.set(value, key); // First match wins
-      } else {
-        // console.log(`localization value: ${value} key: ${key} duplicate `);
+      for (const [key, value] of Object.entries(content)) {
+        if (!reverseMap.has(value)) {
+          reverseMap.set(value, key); // First match wins
+        } else {
+          // console.log(`localization value: ${value} key: ${key} duplicate `);
+        }
       }
+    } catch {
+      // Ignore a bad file and simply log it
+      console.log(`*** Error reading localization file: ${file}`);
     }
   }
 }

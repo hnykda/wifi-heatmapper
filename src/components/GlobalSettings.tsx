@@ -40,7 +40,6 @@ const getDefaults = (): HeatmapSettings => {
   };
 };
 
-// Define the context type
 interface SettingsContextType {
   settings: HeatmapSettings;
   updateSettings: (newSettings: Partial<HeatmapSettings>) => void;
@@ -87,7 +86,6 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     setSettings((prev) => {
       const updatedSettings = { ...prev, ...newSettings };
       writeSettingsToFile(updatedSettings); // Save to file
-      console.log(`Writing to settings`);
       return updatedSettings;
     });
   };

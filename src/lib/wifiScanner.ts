@@ -68,6 +68,13 @@ export async function scanWifi(
     throw error;
   }
 
+  if (!hasValidData(wifiData)) {
+    throw new Error(
+      "Measurement failed. We were not able to get good enough WiFi data: " +
+        JSON.stringify(wifiData),
+    );
+  }
+
   return wifiData;
 }
 

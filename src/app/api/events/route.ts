@@ -46,7 +46,6 @@ export async function GET(req: NextRequest) {
 
   // Heartbeat every 5 seconds
   const heartbeat = setInterval(() => {
-    // console.log(`heartbeat`);
     sendSSEMessage({
       type: "heartbeat",
       header: "",

@@ -13,9 +13,6 @@ export default function NewToast({ onClose, toastIsReady }: NewToastProps) {
 
   useEffect(() => {
     const eventSource = new EventSource("/api/events"); // issue GET to open connection to the SSE server
-    console.log(
-      `NewToast has opened a connection: ${JSON.stringify(eventSource)}`,
-    );
 
     eventSource.onmessage = (event: MessageEvent) => {
       try {
@@ -23,7 +20,6 @@ export default function NewToast({ onClose, toastIsReady }: NewToastProps) {
           JSON.parse(event.data);
 
         if (data.type === "ready") {
-          console.log(`received ready message`);
           toastIsReady();
           return;
         }
@@ -89,8 +85,7 @@ export default function NewToast({ onClose, toastIsReady }: NewToastProps) {
           <Toast.Description className="text-sm text-gray-700 leading-relaxed">
             {toastStatus.split("\n").map((line, index) => (
               <span key={index}>
-                {line}
-                <br />
+                <div>{line}</div>
               </span>
             ))}
           </Toast.Description>

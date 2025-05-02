@@ -9,13 +9,12 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PopoverHelper } from "@/components/PopoverHelpText";
-import { getLogger } from "@/lib/logger";
 // import { HeatmapConfig } from "@/lib/types";
 import { useSettings } from "@/components/GlobalSettings";
 import { HeatmapSettings } from "@/lib/types";
 import { debounce } from "lodash";
 
-const logger = getLogger("HeatmapAdvancedConfig");
+// const logger = getLogger("HeatmapAdvancedConfig");
 
 const rgbaToHex = (rgba: string) => {
   const parts = rgba.match(/[\d.]+/g);

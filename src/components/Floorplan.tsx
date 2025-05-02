@@ -35,9 +35,6 @@ export default function ClickableFloorplan(): ReactNode {
       img.onload = () => {
         const newDimensions = { width: img.width, height: img.height };
         updateSettings({ dimensions: newDimensions });
-        console.log(
-          `useEffect for image ${JSON.stringify(settings.dimensions)}`,
-        );
         setImageLoaded(true);
         imageRef.current = img;
       };
@@ -60,7 +57,6 @@ export default function ClickableFloorplan(): ReactNode {
   }, [imageLoaded, settings.dimensions, settings.surveyPoints]);
 
   const handleToastIsReady = (): void => {
-    console.log(`handleToastIsReady called...`);
     measureSurveyPoint(surveyClick);
   };
 
@@ -76,9 +72,7 @@ export default function ClickableFloorplan(): ReactNode {
     const x = Math.round(surveyClick.x);
     const y = Math.round(surveyClick.y);
 
-    console.log(`Checking Settings...`);
     const settingsErrorMessage = await checkSettings(settings);
-    console.log(`settings check: ${settingsErrorMessage}`);
     if (settingsErrorMessage !== "") {
       setAlertMessage(settingsErrorMessage);
       return null;
@@ -112,9 +106,6 @@ export default function ClickableFloorplan(): ReactNode {
    * drawCanvas - make the entire drawing go...
    */
   const drawCanvas = () => {
-    console.log(
-      `drawCanvas()  ${JSON.stringify(imageRef.current)}`, // ${JSON.stringify(canvasRef.current)}
-    );
     const canvas = canvasRef.current;
     if (canvas && imageRef.current) {
       const ctx = canvas.getContext("2d");
@@ -141,7 +132,6 @@ export default function ClickableFloorplan(): ReactNode {
    * @param points
    */
   const drawPoints = (points: SurveyPoint[], ctx: CanvasRenderingContext2D) => {
-    // console.log(JSON.stringify(points));
     points.forEach((point) => drawPoint(point, ctx));
   };
 
@@ -206,9 +196,6 @@ export default function ClickableFloorplan(): ReactNode {
 
   const drawPoint = (point: SurveyPoint, ctx: CanvasRenderingContext2D) => {
     if (point.wifiData) {
-      // console.log(
-      //   `drawPoint: ${JSON.stringify(point)} ${JSON.stringify(ctx)} `,
-      // );
       const wifiInfo = point.wifiData;
 
       // Draw the main point
@@ -305,8 +292,7 @@ export default function ClickableFloorplan(): ReactNode {
         y: clickedPoint.y * scale,
       });
     } else {
-      // start a measurement
-      console.log(`starting a measurement`);
+      // otherwise, start a measurement
       setSelectedPoint(null);
       setAlertMessage("");
       setIsToastOpen(true);

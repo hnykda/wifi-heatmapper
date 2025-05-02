@@ -67,8 +67,6 @@ const getAvailableProperties = (
 export function Heatmaps() {
   const { settings, updateSettings } = useSettings();
 
-  console.log(`opening Heatmaps: ${JSON.stringify(settings)}`);
-
   const [heatmaps, setHeatmaps] = useState<{ [key: string]: string | null }>(
     {},
   );
@@ -97,7 +95,6 @@ export function Heatmaps() {
     : Math.round(r2(points));
 
   const handleRadiusChange = (r: number) => {
-    console.log(`handleRadiusChange: ${r}`);
     let savedVal: number | null = null;
     if (r != 0) {
       savedVal = r;

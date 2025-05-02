@@ -2,8 +2,6 @@ import * as Tabs from "@radix-ui/react-tabs";
 import { useState } from "react";
 import { useSettings } from "./GlobalSettings";
 
-// import SettingsViewer from "@/components/SettingsViewer";
-
 import SettingsEditor from "@/components/SettingsEditor";
 import ClickableFloorplan from "@/components/Floorplan";
 import { Heatmaps } from "@/components/Heatmaps";
@@ -11,7 +9,7 @@ import PointsTable from "@/components/PointsTable";
 
 export default function TabPanel() {
   const [activeTab, setActiveTab] = useState("tab1"); // State to track the active tab
-  const { settings, updateSettings, surveyPointActions } = useSettings();
+  const { settings, surveyPointActions } = useSettings();
 
   return (
     <div className="w-full">
@@ -59,7 +57,6 @@ export default function TabPanel() {
         </Tabs.Content>
 
         <Tabs.Content value="tab4" className="p-4">
-          {/* <SettingsViewer /> */}
           <PointsTable
             data={settings.surveyPoints}
             surveyPointActions={surveyPointActions}
