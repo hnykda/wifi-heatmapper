@@ -5,7 +5,6 @@ export interface IperfTestProperty {
   lostPackets: number | null;
   packetsReceived: number | null;
 }
-// could be stricter as per type
 
 export interface IperfResults {
   tcpDownload: IperfTestProperty;
@@ -43,6 +42,32 @@ export interface ApMapping {
   apName: string;
   macAddress: string;
 }
+export type RGB = { r: number; g: number; b: number; a: number };
+export type Gradient = Record<number, string>; // Maps 0-1 values to colors
+
+export type HeatmapConfig = {
+  radius: number;
+  maxOpacity: number;
+  minOpacity: number;
+  blur: number;
+  gradient: Record<string, string>;
+};
+
+export interface HeatmapSettings {
+  surveyPoints: SurveyPoint[];
+  floorplanImagePath: string;
+  iperfServerAdrs: string;
+  testDuration: number;
+  sudoerPassword: string; // passed around, removed before writing to file
+  apMapping: ApMapping[];
+  nextPointNum: number;
+  dimensions: { width: number; height: number };
+  radiusDivider: number | null; // null - use calculated value
+  maxOpacity: number;
+  minOpacity: number;
+  blur: number;
+  gradient: Gradient;
+}
 
 export interface SurveyPoint {
   x: number;
@@ -51,7 +76,7 @@ export interface SurveyPoint {
   iperfResults: IperfResults;
   timestamp: string;
   id: string;
-  isDisabled: boolean;
+  isEnabled: boolean;
 }
 
 /**
@@ -71,15 +96,15 @@ export interface WifiNetwork {
   frequency: number;
 }
 
-export interface Database {
-  surveyPoints: SurveyPoint[];
-  floorplanImage: string;
-  iperfServer: string;
-  testDuration: number;
-  apMapping: ApMapping[];
-}
-
 export type ScannerSettings = {
   sudoerPassword: string | "";
   wlanInterfaceId: string | "";
 };
+
+export type OS = "macos" | "windows" | "linux";
+
+export interface SurveyPointActions {
+  add: (newPoint: SurveyPoint) => void;
+  update: (point: SurveyPoint, updatedData: Partial<SurveyPoint>) => void;
+  delete: (points: SurveyPoint[]) => void;
+}

@@ -1,0 +1,95 @@
+import { useSettings } from "@/components/GlobalSettings";
+import { PasswordInput } from "./PasswordInput";
+import { Label } from "@/components/ui/label";
+import { PopoverHelper } from "@/components/PopoverHelpText";
+import HeatmapAdvancedConfig from "./HeatmapAdvancedConfig";
+
+export default function SettingsEditor() {
+  const { settings, updateSettings } = useSettings();
+
+  return (
+    <table className="w-auto">
+      <tbody>
+        <tr>
+          <td className="text-right pr-4">
+            {/* <label>Floor Plan:</label> */}
+            <Label htmlFor="floorPlan" className="font-bold text-lg">
+              Floor plan&nbsp;
+              <PopoverHelper text="Name of the floor plan image. Saved in the 'media' folder." />
+            </Label>
+          </td>
+          <td>
+            <input
+              type="text"
+              className="border border-gray-200 rounded-sm p-2 focus:outline-none focus:ring focus:ring-blue-300 focus:border-blue-400"
+              value={settings.floorplanImagePath}
+              onChange={(e) =>
+                updateSettings({ floorplanImagePath: e.target.value.trim() })
+              }
+            />
+          </td>
+        </tr>
+
+        <tr>
+          <td className="text-right pr-4">
+            {/* <label>iperfServer:</label> */}
+            <Label htmlFor="iperfServer" className="font-bold text-lg">
+              iperfServer&nbsp;
+              <PopoverHelper text="Address of an iperf3 server. Set to 'localhost' to ignore." />
+            </Label>{" "}
+          </td>
+          <td>
+            <input
+              type="text"
+              className="border border-gray-200 rounded-sm p-2 focus:outline-none focus:ring focus:ring-blue-300 focus:border-blue-400"
+              value={settings.iperfServerAdrs}
+              onChange={(e) =>
+                updateSettings({ iperfServerAdrs: e.target.value.trim() })
+              }
+            />
+          </td>
+        </tr>
+        <tr>
+          <td className="text-right pr-4">
+            {/* <label>Test Duration:</label> */}
+            <Label htmlFor="testDuration" className="font-bold text-lg">
+              Test Duration&nbsp;
+              <PopoverHelper text="Duration of the speed test (in seconds)." />
+            </Label>
+          </td>
+          <td>
+            <input
+              type="number"
+              className="border border-gray-200 rounded-sm p-2 focus:outline-none focus:ring focus:ring-blue-300 focus:border-blue-400"
+              value={settings.testDuration}
+              onChange={(e) =>
+                updateSettings({ testDuration: Number(e.target.value.trim()) })
+              }
+            />
+          </td>
+        </tr>
+
+        <tr>
+          <td className="text-right pr-4">
+            {/* <label>sudo Password:</label> */}
+            <Label htmlFor="sudoPassword" className="font-bold text-lg">
+              sudo password&nbsp;
+              <PopoverHelper text="Enter the sudo password: required on macOS or Linux." />
+            </Label>
+          </td>
+          <td>
+            <PasswordInput
+              value={settings.sudoerPassword}
+              onChange={(e) => updateSettings({ sudoerPassword: e })}
+            />
+          </td>
+        </tr>
+        <tr>
+          <td colSpan={2} className="text-right pr-4">
+            <HeatmapAdvancedConfig />
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  );
+}
