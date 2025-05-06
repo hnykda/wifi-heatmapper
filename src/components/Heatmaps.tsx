@@ -23,11 +23,7 @@ import { Download } from "lucide-react";
 import { HeatmapSlider } from "./Slider";
 
 import { IperfTestProperty } from "@/lib/types";
-import {
-  metricFormatter,
-  percentageToRssi,
-  rssiToPercentage,
-} from "@/lib/utils";
+import { metricFormatter } from "@/lib/utils";
 import { getLogger } from "@/lib/logger";
 
 const logger = getLogger("Heatmaps");
@@ -64,8 +60,16 @@ const getAvailableProperties = (
   }
 };
 
+/**
+ * Heatmaps component - this is responsible for drawing all the heat maps
+ * that are selected in the checkboxes
+ * @returns the rendered heat maps
+ */
 export function Heatmaps() {
   const { settings, updateSettings } = useSettings();
+
+  // array of surveyPoints passed in props
+  const points = settings.surveyPoints;
 
   const [heatmaps, setHeatmaps] = useState<{ [key: string]: string | null }>(
     {},
@@ -89,7 +93,6 @@ export function Heatmaps() {
   const r2 = calculateRadiusByBoundingBox;
   // const r3 = calculateOptimalRadius; // bad for small numbers of points
 
-  const points = settings.surveyPoints;
   const displayedRadius = settings.radiusDivider // if settings value is non-null
     ? settings.radiusDivider // use it
     : Math.round(r2(points));
@@ -102,6 +105,14 @@ export function Heatmaps() {
     updateSettings({ radiusDivider: savedVal });
   };
 
+  /**
+   * getMetricValue - return the number for the metric and test type
+   * for the designated point
+   * @param point - the survey point
+   * @param metric - name of the property to return
+   * @param testType - if it's an iperf3 result, which one?
+   * @returns number
+   */
   const getMetricValue = useCallback(
     (
       point: SurveyPoint,
@@ -109,12 +120,10 @@ export function Heatmaps() {
       testType?: keyof IperfTestProperty,
     ): number => {
       switch (metric) {
-        case "signalStrength":
+        case "signalStrength": // data collection always captures both values
           return showSignalStrengthAsPercentage
-            ? point.wifiData.signalStrength ||
-                rssiToPercentage(point.wifiData.rssi)
-            : point.wifiData.rssi ||
-                percentageToRssi(point.wifiData.signalStrength);
+            ? point.wifiData.signalStrength
+            : point.wifiData.rssi;
         case "tcpDownload":
         case "tcpUpload":
         case "udpDownload":
@@ -129,6 +138,13 @@ export function Heatmaps() {
     [showSignalStrengthAsPercentage, settings.radiusDivider],
   );
 
+  /**
+   * generateHeatmapData - take the component's array of points and the descriptors
+   *   and return an array of non-null and non-zero (if iperf results) data points
+   * @param metric - which measurement
+   * @param testType - which of the iperf3 test results
+   * @returns array of {x, y, value}
+   */
   const generateHeatmapData = useCallback(
     (metric: MeasurementTestType, testType?: keyof IperfTestProperty) => {
       const data = points
@@ -139,15 +155,17 @@ export function Heatmaps() {
         })
         .filter((point) => point !== null);
 
-      const allSameValue = data.every((point) => point.value === data[0].value);
-      if (allSameValue) {
-        logger.info(
-          `Values for all selected points for ${metric}${testType ? `-${testType}` : ""} are the same: ${data[0].value}.
-          It's not a problem, but the heatmap will be less interesting.`,
-        );
+      // Filter out zero values for the iperf results
+      switch (metric) {
+        case "tcpDownload":
+        case "tcpUpload":
+        case "udpDownload":
+        case "udpUpload":
+          // return data;
+          return data.filter((p) => p.value != 0);
+        default:
+          return data;
       }
-
-      return data;
     },
     [points, getMetricValue],
   );
@@ -186,12 +204,60 @@ export function Heatmaps() {
     [showSignalStrengthAsPercentage],
   );
 
+  /**
+   * drawColorBar - take the parameters and create the color gradient
+   */
+  function drawColorBar(ctx, w, h, x, y, min, max, metric, testType) {
+    const colorBarWidth = 50; // Increased width
+    const colorBarHeight = settings.dimensions.height;
+    const colorBarX = settings.dimensions.width + 40; // Adjusted position
+    const colorBarY = 20;
+
+    const gradient = ctx.createLinearGradient(0, h + y, 0, y);
+    Object.entries(settings.gradient).forEach(([stop, color]) => {
+      gradient.addColorStop(parseFloat(stop), color);
+    });
+
+    ctx.fillStyle = gradient;
+    ctx.fillRect(colorBarX, colorBarY, colorBarWidth, colorBarHeight);
+
+    // Add ticks and labels
+    const numTicks = 10;
+    ctx.fillStyle = "black";
+    ctx.font = "14px Arial"; // Increased font size
+    ctx.textAlign = "left";
+
+    for (let i = 0; i <= numTicks; i++) {
+      const y = colorBarY + (colorBarHeight * i) / numTicks;
+      const value = max - ((max - min) * i) / numTicks;
+      const label = formatValue(value, metric, testType);
+
+      // Draw tick
+      ctx.beginPath();
+      ctx.moveTo(colorBarX, y);
+      ctx.lineTo(colorBarX + 10, y);
+      ctx.stroke();
+
+      // Draw label
+      ctx.fillText(label, colorBarX + colorBarWidth + 15, y + 5);
+    }
+  }
+
+  /**
+   * renderHeatmap - top-level code to draw a single heat map
+   *   including floor plan, scale on the side, and the heat map
+   *   or diagnostic info about why it wasn't drawn
+   * @param metric - signalStrength or one of the iperf3 tests
+   * @param testType - which of the iperf3 tests
+   * @returns none - result is that heat map has been drawn
+   */
   const renderHeatmap = useCallback(
     (
       metric: MeasurementTestType,
       testType?: keyof IperfTestProperty,
     ): Promise<string | null> => {
       return new Promise((resolve) => {
+        // preconditions
         if (
           settings.dimensions.width === 0 ||
           settings.dimensions.height === 0 ||
@@ -204,48 +270,16 @@ export function Heatmaps() {
           return;
         }
 
-        const heatmapData = generateHeatmapData(metric, testType);
-
-        if (!heatmapData || heatmapData.length === 0) {
-          logger.info(
-            `No valid data for ${metric}${testType ? `-${testType}` : ""}`,
-          );
-          resolve(null);
-          return;
-        }
+        // prep the container - check for problems
+        const colorBarWidth = 50;
+        const labelWidth = 150; // Width allocated for labels
+        const canvasRightPadding = 20; // Padding on the right side of the canvas
 
         const heatmapContainer = document.createElement("div");
         heatmapContainer.style.width = `${settings.dimensions.width}px`;
         heatmapContainer.style.height = `${settings.dimensions.height}px`;
 
         offScreenContainerRef.current.appendChild(heatmapContainer);
-
-        const heatmapInstance = h337.create({
-          container: heatmapContainer,
-          radius: !settings.radiusDivider
-            ? displayedRadius
-            : settings.radiusDivider,
-          maxOpacity: settings.maxOpacity,
-          minOpacity: settings.minOpacity,
-          blur: settings.blur,
-          gradient: settings.gradient,
-        });
-
-        // const max = Math.max(...heatmapData.map((point) => point.value));
-        // const min = Math.min(...heatmapData.map((point) => point.value));
-        // Hard-code to 0..100 for Wi-Fi heat map
-        const max = 100;
-        const min = 0;
-
-        heatmapInstance.setData({
-          max: max,
-          min: min,
-          data: heatmapData,
-        });
-
-        const colorBarWidth = 50;
-        const labelWidth = 150; // Width allocated for labels
-        const canvasRightPadding = 20; // Padding on the right side of the canvas
 
         const canvas = document.createElement("canvas");
         canvas.width =
@@ -266,7 +300,49 @@ export function Heatmaps() {
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
         /**
-         * load the background image
+         * pick out the values to be used for the heat map
+         */
+        const heatmapData = generateHeatmapData(metric, testType);
+
+        if (!heatmapData || heatmapData.length === 0) {
+          ctx.font = "120px sans-serif";
+          ctx.fillStyle = "black";
+          ctx.fillText(
+            `Hello, world! ${heatmapData.length}`,
+            100,
+            (settings.dimensions.height * 2) / 3,
+          ); // (x=20, y=40)
+          // resolve(null);
+          // return;
+        }
+
+        // create the heat map instance
+        const heatmapInstance = h337.create({
+          container: heatmapContainer,
+          radius: !settings.radiusDivider
+            ? displayedRadius
+            : settings.radiusDivider,
+          maxOpacity: settings.maxOpacity,
+          minOpacity: settings.minOpacity,
+          blur: settings.blur,
+          gradient: settings.gradient,
+        });
+
+        // const max = Math.max(...heatmapData.map((point) => point.value));
+        // const min = Math.min(...heatmapData.map((point) => point.value));
+        // Hard-code to 0..100 for Wi-Fi heat map
+        const max = 100;
+        const min = 0;
+
+        // connect the data to the heatmapInstance
+        heatmapInstance.setData({
+          max: max,
+          min: min,
+          data: heatmapData,
+        });
+
+        /**
+         * Start the actual drawing...
          */
         const backgroundImage = new Image();
         backgroundImage.onload = () => {
@@ -277,7 +353,6 @@ export function Heatmaps() {
             settings.dimensions.width,
             settings.dimensions.height,
           );
-
           const heatmapCanvas = heatmapContainer.querySelector("canvas");
           if (heatmapCanvas) {
             if (heatmapCanvas.width === 0 || heatmapCanvas.height === 0) {
@@ -286,47 +361,44 @@ export function Heatmaps() {
               resolve(null);
               return;
             }
+
+            /**
+             * Draw the actual heat map
+             */
             ctx.drawImage(heatmapCanvas, 0, 20);
 
-            // Draw color bar
-            const colorBarWidth = 50; // Increased width
-            const colorBarHeight = settings.dimensions.height;
-            const colorBarX = settings.dimensions.width + 40; // Adjusted position
-            const colorBarY = 20;
+            /**
+             * Add note if there are no iperf3 measurements
+             */
+            if (!heatmapData || heatmapData.length === 0) {
+              const lines = ["No heatmap:", `no ${metric}`, "tests performed"];
+              ctx.textAlign = "center";
+              ctx.font = "72px sans-serif";
+              ctx.fillStyle = "black";
 
-            const gradient = ctx.createLinearGradient(
-              0,
-              colorBarY + colorBarHeight,
-              0,
-              colorBarY,
-            );
-            Object.entries(settings.gradient).forEach(([stop, color]) => {
-              gradient.addColorStop(parseFloat(stop), color);
-            });
-
-            ctx.fillStyle = gradient;
-            ctx.fillRect(colorBarX, colorBarY, colorBarWidth, colorBarHeight);
-
-            // Add ticks and labels
-            const numTicks = 10;
-            ctx.fillStyle = "black";
-            ctx.font = "14px Arial"; // Increased font size
-            ctx.textAlign = "left";
-
-            for (let i = 0; i <= numTicks; i++) {
-              const y = colorBarY + (colorBarHeight * i) / numTicks;
-              const value = max - ((max - min) * i) / numTicks;
-              const label = formatValue(value, metric, testType);
-
-              // Draw tick
-              ctx.beginPath();
-              ctx.moveTo(colorBarX, y);
-              ctx.lineTo(colorBarX + 10, y);
-              ctx.stroke();
-
-              // Draw label
-              ctx.fillText(label, colorBarX + colorBarWidth + 15, y + 5);
+              lines.forEach((line, index) => {
+                ctx.fillText(
+                  line,
+                  settings.dimensions.width / 2,
+                  (settings.dimensions.height * 2) / 3 + index * 72,
+                );
+              });
             }
+
+            /**
+             * Draw the color bar/gradient on the right
+             */
+            drawColorBar(
+              ctx,
+              50,
+              settings.dimensions.height,
+              settings.dimensions.width + 40,
+              20,
+              min,
+              max,
+              metric,
+              testType,
+            );
 
             try {
               if (offScreenContainerRef.current?.contains(heatmapContainer)) {
