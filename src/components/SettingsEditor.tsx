@@ -4,9 +4,14 @@ import { Label } from "@/components/ui/label";
 import { PopoverHelper } from "@/components/PopoverHelpText";
 import HeatmapAdvancedConfig from "./HeatmapAdvancedConfig";
 import MediaDropdown from "./MediaDropdown";
+import { join } from "path";
 
 export default function SettingsEditor() {
   const { settings, updateSettings } = useSettings();
+  function handleNewImageFile(theFile: string): void {
+    updateSettings({ floorplanImageName: theFile });
+    updateSettings({ floorplanImagePath: join("media", theFile) });
+  }
 
   return (
     <table className="w-auto">
@@ -85,13 +90,13 @@ export default function SettingsEditor() {
           <td className="text-right pr-4">
             <Label htmlFor="Files" className="font-bold text-lg">
               Select floor plan&nbsp;
-              <PopoverHelper text="Choose a file to be used as a background image." />
+              <PopoverHelper text="Choose a file to be used as a background image, or upload another PNG or JPEG file." />
             </Label>
           </td>
           <td>
             <MediaDropdown
               defaultValue={settings.floorplanImageName}
-              onChange={(val) => console.log("Selected:", val)}
+              onChange={(val) => handleNewImageFile(val)}
             />
           </td>
         </tr>

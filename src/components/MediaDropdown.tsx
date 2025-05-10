@@ -34,10 +34,14 @@ export default function MediaDropdown({
       const res = await fetch("/api/media");
       if (!res.ok) throw new Error("Failed to fetch files");
       const data = await res.json();
-      setFiles(data.files);
+      // only include PNG and JP(E)G files
+      const imageFiles = data.files.filter((name: string) =>
+        /\.(jpe?g|png)$/i.test(name),
+      );
+      setFiles(imageFiles);
 
       // If defaultValue is set and exists in the list, keep it selected
-      if (defaultValue && data.files.includes(defaultValue)) {
+      if (defaultValue && files.includes(defaultValue)) {
         setSelected(defaultValue);
       }
     } catch (err) {
@@ -49,15 +53,33 @@ export default function MediaDropdown({
     fetchFiles();
   }, []);
 
+  /**
+   * handleSelect - they selected a new file
+   * Call parent onChange() function with that new name
+   * @param name of new file to be used
+   *
+   */
   const handleSelect = (value: string) => {
     setSelected(value);
     onChange?.(value);
   };
 
+  /**
+   * handleAddImage - called whenever "Add an image" is clicked.
+   * This triggers the (hidden) <input> referred to by
+   * fileInputRef by "clicking" on it.
+   */
   const handleAddImage = () => {
     fileInputRef.current?.click();
   };
 
+  /**
+   * handleFileChange - handle a programmatic "click"
+   * to select a new file from the local file system,
+   * then send that file to the server via /api/media POST
+   * @param e
+   * @returns
+   */
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -77,38 +99,55 @@ export default function MediaDropdown({
     }
 
     e.target.value = ""; // reset input
+    handleSelect(file.name); // and set the (new) default file
   };
 
-  const itemClassName =
-    "relative flex cursor-default select-none items-center rounded-sm px-4 py-2 text-sm outline-none transition-colors focus:bg-slate-50 data-[disabled]:pointer-events-none data-[disabled]:opacity-50";
-
   return (
-    <div>
+    <div className="w-full p-2 pr-10 border rounded bg-white-800 text-black">
       <DropdownMenu.Root>
         <DropdownMenu.Trigger asChild>
-          <button className="border rounded px-4 py-2 bg-white shadow">
-            {selected || "Select File"}
+          <button className="relative border border-gray-300 rounded px-2 pr-7 py-1.5 w-48 text-left ">
+            <span className="truncate">{selected || "Select File"}</span>
+            <svg
+              className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-600 pointer-events-none"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M19 9l-7 7-7-7"
+              />
+            </svg>
           </button>
         </DropdownMenu.Trigger>
 
-        <DropdownMenu.Content className="min-w-[200px] rounded bg-white border shadow p-1">
+        <DropdownMenu.Content
+          side="right"
+          align="center"
+          sideOffset={4}
+          className="DropdownMenuContent"
+        >
           {files.map((file) => (
             <DropdownMenu.Item
               key={file}
               onSelect={() => handleSelect(file)}
-              className="px-3 py-2 cursor-pointer hover:bg-gray-100"
+              className="DropdownMenuItem"
             >
               {file}
             </DropdownMenu.Item>
           ))}
 
-          <DropdownMenu.Separator className="h-px bg-gray-200 my-1" />
+          <DropdownMenu.Separator className="DropdownMenuSeparator" />
 
           <DropdownMenu.Item
             onSelect={handleAddImage}
-            className="px-3 py-2 cursor-pointer font-medium text-blue-600 hover:bg-blue-50"
+            className="DropdownMenuItem"
           >
-            Add an image
+            <i>Upload an image...</i>
           </DropdownMenu.Item>
         </DropdownMenu.Content>
       </DropdownMenu.Root>
