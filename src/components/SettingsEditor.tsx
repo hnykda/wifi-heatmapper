@@ -3,6 +3,7 @@ import { PasswordInput } from "./PasswordInput";
 import { Label } from "@/components/ui/label";
 import { PopoverHelper } from "@/components/PopoverHelpText";
 import HeatmapAdvancedConfig from "./HeatmapAdvancedConfig";
+import MediaDropdown from "./MediaDropdown";
 
 export default function SettingsEditor() {
   const { settings, updateSettings } = useSettings();
@@ -12,7 +13,6 @@ export default function SettingsEditor() {
       <tbody>
         <tr>
           <td className="text-right pr-4">
-            {/* <label>Floor Plan:</label> */}
             <Label htmlFor="floorPlan" className="font-bold text-lg">
               Floor plan&nbsp;
               <PopoverHelper text="Name of the floor plan image. Saved in the 'media' folder." />
@@ -32,7 +32,6 @@ export default function SettingsEditor() {
 
         <tr>
           <td className="text-right pr-4">
-            {/* <label>iperfServer:</label> */}
             <Label htmlFor="iperfServer" className="font-bold text-lg">
               iperfServer&nbsp;
               <PopoverHelper text="Address of an iperf3 server. Set to 'localhost' to ignore." />
@@ -51,7 +50,6 @@ export default function SettingsEditor() {
         </tr>
         <tr>
           <td className="text-right pr-4">
-            {/* <label>Test Duration:</label> */}
             <Label htmlFor="testDuration" className="font-bold text-lg">
               Test Duration&nbsp;
               <PopoverHelper text="Duration of the speed test (in seconds)." />
@@ -71,7 +69,6 @@ export default function SettingsEditor() {
 
         <tr>
           <td className="text-right pr-4">
-            {/* <label>sudo Password:</label> */}
             <Label htmlFor="sudoPassword" className="font-bold text-lg">
               sudo password&nbsp;
               <PopoverHelper text="Enter the sudo password: required on macOS or Linux." />
@@ -81,6 +78,20 @@ export default function SettingsEditor() {
             <PasswordInput
               value={settings.sudoerPassword}
               onChange={(e) => updateSettings({ sudoerPassword: e })}
+            />
+          </td>
+        </tr>
+        <tr>
+          <td className="text-right pr-4">
+            <Label htmlFor="Files" className="font-bold text-lg">
+              Select floor plan&nbsp;
+              <PopoverHelper text="Choose a file to be used as a background image." />
+            </Label>
+          </td>
+          <td>
+            <MediaDropdown
+              defaultValue={settings.floorplanImageName}
+              onChange={(val) => console.log("Selected:", val)}
             />
           </td>
         </tr>

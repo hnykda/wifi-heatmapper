@@ -15,6 +15,9 @@ export async function writeSettingsToFile(
 ): Promise<void> {
   try {
     // ensure the sudoerPassword is removed so it won't be written out
+    // sudoerPassword is assigned to the "_" variable,
+    // noPWSettings gets the "rest" of the properties
+    // then write noPWSettings to localStorage()
     const { sudoerPassword: _, ...noPWSettings } = settings;
     localStorage.setItem("wifi-heatmapper", JSON.stringify(noPWSettings)); // Simulating file storage
   } catch (error) {

@@ -55,7 +55,8 @@ export type HeatmapConfig = {
 
 export interface HeatmapSettings {
   surveyPoints: SurveyPoint[];
-  floorplanImagePath: string;
+  floorplanImageName: string; // name of the floorplan-filename
+  floorplanImagePath: string; // path to the /media/floorplan-filename
   iperfServerAdrs: string;
   testDuration: number;
   sudoerPassword: string; // passed around, removed before writing to file

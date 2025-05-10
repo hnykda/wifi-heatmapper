@@ -33,6 +33,8 @@ Ideas for making the program better - in no particular order:
   underlying heat map
 * Bundle this into a nice installable (electron?) app so it can be easily installed on a tablet
 * Add leaflet to make the maps interactive
+* It could be useful to change iperfRunner.ts to default to "null" results
+  for all its values, instead of zero. This indicates that no iperf3 test was run.
 
 ## Bugs
 

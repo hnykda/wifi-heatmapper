@@ -9,15 +9,18 @@ import {
 } from "react";
 import { readSettingsFromFile, writeSettingsToFile } from "../lib/fileHandler";
 import { HeatmapSettings, SurveyPoint, SurveyPointActions } from "../lib/types";
+import { join } from "path";
 
 /**
  * getDefaults()
  * @returns Set of default settings
  */
 const getDefaults = (): HeatmapSettings => {
+  const defaultFloorPlan = "EmptyFloorPlan.png";
   return {
     surveyPoints: [],
-    floorplanImagePath: "media/EmptyFloorPlan.png",
+    floorplanImageName: defaultFloorPlan,
+    floorplanImagePath: join("/media", defaultFloorPlan),
     iperfServerAdrs: "127.0.0.1",
     apMapping: [],
     testDuration: 1,
