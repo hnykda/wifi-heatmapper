@@ -13,14 +13,16 @@ import { join } from "path";
 
 /**
  * getDefaults()
- * @returns Set of default settings
+ * @param floorPlan - desired floor plan, or "" if unknown
+ * @returns Set of default settings for that floor plan
  */
-const getDefaults = (): HeatmapSettings => {
+const getDefaults = (floorPlan: string): HeatmapSettings => {
   const defaultFloorPlan = "EmptyFloorPlan.png";
+  const floorPlanUsed = floorPlan == "" ? defaultFloorPlan : floorPlan;
   return {
     surveyPoints: [],
-    floorplanImageName: defaultFloorPlan,
-    floorplanImagePath: join("/media", defaultFloorPlan),
+    floorplanImageName: floorPlanUsed,
+    floorplanImagePath: join("/media", floorPlanUsed),
     iperfServerAdrs: "127.0.0.1",
     apMapping: [],
     testDuration: 1,
@@ -47,6 +49,7 @@ interface SettingsContextType {
   settings: HeatmapSettings;
   updateSettings: (newSettings: Partial<HeatmapSettings>) => void;
   surveyPointActions: SurveyPointActions;
+  readNewSettingsFromFile: (theFile: string) => void;
 }
 
 // Create the context
@@ -64,30 +67,43 @@ export function useSettings() {
 
 // Context provider component
 export function SettingsProvider({ children }: { children: ReactNode }) {
-  const [settings, setSettings] = useState<HeatmapSettings>(getDefaults());
+  const [settings, setSettings] = useState<HeatmapSettings>(getDefaults(""));
+  const [floorplanImage, setFloorplanImage] = useState<string>("");
 
-  // Load settings from file on mount
-  useEffect(() => {
-    async function loadSettings() {
-      let newHeatmapSettings: HeatmapSettings | null =
-        await readSettingsFromFile();
-      if (newHeatmapSettings) {
-        // we read from a file, but that won't contain the password
-        newHeatmapSettings.sudoerPassword = "";
-      } else {
-        // just use the defaults, if no settings came from file
-        newHeatmapSettings = getDefaults();
-        writeSettingsToFile(newHeatmapSettings);
-      }
+  async function loadSettings(floorplanImage: string) {
+    let newHeatmapSettings: HeatmapSettings | null =
+      await readSettingsFromFile(floorplanImage);
+    if (newHeatmapSettings) {
+      console.log(
+        `loadSettings: ${newHeatmapSettings.floorplanImageName} ${newHeatmapSettings.floorplanImagePath}`,
+      );
+      // we read from a file, but that won't contain the password
+      newHeatmapSettings.sudoerPassword = "";
+      setSettings(newHeatmapSettings);
+    } else {
+      // just use the defaults, if no settings came from file
+      newHeatmapSettings = getDefaults(floorplanImage);
+      writeSettingsToFile(newHeatmapSettings);
       setSettings(newHeatmapSettings);
     }
-    loadSettings();
-  }, []);
+  }
+
+  // Load settings from file on mount, or whenever the floorplanImage changes
+  useEffect(() => {
+    console.log(`inside useEffect: ${floorplanImage}`);
+    loadSettings(floorplanImage);
+  }, [floorplanImage]);
+
+  const readNewSettingsFromFile = (fileName: string) => {
+    console.log(`readNewSettingsFromFile: ${fileName}`);
+    setFloorplanImage(fileName); // set the new floorplanImage, and let useEffect() do the work
+  };
 
   // Function to update settings (only allows partial updates)
   const updateSettings = (newSettings: Partial<HeatmapSettings>) => {
     setSettings((prev) => {
       const updatedSettings = { ...prev, ...newSettings };
+      console.log(`global: updateSettings ${newSettings}`);
       writeSettingsToFile(updatedSettings); // Save to file
       return updatedSettings;
     });
@@ -120,7 +136,12 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
   return (
     <SettingsContext.Provider
-      value={{ settings, updateSettings, surveyPointActions }}
+      value={{
+        settings,
+        updateSettings,
+        surveyPointActions,
+        readNewSettingsFromFile,
+      }}
     >
       {children}
     </SettingsContext.Provider>

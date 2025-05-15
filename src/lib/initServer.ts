@@ -2,8 +2,15 @@
 import { copyToMediaFolder } from "../lib/actions";
 import { getLogger } from "./logger";
 import os from "os";
+import { promises as fs } from "fs";
+
 import { execAsync } from "./server-utils";
 import { initLocalization } from "./localization";
+
+const loadJson = async (filePath: string) => {
+  const contents = await fs.readFile(filePath, "utf-8");
+  return JSON.parse(contents);
+};
 
 const logger = getLogger("initServer");
 
@@ -12,8 +19,10 @@ async function logSystemInfo(): Promise<void> {
     const platform = os.platform();
     const release = os.release();
     const version = os.version();
+    const data = await loadJson("./package.json");
 
     logger.info("=== System Information ===");
+    logger.info(`wifi-heatmapper: ${data.version}`);
     logger.info(`OS: ${platform}`);
     logger.info(`OS Version: ${release}`);
     logger.info(`OS Details: ${version}`);
@@ -38,7 +47,7 @@ async function logSystemInfo(): Promise<void> {
  */
 export async function initServer() {
   // one-time setup (e.g., DB pool, metrics, cache)
-  console.log("Initializing server...");
+  // logger.info("Initializing server...");
 
   let initialized = false;
 
@@ -52,6 +61,6 @@ export async function initServer() {
     await initLocalization(); // load up the localization files
 
     initialized = true;
-    console.log(`Server initialization complete.`);
+    // logger.info(`Server initialization complete.`);
   }
 }

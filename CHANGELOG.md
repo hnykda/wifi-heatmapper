@@ -2,9 +2,23 @@
 
 _This section follows the precepts of [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) so that future readers can understand the state and evolution of the project._
 
-## [Unreleased]
+## [Unreleased - working toward 0.3.0]
 
-* Significant editorial work on README and othe pages in _docs_
+* Setting the iperf3 server to "localhost" or "127.0.0.1" only tests
+  Wi-Fi signal strength and disables iperf3 tests.
+  This avoids the requirement of setting up an iperf3 server simply
+  to use the program to get a heat map of the Wi-Fi signal.
+* If there are no iperf3 tests (TCP or UDP), their heat maps are not shown.
+* The "Floor plan" setting is now a dropdown that selects from all the PNG or JPEG
+  files in the _/media_ directory on the server.
+  These images are used as keys to select the corresponding survey points and
+  other settings that were collected for that background image.
+  All the settings are saved in both the current `wifi-heatmapper` object
+  of localStorage() as well as a copy in `wifi-heatmapper-floorplanImageName`
+* Selecting a new floor plan image loads the corresponding survey points.
+* Uploading a new floor plan image creates a new object in localStorage()
+  tagged with its name, as described above.
+* Significant editorial work on README and other pages in _docs_
 
 ## Version 0.2.1 - 2025-04-04
 

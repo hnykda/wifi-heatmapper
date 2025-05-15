@@ -8,25 +8,16 @@ Ideas for making the program better - in no particular order:
 
 * Make the app more user-friendly and informative (step by step wizard for the measurements)
 * Serialize the datapoints and image to the saved file so it can be loaded later
-* Alternative: Save the JSON data to localStorage() with a name like
-`wifi-heatmapper-floorPlanImagename`,
-  and come up with a means of selecting one or the other.
-* Create a "Signal strength only" setting for quicker surveys.
-  Doing this also removes the requirement of setting up a separate iperf3 server.
-  Maybe also triggered by a "" setting for the iperf3 server.
-* If only one survey point exists, the `Heatmap` floor plan should appear, but with a message like "Not enough points"
-* But normalize data rate scale for throughput (use range of 200..700mbps with 100's dividers instead of 245..673mbps)
+* Normalize data rate scale for throughput (use range of 200..700mbps with 100's dividers instead of 245..673mbps)
 * If `Floorplan` cannot open the image, it should display
   a sensible message like "Can't open map_name..."
-* Change Floor Plan `<input>` to be a "Browse..." field
-* Better yet, let the user drag it into the Floorplan window
 * An expanded (clicked) heat map should always fit fully within the browser window (or scroll)
 * A click on the `Floorplan` pane should immediately display an
   empty dot (no color) to indicate that's where the click was.
 * The "distance" of 10 in detecting a click is not big enough when
   using some kind of tablet. An errant finger makes it look like a request
   to make a new measurement, not examine that point's statistics.
-* During the FloorPlan measurement process, display the wifi signal
+* (Maybe) During the FloorPlan measurement process, display the wifi signal
   strength heatmap underneath. This helps the user determine if they need
   more measurements (finer granularity) for the map.
   NB: This also tests the coloring of the dots vs the color of the
@@ -61,13 +52,13 @@ Ideas for making the program better - in no particular order:
   is not actually to scale it'll still give good "relative strength" info
   relative to other places on the drawing
 * How to explain the difference between signal strength and throughput rates?
-* Is it possible to automatically compute the h337 `radius`. Currently using the "bounding box" which is some measure of the point's density. The (new) slide makes this somewhat better, but how do we tell people where "the right setting" is?
 * Does "winking" WiFi off and then back on before measurement improve the values?
-* How should "saved files" work (now in `localstorage()`)?
-  Opening a new Floorplan should probably
-  change the saved file name to match
+  Maybe - this might give the Wi-Fi driver a chance to select a better Wi-Fi SSID
+  (Use case: you have used SSID-A and SSID-B in the past. You start the test on SSID-A, but subsequent survey points get farther and farther away - and closer to
+  SSID-B. Since your device tends to select the strongest signal, "winking" the Wi-FI
+  might give it a chance to select SSID-B automatically.)
 * Would it improve the heatmap if small dots were placed at the locations of SurveyPoints?
-* What _does_ **Access Point Mappings** do?
+* What _does_ **Access Point Mappings** do? (On macOS, not much, since that info is not available.)
 * The current code runs `runIperfTest()` three times if there was an error. What problem does that solve? What caused that enhancement?
 * Is it important to call `hasValidData()` in wifiScanner.ts? What information does that provide - that we can do anything about?
 
@@ -125,3 +116,14 @@ Ideas for making the program better - in no particular order:
 * ~~Infer the relevant command/OS version and use the relevant commands and parser based on that to make this multi-platform.~~ Done
 * ~~Make version 0.2.1 work with Docker (currently gives error attempting to locate the _localization_ directory)~~
 * ~~Load/save heatmap config to database~~
+* Alternative: Save the JSON data to localStorage() with a name like `wifi-heatmapper-floorPlanImagename`, and come up with a means of selecting one or the other.
+* Create a "Signal strength only" setting for quicker surveys.
+  Doing this also removes the requirement of setting up a separate iperf3 server.
+  Maybe also triggered by a "" setting for the iperf3 server.
+* If only one survey point exists, the `Heatmap` floor plan should appear, but with a message like "Not enough points"
+* Change Floor Plan `<input>` to be a "Browse..." field
+* Better yet, let the user drag it into the Floorplan window
+* (Maybe this is done) Is it possible to automatically compute the h337 `radius`. Currently using the "bounding box" which is some measure of the point's density. The (new) slide makes this somewhat better, but how do we tell people where "the right setting" is?
+* How should "saved files" work (now in `localstorage()`)?
+  Opening a new Floorplan should probably
+  change the saved file name to match

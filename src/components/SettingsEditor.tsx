@@ -4,13 +4,17 @@ import { Label } from "@/components/ui/label";
 import { PopoverHelper } from "@/components/PopoverHelpText";
 import HeatmapAdvancedConfig from "./HeatmapAdvancedConfig";
 import MediaDropdown from "./MediaDropdown";
-import { join } from "path";
 
 export default function SettingsEditor() {
-  const { settings, updateSettings } = useSettings();
+  const { settings, updateSettings, readNewSettingsFromFile } = useSettings();
+
+  /**
+   * handleNewImageFile - given the name of a new image file,
+   *    get the settings for that floor image
+   * @param theFile - name of the new image file
+   */
   function handleNewImageFile(theFile: string): void {
-    updateSettings({ floorplanImageName: theFile });
-    updateSettings({ floorplanImagePath: join("media", theFile) });
+    readNewSettingsFromFile(theFile); // tell the parent about the new file
   }
 
   return (
@@ -18,19 +22,15 @@ export default function SettingsEditor() {
       <tbody>
         <tr>
           <td className="text-right pr-4">
-            <Label htmlFor="floorPlan" className="font-bold text-lg">
+            <Label htmlFor="Files" className="font-bold text-lg">
               Floor plan&nbsp;
-              <PopoverHelper text="Name of the floor plan image. Saved in the 'media' folder." />
+              <PopoverHelper text="Choose a file to be used as a background image, or upload another PNG or JPEG file." />
             </Label>
           </td>
           <td>
-            <input
-              type="text"
-              className="border border-gray-200 rounded-sm p-2 focus:outline-none focus:ring focus:ring-blue-300 focus:border-blue-400"
-              value={settings.floorplanImagePath}
-              onChange={(e) =>
-                updateSettings({ floorplanImagePath: e.target.value.trim() })
-              }
+            <MediaDropdown
+              defaultValue={settings.floorplanImageName}
+              onChange={(val) => handleNewImageFile(val)}
             />
           </td>
         </tr>
@@ -53,6 +53,7 @@ export default function SettingsEditor() {
             />
           </td>
         </tr>
+
         <tr>
           <td className="text-right pr-4">
             <Label htmlFor="testDuration" className="font-bold text-lg">
@@ -86,20 +87,7 @@ export default function SettingsEditor() {
             />
           </td>
         </tr>
-        <tr>
-          <td className="text-right pr-4">
-            <Label htmlFor="Files" className="font-bold text-lg">
-              Select floor plan&nbsp;
-              <PopoverHelper text="Choose a file to be used as a background image, or upload another PNG or JPEG file." />
-            </Label>
-          </td>
-          <td>
-            <MediaDropdown
-              defaultValue={settings.floorplanImageName}
-              onChange={(val) => handleNewImageFile(val)}
-            />
-          </td>
-        </tr>
+
         <tr>
           <td colSpan={2} className="text-right pr-4">
             <HeatmapAdvancedConfig />
