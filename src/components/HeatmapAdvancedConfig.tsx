@@ -54,10 +54,7 @@ export function HeatmapAdvancedConfig() {
   return (
     <Accordion type="single" collapsible>
       <AccordionItem value="advanced-config">
-        <AccordionTrigger>
-          Advanced Configuration&nbsp;
-          <PopoverHelper text="These settings generally do not need to be adjusted and can be ignored." />
-        </AccordionTrigger>
+        <AccordionTrigger>Advanced Configuration</AccordionTrigger>
         <AccordionContent>
           <table className="flex flex-row gap-4">
             <tbody>

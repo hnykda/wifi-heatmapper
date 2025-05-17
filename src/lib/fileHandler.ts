@@ -21,11 +21,6 @@
 
 import { HeatmapSettings } from "./types";
 
-// export async function setNewSettingsFile(theFileName: string): Promise<void> {
-//   localStorage.setItem("wifi*heatmapper", theFileName);
-//   console.log(`setNewSettingsFile: ${theFileName}`);
-// }
-
 export async function readSettingsFromFile(
   fileName: string,
 ): Promise<HeatmapSettings | null> {
@@ -36,12 +31,14 @@ export async function readSettingsFromFile(
     if (baseImageName == null) {
       return null;
     }
-    // if they provide a file to use, use that as the suffix for the localStorage() valule
+    // if they provide a file to use, use that as the suffix for the localStorage() value
+    // and remember that this is the file we're using
     if (fileName != "") {
       baseImageName = fileName;
+      localStorage.setItem("wifi*heatmapper", baseImageName);
     }
+
     const localStorageName = `wifi-heatmapper-${baseImageName}`;
-    console.log(`readSettingsFromFile: ${baseImageName} ${localStorageName}`);
     const data = localStorage.getItem(localStorageName);
     return data ? JSON.parse(data) : null; // return the data or null (if doesn't exist)
   } catch (error) {
@@ -57,7 +54,6 @@ export async function writeSettingsToFile(
     // update the base image name
     const baseImageName = settings.floorplanImageName;
     localStorage.setItem("wifi*heatmapper", baseImageName);
-    console.log(`writeSettingsToFile: ${baseImageName}`);
 
     // ensure the sudoerPassword is removed so it won't be written out
     // sudoerPassword is assigned to the "_" variable,

@@ -17,12 +17,10 @@ import { join } from "path";
  * @returns Set of default settings for that floor plan
  */
 const getDefaults = (floorPlan: string): HeatmapSettings => {
-  const defaultFloorPlan = "EmptyFloorPlan.png";
-  const floorPlanUsed = floorPlan == "" ? defaultFloorPlan : floorPlan;
   return {
     surveyPoints: [],
-    floorplanImageName: floorPlanUsed,
-    floorplanImagePath: join("/media", floorPlanUsed),
+    floorplanImageName: floorPlan,
+    floorplanImagePath: join("/media", floorPlan),
     iperfServerAdrs: "127.0.0.1",
     apMapping: [],
     testDuration: 1,
@@ -69,20 +67,20 @@ export function useSettings() {
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<HeatmapSettings>(getDefaults(""));
   const [floorplanImage, setFloorplanImage] = useState<string>("");
+  const defaultFloorPlan = "EmptyFloorPlan.png";
 
   async function loadSettings(floorplanImage: string) {
     let newHeatmapSettings: HeatmapSettings | null =
       await readSettingsFromFile(floorplanImage);
     if (newHeatmapSettings) {
-      console.log(
-        `loadSettings: ${newHeatmapSettings.floorplanImageName} ${newHeatmapSettings.floorplanImagePath}`,
-      );
       // we read from a file, but that won't contain the password
       newHeatmapSettings.sudoerPassword = "";
       setSettings(newHeatmapSettings);
     } else {
-      // just use the defaults, if no settings came from file
-      newHeatmapSettings = getDefaults(floorplanImage);
+      // use the provided floor plan image or the default
+      const floorPlanUsed =
+        floorplanImage == "" ? defaultFloorPlan : floorplanImage;
+      newHeatmapSettings = getDefaults(floorPlanUsed);
       writeSettingsToFile(newHeatmapSettings);
       setSettings(newHeatmapSettings);
     }
@@ -90,12 +88,10 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
   // Load settings from file on mount, or whenever the floorplanImage changes
   useEffect(() => {
-    console.log(`inside useEffect: ${floorplanImage}`);
     loadSettings(floorplanImage);
   }, [floorplanImage]);
 
   const readNewSettingsFromFile = (fileName: string) => {
-    console.log(`readNewSettingsFromFile: ${fileName}`);
     setFloorplanImage(fileName); // set the new floorplanImage, and let useEffect() do the work
   };
 
@@ -103,7 +99,6 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const updateSettings = (newSettings: Partial<HeatmapSettings>) => {
     setSettings((prev) => {
       const updatedSettings = { ...prev, ...newSettings };
-      console.log(`global: updateSettings ${newSettings}`);
       writeSettingsToFile(updatedSettings); // Save to file
       return updatedSettings;
     });

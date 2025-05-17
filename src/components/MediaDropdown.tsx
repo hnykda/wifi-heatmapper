@@ -25,7 +25,7 @@ export default function MediaDropdown({
   onChange,
 }: MediaDropdownProps) {
   const [files, setFiles] = useState<string[]>([]);
-  const [selected, setSelected] = useState<string | null>(defaultValue || null);
+  const [selected, setSelected] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -41,7 +41,7 @@ export default function MediaDropdown({
       setFiles(imageFiles);
 
       // If defaultValue is set and exists in the list, keep it selected
-      if (defaultValue && files.includes(defaultValue)) {
+      if (defaultValue && imageFiles.includes(defaultValue)) {
         setSelected(defaultValue);
       }
     } catch (err) {
@@ -49,9 +49,25 @@ export default function MediaDropdown({
     }
   };
 
+  /**
+   * Retrieve files from the server when the dropdown mounts
+   */
   useEffect(() => {
     fetchFiles();
   }, []);
+
+  /**
+   * Set the selected file whenever defaultValue changes.
+   * This works around the problem that the dropdown mounts
+   * prior to reading the current settings.
+   * Subsequent calls to MediaDropdown with the new file name
+   * won't update otherwise.
+   */
+  useEffect(() => {
+    if (defaultValue) {
+      setSelected(defaultValue);
+    }
+  }, [defaultValue]);
 
   /**
    * handleSelect - they selected a new file
@@ -80,7 +96,7 @@ export default function MediaDropdown({
    * @param e
    * @returns
    */
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -155,7 +171,7 @@ export default function MediaDropdown({
       <input
         type="file"
         ref={fileInputRef}
-        onChange={handleFileChange}
+        onChange={handleFileUpload}
         className="hidden"
       />
 
