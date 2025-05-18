@@ -4,20 +4,18 @@ _This section follows the precepts of [Keep a Changelog](https://keepachangelog.
 
 ## [Unreleased - working toward 0.3.0]
 
-* Setting the iperf3 server to "localhost" or "127.0.0.1" only tests
-  Wi-Fi signal strength and disables iperf3 tests.
-  This avoids the requirement of setting up an iperf3 server simply
-  to use the program to get a heat map of the Wi-Fi signal.
-* If there are no iperf3 tests (TCP or UDP), their heat maps are not shown.
-* The "Floor plan" setting is now a dropdown that selects from all the PNG or JPEG
-  files in the _/media_ directory on the server.
+* The "Floor plan" setting is now a dropdown that selects from
+  all the PNG or JPEG files on the server.
   These images are used as keys to select the corresponding survey points and
   other settings that were collected for that background image.
-  All the settings are saved in both the current `wifi-heatmapper` object
-  of localStorage() as well as a copy in `wifi-heatmapper-floorplanImageName`
-* Selecting a new floor plan image loads the corresponding survey points.
-* Uploading a new floor plan image creates a new object in localStorage()
-  tagged with its name, as described above.
+  Selecting a new floor plan image loads the corresponding survey points.
+* **Upload an image...** allows uploading a new image.
+* Setting the iperf3 server to "localhost" disables iperf3 tests
+  and only tests Wi-Fi signal strength.
+  This makes it possible to get a WiFi heat map without requiring
+  an iperf3 client and server.
+* If there are no iperf3 tests (TCP or UDP), their heat maps are not shown.
+* All Settings items have an "information" button.
 * Significant editorial work on README and other pages in _docs_
 
 ## Version 0.2.1 - 2025-04-04

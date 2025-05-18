@@ -21,7 +21,7 @@ const getDefaults = (floorPlan: string): HeatmapSettings => {
     surveyPoints: [],
     floorplanImageName: floorPlan,
     floorplanImagePath: join("/media", floorPlan),
-    iperfServerAdrs: "127.0.0.1",
+    iperfServerAdrs: "localhost",
     apMapping: [],
     testDuration: 1,
     sudoerPassword: "",

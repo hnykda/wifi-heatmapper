@@ -42,6 +42,8 @@ Ideas for making the program better - in no particular order:
 * Using different size images for the floor plan image didn't work well.
   This is a placeholder: I don't currently have good debugging info
 * Test code from wifiScanner_windows should be moved to a separate \_test.ts file
+* "No TCP (UDP) test" message should be on an opaque/partially transparent background
+* Long file names should fit inside the dropdown
 
 ## Questions
 

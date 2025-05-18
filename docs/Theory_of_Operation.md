@@ -60,6 +60,10 @@ but have not yet been removed from the code base:
 
 ## Routes in the Next app
 
+* The _api/media/route.ts_ file listens for a GET request
+  and returns the list of files in the _public/media_ directory
+  A POST request is treated as a file upload to be saved
+  in that directory.
 * The _api/events/route.ts_ file listens for a GET request,
   then keeps open a connection that sends 
   `sseMessageType` events to the client.
@@ -135,7 +139,8 @@ in _lib/utils.ts_ convert from one to the other.
 At the end of each measurement, the code saves both values.
 
 NB: In practice, any value below -75 dBM (~ 40%) is too low
-to be useful, and the color in the heatmap should be discouraging.
+to be useful, and the color displayed in the heatmap
+should be discouraging (yellow, red).
 
 Arguably, the zero point of the percentage scale should be
 -90dBm (not -100dBm) since the noise floor
@@ -179,22 +184,44 @@ The Windows parsing code then retrieves each label from the
 `netsh ...` command, does a reverse lookup, and sets the
 appropriate property.
 
+### Creating a localization file for your system
+
+To create a localization file for your Window's system's language:
+
+* Duplicate one of the _data/localization_ files
+* Rename it to _XX.json_, where "XX" is the proper code for the language
+  (e.g., _fr.json_ for a French system). The exact name is not important
+  except for the _.json_ suffix.
+* Run `netsh wlan show interfaces` from the command line
+* Paste the output of the `netsh wlan...` into the bottom of the window.
+* Comment out those lines (use `//` at the start of the line),
+  and remove the prior output
+* In the JSON structure at the top of the file, replace the localized
+  phrases (on the right) with the corresponding phrase from the new
+  `netsh wlan...` output.
+* Restart the `wifi-heatmapper` server (`npm run dev`)
+  to read the new localized values
+* Please add the new file as an Issue to the repo
+  (https://github.com/hnykda/wifi-heatmapper/issues)
+  so it can be incorporated into the program. 
+
 ## Radius Calculations
 
 The `h337.create()` function takes a `radius` parameter that
 determines "how much space" the value of each survey point
 should occupy.
 Reasonable values seem to be between 100 and 500,
-and are shown in the Advanced Heatmap Config.
+and can be set by the slider in the Heatmaps pane.
 
 The _lib/radiusCalculations.ts_ file implements several algorithms suggested by AI as experiments.
 The code currently uses the `r2` function that
 computes the radius using something like the density of
 points within the bounding box.
+This seems to give pretty pleasing results when the survey points
+cover the majority of the floor plan.
+Use the Radius slider to adjust the heatmap.
 
 _Note:_ The Android [NetSpot](https://www.netspotapp.com/netspot-wifi-analyzer-for-android.html)
 app incorporates a "distance" measurement for the background image.
 That may give a further hint about the size of the survey points.
 
-This needs considerable more experimentation to attain a
-pleasing metric.

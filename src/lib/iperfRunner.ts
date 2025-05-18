@@ -140,9 +140,7 @@ export async function runIperfTest(settings: HeatmapSettings): Promise<{
   iperfResults: IperfResults | null;
   wifiData: WifiNetwork | null;
 }> {
-  const performIperfTest =
-    settings.iperfServerAdrs != "localhost" &&
-    settings.iperfServerAdrs != "127.0.0.1";
+  const performIperfTest = settings.iperfServerAdrs != "localhost";
   const logger = getLogger("iperfRunner");
   try {
     const maxRetries = 3;
