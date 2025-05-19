@@ -8,7 +8,6 @@ import { NextResponse } from "next/server";
 import { readdir, writeFile } from "fs/promises";
 import path from "path";
 // import { IncomingForm } from 'formidable';
-import { Readable } from "stream";
 
 // Ensure body parsing is disabled so we can handle file uploads
 export const config = {
@@ -17,14 +16,14 @@ export const config = {
   },
 };
 
-function streamToBuffer(stream: Readable): Promise<Buffer> {
-  return new Promise((resolve, reject) => {
-    const chunks: Uint8Array[] = [];
-    stream.on("data", (chunk) => chunks.push(chunk));
-    stream.on("end", () => resolve(Buffer.concat(chunks)));
-    stream.on("error", reject);
-  });
-}
+// function streamToBuffer(stream: Readable): Promise<Buffer> {
+//   return new Promise((resolve, reject) => {
+//     const chunks: Uint8Array[] = [];
+//     stream.on("data", (chunk) => chunks.push(chunk));
+//     stream.on("end", () => resolve(Buffer.concat(chunks)));
+//     stream.on("error", reject);
+//   });
+// }
 
 export async function GET() {
   try {
