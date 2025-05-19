@@ -304,18 +304,6 @@ export function Heatmaps() {
          */
         const heatmapData = generateHeatmapData(metric, testType);
 
-        if (!heatmapData || heatmapData.length === 0) {
-          ctx.font = "120px sans-serif";
-          ctx.fillStyle = "black";
-          ctx.fillText(
-            `Hello, world! ${heatmapData.length}`,
-            100,
-            (settings.dimensions.height * 2) / 3,
-          ); // (x=20, y=40)
-          // resolve(null);
-          // return;
-        }
-
         // create the heat map instance
         const heatmapInstance = h337.create({
           container: heatmapContainer,
@@ -374,6 +362,31 @@ export function Heatmaps() {
               const lines = ["No heatmap:", `no ${metric}`, "tests performed"];
               ctx.textAlign = "center";
               ctx.font = "72px sans-serif";
+
+              let maxWidth = 0;
+              let totalHeight = 0;
+              const lineSpacing = 4;
+
+              for (const line of lines) {
+                const metrics = ctx.measureText(line);
+                const lineHeight =
+                  metrics.actualBoundingBoxAscent +
+                  metrics.actualBoundingBoxDescent;
+                maxWidth = Math.max(maxWidth, metrics.width);
+                totalHeight += lineHeight + lineSpacing;
+              }
+              // Remove last added lineSpacing
+              totalHeight += lineSpacing * 4;
+
+              // Draw semi-opaque white background
+              ctx.fillStyle = "rgba(255, 255,255, 0.9)";
+              ctx.fillRect(
+                settings.dimensions.width / 2 - maxWidth / 2,
+                (settings.dimensions.height * 2) / 3 - 72 + lineSpacing,
+                maxWidth,
+                totalHeight,
+              );
+
               ctx.fillStyle = "black";
 
               lines.forEach((line, index) => {

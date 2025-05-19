@@ -122,7 +122,7 @@ export default function MediaDropdown({
     <div className="w-full p-2 pr-10 border rounded bg-white-800 text-black">
       <DropdownMenu.Root>
         <DropdownMenu.Trigger asChild>
-          <button className="relative border border-gray-300 rounded px-2 pr-7 py-1.5 w-48 text-left ">
+          <button className="relative max-w-[400px] w-full truncate border border-gray-300 rounded px-2 pr-7 py-1.5 text-left">
             <span className="truncate">{selected || "Select File"}</span>
             <svg
               className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-600 pointer-events-none"

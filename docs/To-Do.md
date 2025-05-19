@@ -42,8 +42,6 @@ Ideas for making the program better - in no particular order:
 * Using different size images for the floor plan image didn't work well.
   This is a placeholder: I don't currently have good debugging info
 * Test code from wifiScanner_windows should be moved to a separate \_test.ts file
-* "No TCP (UDP) test" message should be on an opaque/partially transparent background
-* Long file names should fit inside the dropdown
 
 ## Questions
 
@@ -117,15 +115,18 @@ Ideas for making the program better - in no particular order:
 * ~~Find out how to get RSSI and other stuff from `ioreg` so sudo is not needed (for `wdutil`)~~ _Likely, not possible_
 * ~~Infer the relevant command/OS version and use the relevant commands and parser based on that to make this multi-platform.~~ Done
 * ~~Make version 0.2.1 work with Docker (currently gives error attempting to locate the _localization_ directory)~~
-* ~~Load/save heatmap config to database~~
-* Alternative: Save the JSON data to localStorage() with a name like `wifi-heatmapper-floorPlanImagename`, and come up with a means of selecting one or the other.
+* ~~Load/save heatmap config to database~~ 
+* Alternative: Save the JSON data to localStorage() with a name like `wifi-heatmapper-floorPlanImagename`, and come up with a means of selecting one or the other. [DONE]
 * Create a "Signal strength only" setting for quicker surveys.
   Doing this also removes the requirement of setting up a separate iperf3 server.
   Maybe also triggered by a "" setting for the iperf3 server.
+  [DONE]
 * If only one survey point exists, the `Heatmap` floor plan should appear, but with a message like "Not enough points"
 * Change Floor Plan `<input>` to be a "Browse..." field
 * Better yet, let the user drag it into the Floorplan window
-* (Maybe this is done) Is it possible to automatically compute the h337 `radius`. Currently using the "bounding box" which is some measure of the point's density. The (new) slide makes this somewhat better, but how do we tell people where "the right setting" is?
+* Is it possible to automatically compute the h337 `radius`. Currently using the "bounding box" which is some measure of the point's density. The (new) slide makes this somewhat better, but how do we tell people where "the right setting" is? [DONE]
 * How should "saved files" work (now in `localstorage()`)?
   Opening a new Floorplan should probably
-  change the saved file name to match
+  change the saved file name to match [DONE]
+* "No TCP (UDP) test" message should be on an opaque/partially transparent background [DONE]
+* Long file names should fit inside the dropdown [DONE]
