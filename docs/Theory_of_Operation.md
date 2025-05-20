@@ -10,7 +10,8 @@ that show where signal/throughput are high and low.
 
 ## Platform-Specific Wifi Commands
 
-This utility relies on parsing outputs of the following CLI commands.
+**wifi-heatmapper** parses the outputs of the following CLI commands
+to get the measurements of the Wi-Fi strength and other parameters.
 
 | Platform | Commands          | Notes                                                                                                                                                    |
 | -------- | ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -61,7 +62,7 @@ but have not yet been removed from the code base:
 ## Routes in the Next app
 
 * The _api/media/route.ts_ file listens for a GET request
-  and returns the list of files in the _public/media_ directory
+  and returns the list of files in the _public/media_ directory.
   A POST request is treated as a file upload to be saved
   in that directory.
 * The _api/events/route.ts_ file listens for a GET request,
@@ -82,8 +83,8 @@ but have not yet been removed from the code base:
 
 ## How the Toast progress notifier works
 
-When an empty space is clicked on the `Floorplan`,
-it triggers the measurement process
+When an empty space is clicked, the `Floorplan` component
+triggers the measurement process
 and displays the progress of the measurements.
 Those updates are provided by Server-Sent Events (see below),
 which is an astonishingly complicated process:
@@ -100,12 +101,12 @@ which is an astonishingly complicated process:
   All server-side clients can import and use that function.
 * When `NewToast` receives a "ready" message from the server,
   it calls back to the `Floorplan` with `toastIsOpen()`
-* That triggers the measurement process that uses `sendToClient()`
+* That triggers the actual measurement process that uses `sendToClient()`
   to send updates to `NewToast`.
-* When the user clicks the Cancel button of `NewToast`,
-  it sends a POST to _/api/start-task?action=stop_.
+* Clicking the Cancel button of `NewToast`
+  sends a POST to _/api/start-task?action=stop_.
   This calls global `setCancelFlag(true)`.
-  The measurement process notices this and halts the process
+  The server's measurement process notices this and halts the process
   with appropriate status updates.
   
 ## Server-Sent Events - sseMessage
@@ -116,18 +117,18 @@ SSEs have these fields:
 
 ```javascript
 export type SSEMessageType = {
-  type: string;//info, ready, update, done
+  type: string;//ready, update, done, info
   header: string;
   status: string; 
 };
 ```
 
-* `info` is a general message - ignored by NewToast
 * `ready` signals NewToast to tell its parent to
   begin the measurements
-* `update` simply updates the header and status
+* `update` simply provides updated header and status messages
 * `done` updates the header and status, then starts a timer to
   remove the NewToast after a number of seconds.
+* `info` is a general message - ignored by NewToast
 
 ## RSSI and Signal Strength
 
@@ -140,7 +141,7 @@ At the end of each measurement, the code saves both values.
 
 NB: In practice, any value below -75 dBM (~ 40%) is too low
 to be useful, and the color displayed in the heatmap
-should be discouraging (yellow, red).
+is correspondingly discouraging (yellow, red).
 
 Arguably, the zero point of the percentage scale should be
 -90dBm (not -100dBm) since the noise floor
@@ -176,7 +177,7 @@ Consequently, there is no obvious algorithm for retriving values
 from the `netsh...` output. 
 
 At server startup, the _lib/localization.ts_ code reads a set of
-_en.json_, _it.json_ files to build a reverse lookup table of
+_xxxx.json_ files to build a reverse lookup table of
 (localized string) to the corresponding WifiNetwork property
 (or null).
  
@@ -196,6 +197,8 @@ To create a localization file for your Window's system's language:
 * Paste the output of the `netsh wlan...` into the bottom of the window.
 * Comment out those lines (use `//` at the start of the line),
   and remove the prior output
+* Add a comment indicating the version of Windows (Win10, Win11)
+  and the system language
 * In the JSON structure at the top of the file, replace the localized
   phrases (on the right) with the corresponding phrase from the new
   `netsh wlan...` output.
@@ -208,12 +211,12 @@ To create a localization file for your Window's system's language:
 ## Radius Calculations
 
 The `h337.create()` function takes a `radius` parameter that
-determines "how much space" the value of each survey point
-should occupy.
+determines "how much space" each survey point should occupy.
 Reasonable values seem to be between 100 and 500,
 and can be set by the slider in the Heatmaps pane.
 
-The _lib/radiusCalculations.ts_ file implements several algorithms suggested by AI as experiments.
+The _lib/radiusCalculations.ts_ file implements several AI suggestions
+for algorithms as experiments.
 The code currently uses the `r2` function that
 computes the radius using something like the density of
 points within the bounding box.
@@ -225,3 +228,16 @@ _Note:_ The Android [NetSpot](https://www.netspotapp.com/netspot-wifi-analyzer-f
 app incorporates a "distance" measurement for the background image.
 That may give a further hint about the size of the survey points.
 
+## Use of localStorage()
+
+**wifi-heatmapper** saves all the information associated with a particular
+floor plan image in localStorage() in an object named
+`wifi-heatmapper-floorplanImageName`.
+The "current" floorplan image name is saved as a string in `wifi*heatmapper`.
+When the page is reloaded, the program retrieves that name, then loads the
+associated settings.
+
+The Settings pane allows the user to select from various floor plans
+that are saved in the _media_ folder on the server,
+and loads the saved settings when it is selected.
+(Uploading a new image creates a new `wifi-heatmapper...` object.)

@@ -8,17 +8,17 @@
   "phyMode": "Tipo frequenza radio"
 }
 
-// Output from netsh wlan show interfaces
+// Output from netsh wlan show interfaces on Windows 10 - Italian
 //
 // Interfacce presenti nel sistema: 1:
 
   //  Nome                   : Wi-Fi
   //  Descrizione            : Intel(R) Wi-Fi 6 AX201 160MHz
   //  GUID                   : e36a6a75-d662-4a6b-9399-f1304b0fe75e
-  //  Indirizzo fisico       : 3c:58:c2:c2:1b:f9
+  //  Indirizzo fisico       : xx:xx:xx:xx:xx:xx
   //  Stato                  : connessa
-  //  SSID                   : Doddy
-  //  BSSID                  : 24:a5:2c:10:f7:a8
+  //  SSID                   : SomeSSID
+  //  BSSID                  : xx:xx:xx:xx:xx:xx
   //  Tipo di rete           : Infrastruttura
   //  Tipo frequenza radio   : 802.11n
   //  Autenticazione         : WPA2-Personal
@@ -28,6 +28,6 @@
   //  Velocità ricezione (Mbps)  : 130
   //  Velocità trasmissione (Mbps) : 130
   //  Segnale                : 85%
-  //  Profilo                : Doddy
+  //  Profilo                : SomeProfile
 
   //  Stato rete ospitata    : Non disponibile

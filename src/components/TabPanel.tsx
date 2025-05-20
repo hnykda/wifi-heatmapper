@@ -21,7 +21,7 @@ export default function TabPanel() {
             value="tab1"
             className="px-4 py-2 border-b-2 border-transparent hover:border-gray-400 focus:border-blue-500"
           >
-            Configuration
+            Settings
           </Tabs.Trigger>
           <Tabs.Trigger
             value="tab2"

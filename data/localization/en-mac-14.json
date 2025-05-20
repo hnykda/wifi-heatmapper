@@ -9,7 +9,7 @@
   "channelWidth": "number"
 }
 
-// Output from netsh wlan show interfaces
+// Output from netsh wlan show interfaces on Windows 
 //
 // Interface name : Wi-Fi
 // There are 1 interfaces on the system:
@@ -17,10 +17,10 @@
 //    Name                   : Wi-Fi
 //    Description           : Intel(R) Wi-Fi 6 AX201 160MHz
 //    GUID                  : 7825d47a-5d59-4c93-8d91-2b0e1b5f6c4b
-//    Physical address      : ba:34:56:78:90:ab
+//    Physical address      : xx:xx:xx:xx:xx:xx
 //    State                 : connected
 //    SSID                  : SomeSSID
-//    BSSID                 : ba:34:56:78:90:ac
+//    BSSID                 : xx:xx:xx:xx:xx:xx
 //    Network type         : Infrastructure
 //    Radio type           : 802.11ax
 //    Authentication       : WPA2-Personal

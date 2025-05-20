@@ -27,15 +27,17 @@ these settings do not normally need to be modified
 ## Floor Plan Pane
 
 Use this pane to collect the measurements.
-Click on a point in the image to make a measurement.
+Click on a point on the floor plan to make a measurement.
 Move the laptop to other locations and make additional measurements.
-Multiple measurements per room is a good strategy.
+A good strategy is to make multiple measurements per room.
 
-![Floo Plan](images/FloorplanPane.png)
+This image shows the survey points collected to produce the heat map below.
 
-## Heatmaps Pane
+![Floor Plan](images/FloorplanPane.png)
 
-The Heatmaps tab displays the heat map.
+## Heat Maps Pane
+
+The Heat Maps tab displays the heat map.
 The Radius slider controls the "radius" of the individual
 measurements.
 Adjust the slider so that the points merge in the heatmap.
@@ -46,6 +48,6 @@ Adjust the slider so that the points merge in the heatmap.
 
 The Survey Points pane displays information about
 all the points that have been collected.
-Use it to delete one or many points at one time.
+Enable or disable points, or delete one or many points at one time.
 
 ![Survey Points Pane](images/SurveyPointsPane.png)

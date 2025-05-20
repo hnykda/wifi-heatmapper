@@ -298,7 +298,7 @@ const SurveyPointsTable: React.FC<SurveyPointsTableProps> = ({
 
   return (
     <div className="space-y-4">
-      <div className="text-2xl font-bold mt-4">Measurement Points</div>
+      <div className="text-2xl font-bold mt-4">Survey Points</div>
       <div className="flex justify-between items-center">
         <div className="flex items-center space-x-2">
           <Input
