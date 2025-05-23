@@ -14,16 +14,25 @@ import { percentageToRssi, toMbps } from "./utils";
 import { SSEMessageType } from "@/app/api/events/route";
 import { getLogger } from "./logger";
 
+const logger = getLogger("iperfRunner");
+
 const validateWifiDataConsistency = (
   wifiDataBefore: WifiNetwork,
   wifiDataAfter: WifiNetwork,
 ) => {
-  return (
+  if (
     wifiDataBefore.bssid === wifiDataAfter.bssid &&
     wifiDataBefore.ssid === wifiDataAfter.ssid &&
     wifiDataBefore.frequency === wifiDataAfter.frequency &&
     wifiDataBefore.channel === wifiDataAfter.channel
-  );
+  ) {
+    return true;
+  }
+  const logString = `${wifiDataBefore.bssid} ${wifiDataAfter.bssid} \n
+    ${wifiDataBefore.ssid} ${wifiDataAfter.ssid} \n
+    ${wifiDataBefore.frequency} ${wifiDataAfter.frequency} \n
+    ${wifiDataBefore.channel} ${wifiDataAfter.channel}`;
+  logger.info(logString);
 };
 
 /**
@@ -141,7 +150,6 @@ export async function runIperfTest(settings: HeatmapSettings): Promise<{
   wifiData: WifiNetwork | null;
 }> {
   const performIperfTest = settings.iperfServerAdrs != "localhost";
-  const logger = getLogger("iperfRunner");
   try {
     const maxRetries = 3;
     let attempts = 0;
