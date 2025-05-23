@@ -1,3 +1,10 @@
+# Dockerfile - only works on Linux
+
+# If you're on macOS or Windows, --privileged does not expose host hardware
+# (e.g., Wi-Fi interfaces) and network_mode: host is ignored.
+# You’d need to run the app directly on the host OS or in a Linux VM
+# (like WSL2 or a remote dev server).
+
 # Use Node.js base image
 FROM node:22-alpine
 
@@ -21,3 +28,4 @@ EXPOSE 3000
 
 # Default command to start the app
 CMD ["npm", "run", "dev"]
+

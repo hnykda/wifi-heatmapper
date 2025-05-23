@@ -1,88 +1,173 @@
 # WiFi Heatmapper
 
-This project is a WiFi heatmapper solution for macOS/Windows/Linux, inspired by [python-wifi-survey-heatmap](https://github.com/jantman/python-wifi-survey-heatmap). I wanted to create a heatmap of my WiFi coverage, but the original project didn't work because I am running on Mac (Apple Sillicon). I also wanted just something that might be slightly easier to use, i.e. via browser.
+**wifi-heatmapper** displays heat maps of both
+Wi-Fi signal strength and
+the results of network throughput (speed) tests.
+Use it to find out if your wi-fi signal is actually weak,
+or if there is something else wrong with your network.
+If there is a signal-strength problem, you can use the
+heat map to optimize access point placement,
+or to add new mesh devices or extenders.
 
-![Screenshot](various/top1.jpg)
-![Screenshot](various/top2.jpg)
+**wifi-heatmapper** runs on Windows, macOS, and Linux.
 
-## Recording
+The heat maps use a green color ("green is good")
+to show areas of strong signal
+(or high data transfer speeds).
+Signal levels fade to turquoise, then to blue
+(lowest acceptable).
+Yellow and red colors indicate poor signal levels.
 
-[![showcase recording](https://img.youtube.com/vi/pXlm-eWaJCs/0.jpg)](https://www.youtube.com/watch?v=pXlm-eWaJCs)
+The screen shot below is a sample heat map.
+It was created by measuring about two dozen points around the house,
+especially locations where people actually use a computer. 
+The heat map shows that the signal levels throughout the house
+are acceptable &mdash; mostly green, turquoise, and blue.
+The areas of yellow or red are at the edges, or on a stairway
+where no measurement was taken (the large yellow area in the middle).
+(Don't have a floor plan for your home?
+See the [FAQ](docs/FAQ.md).)
 
-## Prerequisites
+![heatmap example](docs/images/HeatmapPane.png)
 
-- macOS, Windows, Linux
-- `npm` and `iperf3` installed
-  - on macOS can be installed via `brew install npm iperf3`
+There are more details about the operation of **wifi-heatmapper** at:
 
-## Platform-Specific Commands
+* [User Interface](docs/User_Interface.md)
+* [Theory of Operation](docs/Theory_of_Operation.md)
+* [FAQ](docs/FAQ.md)
+* [To-Do](docs/To-Do.md)
 
-This utility relies on parsing outputs of the following CLI commands.
+## Overview of using wifi-heatmapper
 
-| Platform | Commands          | Notes                                                                                                                                                    |
-| -------- | ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| macOS    | `wdutil`, `ioreg` | Both are usually part of the system, sudo password is needed for `wdutil`                                                                                |
-| Windows  | `netsh`           | Part of the system                                                                                                                                       |
-| Linux    | `iw`              | `iw` might need to be installed via your distro package manager, you will need to provide your wireless device id (e.g. "wlp4s0", we do try to infer it) |
+1. **Install wifi-heatmapper.**
+You'll want it installed on a laptop so you can move it around
+and measure signal strength at various locations.
+See [Installing and Running](#installing-and-running)
+below for details.
+Then browse to
+[http://localhost:3000](http://localhost:3000).
 
-> [!IMPORTANT]  
-> In all cases, `iperf3` must be available in `PATH`. For Windows you might have to do something like `set PATH=%PATH%;C:\path\to\iperf3`, e.g. do `set PATH=%PATH%;C:\iperf3` (or `setx` to make it permanent) before running `npm run dev`. The version of at least 3.17 is weakly recommended for `iperf3` on both server and client (ideally the same version, but that's not strictly necessary). 
+2. **Settings pane:** To get started, use the default floor plan
+(EmptyFloorPlan.png)
+and provide a sudo password for macOS or Linux.
+Leave the other settings at their default.
+No throughput tests are made when the iperf3 server is set
+to "localhost".
 
-## Installation
+3. **Switch to the Floor Plan tab.**
+You'll see the built-in Empty Floor Plan or your uploaded image.
 
-    git clone https://github.com/hnykda/wifi-heatmapper.git
-    cd wifi-heatmapper
-    npm install
+4. **Start a measurement** by clicking the floor plan at a point
+that reflects your laptop's location.
+**wifi-heatmapper** measures the WiFi signal strength and
+(optionally) the throughput at that point.
+When the measurement is complete, the floor plan displays
+a dot colored by its signal stength.
+Click the dot to get more information.
 
-## Usage
+5. **Move to other locations** and make further measuements.
+Make at least one measurement per room.
+Multiple measurements per room provide more fine-grained data.
 
-1. (optional check) that your `iperf3` command works by `iperf3 --version`
-1. Start the application from where you want to run the tests (very likely your Mac/Windows laptop so you can move around the house):
+6. **Click the Heatmap tab** to see the resulting heat map.
+Areas with strong signal will be green,
+lower signal levels will follow the
+Green -> Tuquoise -> Blue -> Yellow -> Red transition.
+Adjust the **Radius** slider until the spots grow together.
+Go back to the Floor Plan tab to make more measuements if needed.
+
+7. **Click the Survey Points tab** to see all the survey points,
+with details of the measurements taken.
+Remove errant points using this tab.
+
+## Installing and Running
+
+**wifi-heatmapper** requires a recent Javascript environment
+(tested on Node 23).
+Install it on a laptop device so you can move from place to place.
+To install the software:
+
+1. Pull the repo, install the `npm` dependencies,
+   and run the project.
+   To do this, run these commands from a terminal:
 
    ```bash
+   git clone https://github.com/hnykda/wifi-heatmapper.git
+   cd wifi-heatmapper
+   npm install
    npm run dev
    ```
+2. Browse to [http://localhost:3000](http://localhost:3000)
+   and follow the steps at the top of this page
 
-2. On a separate server that you want to run the tests against, run the following command to start the `iperf3` server (you will need its IP address to be accessible from the laptop running the application):
+### Installing iperf3
 
-   ```bash
-   iperf3 -s
-   ```
+_Note: Installing the `iperf3` client and server are optional.
+This makes the initial installation straightforward:
+simply perform the two steps above.
+But you miss out on the ability to make throughput tests._
 
-3. Open a web browser and go to `http://localhost:3000`.
+To take advantage of `iperf3` throughput (speed) tests:
 
-4. Upload your floor plan image. You might have to create it using some other software, such as `sweethome3d`.
-
-5. Follow the on-screen instructions to complete the WiFi survey and generate the heatmap.
-
+1. Install `iperf3` on your laptop.
+   Follow instructions on the internet for your OS.
+   _Note: there are other speed tests with a name like `iperf...`
+   They are similar, but incompatible.
+   Be sure to install `iperf3`_
+2. Install `iperf3` on another computer.
+   This will be the "iperf3 server".
+   This could be a desktop or another laptop,
+   or even a Raspberry Pi 4 or 5.
+3. Start the "iperf3 server" on the other computer with
+   `iperf3 -s`
+4. Optional checks: Run these tests on the laptop:
+   * Check the local iperf3 binary with `iperf3 --version`
+   * Check the connection to the iperf3 server
+      with `iperf3 -c address-of-iperf3-server`
 
 ## Usage with Docker
 
+WiFi Heatmapper includes a Dockerfile that automates much of
+the installation process for Linux.
+_NB: The Dockerfile does not work on macOS or Windows. See the note in the Dockerfile for more information._
+
 1. Build the Docker Image
-```
-docker build -t wifi-heatmapper .
-```
+
+   ```bash
+   docker build -t wifi-heatmapper .
+   ```
 
 2. Run the Container
-```
-docker run \
-  --net="host" \
-  --privileged \
-  -p 3000:3000 \
-  -v ./datas/data:/app/data \
-  -v ./datas/media:/app/public/media \
-  wifi-heatmapper
-```
 
-use `-v` options if you want to save db + floorplanpicture to the datas folder
+   ```bash
+   docker run \
+   --net="host" \
+   --privileged \
+   -p 3000:3000 \
+   -v ./datas/data:/app/data \
+   -v ./datas/media:/app/public/media \
+   wifi-heatmapper
+   ```
 
+use `-v` options if you want to save db + floorplanpicture to the _datas_ folder
 
-## How does this work
+## History
 
-It's actually pretty simple. The app is written in Next.js. To get the information, we invoke the `iperf3`, `wdutil` and `ioreg` commands (or equivalent on different platforms) via JS `child_process` and parse the output. The webapp then just stores everything in simple JSON "database" file.
+This project is a WiFi heatmapper solution for macOS/Windows/Linux, inspired by [python-wifi-survey-heatmap](https://github.com/jantman/python-wifi-survey-heatmap).
+@hnykda wanted to create a heatmap of his WiFi coverage, but the original project didn't work because he is running on Mac.
+He also wanted something that might be slightly easier to use, i.e. using a browser.
+@richb-hanover refactored the GUI to its current four-tab appearance.
 
-## Running with higher LOG_LEVEL
-You can use `LOG_LEVEL=<number from 0 to 6>` to control logging, where the levels are `0: silly, 1: trace, 2: debug, 3: info, 4: warn, 5: error, 6: fatal`. Use this when submitting the bug reports.
+## Screen Recording
+
+This is a video recording of an earlier version of `wifi-heatmapper`.
+The basic operation is the same, but looks different now.
+In this version, all the user interface was in one page,
+and it used a different color scheme:
+red indicates "hot" (strong signal),
+blue was "cool" (weak).
+
+[![showcase recording](https://img.youtube.com/vi/pXlm-eWaJCs/0.jpg)](https://www.youtube.com/watch?v=pXlm-eWaJCs)
 
 ## Credits
 
@@ -91,26 +176,3 @@ This project was inspired by [python-wifi-survey-heatmap](https://github.com/jan
 ## Contributing
 
 Feel free to contribute to this project by opening an issue or submitting a pull request. I am more than happy for that!
-
-## FAQ
-
-1. **Why do I see `<redacted>` or `000000000000` or similar instead of an address**: Because we weren't able to gather the necessary information with any of our techniques, unfortunately. See [notes](#notes) for more info.
-
-
-## Notes
-
-This tool relies on command line utilities that are able to get information about the system's wifi. The problem is that the major proprietary OS vendors like Mac or Windows are making this unnecessarily hard. For example, `wdutil` worked on MacOS 14, stopped working on 15.0-15.2 (SSID and BSSID started to show as `<redacted>` as if this is useful for anyone 🙄), and started working again on 15.3, to stop working on 15.3.1 🤷‍♂️. Apple has a terrible history on this, see e.g. this [Reddit thread](https://www.reddit.com/r/MacOS/comments/1bjjchk/rip_airport_cli_macos_sonoma_144_removes_the/). On Windows, `netsh` is language localized, so it is hard to parse reliably. There often are multiple ways how to get the information and I am sure we could have gazilion of fallbacks and strategies (effectively what we do), but again, this is time-consuming and very annoying. SSID might still be recoverable (see [Determining a Mac’s SSID (like an animal)](https://snelson.us/2024/09/determining-a-macs-ssid-like-an-animal/)), but not BSSID without more involvement, see my question on [Apple Forum here](https://discussions.apple.com/thread/256000297?cid=em-com-apple_watches_email_thread_owner-view_the_full_discussion-en-us-11282023&sortBy=rank)).
-
-I have made an extensive search for any cross-platform libraries in JS or Python that would do this, but I haven't found any that would do what I need and be maintained and updated (somewhat understandably, as I said, this is pretty annoying). Additionally, a lot of these libs focus on manipulating connection, while we only need to read the information (so a slightly easier task, i.e. we don't need a heavy lib). Therefore, for the foreseeable future, this app is going to do low-level raw CLI commands, ideally built-ins, with as little privileges and configuration as possible.
-
-Also, different platforms/versions of tools return different fields, which makes the unified output complicated. An example is Windows's `netsh` that doesn't return signal strength as `RSSI` but as `Signal Strength` instead. We try to be clever about it and use whichever is available and appropriate.
-
-### Some ideas one could work on:
-
-1. bundle this into a nice installable (electron?) app so it can be easily installed
-2. find out how to get RSSI and other stuff from `ioreg` so sudo is not needed (for `wdutil`)
-3. make the app more user-friendly and informative (step by step wizard for the measurements)
-4. serialize the image to the database file so it can be loaded later
-5. add leaflet to make the maps interactive
-6. load/save heatmap config to database
-7. infer the relevant command/OS version and use the relevant commands and parser based on that to make this multi-platform.
