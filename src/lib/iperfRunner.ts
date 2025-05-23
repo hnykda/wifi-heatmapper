@@ -28,10 +28,7 @@ const validateWifiDataConsistency = (
   ) {
     return true;
   }
-  const logString = `${wifiDataBefore.bssid} ${wifiDataAfter.bssid} \n
-    ${wifiDataBefore.ssid} ${wifiDataAfter.ssid} \n
-    ${wifiDataBefore.band} ${wifiDataAfter.band} \n
-    ${wifiDataBefore.channel} ${wifiDataAfter.channel}`;
+  const logString = `${JSON.stringify(wifiDataBefore.bssid)} ${JSON.stringify(wifiDataAfter.bssid)}`;
   logger.info(logString);
 };
 

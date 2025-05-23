@@ -85,6 +85,7 @@ const parseChannel = (channelString: string): number[] => {
 
   // macOS 15 - "2g1/20" or "5g144/40"
   const channelParts = channelString.split("/");
+
   // macos 15 has a "/" - parse it
   if (channelParts.length == 2) {
     // leading digit is the band
@@ -115,6 +116,8 @@ const parseChannel = (channelString: string): number[] => {
   if (band == 0) {
     band = channel > 14 ? 2 : 5; // patch up the frequency band
   }
+  logger.info(`parseChannel: ${bandStr} ${channelStr} ${channelWidthStr}`);
+  logger.info(`parseChannel: ${band} ${channel} ${channelWidth}`);
   return [band, channel, channelWidth];
 };
 
