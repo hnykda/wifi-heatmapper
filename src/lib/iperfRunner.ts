@@ -23,14 +23,14 @@ const validateWifiDataConsistency = (
   if (
     wifiDataBefore.bssid === wifiDataAfter.bssid &&
     wifiDataBefore.ssid === wifiDataAfter.ssid &&
-    wifiDataBefore.frequency === wifiDataAfter.frequency &&
+    wifiDataBefore.band === wifiDataAfter.band &&
     wifiDataBefore.channel === wifiDataAfter.channel
   ) {
     return true;
   }
   const logString = `${wifiDataBefore.bssid} ${wifiDataAfter.bssid} \n
     ${wifiDataBefore.ssid} ${wifiDataAfter.ssid} \n
-    ${wifiDataBefore.frequency} ${wifiDataAfter.frequency} \n
+    ${wifiDataBefore.band} ${wifiDataAfter.band} \n
     ${wifiDataBefore.channel} ${wifiDataAfter.channel}`;
   logger.info(logString);
 };

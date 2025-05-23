@@ -98,8 +98,7 @@ const parseChannel = (channelString: string): number[] => {
       channelWidthStr = "0";
     }
   }
-  // macos 12 - "11 (20 MHz, Active)"
-  // macos 12 - "144 (40Mhz, DFS)"
+  // macos 12 - "11 (20 MHz, Active)" or "144 (40Mhz, DFS)"
   else {
     const match = channelString.match(/(\d+).*?(\d+)\s*[Mm][Hh][Zz]/);
     if (match) {
@@ -143,6 +142,7 @@ export function parseWdutilOutput(output: string): WifiNetwork {
         case "Channel": {
           [networkInfo.band, networkInfo.channel, networkInfo.channelWidth] =
             parseChannel(value);
+          logger.info(`${JSON.stringify(networkInfo)}`);
           break;
           // const channelParts = value.split("/");
           // networkInfo.band = parseInt(channelParts[0].match(/\d+/)?.[0] ?? "0");
