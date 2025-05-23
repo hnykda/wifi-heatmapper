@@ -94,7 +94,7 @@ export interface WifiNetwork {
   txRate: number;
   phyMode: string;
   channelWidth: number;
-  frequency: number;
+  band: number; // frequency band - 2GHz or 5GHz
 }
 
 export type ScannerSettings = {

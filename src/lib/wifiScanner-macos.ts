@@ -66,6 +66,59 @@ const getIoregBssid = async (): Promise<string> => {
   return stdout.trim();
 };
 
+/**
+ * parseChannel
+ * macos 15 gives "2g1/20" where the channel is "1"
+ * macos 15 gives "5g144/40" where the channel is "144"
+ * macos 12 gives "11 (20 MHz, Active)" where the channel is "11"
+ * macos 12 gives "144 (40Mhz, DFS)" where the channel is 144
+ * @param channelString - see the formats above
+ * @returns
+ */
+const parseChannel = (channelString: string): number[] => {
+  let bandStr = "",
+    channelStr = "",
+    channelWidthStr = "0",
+    band = 0,
+    channel = 0,
+    channelWidth = 0;
+
+  // macOS 15 - "2g1/20" or "5g144/40"
+  const channelParts = channelString.split("/");
+  // macos 15 has a "/" - parse it
+  if (channelParts.length == 2) {
+    // leading digit is the band
+    bandStr = channelParts[0].match(/\d+/)?.[0] ?? "0";
+    // channel number follows the "g"
+    channelStr = channelParts[0].substring(2);
+    if (channelParts[1]) {
+      // the channel width follows the "/"
+      channelWidthStr = channelParts[1];
+    } else {
+      channelWidthStr = "0";
+    }
+  }
+  // macos 12 - "11 (20 MHz, Active)"
+  // macos 12 - "144 (40Mhz, DFS)"
+  else {
+    const match = channelString.match(/(\d+).*?(\d+)\s*[Mm][Hh][Zz]/);
+    if (match) {
+      [, channelStr, channelWidthStr] = match;
+      // use startNumber and mhzNumber
+    }
+    bandStr = "0";
+    channelStr = channelParts[1];
+    channelWidthStr = channelParts[2];
+  }
+  band = parseInt(bandStr);
+  channel = parseInt(channelStr);
+  channelWidth = parseInt(channelWidthStr);
+  if (band == 0) {
+    band = channel > 14 ? 2 : 5; // patch up the frequency band
+  }
+  return [band, channel, channelWidth];
+};
+
 export function parseWdutilOutput(output: string): WifiNetwork {
   const wifiSection = output.split("WIFI")[1].split("BLUETOOTH")[0];
   const lines = wifiSection.split("\n");
@@ -88,17 +141,18 @@ export function parseWdutilOutput(output: string): WifiNetwork {
           networkInfo.rssi = parseInt(value.split(" ")[0]);
           break;
         case "Channel": {
-          const channelParts = value.split("/");
-          networkInfo.frequency = parseInt(
-            channelParts[0].match(/\d+/)?.[0] ?? "0",
-          );
-          networkInfo.channel = parseInt(channelParts[0].substring(2));
-          if (channelParts[1]) {
-            networkInfo.channelWidth = parseInt(channelParts[1]);
-          } else {
-            networkInfo.channelWidth = 0;
-          }
+          [networkInfo.band, networkInfo.channel, networkInfo.channelWidth] =
+            parseChannel(value);
           break;
+          // const channelParts = value.split("/");
+          // networkInfo.band = parseInt(channelParts[0].match(/\d+/)?.[0] ?? "0");
+          // networkInfo.channel = parseInt(channelParts[0].substring(2));
+          // if (channelParts[1]) {
+          //   networkInfo.channelWidth = parseInt(channelParts[1]);
+          // } else {
+          //   networkInfo.channelWidth = 0;
+          // }
+          // break;
         }
         case "Tx Rate":
           networkInfo.txRate = parseFloat(value.split(" ")[0]);

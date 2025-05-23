@@ -53,7 +53,7 @@ const PopupDetails: React.FC<PopupDetailsProps> = ({
         (ap) => ap.macAddress === point.wifiData?.bssid,
       )?.apName,
     },
-    { label: "Frequency", value: `${point.wifiData?.frequency} MHz` },
+    { label: "Band", value: `${point.wifiData?.band} GHz` },
     { label: "Position", value: `X: ${point.x}, Y: ${point.y}` },
   ];
 
