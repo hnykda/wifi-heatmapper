@@ -73,11 +73,11 @@ const getIoregBssid = async (): Promise<string> => {
  * macos 12 gives "11 (20 MHz, Active)" where the channel is "11"
  * macos 12 gives "144 (40Mhz, DFS)" where the channel is 144
  * @param channelString - see the formats above
- * @returns
+ * @returns band (2 or 5 GHz); channel, channelWidth
  */
 const parseChannel = (channelString: string): number[] => {
-  let bandStr = "",
-    channelStr = "",
+  let bandStr = "0",
+    channelStr = "0",
     channelWidthStr = "0",
     band = 0,
     channel = 0,
@@ -104,20 +104,16 @@ const parseChannel = (channelString: string): number[] => {
     const match = channelString.match(/(\d+).*?(\d+)\s*[Mm][Hh][Zz]/);
     if (match) {
       [, channelStr, channelWidthStr] = match;
-      // use startNumber and mhzNumber
     }
-    bandStr = "0";
-    channelStr = channelParts[1];
-    channelWidthStr = channelParts[2];
   }
+
+  // 2.4GHz or 5GHz processing
   band = parseInt(bandStr);
   channel = parseInt(channelStr);
   channelWidth = parseInt(channelWidthStr);
   if (band == 0) {
     band = channel > 14 ? 2 : 5; // patch up the frequency band
   }
-  logger.info(`parseChannel: ${bandStr} ${channelStr} ${channelWidthStr}`);
-  logger.info(`parseChannel: ${band} ${channel} ${channelWidth}`);
   return [band, channel, channelWidth];
 };
 
@@ -145,17 +141,7 @@ export function parseWdutilOutput(output: string): WifiNetwork {
         case "Channel": {
           [networkInfo.band, networkInfo.channel, networkInfo.channelWidth] =
             parseChannel(value);
-          logger.info(`${JSON.stringify(networkInfo)}`);
           break;
-          // const channelParts = value.split("/");
-          // networkInfo.band = parseInt(channelParts[0].match(/\d+/)?.[0] ?? "0");
-          // networkInfo.channel = parseInt(channelParts[0].substring(2));
-          // if (channelParts[1]) {
-          //   networkInfo.channelWidth = parseInt(channelParts[1]);
-          // } else {
-          //   networkInfo.channelWidth = 0;
-          // }
-          // break;
         }
         case "Tx Rate":
           networkInfo.txRate = parseFloat(value.split(" ")[0]);

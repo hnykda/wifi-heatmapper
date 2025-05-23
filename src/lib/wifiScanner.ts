@@ -22,9 +22,9 @@ export const getDefaultWifiNetwork = (): WifiNetwork => ({
 });
 
 const hasValidData = (wifiData: WifiNetwork): boolean => {
-  if (!isValidMacAddress(wifiData.ssid)) {
-    logger.warn("Invalid SSID (we were not able to get it):", wifiData.ssid);
-  }
+  // if (!isValidMacAddress(wifiData.ssid)) {
+  //   logger.warn("Invalid SSID (we were not able to get it):", wifiData.ssid);
+  // }
   if (!isValidMacAddress(wifiData.bssid)) {
     logger.warn("Invalid BSSID (we were not able to get it):", wifiData.bssid);
   }
