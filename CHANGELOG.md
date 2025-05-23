@@ -17,6 +17,8 @@ _This section follows the precepts of [Keep a Changelog](https://keepachangelog.
 * If there are no iperf3 tests (TCP or UDP), their heat maps are not shown.
 * All Settings items have an "information" button.
 * Significant editorial work on README and other pages in _docs_
+* Changed the Popup details window to use the term "Band" instead of "Frequency". Fixed the units to use "GHz" (was "MHz")
+* Fix parsing of `wdutil` command on macOS 12 ("Catalina")
 
 ## Version 0.2.1 - 2025-04-04
 
