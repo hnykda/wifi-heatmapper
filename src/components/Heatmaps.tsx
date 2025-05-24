@@ -42,6 +42,7 @@ const propertyTitles: Record<keyof IperfTestProperty, string> = {
   lostPackets: "Lost Packets (UDP Only)",
   retransmits: "Retransmits (TCP Download Only)",
   packetsReceived: "Packets Received (UDP Only)",
+  signalStrength: "dBm or %",
 };
 
 const getAvailableProperties = (
@@ -207,7 +208,17 @@ export function Heatmaps() {
   /**
    * drawColorBar - take the parameters and create the color gradient
    */
-  function drawColorBar(ctx, w, h, x, y, min, max, metric, testType) {
+  function drawColorBar(
+    ctx: CanvasRenderingContext2D,
+    w: number,
+    h: number,
+    x: number,
+    y: number,
+    min: number,
+    max: number,
+    metric: MeasurementTestType,
+    testType: keyof IperfTestProperty,
+  ) {
     const colorBarWidth = 50; // Increased width
     const colorBarHeight = settings.dimensions.height;
     const colorBarX = settings.dimensions.width + 40; // Adjusted position
@@ -254,7 +265,7 @@ export function Heatmaps() {
   const renderHeatmap = useCallback(
     (
       metric: MeasurementTestType,
-      testType?: keyof IperfTestProperty,
+      testType: keyof IperfTestProperty,
     ): Promise<string | null> => {
       return new Promise((resolve) => {
         // preconditions
@@ -359,7 +370,7 @@ export function Heatmaps() {
              * Add note if there are no iperf3 measurements
              */
             if (!heatmapData || heatmapData.length === 0) {
-              const lines = ["No heatmap:", `no ${metric}`, "tests performed"];
+              const lines = ["No heatmap:", `${metric} tests`, "not performed"];
               ctx.textAlign = "center";
               ctx.font = "72px sans-serif";
 
@@ -449,7 +460,7 @@ export function Heatmaps() {
     const newHeatmaps: { [key: string]: string | null } = {};
     for (const metric of selectedMetrics) {
       if (metric === "signalStrength") {
-        newHeatmaps[metric] = await renderHeatmap(metric);
+        newHeatmaps[metric] = await renderHeatmap(metric, "signalStrength");
       } else {
         const availableProperties = getAvailableProperties(metric);
         for (const testType of selectedProperties) {
@@ -590,21 +601,23 @@ export function Heatmaps() {
           Select Properties
         </h3>
         <div className="flex flex-wrap gap-4">
-          {Object.values(testProperties).map((property) => (
-            <div key={property} className="flex items-center space-x-2">
-              <Checkbox
-                id={`property-${property}`}
-                checked={selectedProperties.includes(property)}
-                onCheckedChange={() => toggleProperty(property)}
-              />
-              <label
-                htmlFor={`property-${property}`}
-                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-              >
-                {propertyTitles[property]}
-              </label>
-            </div>
-          ))}
+          {Object.values(testProperties)
+            .filter((property) => property != "signalStrength")
+            .map((property) => (
+              <div key={property} className="flex items-center space-x-2">
+                <Checkbox
+                  id={`property-${property}`}
+                  checked={selectedProperties.includes(property)}
+                  onCheckedChange={() => toggleProperty(property)}
+                />
+                <label
+                  htmlFor={`property-${property}`}
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  {propertyTitles[property]}
+                </label>
+              </div>
+            ))}
         </div>
       </div>
 

@@ -159,8 +159,8 @@ export function HeatmapAdvancedConfig() {
                             value={key}
                             onChange={(e) => {
                               const newGradient = { ...settings.gradient };
-                              delete newGradient[key];
-                              newGradient[e.target.value] = value;
+                              delete newGradient[parseInt(key)];
+                              newGradient[parseInt(e.target.value)] = value;
                               debouncedUpdateSettings({
                                 gradient: newGradient,
                               });

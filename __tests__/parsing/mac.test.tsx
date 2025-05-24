@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { parseWdutilOutput } from "../../src/lib/wifiScanner";
+import { parseWdutilOutput } from "../../src/lib/wifiScanner-macos";
 
 test("parsing wdutil output", () => {
   const input = `
@@ -63,7 +63,7 @@ POWER
     bssid: "ba34567890ac",
     channel: 44,
     channelWidth: 40,
-    frequency: 5,
+    band: 5,
     phyMode: "11ax",
     rssi: -79,
     signalStrength: 0,

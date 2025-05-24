@@ -27,7 +27,7 @@ rx bitrate: 780.0 MBit/s
     rssi: -56,
     channel: 36,
     signalStrength: 0,
-    frequency: 5.18,
+    band: 5.18,
     channelWidth: 80,
     txRate: 866.7,
     phyMode: "",

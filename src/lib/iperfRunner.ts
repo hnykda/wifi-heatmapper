@@ -169,6 +169,7 @@ export async function runIperfTest(settings: HeatmapSettings): Promise<{
           jitterMs: 0,
           lostPackets: 0,
           packetsReceived: 0,
+          signalStrength: 0,
         };
 
         let tcpDownload = emptyIperfTestProperty;
@@ -362,5 +363,6 @@ export async function extractIperfResults(
     jitterMs: isUdp ? end.sum?.jitter_ms || null : null,
     lostPackets: isUdp ? end.sum?.lost_packets || null : null,
     packetsReceived: isUdp ? end.sum?.packets || null : null,
+    signalStrength: 0,
   };
 }

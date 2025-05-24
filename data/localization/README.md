@@ -30,5 +30,5 @@ and the command's value for the value.
 * No trailing comma is allowed on the last line 
 * There is no need to create any of these fields:
   * "rssi" is computed from signalStrenth (%)
-  * "frequency" is 2.4 or 5, and computed from channel
+  * "band" is 2.4 or 5, and computed from channel
   * "channelWidth" is not returned in Windows

@@ -14,7 +14,7 @@ export const getDefaultWifiNetwork = (): WifiNetwork => ({
   rssi: 0,
   signalStrength: 0,
   channel: 0,
-  frequency: 0,
+  band: 0, // frequency band will be either 2.4 or 5 (GHz)
   channelWidth: 0,
   txRate: 0,
   phyMode: "",

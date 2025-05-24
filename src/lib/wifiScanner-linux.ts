@@ -81,7 +81,7 @@ export function parseIwOutput(
       const freqMatch = trimmedLine.match(/freq:\s*(\d+)/);
       if (freqMatch) {
         const freqMhz = parseInt(freqMatch[1]);
-        networkInfo.frequency = Math.round((freqMhz / 1000) * 100) / 100; // Convert MHz to GHz with 2 decimal places
+        networkInfo.band = Math.round((freqMhz / 1000) * 100) / 100; // Convert MHz to GHz with 2 decimal places
       }
     } else if (trimmedLine.startsWith("tx bitrate:")) {
       const txRate = trimmedLine.split("tx bitrate:")[1]?.trim() || "";
@@ -101,10 +101,10 @@ export function parseIwOutput(
       );
       if (channelMatch) {
         networkInfo.channel = parseInt(channelMatch[1]);
-        // Update frequency if not already set from linkOutput
-        if (!networkInfo.frequency) {
+        // Update frequency band if not already set from linkOutput
+        if (!networkInfo.band) {
           const freqMhz = parseInt(channelMatch[2]);
-          networkInfo.frequency = Math.round((freqMhz / 1000) * 100) / 100;
+          networkInfo.band = Math.round((freqMhz / 1000) * 100) / 100;
         }
         networkInfo.channelWidth = parseInt(channelMatch[3]);
       }

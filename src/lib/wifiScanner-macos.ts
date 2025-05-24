@@ -112,7 +112,7 @@ const parseChannel = (channelString: string): number[] => {
   channel = parseInt(channelStr);
   channelWidth = parseInt(channelWidthStr);
   if (band == 0) {
-    band = channel > 14 ? 2 : 5; // patch up the frequency band
+    band = channel > 14 ? 5 : 2.4; // patch up the frequency band
   }
   return [band, channel, channelWidth];
 };

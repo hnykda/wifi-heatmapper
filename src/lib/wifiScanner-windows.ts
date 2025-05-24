@@ -64,7 +64,8 @@ export async function parseNetshOutput(output: string): Promise<WifiNetwork> {
       `Invalid BSSID when parsing netsh output: ${networkInfo.bssid}`,
     );
   }
-  networkInfo.frequency = networkInfo.channel > 14 ? 5 : 2.4;
+  //update frequency band
+  networkInfo.band = networkInfo.channel > 14 ? 5 : 2.4;
   networkInfo.rssi = percentageToRssi(networkInfo.signalStrength);
 
   return networkInfo;

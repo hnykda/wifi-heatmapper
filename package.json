@@ -43,6 +43,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.24.0",
+    "@next/eslint-plugin-next": "^15.1.8",
     "@types/eslint": "^9.6.1",
     "@types/heatmap.js": "^2.0.41",
     "@types/lodash": "^4.17.16",

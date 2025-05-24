@@ -4,6 +4,7 @@ export interface IperfTestProperty {
   jitterMs: number | null;
   lostPackets: number | null;
   packetsReceived: number | null;
+  signalStrength: number;
 }
 
 export interface IperfResults {
@@ -22,6 +23,7 @@ export const testProperties: IperfTestProperties = {
   lostPackets: "lostPackets",
   retransmits: "retransmits",
   packetsReceived: "packetsReceived",
+  signalStrength: "signalStrength",
 } as const;
 
 export type TestTypes = {
@@ -29,11 +31,11 @@ export type TestTypes = {
 };
 
 export const testTypes: TestTypes = {
+  signalStrength: "signalStrength",
   tcpDownload: "tcpDownload",
   tcpUpload: "tcpUpload",
   udpDownload: "udpDownload",
   udpUpload: "udpUpload",
-  signalStrength: "signalStrength",
 } as const;
 
 export type MeasurementTestType = keyof TestTypes;

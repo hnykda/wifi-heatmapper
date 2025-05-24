@@ -45,7 +45,7 @@ type FlattenedSurveyPoint = {
   txRate: number;
   phyMode: string;
   channelWidth: number;
-  frequency: string;
+  band: string;
   tcpDownloadMbps: number;
   tcpUploadMbps: number;
   udpDownloadMbps: number;
@@ -78,7 +78,7 @@ const SurveyPointsTable: React.FC<SurveyPointsTableProps> = ({
     id: true,
     signalQuality: true,
     bssid: true,
-    frequency: true,
+    band: true,
     tcpDownloadMbps: true,
     tcpUploadMbps: true,
     timestamp: true,
@@ -157,8 +157,8 @@ const SurveyPointsTable: React.FC<SurveyPointsTableProps> = ({
         header: "BSSID",
       },
       {
-        accessorKey: "frequency",
-        header: "Frequency",
+        accessorKey: "band",
+        header: "Band",
       },
       {
         accessorKey: "channel",
@@ -253,7 +253,7 @@ const SurveyPointsTable: React.FC<SurveyPointsTableProps> = ({
         signalQuality:
           point.wifiData.signalStrength ||
           rssiToPercentage(point.wifiData.rssi),
-        frequency: `${point.wifiData.frequency} Mhz`,
+        band: `${point.wifiData.band} Mhz`,
         timestamp: new Date(point.timestamp).toLocaleString(),
       };
     });
@@ -289,7 +289,8 @@ const SurveyPointsTable: React.FC<SurveyPointsTableProps> = ({
       (index) => flattenedData[parseInt(index)].origPoint,
     );
     const allHidden = selectedPoints.every(
-      (id) => flattenedData.find((point) => point.id === id)?.isEnabled,
+      (allPoints) =>
+        flattenedData.find((point) => point.id === allPoints.id)?.isEnabled,
     );
     selectedPoints.forEach((id) => {
       myUpdate(id, { isEnabled: !allHidden });
