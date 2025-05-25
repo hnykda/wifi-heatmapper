@@ -27,7 +27,7 @@ export default function SettingsEditor() {
               <PopoverHelper text="Choose a file to be used as a background image, or upload another PNG or JPEG file." />
             </Label>
           </td>
-          <td>
+          <td className="max-w-[400px] p-0 m-0">
             <MediaDropdown
               defaultValue={settings.floorplanImageName}
               onChange={(val) => handleNewImageFile(val)}
@@ -45,7 +45,7 @@ export default function SettingsEditor() {
           <td>
             <input
               type="text"
-              className="border border-gray-200 rounded-sm p-2 focus:outline-none focus:ring focus:ring-blue-300 focus:border-blue-400"
+              className="w-full border border-gray-200 rounded-sm p-2 focus:outline-none focus:ring focus:ring-blue-300 focus:border-blue-400"
               value={settings.iperfServerAdrs}
               onChange={(e) =>
                 updateSettings({ iperfServerAdrs: e.target.value.trim() })
@@ -64,7 +64,7 @@ export default function SettingsEditor() {
           <td>
             <input
               type="number"
-              className="border border-gray-200 rounded-sm p-2 focus:outline-none focus:ring focus:ring-blue-300 focus:border-blue-400"
+              className="w-full border border-gray-200 rounded-sm p-2 focus:outline-none focus:ring focus:ring-blue-300 focus:border-blue-400"
               value={settings.testDuration}
               onChange={(e) =>
                 updateSettings({ testDuration: Number(e.target.value.trim()) })
@@ -89,7 +89,7 @@ export default function SettingsEditor() {
         </tr>
 
         <tr>
-          <td colSpan={2} className="text-right pr-4">
+          <td colSpan={2} className="text-right">
             <HeatmapAdvancedConfig />
           </td>
         </tr>

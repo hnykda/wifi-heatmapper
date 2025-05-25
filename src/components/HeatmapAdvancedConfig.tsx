@@ -52,7 +52,7 @@ export function HeatmapAdvancedConfig() {
   };
 
   return (
-    <Accordion type="single" collapsible>
+    <Accordion type="single" collapsible className="w-full">
       <AccordionItem value="advanced-config">
         <AccordionTrigger>Advanced Configuration</AccordionTrigger>
         <AccordionContent>

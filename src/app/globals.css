@@ -132,24 +132,26 @@ a {
 
 /* Added for MediaDropdown */
 
-/* reset */
-button {
-	all: unset;
-}
-
 .DropdownMenuContent,
 .DropdownMenuSubContent {
 	min-width: 220px;
 	background-color: white;
 	border-radius: 6px;
 	padding: 5px;
-	box-shadow:
+	/* box-shadow:
 		0px 10px 38px -10px rgba(22, 23, 24, 0.35),
-		0px 10px 20px -15px rgba(22, 23, 24, 0.2);
+		0px 10px 20px -15px rgba(22, 23, 24, 0.2); */
 	animation-duration: 400ms;
 	animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
 	will-change: transform, opacity;
 }
+
+.DropdownMenuContent:hover,
+.DropdownMenuContent[data-highlighted] {
+  background-color: #f3f4f6;     /* Tailwind gray-100 */
+  border-color: #d1d5db;         /* Tailwind gray-300 */
+}
+
 .DropdownMenuContent[data-side="top"],
 .DropdownMenuSubContent[data-side="top"] {
 	animation-name: slideDownAndFade;
@@ -168,7 +170,7 @@ button {
 }
 
 /* .DropdownMenuItem, */
-.DropdownMenuCheckboxItem,
+/* .DropdownMenuCheckboxItem, */
 .DropdownMenuRadioItem,
 .DropdownMenuSubTrigger {
 	font-size: 13px;
@@ -179,8 +181,8 @@ button {
 	align-items: center;
 	height: 25px;
 	padding: 0 5px;
+  padding-left: 25px;
 	position: relative;
-	padding-left: 25px;
 	user-select: none;
 	outline: none;
 }
@@ -210,17 +212,11 @@ button {
 	/* color: var(--mauve-11); */
 }
 
-/* .DropdownMenuSeparator {
-	height: 1px;
-	/* background-color: var(--violet-6); */
-	/* margin: 5px; */
-/* }  */
-
 .DropdownMenuItemIndicator {
 	position: absolute;
-	left: 0;
+	left: 0px;
 	width: 25px;
-	display: inline-flex;
+	display: flex;
 	align-items: center;
 	justify-content: center;
 }
@@ -229,7 +225,7 @@ button {
 	fill: white;
 }
 
-.IconButton {
+/* .IconButton {
 	font-family: inherit;
 	border-radius: 100%;
 	height: 35px;
@@ -238,15 +234,15 @@ button {
 	align-items: center;
 	justify-content: center;
 	/* color: var(--violet-11); */
-	background-color: white;
+	/* background-color: white;
 	box-shadow: 0 2px 10px var(--black-a7);
-}
+} */ 
 /* .IconButton:hover {
 	/* background-color: var(--violet-3); */
 /* } */ 
-.IconButton:focus {
+/* .IconButton:focus {
 	box-shadow: 0 0 0 2px black;
-}
+} */
 
 .RightSlot {
 	margin-left: auto;
@@ -306,19 +302,27 @@ button {
 
 .DropdownMenuItem {
   background-color: white !important;
-  border: none !important;
-  border-radius: 0 !important;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  font-size: 16px;
+}
+  /* border: none !important; */
+  /* 
   box-shadow: none !important;
-  padding: 4px 8px;
+  padding: 6px 10px;
+  position: relative;
+  padding-left: 25px;
   color: black;
+  transition: background-color 0.2s, border-color 0.2s;
 }
 .DropdownMenuItem:hover,
 .DropdownMenuItem[data-highlighted] {
   background-color: #f3f4f6; /* Tailwind's gray-100 */
-}
+  /* border-color: #333;
+} */ 
 
 .DropdownMenuSeparator {
   height: 1px ;
   background-color: #e5e7eb ; /* Tailwind's gray-200 */
-  margin: 5px 0 ; 
+  margin: 5px; 
  } 

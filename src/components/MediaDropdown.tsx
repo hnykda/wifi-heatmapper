@@ -119,10 +119,16 @@ export default function MediaDropdown({
   };
 
   return (
-    <div className="w-full p-2 pr-10 border rounded bg-white-800 text-black">
+    <div
+      className="w-full h-full  border rounded bg-white-800 text-black"
+      id="MediaDropdown"
+    >
       <DropdownMenu.Root>
         <DropdownMenu.Trigger asChild>
-          <button className="relative max-w-[400px] w-full truncate border border-gray-300 rounded px-2 pr-7 py-1.5 text-left">
+          <button
+            className="relative w-full h-full border-grey-300 truncate rounded px-2 pr-0 py-1.5 text-left "
+            id="filePicker"
+          >
             <span className="truncate">{selected || "Select File"}</span>
             <svg
               className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-600 pointer-events-none"
@@ -143,22 +149,24 @@ export default function MediaDropdown({
 
         <DropdownMenu.Content
           side="right"
-          align="center"
+          align="end"
           sideOffset={4}
-          className="DropdownMenuContent"
+          className="relative px-2 py-1 border border-grey-200 rounded-md bg-white shadow-xl p-2"
         >
           {files.map((file) => (
-            <DropdownMenu.Item
+            <DropdownMenu.CheckboxItem
               key={file}
+              checked={selected === file}
               onSelect={() => handleSelect(file)}
               className="DropdownMenuItem"
             >
+              <DropdownMenu.ItemIndicator className="DropdownMenuItemIndicator px-4">
+                •
+              </DropdownMenu.ItemIndicator>
               {file}
-            </DropdownMenu.Item>
+            </DropdownMenu.CheckboxItem>
           ))}
-
           <DropdownMenu.Separator className="DropdownMenuSeparator" />
-
           <DropdownMenu.Item
             onSelect={handleAddImage}
             className="DropdownMenuItem"

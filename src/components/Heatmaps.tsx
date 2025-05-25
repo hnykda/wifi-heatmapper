@@ -389,11 +389,18 @@ export function Heatmaps() {
               // Remove last added lineSpacing
               totalHeight += lineSpacing * 4;
 
+              // if the 72 point makes it too wide, shrink the font size
+              if (maxWidth > settings.dimensions.width * 0.9) {
+                const optimalFontSize =
+                  (72 * settings.dimensions.width) / maxWidth;
+                ctx.font = `${optimalFontSize}px sans-serif`;
+              }
+
               // Draw semi-opaque white background
               ctx.fillStyle = "rgba(255, 255,255, 0.9)";
               ctx.fillRect(
-                settings.dimensions.width / 2 - maxWidth / 2,
-                (settings.dimensions.height * 2) / 3 - 72 + lineSpacing,
+                settings.dimensions.width / 2 - maxWidth / 2 + 5,
+                (settings.dimensions.height * 2) / 3 - 72 + lineSpacing + 5,
                 maxWidth,
                 totalHeight,
               );
