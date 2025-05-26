@@ -12,11 +12,11 @@ export default function TabPanel() {
   const { settings, surveyPointActions } = useSettings();
 
   return (
-    <div className="w-full">
+    <div className="w-full p-2">
       {/* Tabs Root with controlled state */}
       <Tabs.Root value={activeTab} onValueChange={setActiveTab}>
         {/* Tab List */}
-        <Tabs.List className="flex border-b">
+        <Tabs.List className="flex border-b tabItem space-x-2 pt-2">
           <Tabs.Trigger
             value="tab1"
             className="px-4 py-2 border-b-2 border-transparent hover:border-gray-400 focus:border-blue-500"

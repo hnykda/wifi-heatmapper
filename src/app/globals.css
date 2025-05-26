@@ -84,7 +84,7 @@ a {
 /* added for tab panel */
 
 /* Tab List (Container for Tabs) */
-[data-orientation="horizontal"] {
+.tabItem [data-orientation="horizontal"] {
   /* display: flex; */
   gap: 8px; /* Space between tabs */
   /* background-color: #f8f8f8; / * Light gray background */
@@ -93,7 +93,7 @@ a {
 }
 
 /* Default (Inactive) Tabs */
-[data-radix-collection-item] {
+.tabItem [data-radix-collection-item] {
   padding: 10px 16px;
   font-size: 16px;
   font-weight: 500;
@@ -107,12 +107,12 @@ a {
 }
 
 /* Hover Effect for Tabs */
-[data-radix-collection-item]:hover {
+.tabItem [data-radix-collection-item]:hover {
   background-color: #d6d6d6;
 }
 
 /* Active Tab (White Background, No Bottom Border) */
-[data-state="active"] {
+.tabItem [data-state="active"] {
   background-color: white;
   color: black;
   font-weight: 600;
@@ -122,7 +122,7 @@ a {
 }
 
 /* Content Panel (Below Tabs) */
-[data-radix-tab-content] {
+.tabItem [data-radix-tab-content] {
   margin-top: 8px;
   padding: 16px;
   background-color: white;
@@ -225,25 +225,6 @@ a {
 	fill: white;
 }
 
-/* .IconButton {
-	font-family: inherit;
-	border-radius: 100%;
-	height: 35px;
-	width: 35px;
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	/* color: var(--violet-11); */
-	/* background-color: white;
-	box-shadow: 0 2px 10px var(--black-a7);
-} */ 
-/* .IconButton:hover {
-	/* background-color: var(--violet-3); */
-/* } */ 
-/* .IconButton:focus {
-	box-shadow: 0 0 0 2px black;
-} */
-
 .RightSlot {
 	margin-left: auto;
 	padding-left: 20px;
@@ -302,12 +283,12 @@ a {
 
 .DropdownMenuItem {
   background-color: white !important;
-  border: 1px solid transparent;
-  border-radius: 6px;
+  /* border: 1px solid transparent;
+  border-radius: 6px; */
   font-size: 16px;
-}
-  /* border: none !important; */
-  /* 
+
+  border: none !important;
+
   box-shadow: none !important;
   padding: 6px 10px;
   position: relative;
@@ -315,11 +296,12 @@ a {
   color: black;
   transition: background-color 0.2s, border-color 0.2s;
 }
+
 .DropdownMenuItem:hover,
 .DropdownMenuItem[data-highlighted] {
   background-color: #f3f4f6; /* Tailwind's gray-100 */
-  /* border-color: #333;
-} */ 
+  /* border-color: #333; */
+} 
 
 .DropdownMenuSeparator {
   height: 1px ;

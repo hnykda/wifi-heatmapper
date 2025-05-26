@@ -120,7 +120,7 @@ export default function MediaDropdown({
 
   return (
     <div
-      className="w-full h-full  border rounded bg-white-800 text-black"
+      className="w-full h-full border rounded bg-white-800 text-black"
       id="MediaDropdown"
     >
       <DropdownMenu.Root>
@@ -151,22 +151,23 @@ export default function MediaDropdown({
           side="right"
           align="end"
           sideOffset={4}
-          className="relative px-2 py-1 border border-grey-200 rounded-md bg-white shadow-xl p-2"
+          className=" py-1 border border-gray-200 rounded-md bg-white shadow-xl p-2"
         >
           {files.map((file) => (
             <DropdownMenu.CheckboxItem
               key={file}
               checked={selected === file}
               onSelect={() => handleSelect(file)}
-              className="DropdownMenuItem"
+              className="flex  justify-between px-3 py-2 text-base cursor-pointer rounded-sm hover:bg-gray-100 focus:bg-gray-100 focus:outline-none data-[disabled]:opacity-50 data-[disabled]:cursor-not-allowed" // DropdownMenuItem
             >
-              <DropdownMenu.ItemIndicator className="DropdownMenuItemIndicator px-4">
+              <DropdownMenu.ItemIndicator className=" w-4 h-4 flex items-center justify-center data-[state=unchecked]:opacity-0 data-[state=checked]:opacity-100 transition-opacity">
                 •
               </DropdownMenu.ItemIndicator>
               {file}
             </DropdownMenu.CheckboxItem>
           ))}
           <DropdownMenu.Separator className="DropdownMenuSeparator" />
+
           <DropdownMenu.Item
             onSelect={handleAddImage}
             className="DropdownMenuItem"
