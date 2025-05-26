@@ -125,54 +125,39 @@ export default function MediaDropdown({
     >
       <DropdownMenu.Root>
         <DropdownMenu.Trigger asChild>
-          <button
-            className="relative w-full h-full border-grey-300 truncate rounded px-2 pr-0 py-1.5 text-left "
-            id="filePicker"
-          >
-            <span className="truncate">{selected || "Select File"}</span>
-            <svg
-              className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-600 pointer-events-none"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M19 9l-7 7-7-7"
-              />
-            </svg>
+          <button className="w-full p-2 inline-flex  items-baseline text-base bg-white text-black shadow">
+            <span className="truncate">{selected || "Select a file..."}</span>
+            <span className="h-0 w-0 border-x-8 border-x-transparent border-b-8 border-gray-900 -rotate-180 ml-auto"></span>
           </button>
         </DropdownMenu.Trigger>
 
         <DropdownMenu.Content
+          sideOffset={5}
           side="right"
-          align="end"
-          sideOffset={4}
-          className=" py-1 border border-gray-200 rounded-md bg-white shadow-xl p-2"
+          className="bg-white border border-gray-300 rounded shadow-md py-1"
         >
-          {files.map((file) => (
-            <DropdownMenu.CheckboxItem
-              key={file}
-              checked={selected === file}
-              onSelect={() => handleSelect(file)}
-              className="flex  justify-between px-3 py-2 text-base cursor-pointer rounded-sm hover:bg-gray-100 focus:bg-gray-100 focus:outline-none data-[disabled]:opacity-50 data-[disabled]:cursor-not-allowed" // DropdownMenuItem
+          {files.map((item) => (
+            <DropdownMenu.Item
+              key={item}
+              className="flex items-center px-3 py-1.5 text-base cursor-pointer hover:bg-gray-100"
+              onSelect={() => handleSelect(item)}
             >
-              <DropdownMenu.ItemIndicator className=" w-4 h-4 flex items-center justify-center data-[state=unchecked]:opacity-0 data-[state=checked]:opacity-100 transition-opacity">
-                •
-              </DropdownMenu.ItemIndicator>
-              {file}
-            </DropdownMenu.CheckboxItem>
+              <span className="inline-block w-4">
+                {item === selected ? "•" : " "}
+              </span>
+              <span>{item}</span>
+            </DropdownMenu.Item>
           ))}
-          <DropdownMenu.Separator className="DropdownMenuSeparator" />
+          <DropdownMenu.Separator className="bg-gray-200 h-[1] m-1" />
 
           <DropdownMenu.Item
             onSelect={handleAddImage}
-            className="DropdownMenuItem"
+            className="flex items-center px-3 py-1.5 text-base cursor-pointer hover:bg-gray-100"
           >
-            <i>Upload an image...</i>
+            <span className="inline-block w-4 text-base">&nbsp;</span>
+            <span>
+              <i>Upload an image...</i>
+            </span>
           </DropdownMenu.Item>
         </DropdownMenu.Content>
       </DropdownMenu.Root>
