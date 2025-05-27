@@ -54,7 +54,9 @@ export function HeatmapAdvancedConfig() {
   return (
     <Accordion type="single" collapsible className="w-full">
       <AccordionItem value="advanced-config">
-        <AccordionTrigger>Advanced Configuration</AccordionTrigger>
+        <AccordionTrigger className="text-lg font-bold">
+          Advanced Configuration
+        </AccordionTrigger>
         <AccordionContent>
           <table className="flex flex-row gap-4">
             <tbody>
