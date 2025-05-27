@@ -33,7 +33,7 @@ A good strategy is to make multiple measurements per room.
 
 This image shows the survey points collected to produce the heat map below.
 
-![Floor Plan](images/FloorplanPane.png)
+![Floor Plan](images/FloorPlanPane.png)
 
 ## Heat Maps Pane
 
