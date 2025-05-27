@@ -1,6 +1,6 @@
 # Theory of operation
 
-`wifi-heatmapper` is a Next.js app that uses to a local backend server
+**wifi-heatmapper** is a Next.js app that uses to a local backend server
 to measure both Wi-Fi signal strength and
 (optionally) TCP and UDP speeds to an `iperf3` server
 at various locations.
@@ -49,15 +49,6 @@ The _App()_ in `page.tsx` returns two major GUI components:
       the measurement process
     * `Heatmaps` displays the computed heat maps
     * `PointsTable` displays and edits the points collected
-
-These components and source files are not currently used,
-but have not yet been removed from the code base:
-
-* `EditableField`
-* `FileInput`
-* `Loader`
-* `SettingsViewer` 
-* `database.ts`
 
 ## Routes in the Next app
 
