@@ -34,7 +34,7 @@ There are 1 interfaces on the system:
     rssi: 0,
     signalStrength: 42,
     channel: 44,
-    frequency: 5, // 5GHz since channel is > 14
+    band: 5, // 5GHz since channel is > 14
     channelWidth: 0, // Windows doesn't provide this info
     txRate: 103,
     phyMode: "802.11ax",
@@ -74,7 +74,7 @@ Interfacce presenti nel sistema: 1:
     rssi: 0,
     signalStrength: 85,
     channel: 4,
-    frequency: 2.4, // 2.4GHz since channel is <= 14
+    band: 2.4, // 2.4GHz since channel is <= 14
     channelWidth: 0, // Windows doesn't provide this info
     txRate: 130,
     phyMode: "802.11n",

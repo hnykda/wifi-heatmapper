@@ -1,6 +1,13 @@
+/* CSS imports for dropdown  */
+
+@import "@radix-ui/colors/black-alpha.css";
+@import "@radix-ui/colors/mauve.css";
+@import "@radix-ui/colors/violet.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
 
 @layer base {
   :root {
@@ -66,4 +73,9 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* make links blue */
+a {
+  @apply text-blue-500 hover:underline;
 }

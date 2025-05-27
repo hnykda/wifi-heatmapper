@@ -4,8 +4,8 @@ export interface IperfTestProperty {
   jitterMs: number | null;
   lostPackets: number | null;
   packetsReceived: number | null;
+  signalStrength: number;
 }
-// could be stricter as per type
 
 export interface IperfResults {
   tcpDownload: IperfTestProperty;
@@ -23,6 +23,7 @@ export const testProperties: IperfTestProperties = {
   lostPackets: "lostPackets",
   retransmits: "retransmits",
   packetsReceived: "packetsReceived",
+  signalStrength: "signalStrength",
 } as const;
 
 export type TestTypes = {
@@ -30,11 +31,11 @@ export type TestTypes = {
 };
 
 export const testTypes: TestTypes = {
+  signalStrength: "signalStrength",
   tcpDownload: "tcpDownload",
   tcpUpload: "tcpUpload",
   udpDownload: "udpDownload",
   udpUpload: "udpUpload",
-  signalStrength: "signalStrength",
 } as const;
 
 export type MeasurementTestType = keyof TestTypes;
@@ -42,6 +43,33 @@ export type MeasurementTestType = keyof TestTypes;
 export interface ApMapping {
   apName: string;
   macAddress: string;
+}
+export type RGB = { r: number; g: number; b: number; a: number };
+export type Gradient = Record<number, string>; // Maps 0-1 values to colors
+
+export type HeatmapConfig = {
+  radius: number;
+  maxOpacity: number;
+  minOpacity: number;
+  blur: number;
+  gradient: Record<string, string>;
+};
+
+export interface HeatmapSettings {
+  surveyPoints: SurveyPoint[];
+  floorplanImageName: string; // name of the floorplan-filename
+  floorplanImagePath: string; // path to the /media/floorplan-filename
+  iperfServerAdrs: string;
+  testDuration: number;
+  sudoerPassword: string; // passed around, removed before writing to file
+  apMapping: ApMapping[];
+  nextPointNum: number;
+  dimensions: { width: number; height: number };
+  radiusDivider: number | null; // null - use calculated value
+  maxOpacity: number;
+  minOpacity: number;
+  blur: number;
+  gradient: Gradient;
 }
 
 export interface SurveyPoint {
@@ -51,7 +79,7 @@ export interface SurveyPoint {
   iperfResults: IperfResults;
   timestamp: string;
   id: string;
-  isDisabled: boolean;
+  isEnabled: boolean;
 }
 
 /**
@@ -68,18 +96,18 @@ export interface WifiNetwork {
   txRate: number;
   phyMode: string;
   channelWidth: number;
-  frequency: number;
-}
-
-export interface Database {
-  surveyPoints: SurveyPoint[];
-  floorplanImage: string;
-  iperfServer: string;
-  testDuration: number;
-  apMapping: ApMapping[];
+  band: number; // frequency band - 2GHz or 5GHz
 }
 
 export type ScannerSettings = {
   sudoerPassword: string | "";
   wlanInterfaceId: string | "";
 };
+
+export type OS = "macos" | "windows" | "linux";
+
+export interface SurveyPointActions {
+  add: (newPoint: SurveyPoint) => void;
+  update: (point: SurveyPoint, updatedData: Partial<SurveyPoint>) => void;
+  delete: (points: SurveyPoint[]) => void;
+}

@@ -1,4 +1,9 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
+
+import { useSettings } from "@/components/GlobalSettings";
+
+import { calculateRadiusByBoundingBox } from "../lib/radiusCalculations";
+
 import h337 from "heatmap.js";
 import {
   SurveyPoint,
@@ -14,15 +19,11 @@ import {
 } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
-import HeatmapAdvancedConfig, { HeatmapConfig } from "./HeatmapAdvancedConfig";
 import { Download } from "lucide-react";
+import { HeatmapSlider } from "./Slider";
 
 import { IperfTestProperty } from "@/lib/types";
-import {
-  metricFormatter,
-  percentageToRssi,
-  rssiToPercentage,
-} from "@/lib/utils";
+import { metricFormatter } from "@/lib/utils";
 import { getLogger } from "@/lib/logger";
 
 const logger = getLogger("Heatmaps");
@@ -41,6 +42,7 @@ const propertyTitles: Record<keyof IperfTestProperty, string> = {
   lostPackets: "Lost Packets (UDP Only)",
   retransmits: "Retransmits (TCP Download Only)",
   packetsReceived: "Packets Received (UDP Only)",
+  signalStrength: "dBm or %",
 };
 
 const getAvailableProperties = (
@@ -59,17 +61,17 @@ const getAvailableProperties = (
   }
 };
 
-interface HeatmapProps {
-  points: SurveyPoint[];
-  dimensions: { width: number; height: number };
-  image: string;
-}
+/**
+ * Heatmaps component - this is responsible for drawing all the heat maps
+ * that are selected in the checkboxes
+ * @returns the rendered heat maps
+ */
+export function Heatmaps() {
+  const { settings, updateSettings } = useSettings();
 
-export const Heatmaps: React.FC<HeatmapProps> = ({
-  points,
-  dimensions,
-  image,
-}) => {
+  // array of surveyPoints passed in props
+  const points = settings.surveyPoints;
+
   const [heatmaps, setHeatmaps] = useState<{ [key: string]: string | null }>(
     {},
   );
@@ -77,29 +79,41 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
     src: string;
     alt: string;
   } | null>(null);
+
   const [selectedMetrics, setSelectedMetrics] = useState<MeasurementTestType[]>(
     ["signalStrength", "tcpDownload", "tcpUpload"],
   );
   const [selectedProperties, setSelectedProperties] = useState<
     (keyof IperfTestProperty)[]
   >(["bitsPerSecond"]);
+
   const [showSignalStrengthAsPercentage, setShowSignalStrengthAsPercentage] =
     useState(true);
 
-  const [heatmapConfig, setHeatmapConfig] = useState<HeatmapConfig>({
-    radiusDivider: 1,
-    maxOpacity: 0.7,
-    minOpacity: 0.2,
-    blur: 0.99,
-    gradient: {
-      0.0: "rgba(0, 0, 255, 0.6)",
-      0.25: "rgba(0, 255, 255, 0.6)",
-      0.5: "rgba(0, 255, 0, 0.6)",
-      0.75: "rgba(255, 255, 0, 0.6)",
-      1.0: "rgba(255, 0, 0, 0.6)",
-    },
-  });
+  // const r1 = calculateRadiusByDensity; // bad for small numbers of points
+  const r2 = calculateRadiusByBoundingBox;
+  // const r3 = calculateOptimalRadius; // bad for small numbers of points
 
+  const displayedRadius = settings.radiusDivider // if settings value is non-null
+    ? settings.radiusDivider // use it
+    : Math.round(r2(points));
+
+  const handleRadiusChange = (r: number) => {
+    let savedVal: number | null = null;
+    if (r != 0) {
+      savedVal = r;
+    }
+    updateSettings({ radiusDivider: savedVal });
+  };
+
+  /**
+   * getMetricValue - return the number for the metric and test type
+   * for the designated point
+   * @param point - the survey point
+   * @param metric - name of the property to return
+   * @param testType - if it's an iperf3 result, which one?
+   * @returns number
+   */
   const getMetricValue = useCallback(
     (
       point: SurveyPoint,
@@ -107,12 +121,10 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
       testType?: keyof IperfTestProperty,
     ): number => {
       switch (metric) {
-        case "signalStrength":
+        case "signalStrength": // data collection always captures both values
           return showSignalStrengthAsPercentage
-            ? point.wifiData.signalStrength ||
-                rssiToPercentage(point.wifiData.rssi)
-            : point.wifiData.rssi ||
-                percentageToRssi(point.wifiData.signalStrength);
+            ? point.wifiData.signalStrength
+            : point.wifiData.rssi;
         case "tcpDownload":
         case "tcpUpload":
         case "udpDownload":
@@ -124,28 +136,37 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
           return 0;
       }
     },
-    [showSignalStrengthAsPercentage],
+    [showSignalStrengthAsPercentage, settings.radiusDivider],
   );
 
+  /**
+   * generateHeatmapData - take the component's array of points and the descriptors
+   *   and return an array of non-null and non-zero (if iperf results) data points
+   * @param metric - which measurement
+   * @param testType - which of the iperf3 test results
+   * @returns array of {x, y, value}
+   */
   const generateHeatmapData = useCallback(
     (metric: MeasurementTestType, testType?: keyof IperfTestProperty) => {
       const data = points
-        .filter((p) => !p.isDisabled)
+        .filter((p) => p.isEnabled)
         .map((point) => {
           const value = getMetricValue(point, metric, testType);
           return value !== null ? { x: point.x, y: point.y, value } : null;
         })
         .filter((point) => point !== null);
 
-      const allSameValue = data.every((point) => point.value === data[0].value);
-      if (allSameValue) {
-        logger.info(
-          `Values for all selected points for ${metric}${testType ? `-${testType}` : ""} are the same: ${data[0].value}.
-          It's not a problem, but the heatmap will be less interesting.`,
-        );
+      // Filter out zero values for the iperf results
+      switch (metric) {
+        case "tcpDownload":
+        case "tcpUpload":
+        case "udpDownload":
+        case "udpUpload":
+          // return data;
+          return data.filter((p) => p.value != 0);
+        default:
+          return data;
       }
-
-      return data;
     },
     [points, getMetricValue],
   );
@@ -184,15 +205,73 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
     [showSignalStrengthAsPercentage],
   );
 
+  /**
+   * drawColorBar - take the parameters and create the color gradient
+   */
+  function drawColorBar(
+    ctx: CanvasRenderingContext2D,
+    w: number,
+    h: number,
+    x: number,
+    y: number,
+    min: number,
+    max: number,
+    metric: MeasurementTestType,
+    testType: keyof IperfTestProperty,
+  ) {
+    const colorBarWidth = 50; // Increased width
+    const colorBarHeight = settings.dimensions.height;
+    const colorBarX = settings.dimensions.width + 40; // Adjusted position
+    const colorBarY = 20;
+
+    const gradient = ctx.createLinearGradient(0, h + y, 0, y);
+    Object.entries(settings.gradient).forEach(([stop, color]) => {
+      gradient.addColorStop(parseFloat(stop), color);
+    });
+
+    ctx.fillStyle = gradient;
+    ctx.fillRect(colorBarX, colorBarY, colorBarWidth, colorBarHeight);
+
+    // Add ticks and labels
+    const numTicks = 10;
+    ctx.fillStyle = "black";
+    ctx.font = "14px Arial"; // Increased font size
+    ctx.textAlign = "left";
+
+    for (let i = 0; i <= numTicks; i++) {
+      const y = colorBarY + (colorBarHeight * i) / numTicks;
+      const value = max - ((max - min) * i) / numTicks;
+      const label = formatValue(value, metric, testType);
+
+      // Draw tick
+      ctx.beginPath();
+      ctx.moveTo(colorBarX, y);
+      ctx.lineTo(colorBarX + 10, y);
+      ctx.stroke();
+
+      // Draw label
+      ctx.fillText(label, colorBarX + colorBarWidth + 15, y + 5);
+    }
+  }
+
+  /**
+   * renderHeatmap - top-level code to draw a single heat map
+   *   including floor plan, scale on the side, and the heat map
+   *   or diagnostic info about why it wasn't drawn
+   * @param metric - signalStrength or one of the iperf3 tests
+   * @param testType - which of the iperf3 tests
+   * @returns none - result is that heat map has been drawn
+   */
   const renderHeatmap = useCallback(
     (
       metric: MeasurementTestType,
-      testType?: keyof IperfTestProperty,
+      testType: keyof IperfTestProperty,
     ): Promise<string | null> => {
       return new Promise((resolve) => {
+        // preconditions
         if (
-          dimensions.width === 0 ||
-          dimensions.height === 0 ||
+          settings.dimensions.width === 0 ||
+          settings.dimensions.height === 0 ||
           !offScreenContainerRef.current
         ) {
           logger.error(
@@ -202,50 +281,24 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
           return;
         }
 
-        const heatmapData = generateHeatmapData(metric, testType);
-
-        if (!heatmapData || heatmapData.length === 0) {
-          logger.info(
-            `No valid data for ${metric}${testType ? `-${testType}` : ""}`,
-          );
-          resolve(null);
-          return;
-        }
-
-        const heatmapContainer = document.createElement("div");
-        heatmapContainer.style.width = `${dimensions.width}px`;
-        heatmapContainer.style.height = `${dimensions.height}px`;
-
-        offScreenContainerRef.current.appendChild(heatmapContainer);
-
-        const heatmapInstance = h337.create({
-          container: heatmapContainer,
-          radius:
-            Math.min(dimensions.width, dimensions.height) /
-            heatmapConfig.radiusDivider,
-          maxOpacity: heatmapConfig.maxOpacity,
-          minOpacity: heatmapConfig.minOpacity,
-          blur: heatmapConfig.blur,
-          gradient: heatmapConfig.gradient,
-        });
-
-        const max = Math.max(...heatmapData.map((point) => point.value));
-        const min = Math.min(...heatmapData.map((point) => point.value));
-
-        heatmapInstance.setData({
-          max: max,
-          min: min,
-          data: heatmapData,
-        });
-
+        // prep the container - check for problems
         const colorBarWidth = 50;
         const labelWidth = 150; // Width allocated for labels
         const canvasRightPadding = 20; // Padding on the right side of the canvas
 
+        const heatmapContainer = document.createElement("div");
+        heatmapContainer.style.width = `${settings.dimensions.width}px`;
+        heatmapContainer.style.height = `${settings.dimensions.height}px`;
+
+        offScreenContainerRef.current.appendChild(heatmapContainer);
+
         const canvas = document.createElement("canvas");
         canvas.width =
-          dimensions.width + colorBarWidth + labelWidth + canvasRightPadding;
-        canvas.height = dimensions.height + 40;
+          settings.dimensions.width +
+          colorBarWidth +
+          labelWidth +
+          canvasRightPadding;
+        canvas.height = settings.dimensions.height + 40;
         const ctx = canvas.getContext("2d", { willReadFrequently: true });
         if (!ctx) {
           logger.error("Failed to get 2D context");
@@ -257,16 +310,48 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
         ctx.fillStyle = "white";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+        /**
+         * pick out the values to be used for the heat map
+         */
+        const heatmapData = generateHeatmapData(metric, testType);
+
+        // create the heat map instance
+        const heatmapInstance = h337.create({
+          container: heatmapContainer,
+          radius: !settings.radiusDivider
+            ? displayedRadius
+            : settings.radiusDivider,
+          maxOpacity: settings.maxOpacity,
+          minOpacity: settings.minOpacity,
+          blur: settings.blur,
+          gradient: settings.gradient,
+        });
+
+        // const max = Math.max(...heatmapData.map((point) => point.value));
+        // const min = Math.min(...heatmapData.map((point) => point.value));
+        // Hard-code to 0..100 for Wi-Fi heat map
+        const max = 100;
+        const min = 0;
+
+        // connect the data to the heatmapInstance
+        heatmapInstance.setData({
+          max: max,
+          min: min,
+          data: heatmapData,
+        });
+
+        /**
+         * Start the actual drawing...
+         */
         const backgroundImage = new Image();
         backgroundImage.onload = () => {
           ctx.drawImage(
             backgroundImage,
             0,
             20,
-            dimensions.width,
-            dimensions.height,
+            settings.dimensions.width,
+            settings.dimensions.height,
           );
-
           const heatmapCanvas = heatmapContainer.querySelector("canvas");
           if (heatmapCanvas) {
             if (heatmapCanvas.width === 0 || heatmapCanvas.height === 0) {
@@ -275,47 +360,76 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
               resolve(null);
               return;
             }
+
+            /**
+             * Draw the actual heat map
+             */
             ctx.drawImage(heatmapCanvas, 0, 20);
 
-            // Draw color bar
-            const colorBarWidth = 50; // Increased width
-            const colorBarHeight = dimensions.height;
-            const colorBarX = dimensions.width + 40; // Adjusted position
-            const colorBarY = 20;
+            /**
+             * Add note if there are no iperf3 measurements
+             */
+            if (!heatmapData || heatmapData.length === 0) {
+              const lines = ["No heatmap:", `${metric} tests`, "not performed"];
+              ctx.textAlign = "center";
+              ctx.font = "72px sans-serif";
 
-            const gradient = ctx.createLinearGradient(
-              0,
-              colorBarY + colorBarHeight,
-              0,
-              colorBarY,
-            );
-            Object.entries(heatmapConfig.gradient).forEach(([stop, color]) => {
-              gradient.addColorStop(parseFloat(stop), color);
-            });
+              let maxWidth = 0;
+              let totalHeight = 0;
+              const lineSpacing = 4;
 
-            ctx.fillStyle = gradient;
-            ctx.fillRect(colorBarX, colorBarY, colorBarWidth, colorBarHeight);
+              for (const line of lines) {
+                const metrics = ctx.measureText(line);
+                const lineHeight =
+                  metrics.actualBoundingBoxAscent +
+                  metrics.actualBoundingBoxDescent;
+                maxWidth = Math.max(maxWidth, metrics.width);
+                totalHeight += lineHeight + lineSpacing;
+              }
+              // Remove last added lineSpacing
+              totalHeight += lineSpacing * 4;
 
-            // Add ticks and labels
-            const numTicks = 10;
-            ctx.fillStyle = "black";
-            ctx.font = "14px Arial"; // Increased font size
-            ctx.textAlign = "left";
+              // if the 72 point makes it too wide, shrink the font size
+              if (maxWidth > settings.dimensions.width * 0.9) {
+                const optimalFontSize =
+                  (72 * settings.dimensions.width) / maxWidth;
+                ctx.font = `${optimalFontSize}px sans-serif`;
+              }
 
-            for (let i = 0; i <= numTicks; i++) {
-              const y = colorBarY + (colorBarHeight * i) / numTicks;
-              const value = max - ((max - min) * i) / numTicks;
-              const label = formatValue(value, metric, testType);
+              // Draw semi-opaque white background
+              ctx.fillStyle = "rgba(255, 255,255, 0.9)";
+              ctx.fillRect(
+                settings.dimensions.width / 2 - maxWidth / 2 + 5,
+                (settings.dimensions.height * 2) / 3 - 72 + lineSpacing + 5,
+                maxWidth,
+                totalHeight,
+              );
 
-              // Draw tick
-              ctx.beginPath();
-              ctx.moveTo(colorBarX, y);
-              ctx.lineTo(colorBarX + 10, y);
-              ctx.stroke();
+              ctx.fillStyle = "black";
 
-              // Draw label
-              ctx.fillText(label, colorBarX + colorBarWidth + 15, y + 5);
+              lines.forEach((line, index) => {
+                ctx.fillText(
+                  line,
+                  settings.dimensions.width / 2,
+                  (settings.dimensions.height * 2) / 3 + index * 72,
+                );
+              });
             }
+
+            /**
+             * Draw the color bar/gradient on the right
+             */
+            drawColorBar(
+              ctx,
+              50,
+              settings.dimensions.height,
+              settings.dimensions.width + 40,
+              20,
+              min,
+              max,
+              metric,
+              testType,
+            );
 
             try {
               if (offScreenContainerRef.current?.contains(heatmapContainer)) {
@@ -338,17 +452,22 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
             resolve(null);
           }
         };
-        backgroundImage.src = image;
+        backgroundImage.src = settings.floorplanImagePath;
       });
     },
-    [dimensions, generateHeatmapData, image, heatmapConfig],
+    [
+      settings.dimensions,
+      generateHeatmapData,
+      settings.floorplanImagePath,
+      settings,
+    ],
   );
 
   const generateAllHeatmaps = useCallback(async () => {
     const newHeatmaps: { [key: string]: string | null } = {};
     for (const metric of selectedMetrics) {
       if (metric === "signalStrength") {
-        newHeatmaps[metric] = await renderHeatmap(metric);
+        newHeatmaps[metric] = await renderHeatmap(metric, "signalStrength");
       } else {
         const availableProperties = getAvailableProperties(metric);
         for (const testType of selectedProperties) {
@@ -419,11 +538,11 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
   };
 
   useEffect(() => {
-    if (dimensions.width > 0 && dimensions.height > 0) {
+    if (settings.dimensions.width > 0 && settings.dimensions.height > 0) {
       generateAllHeatmaps();
     }
   }, [
-    dimensions,
+    settings.dimensions,
     generateAllHeatmaps,
     points,
     selectedMetrics,
@@ -489,28 +608,28 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
           Select Properties
         </h3>
         <div className="flex flex-wrap gap-4">
-          {Object.values(testProperties).map((property) => (
-            <div key={property} className="flex items-center space-x-2">
-              <Checkbox
-                id={`property-${property}`}
-                checked={selectedProperties.includes(property)}
-                onCheckedChange={() => toggleProperty(property)}
-              />
-              <label
-                htmlFor={`property-${property}`}
-                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-              >
-                {propertyTitles[property]}
-              </label>
-            </div>
-          ))}
+          {Object.values(testProperties)
+            .filter((property) => property != "signalStrength")
+            .map((property) => (
+              <div key={property} className="flex items-center space-x-2">
+                <Checkbox
+                  id={`property-${property}`}
+                  checked={selectedProperties.includes(property)}
+                  onCheckedChange={() => toggleProperty(property)}
+                />
+                <label
+                  htmlFor={`property-${property}`}
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  {propertyTitles[property]}
+                </label>
+              </div>
+            ))}
         </div>
       </div>
 
-      <HeatmapAdvancedConfig
-        config={heatmapConfig}
-        setConfig={setHeatmapConfig}
-      />
+      <HeatmapSlider value={displayedRadius} onChange={handleRadiusChange} />
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {selectedMetrics.map((metric) => (
           <div key={metric} className="bg-gray-50 p-4 rounded-lg">
@@ -601,4 +720,4 @@ export const Heatmaps: React.FC<HeatmapProps> = ({
       </Dialog>
     </div>
   );
-};
+}
