@@ -2,7 +2,13 @@
 
 _This section follows the precepts of [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) so that future readers can understand the state and evolution of the project._
 
-## [Unreleased - working toward 0.3.0]
+## [Unreleased]
+
+* No features yet
+
+---
+
+## Version 0.3.0 - 2025-06-01
 
 * The "Floor plan" setting is now a dropdown that selects from
   all the PNG or JPEG files on the server.
@@ -18,7 +24,9 @@ _This section follows the precepts of [Keep a Changelog](https://keepachangelog.
 * All Settings items have an "information" button.
 * Significant editorial work on README and other pages in _docs_
 * Changed the Popup details window to use the term "Band" instead of "Frequency". Fixed the units to use "GHz" (was "MHz")
-* Fix parsing of `wdutil` command on macOS 12 ("Catalina")
+* Now parses the `wdutil` command on macOS 12 ("Catalina")
+* Obfuscated the SSID, BSSID, and Profile for wifi test files
+* Passes all tests: `npm run typecheck`, `npm run lint`, `npm test`
 
 ## Version 0.2.1 - 2025-04-04
 
