@@ -9,7 +9,7 @@ If there is a signal-strength problem, you can use the
 heat map to optimize access point placement,
 or to add new mesh devices or extenders.
 
-**wifi-heatmapper** runs on Windows, macOS, and Linux.
+![heatmap example](docs/images/HeatmapPane.png)
 
 The heat maps use a green color ("green is good")
 to show areas of strong signal
@@ -18,7 +18,7 @@ Signal levels fade to turquoise, then to blue
 (lowest acceptable).
 Yellow and red colors indicate poor signal levels.
 
-The screen shot below is a sample heat map.
+The screen shot above is a sample heat map.
 It was created by measuring about two dozen points around the house,
 especially locations where people actually use a computer. 
 The heat map shows that the signal levels throughout the house
@@ -28,9 +28,8 @@ where no measurement was taken (the large yellow area in the middle).
 (Don't have a floor plan for your home?
 See the [FAQ](docs/FAQ.md).)
 
-![heatmap example](docs/images/HeatmapPane.png)
-
-There are more details about the operation of **wifi-heatmapper** at:
+**wifi-heatmapper** runs on Windows, macOS, and Linux.
+There are more details about the operation at:
 
 * [User Interface](docs/User_Interface.md)
 * [Theory of Operation](docs/Theory_of_Operation.md)
