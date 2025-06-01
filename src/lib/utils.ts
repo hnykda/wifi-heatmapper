@@ -1,21 +1,11 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
-import { Database, IperfTestProperty, testTypes } from "./types";
+import { IperfTestProperty, testTypes } from "./types";
 import { MeasurementTestType } from "./types";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
-
-export const getDefaults = (): Database => {
-  return {
-    surveyPoints: [],
-    floorplanImage: "",
-    iperfServer: "",
-    apMapping: [],
-    testDuration: 10,
-  };
-};
 
 export const formatMacAddress = (macAddress: string) => {
   return macAddress.replace(/../g, "$&-").toUpperCase().slice(0, -1);
@@ -31,6 +21,15 @@ export const percentageToRssi = (percentage: number): number => {
   return Math.round(-100 + (percentage / 100) * 60);
 };
 
+/**
+ * toMbps - convert a number to a "Mbps" value - two significant digits
+ * @param the value (in bits/second) to convert
+ * @returns String in format "123.45" (no units)
+ */
+export const toMbps = (value: number): string => {
+  return `${(value / 1000000).toFixed(2)}`;
+};
+
 export const metricFormatter = (
   value: number,
   metric: MeasurementTestType,
@@ -43,7 +42,7 @@ export const metricFormatter = (
       : `${Math.round(value)} dBm`;
   }
   if (testType === "bitsPerSecond") {
-    return `${(value / 1000000).toFixed(2)} Mbps`;
+    return `${toMbps(value)} Mbps`;
   }
   if (testType === "jitterMs") {
     return `${value.toFixed(4)} ms`;

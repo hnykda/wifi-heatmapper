@@ -1,9 +1,9 @@
 import { expect, test } from "vitest";
-import { parseIwOutput } from "../../src/lib/wifiScanner";
+import { parseIwOutput } from "../../src/lib/wifiScanner-linux";
 
 test("parsing netsh output", () => {
   const linkOutput = `
-Connected to e8:de:27:3f:19:7c (on wlan0)
+Connected to 12:34:56:3f:19:7c (on wlan0)
 SSID: HomeNetwork_5G
 freq: 5180
 RX: 780.0 Mbps
@@ -23,11 +23,11 @@ rx bitrate: 780.0 MBit/s
   const output = parseIwOutput(linkOutput, infoOutput);
   expect(output).toStrictEqual({
     ssid: "HomeNetwork_5G",
-    bssid: "e8de273f197c",
+    bssid: "1234563f197c",
     rssi: -56,
     channel: 36,
-    signalStrength: 0,
-    frequency: 5.18,
+    signalStrength: 73,
+    band: 5.18,
     channelWidth: 80,
     txRate: 866.7,
     phyMode: "",
