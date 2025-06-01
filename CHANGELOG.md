@@ -27,6 +27,7 @@ _This section follows the precepts of [Keep a Changelog](https://keepachangelog.
 * Now parses the `wdutil` command on macOS 12 ("Catalina")
 * Obfuscated the SSID, BSSID, and Profile for wifi test files
 * Passes all tests: `npm run typecheck`, `npm run lint`, `npm test`
+* Tested on Win 11; Win 10; Ubuntu 24.04; macOS 12.7.2; macOS 15.5
 
 ## Version 0.2.1 - 2025-04-04
 
