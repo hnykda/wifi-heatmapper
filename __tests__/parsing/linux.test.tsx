@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { parseIwOutput } from "../../src/lib/wifiScanner";
+import { parseIwOutput } from "../../src/lib/wifiScanner-linux";
 
 test("parsing netsh output", () => {
   const linkOutput = `
