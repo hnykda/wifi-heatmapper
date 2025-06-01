@@ -8,10 +8,11 @@ It produces a heat map for each set of
 measurement points ("surveyPoints")
 that show where signal/throughput are high and low.
 
-## Tests
+## Tests before a release
 
-There are a number of tests to run before making a new release.
-**wifi-heatmapper** should pass all tests.
+There are a number of tests to run before making
+a new **wifi-heatmapper** release.
+The entire code base should pass all tests with no warnings or errors.
 These include:
 
 * `npm run typecheck` - run the Typescript compiler on all files
@@ -44,7 +45,6 @@ The webapp then just stores everything in simple JSON
 "database" file in localStorage().
 
 ## Running with higher LOG_LEVEL
-
 You can use `LOG_LEVEL=<number from 0 to 6>` to control logging, where the levels are `0: silly, 1: trace, 2: debug, 3: info, 4: warn, 5: error, 6: fatal`. Use this when submitting the bug reports.
 
 ## Component Hierarchy
@@ -159,7 +159,7 @@ frequently sits around -90dBm.
 [Room for further experimentation.]
 
 This table shows readings both ways: RSSI (dBm) <-> Percentage
-
+   
 | Pct | dBm |   | dBm | Pct | dBm | Pct |
 |-----|-----|---|-----|-----|-----|-----|
 | 0% | -100dBm |  | -100dBm | 0% |  -100dBm | 0% |
@@ -183,19 +183,20 @@ system's language setting.
 Curiously, different English systems also use slightly different
 labels (e.g. "AP BSSID" vs "BSSID").
 Consequently, there is no obvious algorithm for retriving values
-from the `netsh...` output.
+from the `netsh...` output. 
 
 At server startup, the _lib/localization.ts_ code reads a set of
-_xxxx.json_ files to build a reverse lookup table of the localized string
-that maps to the corresponding WifiNetwork property (or null).
-
+_xxxx.json_ files to build a reverse lookup table of
+(localized string) to the corresponding WifiNetwork property
+(or null).
+ 
 The Windows parsing code then retrieves each label from the
 `netsh ...` command, does a reverse lookup, and sets the
 appropriate property.
 
 ### Creating a localization file for your system
 
-To create a localization file for your Windows system's language:
+To create a localization file for your Window's system's language:
 
 * Duplicate one of the _data/localization_ files
 * Rename it to _XX.json_, where "XX" is the proper code for the language
@@ -226,14 +227,13 @@ and can be set by the slider in the Heatmaps pane.
 The _lib/radiusCalculations.ts_ file implements several AI suggestions
 for algorithms as experiments.
 The code currently uses the `r2` function that
-computes the radius using a metric something like the density of
+computes the radius using something like the density of
 points within the bounding box.
 This seems to give pretty pleasing results when the survey points
 cover the majority of the floor plan.
 Use the Radius slider to adjust the heatmap.
 
-_Note:_ The Android
-[NetSpot](https://www.netspotapp.com/netspot-wifi-analyzer-for-android.html)
+_Note:_ The Android [NetSpot](https://www.netspotapp.com/netspot-wifi-analyzer-for-android.html)
 app incorporates a "distance" measurement for the background image.
 That may give a further hint about the size of the survey points.
 
@@ -243,7 +243,7 @@ That may give a further hint about the size of the survey points.
 floor plan image in localStorage() in an object named
 `wifi-heatmapper-floorplanImageName`.
 The "current" floorplan image name is saved as a string in `wifi*heatmapper`.
-When the app is reloaded, the program retrieves that name, then loads the
+When the page is reloaded, the program retrieves that name, then loads the
 associated settings.
 
 The Settings pane allows the user to select from various floor plans

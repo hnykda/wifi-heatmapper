@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { extractIperfResults } from "../src/lib/iperfRunner";
+import { extractIperfResults } from "../src/lib/utils";
 import fs from "fs";
 import path from "path";
 
