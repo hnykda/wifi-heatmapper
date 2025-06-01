@@ -293,7 +293,7 @@ async function runSingleTest(
   return extracted;
 }
 
-export async function extractIperfResults(
+export function extractIperfResults(
   result: {
     end: {
       sum_received?: { bits_per_second: number };
@@ -317,7 +317,7 @@ export async function extractIperfResults(
     version?: string;
   },
   isUdp: boolean,
-): Promise<IperfTestProperty> {
+): IperfTestProperty {
   const end = result.end;
 
   // Check if we're dealing with newer iPerf (Mac - v3.17+) or older iPerf (Ubuntu - v3.9)

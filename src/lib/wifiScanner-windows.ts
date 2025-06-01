@@ -3,11 +3,11 @@ import { execAsync } from "./server-utils";
 import { getLogger } from "./logger";
 import { getDefaultWifiNetwork } from "./wifiScanner";
 import { percentageToRssi } from "./utils";
-import { isValidMacAddress } from "./wifiScanner";
-import { reverseLookup } from "./localization";
+import { isValidMacAddress, normalizeMacAddress } from "./wifiScanner";
+import { getReverseLookupMap } from "./localization";
 
 const logger = getLogger("wifi-Windows");
-
+const reverseLookupTable = await getReverseLookupMap();
 /**
  * scanWifiWindows() scan the Wifi for Windows
  * @returns a WiFiNetwork description to be added to the surveyPoints
@@ -39,7 +39,7 @@ function assignWindowsNetworkInfoValue<K extends keyof WifiNetwork>(
  * This code looks up the keys from the netsh... command
  * in a localization map that determines the proper key for the WifiNetwork
  */
-export async function parseNetshOutput(output: string): Promise<WifiNetwork> {
+export function parseNetshOutput(output: string): WifiNetwork {
   const networkInfo = getDefaultWifiNetwork();
   const lines = output.split("\n");
   for (const line of lines) {
@@ -47,9 +47,12 @@ export async function parseNetshOutput(output: string): Promise<WifiNetwork> {
     if (pos == -1) continue; // no ":"? Just ignore line
     const key = line.slice(0, pos - 1).trim();
     let val = line.slice(pos + 1).trim();
-    const result = await reverseLookup(key);
+    const result = reverseLookupTable.get(key) ?? null;
     if (key == "signalStrength") {
       val = val.replace("%", ""); // remove any "%"
+    }
+    if (key == "BSSID") {
+      val = normalizeMacAddress(val);
     }
     if (result != null) {
       assignWindowsNetworkInfoValue(
@@ -70,63 +73,3 @@ export async function parseNetshOutput(output: string): Promise<WifiNetwork> {
 
   return networkInfo;
 }
-
-/**
- * Test the Windows parsing code on macOS...
- */
-
-// This should be moved into a separate test file
-
-// export async function parseTestOutput(output: string): Promise<WifiNetwork> {
-//   const networkInfo = getDefaultWifiNetwork();
-
-//   const testStr = `
-//      Nome                   : Wi-Fi
-//    Descrizione            : Intel(R) Wi-Fi 6 AX201 160MHz
-//    GUID                   : e36a6a75-d662-4a6b-9399-f1304b0fe75e
-//    Indirizzo fisico       : 3c:58:c2:c2:1b:f9
-//    Stato                  : connessa
-//    SSID                   : Doddy
-//    BSSID                  : 24:a5:2c:10:f7:a8
-//    Tipo di rete           : Infrastruttura
-//    Tipo frequenza radio   : 802.11n
-//    Autenticazione         : WPA2-Personal
-//    Crittografia           : CCMP
-//    Modalità connessione   : Profilo
-//    Canale                 : 4
-//    Velocità ricezione (Mbps)  : 130
-//    Velocità trasmissione (Mbps) : 130
-//    Segnale                : 85%
-//    Profilo                : Doddy
-
-//    Stato rete ospitata    : Non disponibile`;
-
-//   // split into separate lines
-//   console.log(`Starting Test Output****`);
-//   const lines = testStr.split("\n");
-//   for (const line of lines) {
-//     const pos = line.indexOf(":");
-//     if (pos == -1) continue; // no ":"? Just ignore line
-//     const key = line.slice(0, pos - 1).trim();
-//     let val = line.slice(pos + 1).trim();
-//     const result = await reverseLookup(key);
-//     console.log(`Key/Val/Result: "${key}" "${val}", ${result}`);
-//     if (key == "signalStrength") {
-//       val = val.slice(0, -1); // strip trailing "%"
-//     }
-//     // Yikes! This was a siege to get the warnings to go away...
-//     if (result == null) {
-//       console.log(`Not added: ${key}`);
-//     } else {
-//       assignWindowsNetworkInfoValue(
-//         networkInfo,
-//         result as keyof WifiNetwork,
-//         val,
-//       );
-//     }
-//   }
-
-//   console.log(`End Of Test Output**** ${JSON.stringify(networkInfo)}`);
-
-//   return networkInfo;
-// }

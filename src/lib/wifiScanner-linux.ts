@@ -110,6 +110,7 @@ export function parseIwOutput(
       }
     }
   });
+  // Always set signalStrength, too
   networkInfo.signalStrength = rssiToPercentage(networkInfo.rssi);
 
   return networkInfo;

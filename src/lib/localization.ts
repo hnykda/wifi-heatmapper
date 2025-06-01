@@ -6,7 +6,13 @@ import { join } from "path";
 type LocalizationMap = Record<string, string>;
 const reverseMap: Map<string, string> = new Map();
 
-export async function initLocalization() {
+/**
+ * initLocalization() - reads the files from _data/localization_
+ * builds a "reverse map" then returns it so the caler
+ * can look up (localized) strings to get canonical names
+ * @returns "reverse map"
+ */
+export async function initLocalization(): Promise<Map<string, string>> {
   const localizationDir = join("data", "localization");
   // console.log(`__dirname: ${__dirname}`);
   // console.log(`localization dir: ${localizationDir}`);
@@ -39,8 +45,16 @@ export async function initLocalization() {
       console.log(`*** Error reading localization file: ${file}`);
     }
   }
+  return reverseMap;
 }
 
+// async lookup that the client could call.
+// May not be necessary now that the init function returns the map
 export async function reverseLookup(term: string): Promise<string | null> {
   return reverseMap.get(term) ?? null;
+}
+
+//
+export async function getReverseLookupMap(): Promise<Map<string, string>> {
+  return reverseMap;
 }
