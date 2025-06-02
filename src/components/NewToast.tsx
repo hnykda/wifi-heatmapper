@@ -76,13 +76,13 @@ export default function NewToast({ onClose, toastIsReady }: NewToastProps) {
   return (
     <Toast.Provider swipeDirection="right">
       <Toast.Root
-        className="fixed bottom-[10px] right-[5px] w-96 bg-gray-800 text-white p-4 rounded shadow-md flex justify-between items-center"
+        className="fixed bottom-[10px] right-[5px] w-96 bg-gray-200 text-gray-800 p-4 rounded shadow-md flex justify-between items-center"
         duration={Infinity} // Keeps open until manually closed
       >
         <div>
           <Toast.Title className="font-bold">{toastHeader}</Toast.Title>
           {/* Convert \n into actual <br /> elements */}
-          <Toast.Description className="text-sm text-gray-700 leading-relaxed">
+          <Toast.Description className="text-sm text-gray-800 leading-relaxed">
             {toastStatus.split("\n").map((line, index) => (
               <span key={index}>
                 <div>{line}</div>

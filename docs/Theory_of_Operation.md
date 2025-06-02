@@ -8,10 +8,11 @@ It produces a heat map for each set of
 measurement points ("surveyPoints")
 that show where signal/throughput are high and low.
 
-## Tests
+## Tests before a release
 
-There are a number of tests to run before making a new release.
-**wifi-heatmapper** should pass all tests.
+There are a number of tests to run before making
+a new **wifi-heatmapper** release.
+The entire code base should pass all tests with no warnings or errors.
 These include:
 
 * `npm run typecheck` - run the Typescript compiler on all files
