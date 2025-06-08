@@ -8,6 +8,14 @@ _This section follows the precepts of [Keep a Changelog](https://keepachangelog.
 
 ---
 
+## Version 0.3.1 - 2025-06-08
+
+* Add French, Spanish, and German localizations
+* Improve test routines for localization
+* Display Node.js version in the server log information
+* Update To-Do.md
+* Rename several `server-xxx.ts` files
+
 ## Version 0.3.0 - 2025-06-01
 
 * The "Floor plan" setting is now a dropdown that selects from
