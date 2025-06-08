@@ -1,0 +1,36 @@
+{
+  "ssid": "SSID",
+  "bssid": "BSSID",
+  "signalStrength": "Señal",
+  "channel": "Canal",
+  "security": "Autenticación",
+  "txRate": "Velocidad de transmisión (Mbps)",
+  "phyMode": "Tipo de radio"
+}
+
+// Output from netsh wlan show interfaces on Win 11 Spanish (ES)
+//
+// There is 1 interface on the system:
+ 
+    //  Nombre                   : Wi-Fi
+    //  Descripción            : Intel(R) Wi-Fi 6 AX201 160MHz
+    //  GUID                   : xx:xx:xx:xx:xx:xx
+    //  Dirección       : xx:xx:xx:xx:xx:xx
+    //  Tipo de interfaz         : Principal
+    //  Estado                  : conectado
+    //  SSID                   : SomeSSID
+    //  BSSID                  : xx:xx:xx:xx:xx:xx
+    //  Tipo de red            : Infraestructura
+    //  Tipo de radio          : 802.11ac
+    //  Autenticación          : WPA2-Personal
+    //  Cifrado                 : CCMP
+    //  Modo de conexión        : Conexión automática
+    //  Banda                   : 5 GHz
+    //  Canal                   : 64
+    //  Velocidad de recepción (Mbps)   : 866.7
+    //  Velocidad de transmisión (Mbps) : 866.7
+    //  Señal                           : 95%
+    //  Perfil                 : SomeProfile
+	//  
+
+//  Estado de la red hospedada: No disponible

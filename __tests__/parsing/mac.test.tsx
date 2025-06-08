@@ -10,12 +10,12 @@ NETWORK
 ————————————————————————————————————————————————————————————————————
 WIFI
 ————————————————————————————————————————————————————————————————————
-    MAC Address          : BA:34:56:78:90:AB (hw=BA:34:56:78:90:AB)
+    MAC Address          : FE:DC:AB:09:87:65 (hw=FE:DC:AB:09:87:65)
     Interface Name       : en0
     Power                : On [On]
     Op Mode              : STA
     SSID                 : SomeSSID
-    BSSID                : BA:34:56:78:90:AC
+    BSSID                : FE:DC:AB:09:87:65
     RSSI                 : -79 dBm
     CCA                  : 16 %
     Noise                : -91 dBm
@@ -60,7 +60,7 @@ POWER
   `;
   const output = parseWdutilOutput(input);
   expect(output).toStrictEqual({
-    bssid: "ba34567890ac",
+    bssid: "fedcab098765",
     channel: 44,
     channelWidth: 40,
     band: 5,
@@ -90,12 +90,12 @@ NETWORK
 ————————————————————————————————————————————————————————————————————
 WIFI
 ————————————————————————————————————————————————————————————————————
-    MAC Address          : 24:0a:64:4b:86:ed
+    MAC Address          : fe:dc:ba:09:87:65
     Interface Name       : en1
     Power                : On [On,On]
     Op Mode              : STA
     SSID                 : SomeSSID-2.4
-    BSSID                : 12:34:56:e3:c1:8e
+    BSSID                : fe:dc:ba:09:87:65
     RSSI                 : -55 dBm
     Noise                : -98 dBm
     Tx Rate              : 145.0 Mbps
@@ -140,7 +140,7 @@ POWER
   `;
   const output = parseWdutilOutput(input);
   expect(output).toStrictEqual({
-    bssid: "123456e3c18e",
+    bssid: "fedcba098765",
     channel: 1,
     channelWidth: 20,
     band: 2.4,
@@ -170,12 +170,12 @@ NETWORK
 ————————————————————————————————————————————————————————————————————
 WIFI
 ————————————————————————————————————————————————————————————————————
-    MAC Address          : 12:34:56:4b:86:ed
+    MAC Address          : fe:dc:ba:09:87:65
     Interface Name       : en1
     Power                : On [On,On]
     Op Mode              : STA
     SSID                 : SomeSSID-5
-    BSSID                : 12:34:56:e3:c1:8f
+    BSSID                : fe:dc:ba:09:87:65
     RSSI                 : -61 dBm
     Noise                : -96 dBm
     Tx Rate              : 324.0 Mbps
@@ -220,7 +220,7 @@ POWER
   `;
   const output = parseWdutilOutput(input);
   expect(output).toStrictEqual({
-    bssid: "123456e3c18f",
+    bssid: "fedcba098765",
     channel: 144,
     channelWidth: 40,
     band: 5,

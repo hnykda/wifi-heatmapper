@@ -23,21 +23,21 @@ export async function scanWifiWindows(): Promise<WifiNetwork> {
 
 function assignWindowsNetworkInfoValue<K extends keyof WifiNetwork>(
   networkInfo: WifiNetwork,
-  key: K,
+  label: K,
   val: string,
 ) {
-  const current = networkInfo[key];
+  const current = networkInfo[label];
   if (typeof current === "number") {
-    networkInfo[key] = parseInt(val, 10) as any;
+    networkInfo[label] = parseInt(val, 10) as any;
   } else {
-    networkInfo[key] = val as any;
+    networkInfo[label] = val as any;
   }
 }
 /**
  * Parse the output of the `netsh wlan show interfaces` command.
  *
- * This code looks up the keys from the netsh... command
- * in a localization map that determines the proper key for the WifiNetwork
+ * This code looks up the labels from the netsh... command
+ * in a localization map that determines the proper label for the WifiNetwork
  */
 export function parseNetshOutput(output: string): WifiNetwork {
   const networkInfo = getDefaultWifiNetwork();
@@ -45,22 +45,31 @@ export function parseNetshOutput(output: string): WifiNetwork {
   for (const line of lines) {
     const pos = line.indexOf(":");
     if (pos == -1) continue; // no ":"? Just ignore line
-    const key = line.slice(0, pos - 1).trim();
-    let val = line.slice(pos + 1).trim();
-    const result = reverseLookupTable.get(key) ?? null;
+    const label = line.slice(0, pos - 1).trim(); // the label up to the ":"
+    let val = line.slice(pos + 1).trim(); // string read from rest of the line
+    const key = reverseLookupTable.get(label) ?? null; // key is the name of the property
+    // console.log(`Looking up: ${label} ${key}`);
     if (key == "signalStrength") {
       val = val.replace("%", ""); // remove any "%"
     }
-    if (key == "BSSID") {
-      val = normalizeMacAddress(val);
+    if (key == "bssid") {
+      val = normalizeMacAddress(val); // remove ":" or "-" to produce "############"
     }
-    if (result != null) {
-      assignWindowsNetworkInfoValue(
-        networkInfo,
-        result as keyof WifiNetwork,
-        val,
-      );
+    if (key != null) {
+      // console.log(`Real label/val: ${key} ${val}`);
+      assignWindowsNetworkInfoValue(networkInfo, key as keyof WifiNetwork, val);
     }
+  }
+  // Check to see if we got any of the important info
+  // If not, ask if they could provide info...
+  if (
+    networkInfo.signalStrength == 0 ||
+    networkInfo.channel == 0 ||
+    networkInfo.txRate == 0
+  ) {
+    throw new Error(
+      `Could not read Wi-Fi info. Perhaps wifi-heatmapper is not localized for your system. See https://github.com/hnykda/wifi-heatmapper/issues/26 for details.`,
+    );
   }
   if (!isValidMacAddress(networkInfo.bssid)) {
     throw new Error(
