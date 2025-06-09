@@ -3,7 +3,7 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 // import { startTask, cancelTask } from "../../../lib/actions";
-import { setCancelFlag } from "@/lib/sseGlobal";
+import { setCancelFlag } from "@/lib/server-globals";
 
 export async function POST(req: NextRequest) {
   // Get the `action` parameter - /api/start-task?action=start`

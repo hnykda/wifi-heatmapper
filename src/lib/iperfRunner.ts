@@ -9,7 +9,7 @@ import {
 } from "./types";
 import { scanWifi } from "./wifiScanner";
 import { execAsync } from "./server-utils";
-import { getCancelFlag, sendSSEMessage } from "./sseGlobal";
+import { getCancelFlag, sendSSEMessage } from "./server-globals";
 import { percentageToRssi, toMbps } from "./utils";
 import { SSEMessageType } from "@/app/api/events/route";
 import { getLogger } from "./logger";

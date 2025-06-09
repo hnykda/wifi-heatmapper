@@ -9,7 +9,7 @@ import {
   clearSSESender,
   sendSSEMessage,
   setCancelFlag,
-} from "../../../lib/sseGlobal";
+} from "../../../lib/server-globals";
 
 export type SSEMessageType = {
   type: string;
