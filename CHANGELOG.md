@@ -8,6 +8,16 @@ _This section follows the precepts of [Keep a Changelog](https://keepachangelog.
 
 ---
 
+## Version 0.3.1 - 2025-06-08
+
+* Add French, Spanish, and German localizations
+* Throw a helpful error message if no Wi-Fi labels are recognized on Windows.
+  Refer the user to [Help us with Windows localizations](https://github.com/hnykda/wifi-heatmapper/issues/26)
+* Improve test routines for localization
+* Display Node.js version in the server log information
+* Update To-Do.md
+* Rename several `server-xxx.ts` files
+
 ## Version 0.3.0 - 2025-06-01
 
 * The "Floor plan" setting is now a dropdown that selects from

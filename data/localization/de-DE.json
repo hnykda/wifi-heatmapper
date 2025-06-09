@@ -1,0 +1,38 @@
+{
+  "ssid": "SSID",
+  "bssid": "AP BSSID",
+  "signalStrength": "Signal",
+  "channel": "Kanal",
+  "security": "Authentifizierung",
+  "txRate": "Übertragungsrate (MBit/s)",
+  "phyMode": "Funktyp"
+}
+
+// Output from netsh wlan show interfaces on Windows 10 (or 11?) - German
+//
+// Es ist 1 Schnittstelle auf dem System vorhanden:
+
+  //  Name                   : WLAN
+  //  Beschreibung            : Intel(R) Dual Band Wireless-AC 8265
+  //  GUID                   : xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+  //  Physische Adresse       : xx:xx:xx:xx:xx:xx
+  //  Benutzeroberflächentyp         : Primär
+  //  Status                  : Verbunden
+  //  SSID                   : xxxxxxx
+  //  AP BSSID               : xx:xx:xx:xx:xx:xx
+  //  Bereich                   : 5 GHz
+  //  Kanal                : 116
+  //  Netzwerktyp            : Infrastruktur
+  //  Funktyp                   : 802.11ac
+  //  Authentifizierung   : WPA2-Enterprise
+  //  Verschlüsselungsverfahren                 : CCMP
+  //  Verbindungsmodus        : Automat. Verbindung
+  //  Empfangsrate (MBit/s)  : 300
+  //  Übertragungsrate (MBit/s) : 300
+  //  Signal              : 43%
+  //  Profil                 : xxxxxxx
+  //  QoS MSCS konfiguriert         : 0
+  //  QoS-Zuordnung konfiguriert         : 0
+  //  Durch Richtlinie zugelassene QoS-Zuordnung   :  0
+
+  //  Status des gehosteten Netzwerks  : Nicht verfügbar

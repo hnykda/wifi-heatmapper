@@ -20,9 +20,11 @@ async function logSystemInfo(): Promise<void> {
     const release = os.release();
     const version = os.version();
     const data = await loadJson("./package.json");
+    const nodeVersion = process.version;
 
     logger.info("=== System Information ===");
     logger.info(`wifi-heatmapper: ${data.version}`);
+    logger.info(`Node version: ${nodeVersion}`);
     logger.info(`OS: ${platform}`);
     logger.info(`OS Version: ${release}`);
     logger.info(`OS Details: ${version}`);
@@ -33,8 +35,9 @@ async function logSystemInfo(): Promise<void> {
     } catch (error) {
       logger.warn("Could not determine iperf3 version:", error);
     }
-
-    logger.info("=========================");
+    logger.info("");
+    logger.info("=== End System Information ===");
+    logger.info("");
   } catch (error) {
     logger.error("Error collecting system information:", error);
   }

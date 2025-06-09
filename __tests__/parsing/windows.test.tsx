@@ -14,6 +14,37 @@ describe("Checking localization code", () => {
   });
 });
 
+test("parsing netsh output where no labels match", () => {
+  const input = `
+Interface name : Wi-Fi
+There are 1 interfaces on the system:
+
+    Name                   : Wi-Fi
+    Description           : Intel(R) Wi-Fi 6 AX201 160MHz
+    GUID                  : 7825d47a-5d59-4c93-8d91-2b0e1b5f6c4b
+    Physical address      : 12:34:56:78:90:ab
+    State                 : connected
+    X-SSID                  : SomeSSID
+    BSSID                 : 12:34:56:78:90:ac
+    Network type         : Infrastructure
+    Radio type           : 802.11ax
+    X-Authentication       : WPA2-Personal
+    Cipher               : CCMP
+    Connection mode      : Profile
+    X-Channel              : 44
+    Receive rate (Mbps)  : 103
+    X-Transmit rate (Mbps) : 103
+    X-Signal             : 42%
+    Profile              : SomeProfile
+
+    Hosted network status : Not available
+`;
+
+  expect(() => parseNetshOutput(input)).toThrow(
+    `Could not read Wi-Fi info. Perhaps wifi-heatmapper is not localized for your system. See https://github.com/hnykda/wifi-heatmapper/issues/26 for details.`,
+  );
+});
+
 test("parsing english netsh output", () => {
   const input = `
 Interface name : Wi-Fi
@@ -92,5 +123,95 @@ Interfacce presenti nel sistema: 1:
     txRate: 130,
     phyMode: "802.11n",
     security: "WPA2-Personal",
+  });
+});
+
+test("parsing German netsh output", () => {
+  const input = `
+Es ist 1 Schnittstelle auf dem System vorhanden:
+
+   Name                   : WLAN
+   Beschreibung            : Intel(R) Dual Band Wireless-AC 8265
+   GUID                   : xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+   Physische Adresse       : 12:34:56:10:f7:a8
+   Benutzeroberflächentyp         : Primär
+   Status                  : Verbunden
+   SSID                   : SomeSSID
+   AP BSSID               : 12:34:56:78:90:ab
+   Bereich                   : 5 GHz
+   Kanal                : 116
+   Netzwerktyp            : Infrastruktur
+   Funktyp                   : 802.11ac
+   Authentifizierung   : WPA2-Enterprise
+   Verschlüsselungsverfahren                 : CCMP
+   Verbindungsmodus        : Automat. Verbindung
+   Empfangsrate (MBit/s)  : 300
+   Übertragungsrate (MBit/s) : 300
+   Signal              : 43%
+   Profil                 : SomeProfile
+   QoS MSCS konfiguriert         : 0
+   QoS-Zuordnung konfiguriert         : 0
+   Durch Richtlinie zugelassene QoS-Zuordnung   :  0
+
+   Status des gehosteten Netzwerks  : Nicht verfügbar
+`;
+
+  const output = parseNetshOutput(input);
+  expect(output).toStrictEqual({
+    ssid: "SomeSSID",
+    bssid: "1234567890ab",
+    rssi: -74,
+    signalStrength: 43,
+    channel: 116,
+    band: 5, // 2.4GHz since channel is <= 14
+    channelWidth: 0, // Windows doesn't provide this info
+    txRate: 300,
+    phyMode: "802.11ac",
+    security: "WPA2-Enterprise",
+  });
+});
+
+test("parsing French netsh output", () => {
+  const input = `
+Il existe 1 interface sur le système :
+
+    Nom                   : Wi-Fi
+    Description            : Intel(R) Wi-Fi 6 AX201 160MHz
+    GUID                   : f899e530-fd03-44a9-8307-4d4fc4827eab
+    Adresse physique       : 12:34:56:78:90:ab
+    Type d’interface         : Primaire
+    État                  : connecté
+    SSID                  : SomeSSID
+       Point d'accès d’identificateur SSID (Service Set Identifier)                 : 12:34:56:78:90:ab
+    Bande                   : 5 GHz
+    Canal                : 144
+    Type de réseau           : Infrastructure
+    Type de radio             : 802.11ax
+    Authentification         : WPA2 - Personnel
+    Chiffrement                 : CCMP
+    Mode de connexion        : Connexion automatique
+    Réception (Mbits/s)    : 310
+    Transmission (Mbits/s)   : 310
+    Signal                 : 65%
+    Profil                : SomeProfile
+    QoS MSCS configuré : 0
+    Carte QoS configurée : 0
+    Mappage QoS autorisé par la stratégie : 0
+
+    État du réseau hébergé: Non disponible
+`;
+
+  const output = parseNetshOutput(input);
+  expect(output).toStrictEqual({
+    ssid: "SomeSSID",
+    bssid: "1234567890ab",
+    rssi: -61,
+    signalStrength: 65,
+    channel: 144,
+    band: 5, // 2.4GHz since channel is <= 14
+    channelWidth: 0, // Windows doesn't provide this info
+    txRate: 310,
+    phyMode: "802.11ax",
+    security: "WPA2 - Personnel",
   });
 });

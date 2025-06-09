@@ -1,0 +1,38 @@
+{
+  "ssid": "SSID",
+  "bssid": "Point d'accès d’identificateur SSID (Service Set Identifier)",
+  "signalStrength": "Signal",
+  "channel": "Canal",
+  "security": "Authentification",
+  "txRate": "Transmission (Mbits/s)",
+  "phyMode": "Type de radio"
+}
+
+// \Users\Test User> netsh wlan show interfaces - Win11 French
+// 
+// Il existe 1 interface sur le système :
+// 
+//     Nom                   : Wi-Fi
+//     Description            : Intel(R) Wi-Fi 6 AX201 160MHz
+//     GUID                   : f899e530-fd03-44a9-8307-4d4fc4827eab
+//     Adresse physique       : 12:34:56:78:90:ab
+//     Type d’interface         : Primaire
+//     État                  : connecté
+//     SSID                  : SomeSSUD
+//        Point d'accès d’identificateur SSID (Service Set Identifier)                 : 12:34:56:78:90:ab
+//     Bande                   : 5 GHz
+//     Canal                : 144
+//     Type de réseau           : Infrastructure
+//     Type de radio             : 802.11ax
+//     Authentification         : WPA2 - Personnel
+//     Chiffrement                 : CCMP
+//     Mode de connexion        : Connexion automatique
+//     Réception (Mbits/s)    : 310
+//     Transmission (Mbits/s)   : 310
+//     Signal                 : 65%
+//     Profil                : SomeProfile
+//     QoS MSCS configuré : 0
+//     Carte QoS configurée : 0
+//     Mappage QoS autorisé par la stratégie : 0
+// 
+//     État du réseau hébergé: Non disponible

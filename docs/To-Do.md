@@ -6,30 +6,37 @@ Random observations and questions that arise at the start of the project
 
 Ideas for making the program better - in no particular order:
 
-* Make the app more user-friendly and informative (step by step wizard for the measurements)
-* Serialize the datapoints and image to the saved file so it can be loaded later
-* Normalize data rate scale for throughput (use range of 200..700mbps with 100's dividers instead of 245..673mbps)
-* If `Floorplan` cannot open the image, it should display
-  a sensible message like "Can't open map_name..."
-* An expanded (clicked) heat map should always fit fully within the browser window (or scroll)
+* Export `wifi-heatmapper-imagename` and the image itself to a saved file so it can be loaded later
 * A click on the `Floorplan` pane should immediately display an
   empty dot (no color) to indicate that's where the click was.
-* The "distance" of 10 in detecting a click is not big enough when
-  using some kind of tablet. An errant finger makes it look like a request
-  to make a new measurement, not examine that point's statistics.
+  (Improves behavior on a touch-screen - you can see where you clicked.)
+* Scale the size of the surveyPoint dot to the image, to prevent
+  dots from appearing as tiny dots on a large image.
 * (Maybe) During the FloorPlan measurement process, display the wifi signal
-  strength heatmap underneath. This helps the user determine if they need
+  strength heatmap underneath or as a separate floating window.
+  This helps the user determine if they need
   more measurements (finer granularity) for the map.
-  NB: This also tests the coloring of the dots vs the color of the
-  underlying heat map
-* Bundle this into a nice installable (electron?) app so it can be easily installed on a tablet
-* Add leaflet to make the maps interactive
-* It could be useful to change iperfRunner.ts to default to "null" results
-  for all its values, instead of zero. This indicates that no iperf3 test was run.
+* Bundle this into an installable (electron?) app so it can be easily installed on a tablet. Might also allow the app to get Localization permissions on macOS 15 and above so it could show the SSID/AP Name, etc.
+* "Blink"" WiFi off and then back on before measurement to improve the values.
+  This might give the Wi-Fi driver a chance to select a better Wi-Fi SSID
+  Use case: you have used SSID-A and SSID-B in the past. You start the test near SSID-A, but subsequent survey points get farther and farther away - and closer to
+  SSID-B. Since your device tends to select the strongest signal, "blinking" the Wi-FI
+  might choose SSID-B automatically.
+  (The current behavior is that the measured signal level gets lower and lower until
+  manually switching to SSID-B.)
+* This behavior would probably require some kind of "Use this SSID" / "Use best SSID"
+  option, since blinking the Wi-Fi frequently adds 10-12 seconds to each measurement.
 
 ## Bugs
 
+* Normalize data rate scale for throughput (use range of 200..700mbps with 100's dividers instead of 245..673mbps)
 * Clicking a heat map (signal strength or data rate) and clicking Back should not give http error
+* If `Floorplan` cannot open the image, it should display
+  a sensible message like "Can't open map_name..."
+* An expanded (clicked) heat map should always fit fully within the browser window (or scroll)
+* The "distance" of 10 in detecting a click is not big enough when
+  using some kind of tablet. An errant finger makes it look like a request
+  to make a new measurement, not examine that point's statistics.
 * Setting browser view to 110% should not disarrange click points
   for survey data
 * Improve "fetch error" message when the web GUI has lost contact
@@ -39,9 +46,6 @@ Ideas for making the program better - in no particular order:
 * Fix display of dBm in the heatmap scale when not showing as %. Currently, it shows 100dBm (positive number) as green, with 0 dBm as red. The scale should use the limits of the rssiToPercentage() function.
 * If browser window is at 30%, the TabPanel looks too small, yet the FloorPlan is OK.
   Do we need to give an indication of this?
-* Using different size images for the floor plan image didn't work well.
-  This is a placeholder: I don't currently have good debugging info
-* Test code from wifiScanner_windows should be moved to a separate \_test.ts file
 
 ## Questions
 
@@ -52,13 +56,8 @@ Ideas for making the program better - in no particular order:
   is not actually to scale it'll still give good "relative strength" info
   relative to other places on the drawing
 * How to explain the difference between signal strength and throughput rates?
-* Does "winking" WiFi off and then back on before measurement improve the values?
-  Maybe - this might give the Wi-Fi driver a chance to select a better Wi-Fi SSID
-  (Use case: you have used SSID-A and SSID-B in the past. You start the test on SSID-A, but subsequent survey points get farther and farther away - and closer to
-  SSID-B. Since your device tends to select the strongest signal, "winking" the Wi-FI
-  might give it a chance to select SSID-B automatically.)
 * Would it improve the heatmap if small dots were placed at the locations of SurveyPoints?
-* What _does_ **Access Point Mappings** do? (On macOS, not much, since that info is not available.)
+* What _does_ **Access Point Mappings** do? (On macOS, not much, since that info is not available in macOS 15 and above.)
 * The current code runs `runIperfTest()` three times if there was an error. What problem does that solve? What caused that enhancement?
 * Is it important to call `hasValidData()` in wifiScanner.ts? What information does that provide - that we can do anything about?
 
@@ -130,3 +129,8 @@ Ideas for making the program better - in no particular order:
   change the saved file name to match [DONE]
 * "No TCP (UDP) test" message should be on an opaque/partially transparent background [DONE]
 * Long file names should fit inside the dropdown [DONE]
+* It could be useful to change iperfRunner.ts to default to "null" results
+  for all its values, instead of zero. This indicates that no iperf3 test was run. [NOT DONE]
+* Test code from wifiScanner_windows should be moved to a separate \_test.ts file [DONE]
+* Make the app more user-friendly and informative (step by step wizard for the measurements) [DONE for now]
+* Add leaflet to make the maps interactive [NOT FOR NOW]
