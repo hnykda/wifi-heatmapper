@@ -64,7 +64,7 @@ When the measurement is complete, the floor plan displays
 a dot colored by its signal stength.
 Click the dot to get more information.
 
-5. **Move to other locations** and make further measuements.
+5. **Move to other locations** and make further measurements.
 Make at least one measurement per room.
 Multiple measurements per room provide more fine-grained data.
 
@@ -73,7 +73,7 @@ Areas with strong signal will be green,
 lower signal levels will follow the
 Green -> Tuquoise -> Blue -> Yellow -> Red transition.
 Adjust the **Radius** slider until the spots grow together.
-Go back to the Floor Plan tab to make more measuements if needed.
+Go back to the Floor Plan tab to make more measurements if needed.
 
 7. **Click the Survey Points tab** to see all the survey points,
 with details of the measurements taken.
