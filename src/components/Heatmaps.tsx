@@ -25,6 +25,7 @@ import { HeatmapSlider } from "./Slider";
 import { IperfTestProperty } from "@/lib/types";
 import { metricFormatter } from "@/lib/utils";
 import { getLogger } from "@/lib/logger";
+import { GridHeatmapRenderer } from "./GridHeatmapRenderer";
 
 const logger = getLogger("Heatmaps");
 
@@ -81,7 +82,7 @@ export function Heatmaps() {
   } | null>(null);
 
   const [selectedMetrics, setSelectedMetrics] = useState<MeasurementTestType[]>(
-    ["signalStrength", "tcpDownload", "tcpUpload"],
+    ["signalStrength"],
   );
   const [selectedProperties, setSelectedProperties] = useState<
     (keyof IperfTestProperty)[]
@@ -661,6 +662,14 @@ export function Heatmaps() {
                         `Heatmap for ${metricTitles[metric]}`,
                       )
                     }
+                  />
+                  <GridHeatmapRenderer
+                    points={generateHeatmapData(metric, "signalStrength")}
+                    width={settings.dimensions.width}
+                    height={settings.dimensions.height}
+                    // globalOpacity={0.5}
+                    influenceRadius={displayedRadius}
+                    backgroundImageSrc={settings.floorplanImagePath}
                   />
                 </div>
               )
