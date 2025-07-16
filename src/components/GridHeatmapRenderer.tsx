@@ -1,6 +1,14 @@
 import { mapValueToColor } from "@/lib/colorLookup";
-import _ from "lodash";
 import React, { useEffect, useRef } from "react";
+
+export interface GridHeatmapRendererProps {
+  points: HeatmapPoint[];
+  width: number;
+  height: number;
+  backgroundImageSrc?: string;
+  globalOpacity?: number;
+  influenceRadius?: number;
+}
 
 export type HeatmapPoint = {
   x: number;
@@ -17,10 +25,6 @@ export interface GridHeatmapRendererProps {
   influenceRadius?: number;
 }
 
-/**
- * Computes an interpolated signal value for a given (x, y) coordinate
- * based on inverse distance weighting from nearby heatmap points.
- */
 const computeInterpolatedValue = (
   x: number,
   y: number,
@@ -28,39 +32,42 @@ const computeInterpolatedValue = (
   radius: number,
   power = 2,
 ): number => {
-  let weightedSum = 0;
-  let weightTotal = 0;
   const radiusSquared = radius * radius;
 
-  for (const point of points) {
+  let closestPointValue: number | undefined = undefined;
+  let weightedSum = 0;
+  let weightTotal = 0;
+
+  for (let i = 0; i < points.length; i++) {
+    const point = points[i];
     const dx = x - point.x;
     const dy = y - point.y;
     const distanceSquared = dx * dx + dy * dy;
 
-    // Ignore points outside the influence radius
     if (distanceSquared > radiusSquared) continue;
 
-    // Use inverse distance weighting (with a small epsilon to avoid division by zero)
-    const weight = 1 / Math.pow(distanceSquared || 1e-6, power / 2);
+    if (distanceSquared < 1e-6) {
+      closestPointValue = point.value;
+      break;
+    }
+
+    const weight = 1 / Math.pow(distanceSquared, power / 2);
     weightedSum += weight * point.value;
     weightTotal += weight;
   }
 
-  // Return weighted average, or 0 if no contributing points
+  if (closestPointValue !== undefined) return closestPointValue;
   return weightTotal === 0 ? 0 : weightedSum / weightTotal;
 };
 
-/**
- * Renders the heatmap to the provided canvas contexts using per-pixel interpolation
- * and a color gradient lookup.
- */
-const renderHeatmapGradients = ({
+const renderHeatmapGradients = async ({
   offscreenContext,
   heatmapPoints,
   influenceRadius,
   globalOpacity,
   canvasWidth,
   canvasHeight,
+  chunkSize = 32,
 }: {
   offscreenContext: CanvasRenderingContext2D;
   heatmapPoints: HeatmapPoint[];
@@ -68,46 +75,58 @@ const renderHeatmapGradients = ({
   globalOpacity: number;
   canvasWidth: number;
   canvasHeight: number;
-}) => {
-  // Find the highest signal value for normalization
-  const maxSignalStrength = _.maxBy(heatmapPoints, "value")?.value || 1;
-
-  // Allocate pixel buffer for drawing heatmap image
+  chunkSize?: number;
+}): Promise<ImageData> => {
   const imageData = offscreenContext.createImageData(canvasWidth, canvasHeight);
   const data = imageData.data;
+  const signalBuffer = new Float32Array(canvasWidth * canvasHeight);
 
-  // Iterate over every pixel in the canvas
+  let maxSignalStrength = 0;
   for (let y = 0; y < canvasHeight; y++) {
     for (let x = 0; x < canvasWidth; x++) {
-      const dataIndex = (y * canvasWidth + x) * 4;
-
-      // Interpolate signal value from nearby points
+      const index = y * canvasWidth + x;
       const interpolatedValue = computeInterpolatedValue(
         x,
         y,
         heatmapPoints,
         influenceRadius,
       );
-
-      // Normalize signal to [0, 1] for color mapping
-      const normalizedValue = _.clamp(
-        interpolatedValue / maxSignalStrength,
-        0,
-        1,
-      );
-
-      // Convert normalized signal to RGB using heatmap gradient
-      const [red, green, blue] = mapValueToColor(normalizedValue);
-
-      // Write pixel RGBA to image buffer
-      data[dataIndex] = red;
-      data[dataIndex + 1] = green;
-      data[dataIndex + 2] = blue;
-      data[dataIndex + 3] = Math.round(globalOpacity * 255); // Alpha
+      signalBuffer[index] = interpolatedValue;
+      if (interpolatedValue > maxSignalStrength)
+        maxSignalStrength = interpolatedValue;
     }
   }
+  if (maxSignalStrength === 0) maxSignalStrength = 1;
 
-  return imageData;
+  let yStart = 0;
+  return new Promise((resolve) => {
+    const renderChunk = () => {
+      const yEnd = Math.min(yStart + chunkSize, canvasHeight);
+      for (let y = yStart; y < yEnd; y++) {
+        for (let x = 0; x < canvasWidth; x++) {
+          const index = y * canvasWidth + x;
+          const dataIndex = index * 4;
+
+          let normalizedValue = signalBuffer[index] / maxSignalStrength;
+          normalizedValue = Math.min(1, Math.max(0, normalizedValue));
+
+          const [r, g, b] = mapValueToColor(normalizedValue);
+
+          data[dataIndex] = r;
+          data[dataIndex + 1] = g;
+          data[dataIndex + 2] = b;
+          data[dataIndex + 3] = Math.round(globalOpacity * 255);
+        }
+      }
+      yStart = yEnd;
+      if (yStart < canvasHeight) {
+        requestAnimationFrame(renderChunk);
+      } else {
+        resolve(imageData);
+      }
+    };
+    requestAnimationFrame(renderChunk);
+  });
 };
 
 export const GridHeatmapRenderer: React.FC<GridHeatmapRendererProps> = ({
@@ -121,46 +140,60 @@ export const GridHeatmapRenderer: React.FC<GridHeatmapRendererProps> = ({
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+    let cancelled = false;
 
-    const context = canvas.getContext("2d");
-    if (!context) return;
+    const render = async () => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
 
-    const offCanvas = document.createElement("canvas");
-    offCanvas.width = width;
-    offCanvas.height = height;
-    const offscreenContext = offCanvas.getContext("2d");
-    if (!offscreenContext) return;
+      const context = canvas.getContext("2d");
+      if (!context) return;
 
-    const imageData = renderHeatmapGradients({
-      offscreenContext: offscreenContext,
-      heatmapPoints: points,
-      influenceRadius,
-      globalOpacity,
-      canvasWidth: width,
-      canvasHeight: height,
-    });
+      const offCanvas = document.createElement("canvas");
+      offCanvas.width = width;
+      offCanvas.height = height;
+      const offscreenContext = offCanvas.getContext("2d");
+      if (!offscreenContext) return;
 
-    // Paint the heatmap buffer to the offscreen canvas
-    offscreenContext.putImageData(imageData, 0, 0);
+      const imageData = await renderHeatmapGradients({
+        offscreenContext: offscreenContext,
+        heatmapPoints: points,
+        influenceRadius,
+        globalOpacity,
+        canvasWidth: width,
+        canvasHeight: height,
+      });
 
-    // Clear the visible canvas before drawing new frame
-    context.clearRect(0, 0, width, height);
+      // Paint the heatmap buffer to the offscreen canvas
+      offscreenContext.putImageData(imageData, 0, 0);
 
-    if (backgroundImageSrc) {
-      const image = new Image();
-      image.src = backgroundImageSrc;
+      // Clear the visible canvas before drawing new frame
+      context.clearRect(0, 0, width, height);
 
-      // Once the background image loads, draw it first and then the heatmap
-      image.onload = () => {
-        context.drawImage(image, 0, 0, width, height);
+      if (backgroundImageSrc) {
+        const image = new Image();
+        image.src = backgroundImageSrc;
+
+        // Once the background image loads, draw it first and then the heatmap
+        image.onload = () => {
+          context.drawImage(image, 0, 0, width, height);
+          context.drawImage(offscreenContext.canvas, 0, 0);
+        };
+      } else {
+        // No background image—just draw the heatmap
         context.drawImage(offscreenContext.canvas, 0, 0);
-      };
-    } else {
-      // No background image—just draw the heatmap
-      context.drawImage(offscreenContext.canvas, 0, 0);
-    }
+      }
+
+      if (!cancelled) {
+        context.putImageData(imageData, 0, 0);
+      }
+    };
+
+    render();
+
+    return () => {
+      cancelled = true;
+    };
   }, [
     points,
     width,
