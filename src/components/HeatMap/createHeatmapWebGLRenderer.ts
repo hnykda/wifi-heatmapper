@@ -1,6 +1,19 @@
-import { HeatmapPoint, GridHeatmapRendererProps } from "../GridHeatmapRenderer";
 import { createHeatmapRenderer } from "./heatMapRenderer";
 import { createWebGLContext, createBackgroundRenderer } from "./webGLUtils";
+
+export type HeatmapPoint = {
+  x: number;
+  y: number;
+  value: number;
+};
+export interface GridHeatmapRendererProps {
+  points: HeatmapPoint[];
+  width: number;
+  height: number;
+  backgroundImageSrc?: string;
+  globalOpacity?: number;
+  influenceRadius?: number;
+}
 
 const createHeatmapWebGLRenderer = (
   canvas: HTMLCanvasElement,

@@ -1,5 +1,5 @@
-import { HeatmapPoint } from "../GridHeatmapRenderer";
 import createColorLUTTexture from "./createColorLUTTexture";
+import { HeatmapPoint } from "./createHeatmapWebGLRenderer";
 import generateFragmentShader from "./generateFragmentShader";
 import vertexShaderSource from "./vertexShader";
 import {

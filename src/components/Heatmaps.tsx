@@ -584,14 +584,6 @@ export function Heatmaps() {
                       )
                     }
                   />
-                  {/* <GridHeatmapRenderer
-                    points={generateHeatmapData(metric, "signalStrength")}
-                    width={settings.dimensions.width}
-                    height={settings.dimensions.height}
-                    // globalOpacity={0.5}
-                    influenceRadius={displayedRadius}
-                    backgroundImageSrc={settings.floorplanImagePath}
-                  /> */}
                 </div>
               )
             ) : (
