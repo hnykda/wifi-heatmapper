@@ -1,3 +1,5 @@
+import { drawTextureFullScreen } from "./drawTextureFullScreen";
+
 // -- BUFFER SETUP --
 export const createFullScreenQuad = (
   gl: WebGLRenderingContext,
@@ -114,4 +116,22 @@ export const createTextureFromImageSrc = async (
   });
 
   return createTextureFromImage(gl, image);
+};
+
+export const createBackgroundRenderer = (gl: WebGLRenderingContext) => {
+  let cachedTexture: WebGLTexture | null = null;
+  let cachedSrc: string | null = null;
+
+  const draw = async (src: string) => {
+    if (cachedSrc !== src) {
+      cachedTexture = await createTextureFromImageSrc(gl, src);
+      cachedSrc = src;
+    }
+
+    if (cachedTexture) {
+      drawTextureFullScreen(gl, cachedTexture);
+    }
+  };
+
+  return { draw };
 };

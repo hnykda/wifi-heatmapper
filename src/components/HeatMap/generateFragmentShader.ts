@@ -7,7 +7,9 @@
  * @param pointCount - Number of max point uniforms; sets array + loop bounds
  * @returns A fully constructed GLSL fragment shader as a string
  */
-const generateFragmentShader = (pointCount: number): string => `
+const generateFragmentShader = (pointCount: number): string => {
+  const clampedPointCount = Math.max(1, pointCount);
+  return `
   precision mediump float;
 
   varying vec2 v_uv; // Normalized coordinates from vertex shader, in [0, 1]
@@ -17,8 +19,8 @@ const generateFragmentShader = (pointCount: number): string => `
   uniform float u_maxSignal;    // Maximum expected signal value (used for normalization)
   uniform float u_opacity;      // Final fragment opacity
   uniform vec2 u_resolution;    // Pixel dimensions of output framebuffer
-  uniform int u_pointCount;     // Actual number of active points (may be < ${pointCount})
-  uniform vec3 u_points[${pointCount}]; // Each point = (x, y, value) in pixel-space
+  uniform int u_pointCount;     // Actual number of active points (may be < ${clampedPointCount})
+  uniform vec3 u_points[${clampedPointCount}]; // Each point = (x, y, value) in pixel-space
   uniform sampler2D u_lut;      // 1D LUT texture mapping signal to RGB color
 
   void main() {
@@ -29,7 +31,7 @@ const generateFragmentShader = (pointCount: number): string => `
     float weightTotal = 0.0; // Sum of weights
 
     // Iterate over all provided points (vec3: x, y, value)
-    for (int i = 0; i < ${pointCount}; ++i) {
+    for (int i = 0; i < ${clampedPointCount}; ++i) {
       if (i >= u_pointCount) break; // Prevent reading undefined data
 
       vec2 point = u_points[i].xy;  // Point position in pixels
@@ -70,5 +72,6 @@ const generateFragmentShader = (pointCount: number): string => `
     gl_FragColor = vec4(color, u_opacity);
   }
 `;
+};
 
 export default generateFragmentShader;
