@@ -1,3 +1,4 @@
+import { Gradient } from "@/lib/types";
 import createColorLUTTexture from "./createColorLUTTexture";
 import { HeatmapPoint } from "./createHeatmapWebGLRenderer";
 import generateFragmentShader from "./generateFragmentShader";
@@ -8,10 +9,12 @@ import {
   getAttribLocations,
   getUniformLocations,
 } from "./webGLUtils";
+import { createLookupTableFromGradient } from "@/lib/colorLookup";
 
 export const createHeatmapRenderer = (
   gl: WebGLRenderingContext,
   points: HeatmapPoint[],
+  gradient: Gradient,
 ) => {
   const program = createShaderProgram(
     gl,
@@ -21,7 +24,8 @@ export const createHeatmapRenderer = (
   const positionBuffer = createFullScreenQuad(gl);
   const attribs = getAttribLocations(gl, program);
   const uniforms = getUniformLocations(gl, program);
-  const colorLUT = createColorLUTTexture(gl);
+  const precomputedGradientMap = createLookupTableFromGradient(gradient);
+  const colorLUT = createColorLUTTexture(gl, precomputedGradientMap);
 
   const maxSignal = points.reduce((max, pt) => Math.max(max, pt.value), 0);
 

@@ -1,3 +1,4 @@
+import { Gradient } from "@/lib/types";
 import { createHeatmapRenderer } from "./heatMapRenderer";
 import { createWebGLContext, createBackgroundRenderer } from "./webGLUtils";
 
@@ -18,10 +19,11 @@ export interface GridHeatmapRendererProps {
 const createHeatmapWebGLRenderer = (
   canvas: HTMLCanvasElement,
   points: HeatmapPoint[],
+  gradient: Gradient,
 ) => {
   const gl = createWebGLContext(canvas);
   const bgRenderer = createBackgroundRenderer(gl);
-  const heatmapRenderer = createHeatmapRenderer(gl, points);
+  const heatmapRenderer = createHeatmapRenderer(gl, points, gradient);
 
   const render = async (props: GridHeatmapRendererProps) => {
     const {

@@ -308,7 +308,11 @@ export function Heatmaps() {
         glCanvas.width = settings.dimensions.width;
         glCanvas.height = settings.dimensions.height;
 
-        const renderer = createHeatmapWebGLRenderer(glCanvas, heatmapData);
+        const renderer = createHeatmapWebGLRenderer(
+          glCanvas,
+          heatmapData,
+          settings.gradient,
+        );
         await renderer.render({
           points: heatmapData,
           influenceRadius: settings.radiusDivider || displayedRadius,

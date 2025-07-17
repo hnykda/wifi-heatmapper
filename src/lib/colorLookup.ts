@@ -1,23 +1,26 @@
 import _ from "lodash";
+import { Gradient } from "./types";
 
 export type RGBColor = readonly [number, number, number];
-
-const GRADIENT_STOPS: { position: number; color: RGBColor }[] = [
-  { position: 0.0, color: [255, 0, 0] }, // red
-  { position: 0.18, color: [255, 0, 0] }, // red
-  { position: 0.35, color: [255, 255, 0] }, // yellow
-  { position: 0.4, color: [0, 0, 255] }, // blue
-  { position: 0.6, color: [0, 255, 255] }, // cyan
-  { position: 0.85, color: [0, 255, 0] }, // green
-  { position: 1.0, color: [0, 255, 0] }, // green (repeated)
-];
 
 const LOOKUP_TABLE_SIZE = 256;
 
 /**
- * Precompute a lookup table mapping normalized values [0,1] to RGB triplets
+ * Generate a precomputed color lookup table from a gradient definition.
+ *
+ * @param gradient - An object where keys are stops ∈ [0,1] and values are rgba strings
+ * @returns RGBColor[] length 256
  */
-export const createColorLookupTable = (): RGBColor[] => {
+export const createLookupTableFromGradient = (
+  gradient: Gradient,
+): RGBColor[] => {
+  const GRADIENT_STOPS = Object.entries(gradient)
+    .map(([k, rgba]) => ({
+      position: parseFloat(k),
+      color: rgbaToRGB(rgba),
+    }))
+    .sort((a, b) => a.position - b.position);
+
   return Array.from({ length: LOOKUP_TABLE_SIZE }, (_, index) => {
     const normalized = index / (LOOKUP_TABLE_SIZE - 1);
 
@@ -42,19 +45,26 @@ export const createColorLookupTable = (): RGBColor[] => {
       Math.round(startColor[0] + (endColor[0] - startColor[0]) * relative),
       Math.round(startColor[1] + (endColor[1] - startColor[1]) * relative),
       Math.round(startColor[2] + (endColor[2] - startColor[2]) * relative),
-    ];
+    ] as const;
 
     return rgb;
   });
 };
 
-const lookupTable = Object.freeze(createColorLookupTable());
+export const rgbaToRGB = (rgba: string) => {
+  const parts = rgba.match(/\d+/g);
+  if (parts) {
+    const [r, g, b] = parts.map(Number);
+    return [r, g, b] as const;
+  }
+  return [0, 0, 0] as const;
+};
 
 /**
  * Looks up the RGB triplet from the precomputed table for a given normalized value
  */
-export const mapValueToColor = (normalized: number) => {
+export const mapValueToColor = (rgbMap: RGBColor[], normalized: number) => {
   const clamped = _.clamp(normalized, 0, 1);
   const index = Math.round(clamped * (LOOKUP_TABLE_SIZE - 1));
-  return lookupTable[index];
+  return rgbMap[index];
 };

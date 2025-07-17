@@ -1,4 +1,4 @@
-import { mapValueToColor } from "@/lib/colorLookup";
+import { mapValueToColor, RGBColor } from "@/lib/colorLookup";
 import _ from "lodash";
 
 /**
@@ -10,7 +10,10 @@ import _ from "lodash";
  * @param gl - WebGL rendering context (WebGL1-compatible)
  * @returns A WebGLTexture containing the uploaded LUT
  */
-const createColorLUTTexture = (gl: WebGLRenderingContext): WebGLTexture => {
+const createColorLUTTexture = (
+  gl: WebGLRenderingContext,
+  rgbMap: RGBColor[],
+): WebGLTexture => {
   const lutTexture = gl.createTexture();
   if (!lutTexture) {
     throw new Error("Failed to create WebGL texture.");
@@ -34,7 +37,7 @@ const createColorLUTTexture = (gl: WebGLRenderingContext): WebGLTexture => {
     if (index === 0) {
       a = 0;
     } else {
-      [r, g, b] = mapValueToColor(normalized);
+      [r, g, b] = mapValueToColor(rgbMap, normalized);
     }
 
     const offset = index * 4; // Blocks of 4 [r,g,b,a]
