@@ -653,7 +653,7 @@ export function Heatmaps() {
                       Show Signal Strength as Percentage
                     </label>
                   </div>
-                  <HeatmapImage
+                  {/* <HeatmapImage
                     src={heatmaps[metric]}
                     alt={`Heatmap for ${metricTitles[metric]}`}
                     onClick={() =>
@@ -662,7 +662,7 @@ export function Heatmaps() {
                         `Heatmap for ${metricTitles[metric]}`,
                       )
                     }
-                  />
+                  /> */}
                   <GridHeatmapRenderer
                     points={generateHeatmapData(metric, "signalStrength")}
                     width={settings.dimensions.width}
