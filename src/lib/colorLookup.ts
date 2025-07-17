@@ -4,10 +4,11 @@ export type RGBColor = readonly [number, number, number];
 
 const GRADIENT_STOPS: { position: number; color: RGBColor }[] = [
   { position: 0.0, color: [255, 0, 0] }, // red
-  { position: 0.3, color: [255, 255, 0] }, // yellow
+  { position: 0.18, color: [255, 0, 0] }, // red
+  { position: 0.35, color: [255, 255, 0] }, // yellow
   { position: 0.4, color: [0, 0, 255] }, // blue
   { position: 0.6, color: [0, 255, 255] }, // cyan
-  { position: 0.9, color: [0, 255, 0] }, // green
+  { position: 0.85, color: [0, 255, 0] }, // green
   { position: 1.0, color: [0, 255, 0] }, // green (repeated)
 ];
 
