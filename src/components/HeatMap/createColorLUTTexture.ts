@@ -1,3 +1,4 @@
+import { setDefaultTextureParams } from "@/app/webGL/webGLDefaults";
 import { mapValueToColor, RGBColor } from "@/lib/colorLookup";
 import _ from "lodash";
 
@@ -57,10 +58,7 @@ const createColorLUTTexture = (
   );
 
   // Configure texture sampling parameters
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); // Clamp horizontally
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE); // Clamp vertically (though only 1px tall)
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); // Linear filtering for smooth interpolation
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  setDefaultTextureParams(gl);
 
   return lutTexture;
 };

@@ -1,6 +1,7 @@
 import { Gradient } from "@/lib/types";
 import { createHeatmapRenderer } from "./heatMapRenderer";
-import { createWebGLContext, createBackgroundRenderer } from "./webGLUtils";
+import { createWebGLContext } from "./webGLUtils";
+import { createBackgroundRenderer } from "@/app/webGL/renderers/image";
 
 export type HeatmapPoint = {
   x: number;

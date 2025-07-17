@@ -4,6 +4,7 @@ import {
   createFullScreenQuad,
   getAttribLocations,
 } from "./webGLUtils";
+import { fragmentShader } from "@/app/webGL/fragments/fragmentShader";
 
 const contextCache = new WeakMap<
   WebGLRenderingContext,
@@ -22,15 +23,6 @@ export const drawTextureFullScreen = (
   let ctx = contextCache.get(gl);
 
   if (!ctx) {
-    const fragmentShader = `
-      precision mediump float;
-      varying vec2 v_uv;
-      uniform sampler2D u_texture;
-      void main() {
-        gl_FragColor = texture2D(u_texture, v_uv);
-      }
-    `;
-
     const program = createShaderProgram(
       gl,
       fullscreenQuadVertexShader,
