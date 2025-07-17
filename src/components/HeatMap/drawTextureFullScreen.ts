@@ -1,3 +1,4 @@
+import { fullscreenQuadVertexShader } from "@/app/webGL/shaders/fullscreenQuadVertexShaderFlipY";
 import {
   createShaderProgram,
   createFullScreenQuad,
@@ -21,15 +22,6 @@ export const drawTextureFullScreen = (
   let ctx = contextCache.get(gl);
 
   if (!ctx) {
-    const vertexShader = `
-      attribute vec2 a_position;
-      varying vec2 v_uv;
-      void main() {
-        v_uv = a_position * 0.5 + 0.5;
-        gl_Position = vec4(a_position, 0, 1);
-      }
-    `;
-
     const fragmentShader = `
       precision mediump float;
       varying vec2 v_uv;
@@ -39,7 +31,11 @@ export const drawTextureFullScreen = (
       }
     `;
 
-    const program = createShaderProgram(gl, vertexShader, fragmentShader);
+    const program = createShaderProgram(
+      gl,
+      fullscreenQuadVertexShader,
+      fragmentShader,
+    );
     const quad = createFullScreenQuad(gl);
     const attribs = getAttribLocations(gl, program);
     const u_texture = gl.getUniformLocation(program, "u_texture")!;

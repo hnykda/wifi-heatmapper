@@ -2,7 +2,6 @@ import { Gradient } from "@/lib/types";
 import createColorLUTTexture from "./createColorLUTTexture";
 import { HeatmapPoint } from "./createHeatmapWebGLRenderer";
 import generateFragmentShader from "./generateFragmentShader";
-import vertexShaderSource from "./vertexShader";
 import {
   createShaderProgram,
   createFullScreenQuad,
@@ -10,6 +9,7 @@ import {
   getUniformLocations,
 } from "./webGLUtils";
 import { createLookupTableFromGradient } from "@/lib/colorLookup";
+import { fullscreenQuadVertexShaderFlipY } from "@/app/webGL/shaders/fullscreenQuadVertexShaderFlipY";
 
 export const createHeatmapRenderer = (
   gl: WebGLRenderingContext,
@@ -18,7 +18,7 @@ export const createHeatmapRenderer = (
 ) => {
   const program = createShaderProgram(
     gl,
-    vertexShaderSource,
+    fullscreenQuadVertexShaderFlipY,
     generateFragmentShader(points.length),
   );
   const positionBuffer = createFullScreenQuad(gl);
@@ -32,7 +32,6 @@ export const createHeatmapRenderer = (
   const flatData = Float32Array.from(
     points.flatMap(({ x, y, value }) => [x, y, value]),
   );
-  console.log("work");
 
   const draw = (options: {
     width: number;
