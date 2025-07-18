@@ -1,5 +1,6 @@
 import { expect, test } from "vitest";
 import { parseWdutilOutput } from "../../src/lib/wifiScanner-macos";
+import { RSSI_VALUE_ON_LOST_CONNECTION } from "../../src/lib/wifiScanner";
 
 test("parsing macOS 15 (Sequoia) wdutil output", () => {
   const input = `
@@ -231,4 +232,20 @@ POWER
     ssid: "SomeSSID-5",
     txRate: 324.0,
   });
+});
+
+test("handle missing RSSI value", () => {
+  const input = `
+WIFI
+SSID: My WiFi Network
+BSSID: a1:b2:c3:d4:e5:f6
+RSSI:
+Channel: 149 (80 Mhz)
+Tx Rate: 780
+PHY Mode: 802.11ac
+Security: WPA2 Personal
+BLUETOOTH
+  `;
+  const result = parseWdutilOutput(input);
+  expect(result.rssi).toBe(RSSI_VALUE_ON_LOST_CONNECTION);
 });

@@ -1,7 +1,10 @@
 import { WifiNetwork } from "./types";
 import { execAsync } from "./server-utils";
 import { getLogger } from "./logger";
-import { getDefaultWifiNetwork } from "./wifiScanner";
+import {
+  getDefaultWifiNetwork,
+  RSSI_VALUE_ON_LOST_CONNECTION,
+} from "./wifiScanner";
 import { percentageToRssi } from "./utils";
 import { isValidMacAddress, normalizeMacAddress } from "./wifiScanner";
 import { getReverseLookupMap } from "./localization";
@@ -28,7 +31,8 @@ function assignWindowsNetworkInfoValue<K extends keyof WifiNetwork>(
 ) {
   const current = networkInfo[label];
   if (typeof current === "number") {
-    networkInfo[label] = parseInt(val, 10) as any;
+    const parsedValue = parseInt(val, 10);
+    networkInfo[label] = !isNaN(parsedValue) ? parsedValue : (0 as any);
   } else {
     networkInfo[label] = val as any;
   }
@@ -62,8 +66,12 @@ export function parseNetshOutput(output: string): WifiNetwork {
   }
   // Check to see if we got any of the important info
   // If not, ask if they could provide info...
+  if (networkInfo.signalStrength === 0) {
+    networkInfo.rssi = RSSI_VALUE_ON_LOST_CONNECTION;
+  } else {
+    networkInfo.rssi = percentageToRssi(networkInfo.signalStrength);
+  }
   if (
-    networkInfo.signalStrength == 0 ||
     networkInfo.channel == 0 ||
     networkInfo.txRate == 0
   ) {
@@ -78,7 +86,6 @@ export function parseNetshOutput(output: string): WifiNetwork {
   }
   //update frequency band
   networkInfo.band = networkInfo.channel > 14 ? 5 : 2.4;
-  networkInfo.rssi = percentageToRssi(networkInfo.signalStrength);
 
   return networkInfo;
 }

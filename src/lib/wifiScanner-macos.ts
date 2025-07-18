@@ -1,7 +1,10 @@
 import { HeatmapSettings, WifiNetwork } from "./types";
 import { execAsync } from "./server-utils";
 import { getLogger } from "./logger";
-import { getDefaultWifiNetwork } from "./wifiScanner";
+import {
+  getDefaultWifiNetwork,
+  RSSI_VALUE_ON_LOST_CONNECTION,
+} from "./wifiScanner";
 import { rssiToPercentage } from "./utils";
 import { isValidMacAddress, normalizeMacAddress } from "./wifiScanner";
 
@@ -137,7 +140,9 @@ export function parseWdutilOutput(output: string): WifiNetwork {
           break;
         case "RSSI": {
           const rssiValue = parseInt(value.split(" ")[0]);
-          networkInfo.rssi = !isNaN(rssiValue) ? rssiValue : -100;
+          networkInfo.rssi = !isNaN(rssiValue)
+            ? rssiValue
+            : RSSI_VALUE_ON_LOST_CONNECTION;
           break;
         }
         case "Channel": {

@@ -1,6 +1,7 @@
 import { expect, test, describe, it, beforeAll } from "vitest";
 import { parseNetshOutput } from "../../src/lib/wifiScanner-windows";
 import { initLocalization } from "../../src/lib/localization";
+import { RSSI_VALUE_ON_LOST_CONNECTION } from "../../src/lib/wifiScanner";
 
 let reverseLookupTable: Map<string, string>;
 
@@ -214,4 +215,30 @@ Il existe 1 interface sur le système :
     phyMode: "802.11ax",
     security: "WPA2 - Personnel",
   });
+});
+
+test("handle missing signal strength", () => {
+  const input = `
+    Name                   : Wi-Fi
+    Description            : Intel(R) Wi-Fi 6E AX211 160MHz
+    GUID                   : 12345678-1234-1234-1234-1234567890ab
+    Physical address       : ab:cd:ef:12:34:56
+    State                  : connected
+    SSID                   : TEST-SSID
+    BSSID                  : a1:b2:c3:d4:e5:f6
+    Network type           : Infrastructure
+    Radio type             : 802.11n
+    Authentication         : WPA2-Personal
+    Cipher                 : CCMP
+    Connection mode        : Auto Connect
+    Channel                : 1
+    Receive rate (Mbps)    : 289
+    Transmit rate (Mbps)   : 289
+    Signal                 :
+    Profile                : TEST-SSID
+
+    Hosted network status  : Not available
+`;
+  const result = parseNetshOutput(input);
+  expect(result.rssi).toBe(RSSI_VALUE_ON_LOST_CONNECTION);
 });
