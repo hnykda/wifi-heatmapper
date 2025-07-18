@@ -2,7 +2,10 @@ import { HeatmapSettings, WifiNetwork } from "./types";
 import { execAsync } from "./server-utils";
 import { getLogger } from "./logger";
 // import os from "os";
-import { getDefaultWifiNetwork } from "./wifiScanner";
+import {
+  getDefaultWifiNetwork,
+  RSSI_VALUE_ON_LOST_CONNECTION,
+} from "./wifiScanner";
 import { rssiToPercentage } from "./utils";
 // import { reverseLookup } from "./localization";
 import { normalizeMacAddress } from "./wifiScanner";
@@ -77,7 +80,7 @@ export function parseIwOutput(
       if (signalMatch) {
         networkInfo.rssi = parseInt(signalMatch[1]);
       } else {
-        networkInfo.rssi = -100;
+        networkInfo.rssi = RSSI_VALUE_ON_LOST_CONNECTION;
       }
     } else if (trimmedLine.startsWith("freq:")) {
       const freqMatch = trimmedLine.match(/freq:\s*(\d+)/);

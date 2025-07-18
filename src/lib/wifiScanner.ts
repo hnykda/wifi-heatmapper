@@ -6,6 +6,8 @@ import { scanWifiMacOS } from "./wifiScanner-macos";
 import { scanWifiWindows } from "./wifiScanner-windows";
 import { scanWifiLinux } from "./wifiScanner-linux";
 
+export const RSSI_VALUE_ON_LOST_CONNECTION = -100;
+
 const logger = getLogger("wifiScanner");
 
 export const getDefaultWifiNetwork = (): WifiNetwork => ({
