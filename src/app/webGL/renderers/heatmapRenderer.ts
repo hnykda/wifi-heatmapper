@@ -1,15 +1,15 @@
 import { Gradient } from "@/lib/types";
-import createColorLUTTexture from "./createColorLUTTexture";
-import { HeatmapPoint } from "./createHeatmapWebGLRenderer";
-import generateFragmentShader from "./generateFragmentShader";
+import createColorLUTTexture from "../../../components/HeatMap/createColorLUTTexture";
+import { HeatmapPoint } from "./mainRenderer";
+import generateFragmentShader from "../shaders/heatmapFragmentShader";
 import {
   createShaderProgram,
   createFullScreenQuad,
   getAttribLocations,
   getUniformLocations,
-} from "./webGLUtils";
+} from "../../../components/HeatMap/webGLUtils";
 import { createLookupTableFromGradient } from "@/lib/colorLookup";
-import { fullscreenQuadVertexShaderFlipY } from "@/app/webGL/shaders/fullscreenQuadVertexShaderFlipY";
+import { fullscreenQuadVertexShaderFlipY } from "@/app/webGL/shaders/fullscreenQuadVertexShader";
 
 export const createHeatmapRenderer = (
   gl: WebGLRenderingContext,

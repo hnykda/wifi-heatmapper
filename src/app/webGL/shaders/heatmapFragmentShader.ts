@@ -1,13 +1,12 @@
 /**
- * Generates a GLSL fragment shader for rendering a weighted signal map.
+ * Generates a shader for rendering a weighted signal map.
  *
- * Each point contributes signal based on inverse-distance weighting.
+ * Each point contributes signal based on inverse-distance weighting (IDW).
  * The result is normalized and mapped through a color LUT.
  *
  * @param pointCount - Number of max point uniforms; sets array + loop bounds
- * @returns A fully constructed GLSL fragment shader as a string
  */
-const generateFragmentShader = (pointCount: number): string => {
+const generateHeatmapFragmentShader = (pointCount: number): string => {
   const clampedPointCount = Math.max(1, pointCount);
   return `
   precision mediump float;
@@ -74,4 +73,4 @@ const generateFragmentShader = (pointCount: number): string => {
 `;
 };
 
-export default generateFragmentShader;
+export default generateHeatmapFragmentShader;

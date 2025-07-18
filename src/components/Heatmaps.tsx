@@ -24,7 +24,7 @@ import { HeatmapSlider } from "./Slider";
 import { IperfTestProperty } from "@/lib/types";
 import { metricFormatter } from "@/lib/utils";
 import { getLogger } from "@/lib/logger";
-import createHeatmapWebGLRenderer from "./HeatMap/createHeatmapWebGLRenderer";
+import createHeatmapWebGLRenderer from "../app/webGL/renderers/mainRenderer";
 
 const logger = getLogger("Heatmaps");
 

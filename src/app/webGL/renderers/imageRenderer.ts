@@ -1,7 +1,7 @@
-import { drawTextureFullScreen } from "@/components/HeatMap/drawTextureFullScreen";
+import { drawTextureFullScreen } from "@/app/webGL/renderers/textures/drawTextureFullScreen";
 import { setDefaultTextureParams } from "../webGLDefaults";
 
-export const createTextureFromImage = (
+const createTextureFromImage = (
   gl: WebGLRenderingContext,
   image: HTMLImageElement,
 ): WebGLTexture => {
@@ -16,7 +16,7 @@ export const createTextureFromImage = (
   return texture;
 };
 
-export const createTextureFromImageSrc = async (
+const createTextureFromImageSrc = async (
   gl: WebGLRenderingContext,
   src: string,
 ): Promise<WebGLTexture> => {

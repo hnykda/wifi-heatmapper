@@ -1,23 +1,19 @@
 import { Gradient } from "@/lib/types";
-import { createHeatmapRenderer } from "./heatMapRenderer";
-import { createWebGLContext } from "./webGLUtils";
-import { createBackgroundRenderer } from "@/app/webGL/renderers/image";
+
+import { createWebGLContext } from "../../../components/HeatMap/webGLUtils";
+import { createBackgroundRenderer } from "@/app/webGL/renderers/imageRenderer";
+import { createHeatmapRenderer } from "./heatmapRenderer";
 
 export type HeatmapPoint = {
   x: number;
   y: number;
   value: number;
 };
-export interface GridHeatmapRendererProps {
-  points: HeatmapPoint[];
-  width: number;
-  height: number;
-  backgroundImageSrc?: string;
-  globalOpacity?: number;
-  influenceRadius?: number;
-}
 
-const createHeatmapWebGLRenderer = (
+/**
+ * Render both the BG Image & Heatmap Layers
+ */
+const mainRenderer = (
   canvas: HTMLCanvasElement,
   points: HeatmapPoint[],
   gradient: Gradient,
@@ -26,7 +22,14 @@ const createHeatmapWebGLRenderer = (
   const bgRenderer = createBackgroundRenderer(gl);
   const heatmapRenderer = createHeatmapRenderer(gl, points, gradient);
 
-  const render = async (props: GridHeatmapRendererProps) => {
+  const render = async (props: {
+    points: HeatmapPoint[];
+    width: number;
+    height: number;
+    backgroundImageSrc?: string;
+    globalOpacity?: number;
+    influenceRadius?: number;
+  }) => {
     const {
       width,
       height,
@@ -55,4 +58,4 @@ const createHeatmapWebGLRenderer = (
   return { render };
 };
 
-export default createHeatmapWebGLRenderer;
+export default mainRenderer;

@@ -1,9 +1,9 @@
-import { fullscreenQuadVertexShader } from "@/app/webGL/shaders/fullscreenQuadVertexShaderFlipY";
+import { fullscreenQuadVertexShader } from "@/app/webGL/shaders/fullscreenQuadVertexShader";
 import {
   createShaderProgram,
   createFullScreenQuad,
   getAttribLocations,
-} from "./webGLUtils";
+} from "../../../../components/HeatMap/webGLUtils";
 import { fragmentShader } from "@/app/webGL/fragments/fragmentShader";
 
 const contextCache = new WeakMap<
