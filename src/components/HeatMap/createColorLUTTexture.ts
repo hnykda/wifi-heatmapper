@@ -1,8 +1,6 @@
 import { RGBColor } from "@/app/webGL/shaders/gpuGradientShaderPipeline";
 import { setDefaultTextureParams } from "@/app/webGL/webGLDefaults";
 
-import _ from "lodash";
-
 /**
  * Generates a 1D color lookup table (LUT) texture in WebGL.
  *
@@ -21,16 +19,8 @@ const createColorLUTTexture = (
 
   gl.bindTexture(gl.TEXTURE_2D, lutTexture);
 
-  const lutResolution = 256; // Number of discrete samples in the LUT (0-255)
-  const lutData = new Uint8Array(lutResolution * 4); // RGBA for each LUT entry
-
-  // Populate the LUT with colors mapped from normalized scalar values
-  _.times(lutResolution, (index) => {
-    const [r, g, b] = rgbMap[index];
-
-    const offset = index * 4;
-    lutData.set([r, g, b, 255], offset);
-  });
+  const lutResolution = rgbMap.length;
+  const lutData = new Uint8Array(rgbMap.flat()); // RGBA for each LUT entry
 
   gl.texImage2D(
     gl.TEXTURE_2D,

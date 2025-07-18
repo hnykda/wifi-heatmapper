@@ -1,20 +1,22 @@
 import { Gradient } from "@/lib/types";
 import _ from "lodash";
 
-export type RGBColor = readonly [number, number, number];
+export type RGBColor = readonly [number, number, number, number];
 
 const LOOKUP_TABLE_SIZE = 256;
+const rgbaRegex =
+  /rgba?\s*\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)(?:[,\s/]+([\d.]+))?\s*\)/i;
 
 /**
  * Parses rgba() strings to RGBColor tuple.
  */
 export const rgbaToRGB = (rgba: string) => {
-  const parts = rgba.match(/\d+/g);
+  const parts = rgba.match(rgbaRegex);
   if (parts) {
-    const [r, g, b] = parts.map(Number);
-    return [r, g, b] as const;
+    const [_fullMatch, r, g, b, a] = parts.map(Number);
+    return [r, g, b, a] as const;
   }
-  return [0, 0, 0] as const;
+  return [0, 0, 0, 0] as const;
 };
 
 /**
@@ -49,6 +51,7 @@ export function createLookupTableFromGradient(gradient: Gradient): RGBColor[] {
       Math.round(start.color[0] + (end.color[0] - start.color[0]) * alpha),
       Math.round(start.color[1] + (end.color[1] - start.color[1]) * alpha),
       Math.round(start.color[2] + (end.color[2] - start.color[2]) * alpha),
+      Math.round(start.color[3] + (end.color[3] - start.color[3]) * alpha),
     ] as const;
   });
 }
