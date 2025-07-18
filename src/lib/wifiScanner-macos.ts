@@ -135,9 +135,11 @@ export function parseWdutilOutput(output: string): WifiNetwork {
         case "BSSID":
           networkInfo.bssid = normalizeMacAddress(value);
           break;
-        case "RSSI":
-          networkInfo.rssi = parseInt(value.split(" ")[0]);
+        case "RSSI": {
+          const rssiValue = parseInt(value.split(" ")[0]);
+          networkInfo.rssi = !isNaN(rssiValue) ? rssiValue : -100;
           break;
+        }
         case "Channel": {
           [networkInfo.band, networkInfo.channel, networkInfo.channelWidth] =
             parseChannel(value);
