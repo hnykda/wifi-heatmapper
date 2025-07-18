@@ -1,5 +1,4 @@
 import { Gradient } from "@/lib/types";
-import createColorLUTTexture from "../../../components/HeatMap/createColorLUTTexture";
 import { HeatmapPoint } from "./mainRenderer";
 import generateFragmentShader from "../shaders/heatmapFragmentShader";
 import {
@@ -8,8 +7,9 @@ import {
   getAttribLocations,
   getUniformLocations,
 } from "../../../components/HeatMap/webGLUtils";
-import { createLookupTableFromGradient } from "@/lib/colorLookup";
 import { fullscreenQuadVertexShaderFlipY } from "@/app/webGL/shaders/fullscreenQuadVertexShader";
+import { createLookupTableFromGradient } from "../shaders/gpuGradientShaderPipeline";
+import createColorLUTTexture from "@/components/HeatMap/createColorLUTTexture";
 
 export const createHeatmapRenderer = (
   gl: WebGLRenderingContext,
@@ -24,8 +24,9 @@ export const createHeatmapRenderer = (
   const positionBuffer = createFullScreenQuad(gl);
   const attribs = getAttribLocations(gl, program);
   const uniforms = getUniformLocations(gl, program);
-  const precomputedGradientMap = createLookupTableFromGradient(gradient);
-  const colorLUT = createColorLUTTexture(gl, precomputedGradientMap);
+
+  const rgbMap = createLookupTableFromGradient(gradient);
+  const colorLUT = createColorLUTTexture(gl, rgbMap);
 
   const maxSignal = points.reduce((max, pt) => Math.max(max, pt.value), 0);
 

@@ -58,9 +58,12 @@ const generateHeatmapFragmentShader = (pointCount: number): string => {
       weightTotal += weight;
     }
 
+    if (weightTotal == 0.0) {
+      discard;
+    }
     // Normalize signal to [0, 1] range
     // Example: if weightedSum = 3, weightTotal = 5 → signal = 0.6
-    float signal = weightTotal == 0.0 ? 0.0 : weightedSum / weightTotal;
+    float signal = weightedSum / weightTotal;
     float normalized = clamp(signal / u_maxSignal, 0.0, 1.0);
 
     // Lookup color from LUT texture using normalized signal

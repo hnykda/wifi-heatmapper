@@ -1,11 +1,12 @@
+import { RGBColor } from "@/app/webGL/shaders/gpuGradientShaderPipeline";
 import { setDefaultTextureParams } from "@/app/webGL/webGLDefaults";
-import { mapValueToColor, RGBColor } from "@/lib/colorLookup";
+
 import _ from "lodash";
 
 /**
  * Generates a 1D color lookup table (LUT) texture in WebGL.
  *
- * The LUT maps normalized scalar values [0, 1] to RGB colors using the provided `mapValueToColor` function.
+ * The LUT maps normalized scalar values [0, 1] to RGB colors.
  * The texture is uploaded as a 1×256 RGBA8 texture for use in fragment shaders.
  *
  * @param gl - WebGL rendering context (WebGL1-compatible)
@@ -16,9 +17,7 @@ const createColorLUTTexture = (
   rgbMap: RGBColor[],
 ): WebGLTexture => {
   const lutTexture = gl.createTexture();
-  if (!lutTexture) {
-    throw new Error("Failed to create WebGL texture.");
-  }
+  if (!lutTexture) throw new Error("Failed to create WebGL texture");
 
   gl.bindTexture(gl.TEXTURE_2D, lutTexture);
 
@@ -27,22 +26,10 @@ const createColorLUTTexture = (
 
   // Populate the LUT with colors mapped from normalized scalar values
   _.times(lutResolution, (index) => {
-    const normalized = index / (lutResolution - 1);
+    const [r, g, b] = rgbMap[index];
 
-    let r = 0,
-      g = 0,
-      b = 0,
-      a = 255;
-
-    // Final LUT entry → use transparent for "no data"
-    if (index === 0) {
-      a = 0;
-    } else {
-      [r, g, b] = mapValueToColor(rgbMap, normalized);
-    }
-
-    const offset = index * 4; // Blocks of 4 [r,g,b,a]
-    lutData.set([r, g, b, a], offset);
+    const offset = index * 4;
+    lutData.set([r, g, b, 255], offset);
   });
 
   gl.texImage2D(
