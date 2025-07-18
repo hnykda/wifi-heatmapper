@@ -76,6 +76,8 @@ export function parseIwOutput(
       const signalMatch = trimmedLine.match(/signal:\s*(-?\d+)\s*dBm/);
       if (signalMatch) {
         networkInfo.rssi = parseInt(signalMatch[1]);
+      } else {
+        networkInfo.rssi = -100;
       }
     } else if (trimmedLine.startsWith("freq:")) {
       const freqMatch = trimmedLine.match(/freq:\s*(\d+)/);
