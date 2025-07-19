@@ -6,7 +6,19 @@ import { scanWifiMacOS } from "./wifiScanner-macos";
 import { scanWifiWindows } from "./wifiScanner-windows";
 import { scanWifiLinux } from "./wifiScanner-linux";
 
-export const RSSI_VALUE_ON_LOST_CONNECTION = -100;
+export const RSSI_MIN = -100;
+export const RSSI_MAX = -40;
+export const RSSI_VALUE_ON_LOST_CONNECTION = RSSI_MIN;
+
+export const rssiToPercentage = (rssi: number): number => {
+  if (rssi <= RSSI_MIN) return 0;
+  if (rssi >= RSSI_MAX) return 100;
+  return Math.round(((rssi - RSSI_MIN) / (RSSI_MAX - RSSI_MIN)) * 100);
+};
+
+export const percentageToRssi = (percentage: number): number => {
+  return Math.round(RSSI_MIN + (percentage / 100) * (RSSI_MAX - RSSI_MIN));
+};
 
 const logger = getLogger("wifiScanner");
 

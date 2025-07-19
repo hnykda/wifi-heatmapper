@@ -4,8 +4,8 @@ import { getLogger } from "./logger";
 import {
   getDefaultWifiNetwork,
   RSSI_VALUE_ON_LOST_CONNECTION,
+  rssiToPercentage,
 } from "./wifiScanner";
-import { rssiToPercentage } from "./utils";
 import { isValidMacAddress, normalizeMacAddress } from "./wifiScanner";
 
 const logger = getLogger("wifi-macOS");

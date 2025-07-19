@@ -5,8 +5,8 @@ import { getLogger } from "./logger";
 import {
   getDefaultWifiNetwork,
   RSSI_VALUE_ON_LOST_CONNECTION,
+  rssiToPercentage,
 } from "./wifiScanner";
-import { rssiToPercentage } from "./utils";
 // import { reverseLookup } from "./localization";
 import { normalizeMacAddress } from "./wifiScanner";
 // import { reverseLookup } from "./localization";
