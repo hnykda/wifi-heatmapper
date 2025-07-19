@@ -71,10 +71,7 @@ export function parseNetshOutput(output: string): WifiNetwork {
   } else {
     networkInfo.rssi = percentageToRssi(networkInfo.signalStrength);
   }
-  if (
-    networkInfo.channel == 0 ||
-    networkInfo.txRate == 0
-  ) {
+  if (networkInfo.channel == 0 || networkInfo.txRate == 0) {
     throw new Error(
       `Could not read Wi-Fi info. Perhaps wifi-heatmapper is not localized for your system. See https://github.com/hnykda/wifi-heatmapper/issues/26 for details.`,
     );
