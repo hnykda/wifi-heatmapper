@@ -3,9 +3,9 @@ import { execAsync } from "./server-utils";
 import { getLogger } from "./logger";
 import {
   getDefaultWifiNetwork,
+  percentageToRssi,
   RSSI_VALUE_ON_LOST_CONNECTION,
 } from "./wifiScanner";
-import { percentageToRssi } from "./utils";
 import { isValidMacAddress, normalizeMacAddress } from "./wifiScanner";
 import { getReverseLookupMap } from "./localization";
 

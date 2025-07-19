@@ -16,16 +16,6 @@ export const formatMacAddress = (macAddress: string) => {
   return macAddress.replace(/../g, "$&-").toUpperCase().slice(0, -1);
 };
 
-export const rssiToPercentage = (rssi: number): number => {
-  if (rssi <= -100) return 0;
-  if (rssi >= -40) return 100;
-  return Math.round(((rssi + 100) / 60) * 100);
-};
-
-export const percentageToRssi = (percentage: number): number => {
-  return Math.round(-100 + (percentage / 100) * 60);
-};
-
 /**
  * toMbps - convert a number to a "Mbps" value - two significant digits
  * @param the value (in bits/second) to convert
