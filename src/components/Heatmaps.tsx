@@ -4,7 +4,7 @@ import { useSettings } from "@/components/GlobalSettings";
 
 import { calculateRadiusByBoundingBox } from "../lib/radiusCalculations";
 
-import h337 from "heatmap.js";
+import WebGLHeatmap from "./WebGLHeatmap";
 import {
   SurveyPoint,
   testProperties,
@@ -315,30 +315,8 @@ export function Heatmaps() {
          */
         const heatmapData = generateHeatmapData(metric, testType);
 
-        // create the heat map instance
-        const heatmapInstance = h337.create({
-          container: heatmapContainer,
-          radius: !settings.radiusDivider
-            ? displayedRadius
-            : settings.radiusDivider,
-          maxOpacity: settings.maxOpacity,
-          minOpacity: settings.minOpacity,
-          blur: settings.blur,
-          gradient: settings.gradient,
-        });
-
-        // const max = Math.max(...heatmapData.map((point) => point.value));
-        // const min = Math.min(...heatmapData.map((point) => point.value));
-        // Hard-code to 0..100 for Wi-Fi heat map
         const max = 100;
         const min = 0;
-
-        // connect the data to the heatmapInstance
-        heatmapInstance.setData({
-          max: max,
-          min: min,
-          data: heatmapData,
-        });
 
         /**
          * Start the actual drawing...
@@ -352,19 +330,38 @@ export function Heatmaps() {
             settings.dimensions.width,
             settings.dimensions.height,
           );
-          const heatmapCanvas = heatmapContainer.querySelector("canvas");
-          if (heatmapCanvas) {
-            if (heatmapCanvas.width === 0 || heatmapCanvas.height === 0) {
-              logger.error("Heatmap canvas has zero width or height");
-              offScreenContainerRef.current?.removeChild(heatmapContainer);
-              resolve(null);
-              return;
-            }
+          const heatmapCanvas = document.createElement('canvas');
+          heatmapCanvas.width = settings.dimensions.width;
+          heatmapCanvas.height = settings.dimensions.height;
+          const heatmapRoot = document.createElement('div');
+          offScreenContainerRef.current.appendChild(heatmapRoot);
 
-            /**
-             * Draw the actual heat map
-             */
-            ctx.drawImage(heatmapCanvas, 0, 20);
+          const webGLHeatmap = (
+            <WebGLHeatmap
+              width={settings.dimensions.width}
+              height={settings.dimensions.height}
+              points={heatmapData}
+              radius={!settings.radiusDivider ? displayedRadius : settings.radiusDivider}
+              maxOpacity={settings.maxOpacity}
+              minOpacity={settings.minOpacity}
+              gradient={settings.gradient}
+            />
+          );
+
+          // This is a bit of a hack to render the React component to a canvas.
+          // In a real application, you would want to use a library like react-dom/server
+          // to render the component to a string and then draw it to the canvas.
+          // However, for this specific case, we can just render the component to a dummy
+          // container and then grab the canvas from there.
+          import('react-dom').then(ReactDOM => {
+            ReactDOM.render(webGLHeatmap, heatmapRoot, () => {
+                const renderedCanvas = heatmapRoot.querySelector('canvas');
+                if (renderedCanvas) {
+                    ctx.drawImage(renderedCanvas, 0, 20);
+                }
+                offScreenContainerRef.current?.removeChild(heatmapRoot);
+            });
+          });
 
             /**
              * Add note if there are no iperf3 measurements
@@ -431,26 +428,7 @@ export function Heatmaps() {
               testType,
             );
 
-            try {
-              if (offScreenContainerRef.current?.contains(heatmapContainer)) {
-                offScreenContainerRef.current.removeChild(heatmapContainer);
-              }
-            } catch (error) {
-              logger.error("Error removing heatmap container:", error);
-            }
-
             resolve(canvas.toDataURL());
-          } else {
-            logger.error("Heatmap canvas not found");
-            try {
-              if (offScreenContainerRef.current?.contains(heatmapContainer)) {
-                offScreenContainerRef.current.removeChild(heatmapContainer);
-              }
-            } catch (error) {
-              logger.error("Error removing heatmap container:", error);
-            }
-            resolve(null);
-          }
         };
         backgroundImage.src = settings.floorplanImagePath;
       });
