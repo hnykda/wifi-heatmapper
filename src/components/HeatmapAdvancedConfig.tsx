@@ -136,7 +136,7 @@ export function HeatmapAdvancedConfig() {
                 <td className="align-top p-4">
                   <Label>
                     Gradient&nbsp;
-                    <PopoverHelper text="Define the color gradient for the heatmap. Each key represents a point in the gradient (0 to 1), and the value is the color. See heatmap.js gradient configuration." />
+                    <PopoverHelper text="Define the color gradient for the heatmap. Each key represents a point in the gradient (0 to 1), and the value is the color." />
                   </Label>
                 </td>
                 <td colSpan={2}>
