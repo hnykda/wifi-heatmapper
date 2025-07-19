@@ -1,5 +1,5 @@
-import { drawTextureFullScreen } from "@/app/webGL/renderers/textures/drawFullScreenTexture";
-import { setDefaultTextureParams } from "../utils/webGLDefaults";
+import { drawTextureFullScreen } from "@/app/webGL/renderers/helpers/drawFullScreenTexture";
+import { setDefaultTextureParams } from "../../utils/webGLDefaults";
 
 const createTextureFromImage = (
   gl: WebGLRenderingContext,
