@@ -1,8 +1,8 @@
 import { Gradient } from "@/lib/types";
 
-import { createWebGLContext } from "../../../components/HeatMap/webGLUtils";
-import { createBackgroundRenderer } from "@/app/webGL/renderers/imageRenderer";
-import { createHeatmapRenderer } from "./heatmapRenderer";
+import { createWebGLContext } from "../utils/webGLUtils";
+import { createBackgroundLayerRenderer } from "./imageLayerRenderer";
+import { createHeatmapLayerRenderer } from "./heatmapLayerRenderer";
 
 export type HeatmapPoint = {
   x: number;
@@ -19,8 +19,8 @@ const mainRenderer = (
   gradient: Gradient,
 ) => {
   const gl = createWebGLContext(canvas);
-  const bgRenderer = createBackgroundRenderer(gl);
-  const heatmapRenderer = createHeatmapRenderer(gl, points, gradient);
+  const bgRenderer = createBackgroundLayerRenderer(gl);
+  const heatmapRenderer = createHeatmapLayerRenderer(gl, points, gradient);
 
   const render = async (props: {
     points: HeatmapPoint[];

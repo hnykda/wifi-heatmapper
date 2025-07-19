@@ -3,7 +3,7 @@ import {
   createShaderProgram,
   createFullScreenQuad,
   getAttribLocations,
-} from "../../../../components/HeatMap/webGLUtils";
+} from "../../utils/webGLUtils";
 import { fragmentShader } from "@/app/webGL/fragments/fragmentShader";
 
 const contextCache = new WeakMap<

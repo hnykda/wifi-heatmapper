@@ -1,21 +1,22 @@
 import { Gradient } from "@/lib/types";
 import { HeatmapPoint } from "./mainRenderer";
 import generateFragmentShader from "../shaders/heatmapFragmentShader";
+import createGradientLUTTexture from "../renderers/textures/createGradiantLUTTexture";
 import {
   createShaderProgram,
   createFullScreenQuad,
   getAttribLocations,
   getUniformLocations,
-} from "../../../components/HeatMap/webGLUtils";
+} from "../utils/webGLUtils";
 import { fullscreenQuadVertexShaderFlipY } from "@/app/webGL/shaders/fullscreenQuadVertexShader";
-import { createLookupTableFromGradient } from "../shaders/gpuGradientShaderPipeline";
-import createColorLUTTexture from "@/components/HeatMap/createColorLUTTexture";
+import _ from "lodash";
 
-export const createHeatmapRenderer = (
+export const createHeatmapLayerRenderer = (
   gl: WebGLRenderingContext,
   points: HeatmapPoint[],
   gradient: Gradient,
 ) => {
+  console.log(points.length);
   const program = createShaderProgram(
     gl,
     fullscreenQuadVertexShaderFlipY,
@@ -25,11 +26,8 @@ export const createHeatmapRenderer = (
   const attribs = getAttribLocations(gl, program);
   const uniforms = getUniformLocations(gl, program);
 
-  const rgbMap = createLookupTableFromGradient(gradient);
-  const colorLUT = createColorLUTTexture(gl, rgbMap);
-
-  const maxSignal = points.reduce((max, pt) => Math.max(max, pt.value), 0);
-
+  const colorLUT = createGradientLUTTexture(gl, gradient);
+  const maxSignal = _.maxBy(points, "value")?.value ?? 0;
   const flatData = Float32Array.from(
     points.flatMap(({ x, y, value }) => [x, y, value]),
   );

@@ -1,5 +1,5 @@
-import { drawTextureFullScreen } from "@/app/webGL/renderers/textures/drawTextureFullScreen";
-import { setDefaultTextureParams } from "../webGLDefaults";
+import { drawTextureFullScreen } from "@/app/webGL/renderers/textures/drawFullScreenTexture";
+import { setDefaultTextureParams } from "../utils/webGLDefaults";
 
 const createTextureFromImage = (
   gl: WebGLRenderingContext,
@@ -32,7 +32,7 @@ const createTextureFromImageSrc = async (
   return createTextureFromImage(gl, image);
 };
 
-export const createBackgroundRenderer = (gl: WebGLRenderingContext) => {
+export const createBackgroundLayerRenderer = (gl: WebGLRenderingContext) => {
   let cachedTexture: WebGLTexture | null = null;
   let cachedSrc: string | null = null;
 

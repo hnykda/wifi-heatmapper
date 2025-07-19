@@ -1,5 +1,6 @@
-import { RGBColor } from "@/app/webGL/shaders/gpuGradientShaderPipeline";
-import { setDefaultTextureParams } from "@/app/webGL/webGLDefaults";
+import { createLookupTableFromGradient } from "@/app/webGL/shaders/createLookupTableFromGradient";
+import { setDefaultTextureParams } from "@/app/webGL/utils/webGLDefaults";
+import { Gradient } from "@/lib/types";
 
 /**
  * Generates a 1D color lookup table (LUT) texture in WebGL.
@@ -10,15 +11,16 @@ import { setDefaultTextureParams } from "@/app/webGL/webGLDefaults";
  * @param gl - WebGL rendering context (WebGL1-compatible)
  * @returns A WebGLTexture containing the uploaded LUT
  */
-const createColorLUTTexture = (
+const createGradientLUTTexture = (
   gl: WebGLRenderingContext,
-  rgbMap: RGBColor[],
+  gradient: Gradient,
 ): WebGLTexture => {
   const lutTexture = gl.createTexture();
   if (!lutTexture) throw new Error("Failed to create WebGL texture");
 
   gl.bindTexture(gl.TEXTURE_2D, lutTexture);
 
+  const rgbMap = createLookupTableFromGradient(gradient);
   const lutResolution = rgbMap.length;
   const lutData = new Uint8Array(rgbMap.flat()); // RGBA for each LUT entry
 
@@ -40,4 +42,4 @@ const createColorLUTTexture = (
   return lutTexture;
 };
 
-export default createColorLUTTexture;
+export default createGradientLUTTexture;
