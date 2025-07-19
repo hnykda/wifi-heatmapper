@@ -27,13 +27,15 @@ const mainRenderer = (
     width: number;
     height: number;
     backgroundImageSrc?: string;
-    globalOpacity?: number;
+    minOpacity?: number;
+    maxOpacity?: number;
     influenceRadius?: number;
   }) => {
     const {
       width,
       height,
-      globalOpacity = 0.5,
+      minOpacity = 0.2,
+      maxOpacity = 0.7,
       influenceRadius = 100,
       backgroundImageSrc,
     } = props;
@@ -50,8 +52,9 @@ const mainRenderer = (
     heatmapRenderer.draw({
       width,
       height,
-      globalOpacity,
       influenceRadius,
+      minOpacity,
+      maxOpacity,
     });
   };
 

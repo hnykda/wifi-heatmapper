@@ -316,7 +316,8 @@ export function Heatmaps() {
         await renderer.render({
           points: heatmapData,
           influenceRadius: settings.radiusDivider || displayedRadius,
-          globalOpacity: settings.maxOpacity,
+          maxOpacity: settings.maxOpacity,
+          minOpacity: settings.minOpacity,
           backgroundImageSrc: settings.floorplanImagePath,
           width: settings.dimensions.width,
           height: settings.dimensions.height,

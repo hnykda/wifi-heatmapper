@@ -35,12 +35,13 @@ export const createHeatmapLayerRenderer = (
   const draw = (options: {
     width: number;
     height: number;
-    globalOpacity: number;
     influenceRadius: number;
+    minOpacity: number;
+    maxOpacity: number;
   }) => {
     if (!points.length) return;
 
-    const { width, height, globalOpacity, influenceRadius } = options;
+    const { width, height, influenceRadius, minOpacity, maxOpacity } = options;
 
     gl.useProgram(program);
     gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
@@ -49,7 +50,8 @@ export const createHeatmapLayerRenderer = (
 
     gl.uniform1f(uniforms.u_radius, influenceRadius);
     gl.uniform1f(uniforms.u_power, 3);
-    gl.uniform1f(uniforms.u_opacity, globalOpacity);
+    gl.uniform1f(uniforms.u_minOpacity, minOpacity);
+    gl.uniform1f(uniforms.u_maxOpacity, maxOpacity);
     gl.uniform1f(uniforms.u_maxSignal, maxSignal);
     gl.uniform2f(uniforms.u_resolution, width, height);
     gl.uniform1i(uniforms.u_pointCount, Math.min(points.length, points.length));

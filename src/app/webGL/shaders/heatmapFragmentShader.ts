@@ -17,6 +17,8 @@ const generateHeatmapFragmentShader = (pointCount: number): string => {
   uniform float u_power;        // Weight falloff exponent (higher = faster decay)
   uniform float u_maxSignal;    // Maximum expected signal value (used for normalization)
   uniform float u_opacity;      // Final fragment opacity
+  uniform float u_minOpacity;   // opacity when signal = 0
+  uniform float u_maxOpacity;   // opacity when signal = max
   uniform vec2 u_resolution;    // Pixel dimensions of output framebuffer
   uniform int u_pointCount;     // Actual number of active points (may be < ${clampedPointCount})
   uniform vec3 u_points[${clampedPointCount}]; // Each point = (x, y, value) in pixel-space
@@ -71,7 +73,8 @@ const generateHeatmapFragmentShader = (pointCount: number): string => {
     vec3 color = texture2D(u_lut, vec2(normalized, 0.5)).rgb;
 
     // Output the final fragment color with given opacity
-    gl_FragColor = vec4(color, u_opacity);
+    float alpha = mix(u_minOpacity, u_maxOpacity, normalized);
+    gl_FragColor = vec4(color, alpha);
   }
 `;
 };
