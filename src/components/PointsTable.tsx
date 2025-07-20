@@ -29,9 +29,10 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { rssiToPercentage } from "@/lib/utils";
+
 import { AlertDialogModal } from "./AlertDialogModal";
 import { PopoverHelper } from "./PopoverHelpText";
+import { rssiToPercentage } from "@/lib/wifiScanner";
 
 type FlattenedSurveyPoint = {
   id: string;
