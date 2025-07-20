@@ -1,6 +1,4 @@
-import { createLookupTableFromGradient } from "@/app/webGL/shaders/createLookupTableFromGradient";
-import { setDefaultTextureParams } from "@/app/webGL/utils/webGLDefaults";
-import { Gradient } from "@/lib/types";
+import { setDefaultTextureParams } from "../../utils/webGLDefaults";
 
 /**
  * Generates a 1D color lookup table (LUT) texture in WebGL.
@@ -13,33 +11,27 @@ import { Gradient } from "@/lib/types";
  */
 const createGradientLUTTexture = (
   gl: WebGLRenderingContext,
-  gradient: Gradient,
+  gradient: { [key: string]: string },
 ): WebGLTexture => {
-  const lutTexture = gl.createTexture();
-  if (!lutTexture) throw new Error("Failed to create WebGL texture");
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Failed to get canvas context.");
 
-  gl.bindTexture(gl.TEXTURE_2D, lutTexture);
+  canvas.width = 256;
+  canvas.height = 1;
+  const grad = ctx.createLinearGradient(0, 0, 256, 0);
+  for (const stop in gradient) {
+    grad.addColorStop(parseFloat(stop), gradient[stop]);
+  }
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, 256, 1);
+  const texture = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, texture);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, canvas);
 
-  const rgbMap = createLookupTableFromGradient(gradient);
-  const lutResolution = rgbMap.length;
-  const lutData = new Uint8Array(rgbMap.flat()); // RGBA for each LUT entry
-
-  gl.texImage2D(
-    gl.TEXTURE_2D,
-    0,
-    gl.RGBA,
-    lutResolution,
-    1,
-    0,
-    gl.RGBA,
-    gl.UNSIGNED_BYTE,
-    lutData,
-  );
-
-  // Configure texture sampling parameters
   setDefaultTextureParams(gl);
 
-  return lutTexture;
+  return texture;
 };
 
 export default createGradientLUTTexture;
