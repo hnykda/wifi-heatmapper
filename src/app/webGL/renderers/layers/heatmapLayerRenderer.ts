@@ -16,7 +16,6 @@ export const createHeatmapLayerRenderer = (
   points: HeatmapPoint[],
   gradient: Gradient,
 ) => {
-  console.log(points.length);
   const program = createShaderProgram(
     gl,
     fullscreenQuadVertexShaderFlipY,
