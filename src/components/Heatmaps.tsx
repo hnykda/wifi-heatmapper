@@ -4,7 +4,6 @@ import { useSettings } from "@/components/GlobalSettings";
 
 import { calculateRadiusByBoundingBox } from "../lib/radiusCalculations";
 
-import h337 from "heatmap.js";
 import {
   SurveyPoint,
   testProperties,
@@ -25,6 +24,7 @@ import { HeatmapSlider } from "./Slider";
 import { IperfTestProperty } from "@/lib/types";
 import { metricFormatter } from "@/lib/utils";
 import { getLogger } from "@/lib/logger";
+import createHeatmapWebGLRenderer from "../app/webGL/renderers/mainRenderer";
 
 const logger = getLogger("Heatmaps");
 
@@ -81,7 +81,7 @@ export function Heatmaps() {
   } | null>(null);
 
   const [selectedMetrics, setSelectedMetrics] = useState<MeasurementTestType[]>(
-    ["signalStrength", "tcpDownload", "tcpUpload"],
+    ["signalStrength"],
   );
   const [selectedProperties, setSelectedProperties] = useState<
     (keyof IperfTestProperty)[]
@@ -267,8 +267,7 @@ export function Heatmaps() {
       metric: MeasurementTestType,
       testType: keyof IperfTestProperty,
     ): Promise<string | null> => {
-      return new Promise((resolve) => {
-        // preconditions
+      return (async () => {
         if (
           settings.dimensions.width === 0 ||
           settings.dimensions.height === 0 ||
@@ -277,183 +276,111 @@ export function Heatmaps() {
           logger.error(
             "Image dimensions not set or off-screen container not available",
           );
-          resolve(null);
-          return;
+          return null;
         }
 
-        // prep the container - check for problems
         const colorBarWidth = 50;
-        const labelWidth = 150; // Width allocated for labels
-        const canvasRightPadding = 20; // Padding on the right side of the canvas
+        const labelWidth = 150;
+        const canvasRightPadding = 20;
 
-        const heatmapContainer = document.createElement("div");
-        heatmapContainer.style.width = `${settings.dimensions.width}px`;
-        heatmapContainer.style.height = `${settings.dimensions.height}px`;
-
-        offScreenContainerRef.current.appendChild(heatmapContainer);
-
-        const canvas = document.createElement("canvas");
-        canvas.width =
+        const outputCanvas = document.createElement("canvas");
+        outputCanvas.width =
           settings.dimensions.width +
           colorBarWidth +
           labelWidth +
           canvasRightPadding;
-        canvas.height = settings.dimensions.height + 40;
-        const ctx = canvas.getContext("2d", { willReadFrequently: true });
+        outputCanvas.height = settings.dimensions.height + 40;
+
+        const ctx = outputCanvas.getContext("2d", { willReadFrequently: true });
         if (!ctx) {
           logger.error("Failed to get 2D context");
-          offScreenContainerRef.current.removeChild(heatmapContainer);
-          resolve(null);
-          return;
+          return null;
         }
 
         ctx.fillStyle = "white";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillRect(0, 0, outputCanvas.width, outputCanvas.height);
 
-        /**
-         * pick out the values to be used for the heat map
-         */
         const heatmapData = generateHeatmapData(metric, testType);
-
-        // create the heat map instance
-        const heatmapInstance = h337.create({
-          container: heatmapContainer,
-          radius: !settings.radiusDivider
-            ? displayedRadius
-            : settings.radiusDivider,
-          maxOpacity: settings.maxOpacity,
-          minOpacity: settings.minOpacity,
-          blur: settings.blur,
-          gradient: settings.gradient,
-        });
-
-        // const max = Math.max(...heatmapData.map((point) => point.value));
-        // const min = Math.min(...heatmapData.map((point) => point.value));
-        // Hard-code to 0..100 for Wi-Fi heat map
         const max = 100;
         const min = 0;
 
-        // connect the data to the heatmapInstance
-        heatmapInstance.setData({
-          max: max,
-          min: min,
-          data: heatmapData,
+        const glCanvas = document.createElement("canvas");
+        glCanvas.width = settings.dimensions.width;
+        glCanvas.height = settings.dimensions.height;
+
+        const renderer = createHeatmapWebGLRenderer(
+          glCanvas,
+          heatmapData,
+          settings.gradient,
+        );
+        await renderer.render({
+          points: heatmapData,
+          influenceRadius: settings.radiusDivider || displayedRadius,
+          maxOpacity: settings.maxOpacity,
+          minOpacity: settings.minOpacity,
+          backgroundImageSrc: settings.floorplanImagePath,
+          width: settings.dimensions.width,
+          height: settings.dimensions.height,
         });
 
-        /**
-         * Start the actual drawing...
-         */
-        const backgroundImage = new Image();
-        backgroundImage.onload = () => {
-          ctx.drawImage(
-            backgroundImage,
-            0,
-            20,
-            settings.dimensions.width,
-            settings.dimensions.height,
-          );
-          const heatmapCanvas = heatmapContainer.querySelector("canvas");
-          if (heatmapCanvas) {
-            if (heatmapCanvas.width === 0 || heatmapCanvas.height === 0) {
-              logger.error("Heatmap canvas has zero width or height");
-              offScreenContainerRef.current?.removeChild(heatmapContainer);
-              resolve(null);
-              return;
-            }
+        ctx.drawImage(glCanvas, 0, 20);
 
-            /**
-             * Draw the actual heat map
-             */
-            ctx.drawImage(heatmapCanvas, 0, 20);
+        if (!heatmapData || heatmapData.length === 0) {
+          const lines = ["No heatmap:", `${metric} tests`, "not performed"];
+          ctx.textAlign = "center";
+          ctx.font = "72px sans-serif";
 
-            /**
-             * Add note if there are no iperf3 measurements
-             */
-            if (!heatmapData || heatmapData.length === 0) {
-              const lines = ["No heatmap:", `${metric} tests`, "not performed"];
-              ctx.textAlign = "center";
-              ctx.font = "72px sans-serif";
+          let maxWidth = 0;
+          let totalHeight = 0;
+          const lineSpacing = 4;
 
-              let maxWidth = 0;
-              let totalHeight = 0;
-              const lineSpacing = 4;
-
-              for (const line of lines) {
-                const metrics = ctx.measureText(line);
-                const lineHeight =
-                  metrics.actualBoundingBoxAscent +
-                  metrics.actualBoundingBoxDescent;
-                maxWidth = Math.max(maxWidth, metrics.width);
-                totalHeight += lineHeight + lineSpacing;
-              }
-              // Remove last added lineSpacing
-              totalHeight += lineSpacing * 4;
-
-              // if the 72 point makes it too wide, shrink the font size
-              if (maxWidth > settings.dimensions.width * 0.9) {
-                const optimalFontSize =
-                  (72 * settings.dimensions.width) / maxWidth;
-                ctx.font = `${optimalFontSize}px sans-serif`;
-              }
-
-              // Draw semi-opaque white background
-              ctx.fillStyle = "rgba(255, 255,255, 0.9)";
-              ctx.fillRect(
-                settings.dimensions.width / 2 - maxWidth / 2 + 5,
-                (settings.dimensions.height * 2) / 3 - 72 + lineSpacing + 5,
-                maxWidth,
-                totalHeight,
-              );
-
-              ctx.fillStyle = "black";
-
-              lines.forEach((line, index) => {
-                ctx.fillText(
-                  line,
-                  settings.dimensions.width / 2,
-                  (settings.dimensions.height * 2) / 3 + index * 72,
-                );
-              });
-            }
-
-            /**
-             * Draw the color bar/gradient on the right
-             */
-            drawColorBar(
-              ctx,
-              50,
-              settings.dimensions.height,
-              settings.dimensions.width + 40,
-              20,
-              min,
-              max,
-              metric,
-              testType,
-            );
-
-            try {
-              if (offScreenContainerRef.current?.contains(heatmapContainer)) {
-                offScreenContainerRef.current.removeChild(heatmapContainer);
-              }
-            } catch (error) {
-              logger.error("Error removing heatmap container:", error);
-            }
-
-            resolve(canvas.toDataURL());
-          } else {
-            logger.error("Heatmap canvas not found");
-            try {
-              if (offScreenContainerRef.current?.contains(heatmapContainer)) {
-                offScreenContainerRef.current.removeChild(heatmapContainer);
-              }
-            } catch (error) {
-              logger.error("Error removing heatmap container:", error);
-            }
-            resolve(null);
+          for (const line of lines) {
+            const metrics = ctx.measureText(line);
+            const lineHeight =
+              metrics.actualBoundingBoxAscent +
+              metrics.actualBoundingBoxDescent;
+            maxWidth = Math.max(maxWidth, metrics.width);
+            totalHeight += lineHeight + lineSpacing;
           }
-        };
-        backgroundImage.src = settings.floorplanImagePath;
-      });
+          totalHeight += lineSpacing * 4;
+
+          if (maxWidth > settings.dimensions.width * 0.9) {
+            const optimalFontSize = (72 * settings.dimensions.width) / maxWidth;
+            ctx.font = `${optimalFontSize}px sans-serif`;
+          }
+
+          ctx.fillStyle = "rgba(255, 255,255, 0.9)";
+          ctx.fillRect(
+            settings.dimensions.width / 2 - maxWidth / 2 + 5,
+            (settings.dimensions.height * 2) / 3 - 72 + lineSpacing + 5,
+            maxWidth,
+            totalHeight,
+          );
+
+          ctx.fillStyle = "black";
+          lines.forEach((line, index) => {
+            ctx.fillText(
+              line,
+              settings.dimensions.width / 2,
+              (settings.dimensions.height * 2) / 3 + index * 72,
+            );
+          });
+        }
+
+        drawColorBar(
+          ctx,
+          50,
+          settings.dimensions.height,
+          settings.dimensions.width + 40,
+          20,
+          min,
+          max,
+          metric,
+          testType,
+        );
+
+        return outputCanvas.toDataURL();
+      })();
     },
     [
       settings.dimensions,
