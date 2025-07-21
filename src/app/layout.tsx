@@ -1,10 +1,8 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+
 import "./globals.css";
 import { SettingsProvider } from "@/components/GlobalSettings";
 import { initServer } from "../lib/server-init";
-
-const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "WiFi Heatmapper",
@@ -21,7 +19,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <SettingsProvider>
-        <body className={inter.className}>{children}</body>
+        <body>{children}</body>
       </SettingsProvider>
     </html>
   );
