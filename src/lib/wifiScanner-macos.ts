@@ -50,8 +50,8 @@ export async function scanWifiMacOS(
     }
   }
 
-  logger.trace("Final WiFi data:", wdutilNetworkInfo);
   wdutilNetworkInfo.signalStrength = rssiToPercentage(wdutilNetworkInfo.rssi);
+  logger.trace("Final WiFi data:", wdutilNetworkInfo);
   return wdutilNetworkInfo;
 }
 

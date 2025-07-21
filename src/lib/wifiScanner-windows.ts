@@ -5,6 +5,7 @@ import {
   getDefaultWifiNetwork,
   percentageToRssi,
   RSSI_VALUE_ON_LOST_CONNECTION,
+  rssiToPercentage,
 } from "./wifiScanner";
 import { isValidMacAddress, normalizeMacAddress } from "./wifiScanner";
 import { getReverseLookupMap } from "./localization";
@@ -83,6 +84,7 @@ export function parseNetshOutput(output: string): WifiNetwork {
   }
   //update frequency band
   networkInfo.band = networkInfo.channel > 14 ? 5 : 2.4;
+  networkInfo.signalStrength = rssiToPercentage(networkInfo.rssi);
 
   return networkInfo;
 }

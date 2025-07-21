@@ -7,10 +7,10 @@ import {
   WifiNetwork,
   SurveyPoint,
 } from "./types";
-import { percentageToRssi, scanWifi } from "./wifiScanner";
+import { scanWifi } from "./wifiScanner";
 import { execAsync } from "./server-utils";
 import { getCancelFlag, sendSSEMessage } from "./server-globals";
-import { toMbps } from "./utils";
+import { percentageToRssi, toMbps } from "./utils";
 import { SSEMessageType } from "@/app/api/events/route";
 import { getLogger } from "./logger";
 import { extractIperfResults } from "./utils";

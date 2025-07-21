@@ -1,6 +1,6 @@
 import React, { ReactNode, useRef, useState } from "react";
 import { useEffect } from "react";
-
+import { rssiToPercentage } from "../lib/utils";
 import { useSettings } from "./GlobalSettings";
 import { SurveyPoint, RGB, Gradient } from "../lib/types";
 import { checkSettings, startSurvey } from "@/lib/iperfRunner";
@@ -8,7 +8,6 @@ import { Toaster } from "@/components/ui/toaster";
 import NewToast from "@/components/NewToast";
 import PopupDetails from "@/components/PopupDetails";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { rssiToPercentage } from "@/lib/wifiScanner";
 
 export default function ClickableFloorplan(): ReactNode {
   const { settings, updateSettings, surveyPointActions } = useSettings();

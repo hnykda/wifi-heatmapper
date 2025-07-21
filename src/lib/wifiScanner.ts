@@ -25,7 +25,7 @@ const logger = getLogger("wifiScanner");
 export const getDefaultWifiNetwork = (): WifiNetwork => ({
   ssid: "",
   bssid: "",
-  rssi: 0,
+  rssi: RSSI_VALUE_ON_LOST_CONNECTION,
   signalStrength: 0,
   channel: 0,
   band: 0, // frequency band will be either 2.4 or 5 (GHz)
