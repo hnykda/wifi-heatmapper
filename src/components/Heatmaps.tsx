@@ -10,21 +10,17 @@ import {
   MeasurementTestType,
   testTypes,
 } from "@/lib/types";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
-import { Download } from "lucide-react";
 import { HeatmapSlider } from "./Slider";
 
 import { IperfTestProperty } from "@/lib/types";
 import { metricFormatter } from "@/lib/utils";
 import { getLogger } from "@/lib/logger";
 import createHeatmapWebGLRenderer from "../app/webGL/renderers/mainRenderer";
+import HeatmapImage from "./HeatmapImage";
+import HeatmapModal from "./HeatmapModal";
 
 const logger = getLogger("Heatmaps");
 
@@ -421,49 +417,6 @@ export function Heatmaps() {
     setSelectedHeatmap(null);
   };
 
-  const downloadImage = (imageUrl: string, fileName: string) => {
-    const link = document.createElement("a");
-    link.href = imageUrl;
-    link.download = fileName;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  const HeatmapImage: React.FC<{
-    src: string;
-    alt: string;
-    onClick: () => void;
-  }> = ({ src, alt, onClick }) => {
-    const [isHovered, setIsHovered] = useState(false);
-
-    return (
-      <div
-        className="relative"
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-      >
-        <img
-          src={src}
-          alt={alt}
-          className="w-full rounded-md shadow-sm cursor-pointer transition-transform hover:scale-105"
-          onClick={onClick}
-        />
-        {isHovered && (
-          <div
-            className="absolute top-2 right-2 p-2 bg-gray-800 bg-opacity-50 rounded-full cursor-pointer transition-opacity hover:bg-opacity-75"
-            onClick={(e) => {
-              e.stopPropagation();
-              downloadImage(src, `${alt.replace(/\s+/g, "_")}.png`);
-            }}
-          >
-            <Download className="h-5 w-5 text-white" />
-          </div>
-        )}
-      </div>
-    );
-  };
-
   useEffect(() => {
     if (settings.dimensions.width > 0 && settings.dimensions.height > 0) {
       generateAllHeatmaps();
@@ -618,33 +571,12 @@ export function Heatmaps() {
         ))}
       </div>
 
-      <Dialog open={selectedHeatmap !== null} onOpenChange={closeHeatmapModal}>
-        <DialogContent className="max-w-6xl" aria-describedby="heatmap-modal">
-          <DialogHeader>
-            <DialogTitle>{selectedHeatmap?.alt}</DialogTitle>
-          </DialogHeader>
-          {selectedHeatmap && (
-            <div className="relative">
-              <img
-                src={selectedHeatmap.src}
-                alt={selectedHeatmap.alt}
-                className="w-full h-auto"
-              />
-              <div
-                className="absolute -top-[3rem] right-3 p-2 bg-gray-800 bg-opacity-50 rounded-full cursor-pointer transition-opacity hover:bg-opacity-75"
-                onClick={() =>
-                  downloadImage(
-                    selectedHeatmap.src,
-                    `${selectedHeatmap.alt.replace(/\s+/g, "_")}.png`,
-                  )
-                }
-              >
-                <Download className="h-6 w-6 text-white" />
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      <HeatmapModal
+        src={selectedHeatmap?.src ?? ""}
+        alt={selectedHeatmap?.alt ?? ""}
+        open={selectedHeatmap !== null}
+        onClose={closeHeatmapModal}
+      />
     </div>
   );
 }
