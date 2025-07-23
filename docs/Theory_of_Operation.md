@@ -69,6 +69,14 @@ The _App()_ in `page.tsx` returns two major GUI components:
     * `Heatmaps` displays the computed heat maps
     * `PointsTable` displays and edits the points collected
 
+WebGL-based heatmap rendering lives in:
+
+* `webGL/` provides GPU-accelerated heatmap rendering 
+  * `renderers/` – high-level orchestration (`mainRenderer.ts`), layered renderers (heatmap, background)  
+  * `shaders/` – vertex & fragment shader code  
+  * `textures/` – LUT gradient generator  
+  * `utils/` – buffer setup, program linking, default config
+
 ## Routes in the Next app
 
 * The _api/media/route.ts_ file listens for a GET request
@@ -217,9 +225,20 @@ To create a localization file for your Windows system's language:
   (https://github.com/hnykda/wifi-heatmapper/issues)
   so it can be incorporated into the program. 
 
+## WebGL Heatmap Rendering
+
+Heatmaps are rendered using WebGL (`/webGL` folder) to improve performance and visual clarity. This approach leverages the GPU to draw heatmaps directly and fast, avoiding the lag and distortion issues present in earlier canvas-based methods.
+
+The rendering technique uses **Inverse Distance Weighted (IDW) interpolation**. For each pixel, nearby survey points within a defined [Radius](#radius-calculations) contribute values inversely proportional to their distance. Closer points have more influence, while farther ones contribute less. This creates a smooth, continuous surface representing signal strength or throughput across the floorplan.
+
+For further reading on IDW:
+- [ArcGIS: How Inverse Distance Weighted Interpolation Works](https://pro.arcgis.com/en/pro-app/latest/help/analysis/geostatistical-analyst/how-inverse-distance-weighted-interpolation-works.htm)
+- [QGIS: IDW Algorithm](https://docs.qgis.org/3.28/en/docs/user_manual/processing_algs/qgis/interpolation.html)
+
+
 ## Radius Calculations
 
-The `h337.create()` function takes a `radius` parameter that
+The heatmap takes a `radius` parameter that
 determines "how much space" each survey point should occupy.
 Reasonable values seem to be between 100 and 500,
 and can be set by the slider in the Heatmaps pane.
