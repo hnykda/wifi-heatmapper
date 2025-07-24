@@ -227,7 +227,7 @@ To create a localization file for your Windows system's language:
 
 ## WebGL Heatmap Rendering
 
-Heatmaps are rendered using WebGL (`/webGL` folder) to improve performance and visual clarity. This approach leverages the GPU to draw heatmaps directly and fast, avoiding the lag and distortion issues present in earlier canvas-based methods.
+Heatmaps are rendered using WebGL.
 
 The rendering technique uses **Inverse Distance Weighted (IDW) interpolation**. For each pixel, nearby survey points within a defined [Radius](#radius-calculations) contribute values inversely proportional to their distance. Closer points have more influence, while farther ones contribute less. This creates a smooth, continuous surface representing signal strength or throughput across the floorplan.
 
