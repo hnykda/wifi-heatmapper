@@ -231,9 +231,6 @@ Heatmaps are rendered using WebGL.
 
 The rendering technique uses **Inverse Distance Weighted (IDW) interpolation**. For each pixel, nearby survey points within a defined [Radius](#radius-calculations) contribute values inversely proportional to their distance. Closer points have more influence, while farther ones contribute less. This creates a smooth, continuous surface representing signal strength or throughput across the floorplan.
 
-For further reading on IDW:
-- [ArcGIS: How Inverse Distance Weighted Interpolation Works](https://pro.arcgis.com/en/pro-app/latest/help/analysis/geostatistical-analyst/how-inverse-distance-weighted-interpolation-works.htm)
-- [QGIS: IDW Algorithm](https://docs.qgis.org/3.28/en/docs/user_manual/processing_algs/qgis/interpolation.html)
 
 
 ## Radius Calculations
