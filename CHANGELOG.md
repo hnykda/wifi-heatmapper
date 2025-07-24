@@ -4,10 +4,7 @@ _This section follows the precepts of [Keep a Changelog](https://keepachangelog.
 
 ## [Unreleased]
 
-* ✨ Migrated from `heatmap.js` to a custom WebGL-based renderer using inverse-distance weighting (IDW)
-  - Fully removed `heatmap.js` dependency and legacy rendering path
-  - GPU pipeline enables better rendering performance and visual clarity
-  - Continues to supports adjustable influence radius, opacity, and color LUT gradients
+* Migrated from `heatmap.js` to a custom WebGL-based renderer using inverse-distance weighting (IDW)
 
 ---
 
