@@ -4,7 +4,7 @@ _This section follows the precepts of [Keep a Changelog](https://keepachangelog.
 
 ## [Unreleased]
 
-* No features yet
+* Migrated from `heatmap.js` to a custom WebGL-based renderer using inverse-distance weighting (IDW)
 
 ---
 
