@@ -40,7 +40,38 @@ export async function readSettingsFromFile(
 
     const localStorageName = `wifi-heatmapper-${baseImageName}`;
     const data = localStorage.getItem(localStorageName);
-    return data ? JSON.parse(data) : null; // return the data or null (if doesn't exist)
+    if (!data) return null; // return null if that object doesn't exist
+    const parsedData = JSON.parse(data);
+    // console.log(
+    //   `reading data from localstorage: ${JSON.stringify(parsedData, null, 2)}`,
+    // );
+    // console.log(
+    //   `surveypoints: ${JSON.stringify(parsedData.surveyPoints, null, 2)}`,
+    // );
+
+    // console.log(
+    //   `wifiData: ${JSON.stringify(parsedData.surveyPoints.wifiData)}`,
+    // );
+    // console.log(
+    //   `iperfResults: ${JSON.stringify(parsedData.surveyPoints.iperfResults)}`,
+    // );
+    // THIS IS A CROCK
+    // Earlier versions (0.3.2 or so) used iperfResults to hold iperf3 data
+    // This code copies each iperfResults item into the iperfData array
+    // and removes it from the returned value
+    // When the HeatmapSettings are re-written with writeSettingsToFile(),
+    // they will be saved as iperfData
+    if (parsedData.surveyPoints[0]?.iperfResults !== undefined) {
+      console.log(`Original parsedData: ${JSON.stringify(parsedData)}`);
+      let point: any;
+      for (point of parsedData.surveyPoints) {
+        console.log(`point: ${JSON.stringify(point)}`);
+        point.iperfData = point.iperfResults;
+        delete point.iperfResults;
+      }
+      console.log(`Converted parsedData: ${JSON.stringify(parsedData)}`);
+    }
+    return parsedData;
   } catch (error) {
     console.error("Error reading settings:", error);
     return null;

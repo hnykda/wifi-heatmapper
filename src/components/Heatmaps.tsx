@@ -116,6 +116,8 @@ export function Heatmaps() {
       metric: MeasurementTestType,
       testType?: keyof IperfTestProperty,
     ): number => {
+      // console.log(`metric/testType: ${metric} ${testType}`);
+      // console.log(`getMetricValue: ${JSON.stringify(point, null, 2)}`);
       switch (metric) {
         case "signalStrength": // data collection always captures both values
           return showSignalStrengthAsPercentage
@@ -126,8 +128,8 @@ export function Heatmaps() {
         case "udpDownload":
         case "udpUpload":
           return testType
-            ? point.iperfResults[metric][testType] || 0
-            : point.iperfResults[metric].bitsPerSecond;
+            ? point.iperfData[metric][testType] || 0
+            : point.iperfData[metric].bitsPerSecond;
         default:
           return 0;
       }
@@ -136,8 +138,9 @@ export function Heatmaps() {
   );
 
   /**
-   * generateHeatmapData - take the component's array of points and the descriptors
-   *   and return an array of non-null and non-zero (if iperf results) data points
+   * generateHeatmapData - from the heatmap's points and criteria
+   *   return an array of data points that are
+   *   enabled, non-null and non-zero (if iperf results)
    * @param metric - which measurement
    * @param testType - which of the iperf3 test results
    * @returns array of {x, y, value}
@@ -147,22 +150,22 @@ export function Heatmaps() {
       const data = points
         .filter((p) => p.isEnabled)
         .map((point) => {
-          const value = getMetricValue(point, metric, testType);
+          let value = getMetricValue(point, metric, testType);
+          switch (metric) {
+            case "tcpDownload":
+            case "tcpUpload":
+            case "udpDownload":
+            case "udpUpload":
+              if (value == 0) return null;
+              break;
+            case "signalStrength":
+              // always map the 0-100% signal strength (not rssi)
+              value = point.wifiData.signalStrength;
+          }
           return value !== null ? { x: point.x, y: point.y, value } : null;
         })
-        .filter((point) => point !== null);
-
-      // Filter out zero values for the iperf results
-      switch (metric) {
-        case "tcpDownload":
-        case "tcpUpload":
-        case "udpDownload":
-        case "udpUpload":
-          // return data;
-          return data.filter((p) => p.value != 0);
-        default:
-          return data;
-      }
+        .filter((value) => value !== null); // filter out any values that are null
+      return data;
     },
     [points, getMetricValue],
   );
@@ -215,9 +218,9 @@ export function Heatmaps() {
     metric: MeasurementTestType,
     testType: keyof IperfTestProperty,
   ) {
-    const colorBarWidth = 50; // Increased width
+    const colorBarWidth = 50;
     const colorBarHeight = settings.dimensions.height;
-    const colorBarX = settings.dimensions.width + 40; // Adjusted position
+    const colorBarX = settings.dimensions.width + 40;
     const colorBarY = 20;
 
     const gradient = ctx.createLinearGradient(0, h + y, 0, y);
@@ -228,10 +231,10 @@ export function Heatmaps() {
     ctx.fillStyle = gradient;
     ctx.fillRect(colorBarX, colorBarY, colorBarWidth, colorBarHeight);
 
-    // Add ticks and labels
+    // define ticks and labels
     const numTicks = 10;
     ctx.fillStyle = "black";
-    ctx.font = "14px Arial"; // Increased font size
+    ctx.font = "14px Arial";
     ctx.textAlign = "left";
 
     for (let i = 0; i <= numTicks; i++) {
@@ -250,6 +253,33 @@ export function Heatmaps() {
     }
   }
 
+  /**
+   * getHeatmapRange - scan the array and return the range
+   * @param heatmapVals array of readings (number)
+   * @param metric - kind of measurement
+   * @param asPct - signalStrength as % or dBm
+   * @returns both the min and max values
+   */
+  function getHeatmapRange(
+    heatmapVals: number[],
+    metric: MeasurementTestType,
+    asPct: boolean,
+  ): { min: number; max: number } {
+    let min, max: number;
+    if (metric == "signalStrength") {
+      if (asPct) {
+        max = 100;
+        min = 0;
+      } else {
+        max = -40;
+        min = -100;
+      }
+    } else {
+      max = Math.max(...heatmapVals);
+      min = Math.min(...heatmapVals);
+    }
+    return { min, max };
+  }
   /**
    * renderHeatmap - top-level code to draw a single heat map
    *   including floor plan, scale on the side, and the heat map
@@ -296,9 +326,15 @@ export function Heatmaps() {
         ctx.fillStyle = "white";
         ctx.fillRect(0, 0, outputCanvas.width, outputCanvas.height);
 
+        // get an array of the enabled, non-null points to be plotted
         const heatmapData = generateHeatmapData(metric, testType);
-        const max = 100;
-        const min = 0;
+        const heatmapValues = heatmapData.map((p) => p.value);
+
+        const { min, max } = getHeatmapRange(
+          heatmapValues,
+          metric,
+          showSignalStrengthAsPercentage,
+        );
 
         const glCanvas = document.createElement("canvas");
         glCanvas.width = settings.dimensions.width;

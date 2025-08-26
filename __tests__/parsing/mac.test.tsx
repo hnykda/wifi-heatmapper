@@ -70,6 +70,7 @@ POWER
     security: "WPA2 Personal",
     ssid: "SomeSSID",
     txRate: 103,
+    active: false,
   });
 });
 
@@ -150,6 +151,7 @@ POWER
     security: "None",
     ssid: "SomeSSID-2.4",
     txRate: 145.0,
+    active: false,
   });
 });
 
@@ -230,5 +232,6 @@ POWER
     security: "WPA2 Personal",
     ssid: "SomeSSID-5",
     txRate: 324.0,
+    active: false,
   });
 });

@@ -238,17 +238,13 @@ const SurveyPointsTable: React.FC<SurveyPointsTableProps> = ({
         ...point.wifiData,
         bssid,
         tcpDownloadMbps: convertToMbps(
-          point.iperfResults.tcpDownload.bitsPerSecond,
+          point.iperfData.tcpDownload.bitsPerSecond,
         ),
-        tcpUploadMbps: convertToMbps(
-          point.iperfResults.tcpUpload.bitsPerSecond,
-        ),
+        tcpUploadMbps: convertToMbps(point.iperfData.tcpUpload.bitsPerSecond),
         udpDownloadMbps: convertToMbps(
-          point.iperfResults.udpDownload.bitsPerSecond,
+          point.iperfData.udpDownload.bitsPerSecond,
         ),
-        udpUploadMbps: convertToMbps(
-          point.iperfResults.udpUpload.bitsPerSecond,
-        ),
+        udpUploadMbps: convertToMbps(point.iperfData.udpUpload.bitsPerSecond),
         // we take the signal strength from the wifi scanner if available, otherwise we use the rssi
         signalQuality:
           point.wifiData.signalStrength ||

@@ -2,11 +2,21 @@
 
 _This section follows the precepts of [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) so that future readers can understand the state and evolution of the project._
 
-## [Unreleased]
+## [Unreleased] (0.3.3)
 
-* Migrated from `heatmap.js` to a custom WebGL-based renderer using inverse-distance weighting (IDW)
+* Merge many fixes from the (temporarily abandoned) "scan-wifi" branch
+* Fixed bug where RSSI of 0 (no signal) was reported as 100% not 0% signal strength.
+* Fixed bug in Firefox that caused the dropdown for the background image to freeze
+* Tune up appearance of the NewToast progress window
+* Rename many objects in `types.ts` to match their function
+* Add "Command to test" in Advanced settings to run a command-line and display the results in the Console
 
 ---
+
+## Version 0.3.2 - 2025-07-25
+
+* Migrated from `heatmap.js` to a custom WebGL-based renderer using inverse-distance weighting (IDW)
+* (This was never formally given the 0.3.2 version number)
 
 ## Version 0.3.1 - 2025-06-08
 

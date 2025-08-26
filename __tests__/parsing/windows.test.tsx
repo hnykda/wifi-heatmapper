@@ -83,6 +83,7 @@ There are 1 interfaces on the system:
     txRate: 103,
     phyMode: "802.11ax",
     security: "WPA2-Personal",
+    active: false,
   });
 });
 
@@ -123,6 +124,7 @@ Interfacce presenti nel sistema: 1:
     txRate: 130,
     phyMode: "802.11n",
     security: "WPA2-Personal",
+    active: false,
   });
 });
 
@@ -168,6 +170,7 @@ Es ist 1 Schnittstelle auf dem System vorhanden:
     txRate: 300,
     phyMode: "802.11ac",
     security: "WPA2-Enterprise",
+    active: false,
   });
 });
 
@@ -213,5 +216,6 @@ Il existe 1 interface sur le système :
     txRate: 310,
     phyMode: "802.11ax",
     security: "WPA2 - Personnel",
+    active: false,
   });
 });

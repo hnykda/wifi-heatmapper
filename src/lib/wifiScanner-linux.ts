@@ -1,12 +1,8 @@
-import { HeatmapSettings, WifiNetwork } from "./types";
+import { HeatmapSettings, WifiResults } from "./types";
 import { execAsync } from "./server-utils";
 import { getLogger } from "./logger";
-// import os from "os";
-import { getDefaultWifiNetwork } from "./wifiScanner";
-import { rssiToPercentage } from "./utils";
-// import { reverseLookup } from "./localization";
+import { getDefaultWifiResults, rssiToPercentage } from "./utils";
 import { normalizeMacAddress } from "./wifiScanner";
-// import { reverseLookup } from "./localization";
 
 const logger = getLogger("wifi-Linux");
 
@@ -16,7 +12,7 @@ const logger = getLogger("wifi-Linux");
  */
 export async function scanWifiLinux(
   heatmapsettings: HeatmapSettings,
-): Promise<WifiNetwork> {
+): Promise<WifiResults> {
   let wlanInterface: string = "";
   wlanInterface = await inferWifiDeviceIdOnLinux();
 
@@ -61,8 +57,8 @@ async function iwDevInfo(interfaceId: string): Promise<string> {
 export function parseIwOutput(
   linkOutput: string,
   infoOutput: string,
-): WifiNetwork {
-  const networkInfo = getDefaultWifiNetwork();
+): WifiResults {
+  const networkInfo = getDefaultWifiResults();
   const linkLines = linkOutput.split("\n");
   linkLines.forEach((line) => {
     const trimmedLine = line.trim();
