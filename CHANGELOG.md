@@ -2,16 +2,20 @@
 
 _This section follows the precepts of [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) so that future readers can understand the state and evolution of the project._
 
-## [Unreleased] (working toward 0.3.3)
-
-* Merge many fixes from the (temporarily abandoned) "scan-wifi" branch
-* Fixed bug where RSSI of 0 (no signal) was reported as 100% not 0% signal strength.
-* Fixed bug in Firefox that caused the dropdown for the background image to freeze
-* Tune up appearance of the NewToast progress window
-* Rename many objects in `types.ts` to match their function
-* Add "Command to test" in Advanced settings to run a command-line and display the results in the Console
+## [Unreleased]
 
 ---
+
+## Version 0.3.3 - 2025-08-27
+
+* Add "Command to test" in Advanced settings to run a command-line and display the results in the Console
+* Fixed bug in displaying heatmap when "use dBm instead of %" is selected
+* Fixed bug in drawing ticks in the scale bar when showing dBm readings
+* Fixed bug where RSSI of 0 (no signal) was reported as 100% not 0% signal strength.
+* Fixed bug in Firefox that caused the dropdown for the background image to freeze
+* Merge many fixes from the (temporarily abandoned) "scan-wifi" branch
+* Tune up appearance of the NewToast progress window
+* Rename many definitions in `types.ts` to match their actual function
 
 ## Version 0.3.2 - 2025-07-25
 
