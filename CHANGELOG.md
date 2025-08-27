@@ -2,7 +2,7 @@
 
 _This section follows the precepts of [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) so that future readers can understand the state and evolution of the project._
 
-## [Unreleased] (0.3.3)
+## [Unreleased] (working toward 0.3.3)
 
 * Merge many fixes from the (temporarily abandoned) "scan-wifi" branch
 * Fixed bug where RSSI of 0 (no signal) was reported as 100% not 0% signal strength.
