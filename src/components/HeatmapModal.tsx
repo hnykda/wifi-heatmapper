@@ -39,7 +39,9 @@ export function HeatmapModal({ src, alt, open, onClose }: HeatmapModalProps) {
               </div>
             </>
           ) : (
-            <span className="text-gray-500 text-center w-full">No source image provided.</span>
+            <span className="text-gray-500 text-center w-full">
+              No source image provided.
+            </span>
           )}
         </div>
       </DialogContent>
