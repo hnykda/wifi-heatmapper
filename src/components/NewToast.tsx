@@ -83,7 +83,6 @@ export default function NewToast({ onClose, toastIsReady }: NewToastProps) {
           <Toast.Title className="font-bold">{toastHeader}</Toast.Title>
           {/* Convert \n into actual <br /> elements */}
           <Toast.Description className="text-sm text-gray-800 leading-relaxed">
-            {" "}
             {toastStatus.split("\n").map((line, index) => (
               <span key={index}>
                 <div>{line}</div>
