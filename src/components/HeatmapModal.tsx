@@ -27,14 +27,22 @@ export function HeatmapModal({ src, alt, open, onClose }: HeatmapModalProps) {
         <DialogHeader>
           <DialogTitle>{alt}</DialogTitle>
         </DialogHeader>
-        <div className="relative">
-          <img src={src} alt={alt} className="w-full h-auto" />
-          <div
-            className="absolute -top-[3rem] right-3 p-2 bg-gray-800 bg-opacity-50 rounded-full cursor-pointer transition-opacity hover:bg-opacity-75"
-            onClick={handleDownload}
-          >
-            <Download className="h-6 w-6 text-white" />
-          </div>
+        <div className="relative min-h-[200px] flex items-center justify-center">
+          {src ? (
+            <>
+              <img src={src} alt={alt} className="w-full h-auto" />
+              <div
+                className="absolute -top-[3rem] right-3 p-2 bg-gray-800 bg-opacity-50 rounded-full cursor-pointer transition-opacity hover:bg-opacity-75"
+                onClick={handleDownload}
+              >
+                <Download className="h-6 w-6 text-white" />
+              </div>
+            </>
+          ) : (
+            <span className="text-gray-500 text-center w-full">
+              No source image provided.
+            </span>
+          )}
         </div>
       </DialogContent>
     </Dialog>

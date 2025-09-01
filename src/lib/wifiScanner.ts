@@ -5,6 +5,7 @@ import os from "os";
 import { scanWifiMacOS } from "./wifiScanner-macos";
 import { scanWifiWindows } from "./wifiScanner-windows";
 import { scanWifiLinux } from "./wifiScanner-linux";
+import { isValidMacAddress } from "./utils";
 
 const logger = getLogger("wifiScanner");
 
@@ -64,16 +65,3 @@ export async function scanWifi(
 
   return wifiData;
 }
-
-export const normalizeMacAddress = (macAddress: string): string => {
-  return macAddress.replace(/[:-]/g, "").toLowerCase();
-};
-
-export const isValidMacAddress = (macAddress: string): boolean => {
-  const cleanedMacAddress = normalizeMacAddress(macAddress);
-  if (cleanedMacAddress === "000000000000") {
-    // sometimes returned by ioreg, for example
-    return false;
-  }
-  return /^[0-9a-f]{12}$/.test(cleanedMacAddress);
-};
