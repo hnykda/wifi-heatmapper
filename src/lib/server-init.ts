@@ -26,7 +26,7 @@ async function logSystemInfo(): Promise<void> {
     logger.info(`wifi-heatmapper: ${data.version}`);
     logger.info(`Node version: ${nodeVersion}`);
     if (platform == "darwin") {
-      logger.info(`OS: ${getMacOSNameAndVersion()}`);
+      logger.info(`OS: macOS ${getMacOSNameAndVersion()}`);
     } else {
       logger.info(`OS: ${platform} ${release}`);
     }
@@ -73,6 +73,11 @@ export async function initServer() {
 
 import { execFileSync } from "node:child_process";
 
+/**
+ * getMacOSNameAndVersion() - Return a string with OS name and version
+ * example: // console.log(getMacOSNameAndVersion()); // "Sequoia 15.5"
+ * @returns string
+ */
 const NAME_FOR_MAJOR: Record<number, string> = {
   11: "Big Sur",
   12: "Monterey",
@@ -101,11 +106,6 @@ const NAME_FOR_10: Record<number, string> = {
   16: "Big Sur", // some early 11.0 reported as 10.16
 };
 
-/**
- * getMacOSNameAndVersion() - Return a string with OS name and version
- * example: // console.log(getMacOSNameAndVersion()); // "Sequoia 15.5"
- * @returns string
- */
 export function getMacOSNameAndVersion(): string | null {
   if (process.platform !== "darwin") return null;
 
