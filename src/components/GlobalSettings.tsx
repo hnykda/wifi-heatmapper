@@ -40,6 +40,10 @@ const getDefaults = (floorPlan: string): HeatmapSettings => {
       0.9: "rgba(0, 255, 0, 0.6)", // 90%, -46 dBm
       1.0: "rgba(0, 255, 0, 0.6)", // 100%, -40 dBm
     },
+    // these two props were used for the "scan wifi" effort
+    // that has been (temporarily?) abandoned
+    // sameSSID: "same",
+    // ignoredSSIDs: ["AP-WH4E-C0BFBE6ACDA3", "LochLymeLodge-UB"],
   };
 };
 

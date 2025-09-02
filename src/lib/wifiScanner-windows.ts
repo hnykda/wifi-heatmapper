@@ -1,7 +1,7 @@
-import { WifiNetwork } from "./types";
+import { WifiResults } from "./types";
 import { execAsync } from "./server-utils";
 import { getLogger } from "./logger";
-import { getDefaultWifiNetwork } from "./wifiScanner";
+import { getDefaultWifiResults } from "./utils";
 import { percentageToRssi } from "./utils";
 import { isValidMacAddress, normalizeMacAddress } from "./wifiScanner";
 import { getReverseLookupMap } from "./localization";
@@ -12,7 +12,7 @@ const reverseLookupTable = await getReverseLookupMap();
  * scanWifiWindows() scan the Wifi for Windows
  * @returns a WiFiNetwork description to be added to the surveyPoints
  */
-export async function scanWifiWindows(): Promise<WifiNetwork> {
+export async function scanWifiWindows(): Promise<WifiResults> {
   const command = "netsh wlan show interfaces";
   const { stdout } = await execAsync(command);
   logger.trace("NETSH output:", stdout);
@@ -21,8 +21,8 @@ export async function scanWifiWindows(): Promise<WifiNetwork> {
   return parsed;
 }
 
-function assignWindowsNetworkInfoValue<K extends keyof WifiNetwork>(
-  networkInfo: WifiNetwork,
+function assignWindowsNetworkInfoValue<K extends keyof WifiResults>(
+  networkInfo: WifiResults,
   label: K,
   val: string,
 ) {
@@ -39,8 +39,8 @@ function assignWindowsNetworkInfoValue<K extends keyof WifiNetwork>(
  * This code looks up the labels from the netsh... command
  * in a localization map that determines the proper label for the WifiNetwork
  */
-export function parseNetshOutput(output: string): WifiNetwork {
-  const networkInfo = getDefaultWifiNetwork();
+export function parseNetshOutput(output: string): WifiResults {
+  const networkInfo = getDefaultWifiResults();
   const lines = output.split("\n");
   for (const line of lines) {
     const pos = line.indexOf(":");
@@ -57,7 +57,7 @@ export function parseNetshOutput(output: string): WifiNetwork {
     }
     if (key != null) {
       // console.log(`Real label/val: ${key} ${val}`);
-      assignWindowsNetworkInfoValue(networkInfo, key as keyof WifiNetwork, val);
+      assignWindowsNetworkInfoValue(networkInfo, key as keyof WifiResults, val);
     }
   }
   // Check to see if we got any of the important info

@@ -4,7 +4,7 @@ import {
   HeatmapSettings,
   IperfResults,
   IperfTestProperty,
-  WifiNetwork,
+  WifiResults,
   SurveyPoint,
 } from "./types";
 import { scanWifi } from "./wifiScanner";
@@ -18,8 +18,8 @@ import { extractIperfResults } from "./utils";
 const logger = getLogger("iperfRunner");
 
 const validateWifiDataConsistency = (
-  wifiDataBefore: WifiNetwork,
-  wifiDataAfter: WifiNetwork,
+  wifiDataBefore: WifiResults,
+  wifiDataAfter: WifiResults,
 ) => {
   if (
     wifiDataBefore.bssid === wifiDataAfter.bssid &&
@@ -80,17 +80,18 @@ export const checkSettings = async (settings: HeatmapSettings) => {
 export async function startSurvey(
   settings: HeatmapSettings,
 ): Promise<SurveyPoint | null> {
-  const { iperfResults, wifiData } = await runIperfTest(settings);
+  const { iperfData, wifiData } = await runIperfTest(settings);
 
-  if (!iperfResults || !wifiData) {
+  if (!iperfData || !wifiData) {
     // null indicates measurement was canceled
     return null;
   }
 
+  const time = Date.now();
   const newPoint: SurveyPoint = {
     wifiData,
-    iperfResults,
-    timestamp: new Date().toISOString(),
+    iperfData,
+    timestamp: time,
     x: 0, //assigned by the recipient
     y: 0, //assigned by the recipient
     id: "BAD ID", //assigned by the recipient
@@ -144,15 +145,15 @@ function checkForCancel() {
  * @returns the WiFi and iperf results for this location
  */
 export async function runIperfTest(settings: HeatmapSettings): Promise<{
-  iperfResults: IperfResults | null;
-  wifiData: WifiNetwork | null;
+  iperfData: IperfResults | null;
+  wifiData: WifiResults | null;
 }> {
   const performIperfTest = settings.iperfServerAdrs != "localhost";
   try {
     const maxRetries = 3;
     let attempts = 0;
     let results: IperfResults | null = null;
-    let wifiData: WifiNetwork | null = null;
+    let wifiData: WifiResults | null = null;
 
     while (attempts < maxRetries && !results) {
       try {
@@ -244,7 +245,7 @@ export async function runIperfTest(settings: HeatmapSettings): Promise<{
         };
       } catch (error: any) {
         if (error.message == "cancelled") {
-          return { iperfResults: null, wifiData: null };
+          return { iperfData: null, wifiData: null };
         }
         logger.error(`Attempt ${attempts + 1} failed:`, error);
         attempts++;
@@ -256,7 +257,7 @@ export async function runIperfTest(settings: HeatmapSettings): Promise<{
       }
     }
 
-    return { iperfResults: results!, wifiData: wifiData! };
+    return { iperfData: results!, wifiData: wifiData! };
   } catch (error) {
     logger.error("Error running iperf3 test:", error);
     sendSSEMessage({

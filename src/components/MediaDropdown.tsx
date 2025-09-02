@@ -76,8 +76,14 @@ export default function MediaDropdown({
    *
    */
   const handleSelect = (value: string) => {
-    setSelected(value);
-    onChange?.(value);
+    // This function delays the state changes to the next tick
+    // so the dropdown has a chance to close
+    // Without this, Firefox would freeze, but not the
+    // other popular browsers
+    requestAnimationFrame(() => {
+      setSelected(value);
+      onChange?.(value);
+    });
   };
 
   /**

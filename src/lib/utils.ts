@@ -5,8 +5,12 @@
 
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
-import { IperfTestProperty, testTypes } from "./types";
-import { MeasurementTestType } from "./types";
+import {
+  IperfTestProperty,
+  testTypes,
+  MeasurementTestType,
+  WifiResults,
+} from "./types";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -17,6 +21,7 @@ export const formatMacAddress = (macAddress: string) => {
 };
 
 export const rssiToPercentage = (rssi: number): number => {
+  if (rssi == 0) return 0;
   if (rssi <= -100) return 0;
   if (rssi >= -40) return 100;
   return Math.round(((rssi + 100) / 60) * 100);
@@ -157,3 +162,19 @@ export function extractIperfResults(
     signalStrength: 0,
   };
 }
+
+export const getDefaultWifiResults = (): WifiResults => {
+  return {
+    ssid: "",
+    bssid: "",
+    rssi: 0,
+    signalStrength: 0,
+    channel: 0,
+    band: 0, // frequency band will be either 2.4 or 5 (GHz)
+    channelWidth: 0,
+    txRate: 0,
+    phyMode: "",
+    security: "",
+    active: false,
+  };
+};

@@ -1,4 +1,4 @@
-import { HeatmapSettings, WifiNetwork } from "./types";
+import { HeatmapSettings, WifiResults } from "./types";
 import { getLogger } from "./logger";
 import os from "os";
 
@@ -8,20 +8,7 @@ import { scanWifiLinux } from "./wifiScanner-linux";
 
 const logger = getLogger("wifiScanner");
 
-export const getDefaultWifiNetwork = (): WifiNetwork => ({
-  ssid: "",
-  bssid: "",
-  rssi: 0,
-  signalStrength: 0,
-  channel: 0,
-  band: 0, // frequency band will be either 2.4 or 5 (GHz)
-  channelWidth: 0,
-  txRate: 0,
-  phyMode: "",
-  security: "",
-});
-
-const hasValidData = (wifiData: WifiNetwork): boolean => {
+const hasValidData = (wifiData: WifiResults): boolean => {
   // if (!isValidMacAddress(wifiData.ssid)) {
   //   logger.warn("Invalid SSID (we were not able to get it):", wifiData.ssid);
   // }
@@ -42,8 +29,8 @@ const hasValidData = (wifiData: WifiNetwork): boolean => {
  */
 export async function scanWifi(
   settings: HeatmapSettings,
-): Promise<WifiNetwork> {
-  let wifiData: WifiNetwork | null = null;
+): Promise<WifiResults> {
+  let wifiData: WifiResults | null = null;
 
   try {
     const platform = os.platform(); // Platform for the server

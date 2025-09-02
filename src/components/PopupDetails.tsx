@@ -57,12 +57,12 @@ const PopupDetails: React.FC<PopupDetailsProps> = ({
     { label: "Position", value: `X: ${point.x}, Y: ${point.y}` },
   ];
 
-  if (point.iperfResults) {
+  if (point.iperfData) {
     rows.push(
       {
         label: "TCP Download",
         value: metricFormatter(
-          point.iperfResults.tcpDownload.bitsPerSecond,
+          point.iperfData.tcpDownload.bitsPerSecond,
           "tcpDownload",
           "bitsPerSecond",
         ),
@@ -70,7 +70,7 @@ const PopupDetails: React.FC<PopupDetailsProps> = ({
       {
         label: "TCP Upload",
         value: metricFormatter(
-          point.iperfResults.tcpUpload.bitsPerSecond,
+          point.iperfData.tcpUpload.bitsPerSecond,
           "tcpUpload",
           "bitsPerSecond",
         ),

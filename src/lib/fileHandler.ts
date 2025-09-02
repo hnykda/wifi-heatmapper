@@ -40,7 +40,23 @@ export async function readSettingsFromFile(
 
     const localStorageName = `wifi-heatmapper-${baseImageName}`;
     const data = localStorage.getItem(localStorageName);
-    return data ? JSON.parse(data) : null; // return the data or null (if doesn't exist)
+    if (!data) return null; // return null if that object doesn't exist
+    const parsedData = JSON.parse(data);
+
+    // This is a workaround for a change to a property name in SurveyPoint
+    // Earlier versions (0.3.2 or so) used iperfResults to hold iperf3 data
+    // This code copies the iperfResults value into the iperfData property
+    // and removes iperfResults from the SurveyPoint
+    // When the HeatmapSettings are re-written with writeSettingsToFile(),
+    // they will be saved using the iperfData property
+    if (parsedData.surveyPoints[0]?.iperfResults !== undefined) {
+      let point: any;
+      for (point of parsedData.surveyPoints) {
+        point.iperfData = point.iperfResults;
+        delete point.iperfResults;
+      }
+    }
+    return parsedData;
   } catch (error) {
     console.error("Error reading settings:", error);
     return null;

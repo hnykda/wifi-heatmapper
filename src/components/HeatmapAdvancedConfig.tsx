@@ -13,6 +13,7 @@ import { PopoverHelper } from "@/components/PopoverHelpText";
 import { useSettings } from "@/components/GlobalSettings";
 import { HeatmapSettings } from "@/lib/types";
 import { debounce } from "lodash";
+import { execAsync } from "@/lib/server-utils";
 
 // const logger = getLogger("HeatmapAdvancedConfig");
 
@@ -49,6 +50,25 @@ export function HeatmapAdvancedConfig() {
       const numB = parseFloat(b);
       return isNaN(numA) || isNaN(numB) ? 0 : numA - numB;
     });
+  };
+
+  /**
+   * Run the command from id="cmdToRun" and show stdout and stderr
+   * Also display error if it's caught
+   * Runs on the client (which is OK, since that's also the same machine as the server)
+   */
+  const runCommand = async () => {
+    const cmd = (document.getElementById("cmdToRun") as HTMLInputElement).value;
+    if (cmd) {
+      console.log(`command to run: "${cmd}"`);
+      try {
+        const { stdout, stderr } = await execAsync(cmd);
+        console.log(`STDOUT: "${stdout}"`);
+        console.log(`STDERR: "${stderr}"`);
+      } catch (err) {
+        console.log(`CAUGHT ERR:\n${err}`);
+      }
+    }
   };
 
   return (
@@ -133,8 +153,8 @@ export function HeatmapAdvancedConfig() {
                 </td>
               </tr>
               <tr>
-                <td className="align-top p-4">
-                  <Label>
+                <td className="align-top pr-2 pt-2">
+                  <Label className="inline-flex items-start">
                     Gradient&nbsp;
                     <PopoverHelper text="Define the color gradient for the heatmap. Each key represents a point in the gradient (0 to 1), and the value is the color." />
                   </Label>
@@ -219,6 +239,28 @@ export function HeatmapAdvancedConfig() {
                       Add Color Stop
                     </button>
                   </div>
+                </td>
+              </tr>
+              <tr>
+                <td className="align-top pr-2 pt-2">
+                  <Label htmlFor="cmdToRun" className="inline-flex items-start">
+                    Command to test&nbsp;
+                    <PopoverHelper text="Enter a command-line command to test it. View its output in the Console window." />{" "}
+                  </Label>
+                </td>
+                <td>
+                  <input
+                    type="text"
+                    id="cmdToRun"
+                    className="w-full border border-gray-200 rounded-sm p-2 focus:outline-none focus:ring focus:ring-blue-300 focus:border-blue-400"
+                    defaultValue=""
+                  />
+                  <button
+                    className="mt-2 px-2 py-1 bg-blue-500 text-white rounded"
+                    onClick={runCommand}
+                  >
+                    Do it...
+                  </button>
                 </td>
               </tr>
             </tbody>

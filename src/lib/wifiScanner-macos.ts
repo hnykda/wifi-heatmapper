@@ -1,7 +1,7 @@
-import { HeatmapSettings, WifiNetwork } from "./types";
+import { HeatmapSettings, WifiResults } from "./types";
 import { execAsync } from "./server-utils";
 import { getLogger } from "./logger";
-import { getDefaultWifiNetwork } from "./wifiScanner";
+import { getDefaultWifiResults } from "./utils";
 import { rssiToPercentage } from "./utils";
 import { isValidMacAddress, normalizeMacAddress } from "./wifiScanner";
 
@@ -14,7 +14,7 @@ const logger = getLogger("wifi-macOS");
  */
 export async function scanWifiMacOS(
   settings: HeatmapSettings,
-): Promise<WifiNetwork> {
+): Promise<WifiResults> {
   // toggle WiFi off and on to get fresh data
   // console.error("Toggling WiFi off ");
   // let offon = await execAsync(
@@ -117,11 +117,11 @@ const parseChannel = (channelString: string): number[] => {
   return [band, channel, channelWidth];
 };
 
-export function parseWdutilOutput(output: string): WifiNetwork {
+export function parseWdutilOutput(output: string): WifiResults {
   const wifiSection = output.split("WIFI")[1].split("BLUETOOTH")[0];
   const lines = wifiSection.split("\n");
   logger.silly("WDUTIL lines:", lines);
-  const networkInfo = getDefaultWifiNetwork();
+  const networkInfo = getDefaultWifiResults();
 
   lines.forEach((line) => {
     if (line.includes(":")) {
