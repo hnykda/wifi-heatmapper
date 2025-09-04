@@ -6,6 +6,11 @@ Random observations and questions that arise at the start of the project
 
 Ideas for making the program better - in no particular order:
 
+* Add a "Add notation" with ctl/cmd-click to place a notation on a floor plan.
+  Saved as "notations" array in the HeatampSettings
+* Automatically add the background image name and
+  date/time (of the latest survey point?) to the canvas
+  so that the information is preserved in a screen shot
 * Export `wifi-heatmapper-imagename` and the image itself to a saved file so it can be loaded later
 * A click on the `Floorplan` pane should immediately display an
   empty dot (no color) to indicate that's where the click was.

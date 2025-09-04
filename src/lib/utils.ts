@@ -10,6 +10,8 @@ import {
   testTypes,
   MeasurementTestType,
   WifiResults,
+  RGBA,
+  Gradient,
 } from "./types";
 import { LocalizerMap } from "./types";
 
@@ -279,4 +281,73 @@ export function splitLine(line: string, localizer: LocalizerMap): string[] {
  */
 export function channelToBand(channel: number): number {
   return channel <= 14 ? 2.4 : 5;
+}
+
+/**
+ * Converts a rgba to an {r, g, b, a} object.
+ */
+export function rgbaToObject(rgba: string): RGBA {
+  const match = rgba.match(/rgba?\((\d+),\s*(\d+),\s*(\d+),?\s*([\d.]+)?\)/);
+
+  if (!match) return { r: 0, g: 0, b: 0, a: 1.0 }; // Invalid input - black
+
+  return {
+    r: parseInt(match[1], 10),
+    g: parseInt(match[2], 10),
+    b: parseInt(match[3], 10),
+    a: match[4] !== undefined ? parseFloat(match[4]) : 1, // Default alpha to 1 if missing
+  };
+}
+
+/**
+ * Interpolates between two RGBA colors.
+ */
+export function interpolateColor(
+  color1: RGBA,
+  color2: RGBA,
+  factor: number,
+): RGBA {
+  return {
+    r: Math.round(color1.r + (color2.r - color1.r) * factor),
+    g: Math.round(color1.g + (color2.g - color1.g) * factor),
+    b: Math.round(color1.b + (color2.b - color1.b) * factor),
+    a: color1.a + (color2.a - color1.a) * factor,
+  };
+}
+
+/**
+ * Returns the interpolated RGBA color for a given value (0-1) from a gradient.
+ */
+export function getColorAt(value: number, gradient: Gradient): string {
+  // sort the keys to be in increasing order
+  // console.log(`gradient before sort: ${JSON.stringify(gradient)}`);
+  // Make a sorted array of entries, largest to smallest
+  const sortedArray = Object.entries(gradient)
+    .map(([k, v]) => [Number(k), v] as [number, string])
+    .sort((a, b) => b[0] - a[0]);
+
+  // Constrain theValue to be 0..1
+  const theValue = Math.min(1.0, Math.max(0.0, value));
+
+  const arrayLength = sortedArray.length;
+
+  // set the return value to the last element
+  let returnVal = rgbaToObject(sortedArray[arrayLength - 1][1]);
+
+  // loop through the array to see if it's in the middle
+  for (let i = 0; i < arrayLength - 1; i++) {
+    const upperVal = sortedArray[i][0];
+    const lowerVal = sortedArray[i + 1][0];
+    // console.log(`i/upper/lower: ${i} ${upperVal} ${lowerVal}`);
+    if (theValue >= lowerVal && theValue <= upperVal) {
+      const factor = (upperVal - theValue) / (upperVal - lowerVal);
+      const color1 = rgbaToObject(sortedArray[i][1]);
+      const color2 = rgbaToObject(sortedArray[i + 1][1]);
+
+      returnVal = interpolateColor(color1, color2, factor);
+      break;
+    }
+  }
+
+  return `rgba(${returnVal.r}, ${returnVal.g}, ${returnVal.b}, ${returnVal.a.toFixed(2)})`;
 }

@@ -35,12 +35,12 @@ async function logSystemInfo(): Promise<void> {
     try {
       const { stdout } = await execAsync("iperf3 --version");
       logger.info(`iperf3 version: ${stdout.trim()}`);
-    } catch (error) {
-      logger.warn("Could not determine iperf3 version:", error);
+    } catch {
+      logger.info("Could not determine iperf3 version: is it installed?");
     }
-    logger.info("");
+    // logger.info("");
     logger.info("=== End System Information ===");
-    logger.info("");
+    // logger.info("");
   } catch (error) {
     logger.error("Error collecting system information:", error);
   }

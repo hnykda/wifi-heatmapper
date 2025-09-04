@@ -67,16 +67,16 @@ export interface ApMapping {
   apName: string;
   macAddress: string;
 }
-export type RGB = { r: number; g: number; b: number; a: number };
+export type RGBA = { r: number; g: number; b: number; a: number };
 export type Gradient = Record<number, string>; // Maps 0-1 values to colors
 
-export type HeatmapConfig = {
-  radius: number;
-  maxOpacity: number;
-  minOpacity: number;
-  blur: number;
-  gradient: Record<string, string>;
-};
+// export type HeatmapConfig = {
+//   radius: number;
+//   maxOpacity: number;
+//   minOpacity: number;
+//   blur: number;
+//   gradient: Record<string, string>;
+// };
 
 /**
  * The full set of data for a particular background image
