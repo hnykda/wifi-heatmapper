@@ -13,7 +13,7 @@ import { getCancelFlag, sendSSEMessage } from "./server-globals";
 import { percentageToRssi, toMbps } from "./utils";
 import { SSEMessageType } from "@/app/api/events/route";
 import { getLogger } from "./logger";
-import { extractIperfResults } from "./utils";
+import { extractIperfResults, emptyIperfTestProperty } from "./utils";
 
 const logger = getLogger("iperfRunner");
 
@@ -76,7 +76,6 @@ export const checkSettings = async (settings: HeatmapSettings) => {
   return settingsErrorMessage;
 };
 
-// moved from actions.ts
 export async function startSurvey(
   settings: HeatmapSettings,
 ): Promise<SurveyPoint | null> {
@@ -165,14 +164,6 @@ export async function runIperfTest(settings: HeatmapSettings): Promise<{
         const server = settings.iperfServerAdrs;
         const duration = settings.testDuration;
         const wifiStrengths: number[] = []; // percentages
-        const emptyIperfTestProperty: IperfTestProperty = {
-          bitsPerSecond: 0,
-          retransmits: 0,
-          jitterMs: 0,
-          lostPackets: 0,
-          packetsReceived: 0,
-          signalStrength: 0,
-        };
 
         let tcpDownload = emptyIperfTestProperty;
         let tcpUpload = emptyIperfTestProperty;

@@ -1,5 +1,5 @@
 import { expect, test, beforeAll } from "vitest";
-import { getColorAt } from "../../src/lib/utils";
+import { getColorAt, objectToRGBAString } from "../../src/lib/utils-gradient";
 import { getDefaults } from "../../src/components/GlobalSettings";
 import { HeatmapSettings } from "../../src/lib/types";
 
@@ -11,42 +11,49 @@ let settings: HeatmapSettings;
 
 test("Specific color value: -0.1", () => {
   expect(getColorAt(-0.1, settings.gradient)).toStrictEqual(
-    "rgba(255, 0, 0, 0.60)",
+    { r: 255, g: 0, b: 0, a: 0.6 },
+    // "rgba(255, 0, 0, 0.60)",
   );
 });
 
 test("Specific color value: 0.0", () => {
   expect(getColorAt(0.0, settings.gradient)).toStrictEqual(
-    "rgba(255, 0, 0, 0.60)",
+    { r: 255, g: 0, b: 0, a: 0.6 },
+    // "rgba(255, 0, 0, 0.60)",
   );
 });
 test("Specific color value: 0.25", () => {
   expect(getColorAt(0.25, settings.gradient)).toStrictEqual(
-    "rgba(255, 142, 0, 0.60)",
+    { r: 255, g: 142, b: 0, a: 0.6 },
+    //  "rgba(255, 142, 0, 0.60)",
   );
 });
 
 test("Specific color value: 0.50", () => {
   expect(getColorAt(0.5, settings.gradient)).toStrictEqual(
-    "rgba(0, 0, 255, 0.60)",
+    { r: 0, g: 0, b: 255, a: 0.6 },
+    // "rgba(0, 0, 255, 0.60)",
   );
 });
 
 test("Specific color value: 0.75", () => {
   expect(getColorAt(0.75, settings.gradient)).toStrictEqual(
-    "rgba(0, 255, 0, 0.60)",
+    { r: 0, g: 255, b: 0, a: 0.6 },
+    // "rgba(0, 255, 0, 0.60)",
   );
 });
 
 test("Specific color value: 1.0", () => {
   expect(getColorAt(1.0, settings.gradient)).toStrictEqual(
-    "rgba(0, 255, 0, 0.60)",
+    { r: 0, g: 255, b: 0, a: 0.6 },
+    // "rgba(0, 255, 0, 0.60)",
   );
 });
 
 test("Specific color value: 1.1", () => {
   expect(getColorAt(1.1, settings.gradient)).toStrictEqual(
-    "rgba(0, 255, 0, 0.60)",
+    { r: 0, g: 255, b: 0, a: 0.6 },
+    // "rgba(0, 255, 0, 0.60)",
   );
 });
 
@@ -57,7 +64,7 @@ test("Specific color value: 1.1", () => {
  */
 test("Color spectrum", () => {
   for (let i = 1.1; i > -0.1; i = i - 0.05) {
-    const resultColor = getColorAt(i, settings.gradient);
+    const resultColor = objectToRGBAString(getColorAt(i, settings.gradient));
     console.log(`value/color: ${i.toFixed(2)} ${JSON.stringify(resultColor)}`);
   }
 });
