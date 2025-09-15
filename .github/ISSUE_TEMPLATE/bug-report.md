@@ -15,10 +15,12 @@ assignees: ''
 **Screenshots**
 
 **Environment (please complete the following information, it's printed in the terminal after you start it):**
+ - wifi-heatmapper version: (x.x.x or commit hash)
+ - Node version: 
  - OS: [e.g. iOS, Windows, Linux]
- - Version [e.g. Mac Sequita, Win 11, Ubuntu 22]
+ - OS version [e.g. macOS 15 Sequoia, Win 11, Ubuntu 22]
  - Browser [e.g. chrome, safari]
- - `iperf` version (`iperf3 --version`):
+ - iperf version (`iperf3 --version`):
 
 **Additional context**
 
