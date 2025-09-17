@@ -22,7 +22,7 @@ export interface WifiResults {
   phyMode: string;
   channelWidth: number;
   band: number; // frequency band - 2.4 or 5 (GHz)
-  active: boolean; // true if it's the SSID that's found to be current selection
+  // activeSSID: boolean; // true if it's the SSID that's found to be current selection
   // frequency: number; // exact frequency (as number) - xxxx GHz
 }
 
@@ -35,6 +35,7 @@ export interface IperfResults {
   udpDownload: IperfTestProperty;
   udpUpload: IperfTestProperty;
 }
+
 type IperfTestProperties = {
   [K in keyof IperfTestProperty]: K;
 };

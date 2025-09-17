@@ -42,7 +42,6 @@ test("Parsing English Win11 'netsh ... networks'", () => {
     band: 2.4,
     txRate: 0, // candidates don't give txRate
     channelWidth: 0,
-    active: false, // not the one that's in service now
   });
 
   results.forEach(checkEachItem);
@@ -72,7 +71,6 @@ test("Parsing English Win11 'netsh ... networks'-Blank SSID", () => {
     band: 2.4,
     txRate: 0, // candidates don't give txRate
     channelWidth: 0,
-    active: false, // not the one that's in service now
   });
 
   results.forEach(checkEachItem);
@@ -102,7 +100,6 @@ test("Parsing French Win11 'netsh ... networks'", () => {
     band: 2.4,
     txRate: 0, // candidates don't give txRate
     channelWidth: 0,
-    active: false, // not the one that's in service now
   });
 
   results.forEach(checkEachItem);
@@ -132,7 +129,6 @@ test("Parsing German Win11 'netsh ... networks'", () => {
     band: 2.4,
     txRate: 0, // candidates don't give txRate
     channelWidth: 0,
-    active: false, // not the one that's in service now
   });
 
   results.forEach(checkEachItem);
@@ -162,7 +158,6 @@ test("Parsing Italian Win11 'netsh ... networks'", () => {
     band: 2.4,
     txRate: 0, // candidates don't give txRate
     channelWidth: 0,
-    active: false, // not the one that's in service now
   });
 
   results.forEach(checkEachItem);
@@ -192,7 +187,6 @@ test("Parsing Spanish Win11 'netsh ... networks'", () => {
     band: 2.4,
     txRate: 0, // candidates don't give txRate
     channelWidth: 0,
-    active: false, // not the one that's in service now
   });
 
   results.forEach(checkEachItem);

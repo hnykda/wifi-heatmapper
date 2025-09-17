@@ -41,7 +41,6 @@ test("parsing english netsh ... interfaces output", () => {
     txRate: 103,
     phyMode: "802.11ax",
     security: "WPA2-Personal",
-    active: false,
   });
 });
 
@@ -63,7 +62,6 @@ test("parsing italian netsh output", () => {
     txRate: 130,
     phyMode: "802.11n",
     security: "WPA2-Personal",
-    active: false,
   });
 });
 
@@ -85,7 +83,6 @@ test("parsing German netsh output", () => {
     txRate: 300,
     phyMode: "802.11ac",
     security: "WPA2-Enterprise",
-    active: false,
   });
 });
 
@@ -107,7 +104,6 @@ test("parsing French netsh output", () => {
     txRate: 206,
     phyMode: "802.11ax",
     security: "Ouvrir",
-    active: false,
   });
 });
 
@@ -129,6 +125,5 @@ test("parsing Spanish netsh output", () => {
     txRate: 206,
     phyMode: "802.11ax",
     security: "Abierta",
-    active: false,
   });
 });

@@ -22,7 +22,6 @@ test("parsing macOS 15 (Sequoia) 5GHz wdutil output", () => {
     security: "WPA2 Personal",
     ssid: "<redacted>",
     txRate: 103,
-    active: false,
   });
 });
 
@@ -45,7 +44,6 @@ test("parsing macOS 15 (Sequoia) 2.4GHz wdutil output", () => {
     security: "None",
     ssid: "<redacted>",
     txRate: 48,
-    active: false,
   });
 });
 
@@ -68,7 +66,6 @@ test("parsing macOS 12 (Catalina) 2.4GHz wdutil output", () => {
     security: "None",
     ssid: "SomeSSID-2.4",
     txRate: 145.0,
-    active: false,
   });
 });
 
@@ -91,7 +88,6 @@ test("parsing macOS 12 (Catalina) 5GHz wdutil output", () => {
     security: "WPA2 Personal",
     ssid: "SomeSSID-5",
     txRate: 324.0,
-    active: false,
   });
 });
 
@@ -114,6 +110,5 @@ test("parsing wdutil with no wifi signal", () => {
     txRate: 0,
     phyMode: "None",
     security: "None",
-    active: false,
   });
 });

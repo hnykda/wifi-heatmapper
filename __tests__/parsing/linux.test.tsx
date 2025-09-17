@@ -32,6 +32,5 @@ rx bitrate: 780.0 MBit/s
     txRate: 866.7,
     phyMode: "",
     security: "",
-    active: false,
   });
 });

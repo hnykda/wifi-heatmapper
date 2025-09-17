@@ -4,6 +4,12 @@ _This section follows the precepts of [Keep a Changelog](https://keepachangelog.
 
 ## [Unreleased]
 
+* First cut at `refactor-wifi` branch. _wifiScanner.ts_ is now a factory
+  that returns an OS-specific object with functions for preflightSettings(),
+  checkIperfServer(), scanWifiSettings(), setWifi(), and getWifi()
+* These functions are defined in the _wifiScanner-xxxx.ts_ files
+* Will probably become version 0.3.5
+
 ---
 
 ## Version 0.3.4 - 2025-08-31

@@ -42,7 +42,6 @@ test("Parsing macOS 10.15.7 output", () => {
     band: 5,
     txRate: 0, // candidates don't give txRate
     channelWidth: 20,
-    active: false, // not the one that's in service now
   });
 
   results.forEach(checkEachItem);
@@ -74,7 +73,6 @@ test("Parsing macOS 10.15.7 output - excluding SSID-10", () => {
     band: 2.4,
     txRate: 0, // candidates don't give txRate
     channelWidth: 20,
-    active: false, // not the one that's in service now
   });
 
   results.forEach(checkEachItem);
@@ -100,7 +98,6 @@ test("Parsing macOS 15.5 output", () => {
     signalStrength: 100,
     ssid: "SSID-2",
     txRate: 0,
-    active: false,
   });
 
   results.forEach(checkEachItem);
@@ -160,7 +157,6 @@ test("Parsing macOS 12.7.2 output", () => {
     band: 5,
     txRate: 0, // candidates don't give txRate
     channelWidth: 20,
-    active: false,
   });
 
   results.forEach(checkEachItem);

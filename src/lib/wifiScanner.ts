@@ -1,67 +1,85 @@
-import { HeatmapSettings, WifiResults } from "./types";
-import { getLogger } from "./logger";
+"use server";
 import os from "os";
-
-import { scanWifiMacOS } from "./wifiScanner-macos";
-import { scanWifiWindows } from "./wifiScanner-windows";
-import { scanWifiLinux } from "./wifiScanner-linux";
-import { isValidMacAddress } from "./utils";
+import { WifiActions, WifiScanResults, WifiResults } from "./types";
+import { execAsync, runDetached, delay } from "./server-utils";
+import { getLogger } from "./logger";
+import { MacOSWifiActions } from "./wifiScanner-macos";
+import { WindowsWifiActions } from "./wifiScanner-windows";
+/**
+ * wifiScanner.ts is a factory module that returns the proper set of
+ * functions for the underlying OS
+ */
 
 const logger = getLogger("wifiScanner");
 
-const hasValidData = (wifiData: WifiResults): boolean => {
-  // if (!isValidMacAddress(wifiData.ssid)) {
-  //   logger.warn("Invalid SSID (we were not able to get it):", wifiData.ssid);
-  // }
-  if (!isValidMacAddress(wifiData.bssid)) {
-    logger.warn("Invalid BSSID (we were not able to get it):", wifiData.bssid);
+export async function createWifiActions(): Promise<WifiActions> {
+  const platform = os.platform();
+  switch (platform) {
+    case "darwin":
+      return new MacOSWifiActions();
+    case "win32":
+      return new WindowsWifiActions();
+    // case "linux":
+    //   return new LinuxWifiActions();
+    default:
+      throw new Error(`Unsupported platform: ${platform}`);
   }
-
-  return (
-    // we also used to check for ssid and bssid, but at least on MacOS 15.3.1
-    // these are not present in the output of any of the known OS commands
-    // either rssi or signalStrength must be non-zero
-    wifiData.rssi !== 0 || wifiData.signalStrength !== 0
-  );
-};
+}
 
 /**
- * Gets the current WiFi network name, BSSID of the AP it's connected to, and the RSSI.
+ * loopUntilCondition - execute the command every `interval` msec
+ *    and exit when the command's return code matches the condition
+ * @param cmd - string to be executed
+ * @param condition
+ *   - 0 means "loop until success" (noErr returned)
+ *   - 1 means "loop until failure" (error condition returned)
+ * @param timeout - number of seconds
  */
-export async function scanWifi(
-  settings: HeatmapSettings,
-): Promise<WifiResults> {
-  let wifiData: WifiResults | null = null;
+export async function loopUntilCondition(
+  cmd: string,
+  testcmd: string,
+  condition: number, // 0 = loop until no error; 1 = loop until error
+  timeout: number, // seconds
+) {
+  // logger.info(`loopUntilCondition: ${cmd} ${testcmd} ${condition} ${timeout}`);
 
-  try {
-    const platform = os.platform(); // Platform for the server
+  const interval = 200; // msec
+  const count = (timeout * 1000) / interval;
+  let i;
 
-    if (platform === "darwin") {
-      wifiData = await scanWifiMacOS(settings); // Needs sudoerPassword
-    } else if (platform === "win32") {
-      wifiData = await scanWifiWindows();
-    } else if (platform === "linux") {
-      wifiData = await scanWifiLinux(settings); // Needs sudoerPassword
-    } else {
-      throw new Error(`Unsupported platform: ${platform}`);
+  runDetached(cmd); // issue the specified command "detached"
+
+  // Start to loop on testcmd until the desired condition
+  for (i = 0; i < count; i++) {
+    // let exit = "";
+    let outcome;
+    try {
+      await execAsync(`${testcmd}`); // run the testcmd
+      // const resp = await execAsync(`${testcmd}`); // run the testcmd
+      // exit = resp.stdout;
+      // console.log(`${testcmd} is OK: ${i} ${Date.now()} "${exit}"`);
+      outcome = 0; // no error
+    } catch {
+      // } catch (error) {
+      // console.log(`${testcmd} gives error: ${i} ${Date.now()} "${error}"`);
+      outcome = 1; // some kind of error that caused the catch()
     }
-  } catch (error_) {
-    const error = error_ as Error;
-    logger.error("Error scanning WiFi:", error);
-    if (error.message.includes("sudo")) {
-      logger.error(
-        "This command requires sudo privileges. Please run the application with sudo.",
-      );
-    }
-    throw error;
+    if (outcome == condition) break; // we got the result we were looking for
+    await delay(interval);
   }
-
-  if (!hasValidData(wifiData)) {
-    throw new Error(
-      "Measurement failed. We were not able to get good enough WiFi data: " +
-        JSON.stringify(wifiData),
-    );
+  if (i == count) {
+    logger.info(`loopUntilCondition timed out: ${cmd} ${condition} ${timeout}`);
   }
+}
 
-  return wifiData;
+export async function logWifiResults(results: WifiScanResults): Promise<void> {
+  logger.info(`===== WifiResults =====`);
+  results.SSIDs.forEach(logWifiResult);
+  // logger.info(`==============`);
+}
+
+export async function logWifiResult(result: WifiResults) {
+  logger.info(
+    `active: signalStrength: ${result.signalStrength}; channel: ${result.channel}; ssid: ${result.ssid}`,
+  );
 }

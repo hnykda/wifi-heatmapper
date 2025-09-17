@@ -99,7 +99,7 @@ export const getDefaultWifiResults = (): WifiResults => {
     txRate: 0,
     phyMode: "",
     security: "",
-    active: false,
+    // activeSSID: false, // formerly: strongest SSID was current SSID; now disregarded
   };
 };
 
@@ -292,11 +292,10 @@ export const emptyIperfTestProperty: IperfTestProperty = {
 };
 
 export function getDefaultIperfResults(): IperfResults {
-  const retval = {
+  return {
     tcpDownload: emptyIperfTestProperty,
     tcpUpload: emptyIperfTestProperty,
     udpDownload: emptyIperfTestProperty,
     udpUpload: emptyIperfTestProperty,
   };
-  return retval;
 }

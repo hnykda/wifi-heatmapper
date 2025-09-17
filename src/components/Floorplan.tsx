@@ -5,11 +5,11 @@ import {
   getDefaultIperfResults,
   percentageToRssi,
   rssiToPercentage,
+  delay,
 } from "../lib/utils";
 import { getColorAt, objectToRGBAString } from "@/lib/utils-gradient";
 import { useSettings } from "./GlobalSettings";
-import { HeatmapSettings, SurveyPoint } from "../lib/types";
-import { checkSettings, startSurvey } from "@/lib/iperfRunner";
+import { HeatmapSettings, SurveyPoint, SurveyResult } from "../lib/types";
 import { Toaster } from "@/components/ui/toaster";
 import NewToast from "@/components/NewToast";
 import PopupDetails from "@/components/PopupDetails";
@@ -87,7 +87,7 @@ export default function ClickableFloorplan(): ReactNode {
     const iperfData = getDefaultIperfResults();
     wifiData.signalStrength = idx;
     wifiData.rssi = percentageToRssi(idx);
-    console.log(`signal & rssi: ${idx} ${percentageToRssi(idx)}`);
+    // console.log(`signal & rssi: ${idx} ${percentageToRssi(idx)}`);
     const newPoint = {
       wifiData,
       iperfData,
@@ -119,33 +119,85 @@ export default function ClickableFloorplan(): ReactNode {
 
   /**
    * measureSurveyPoint - make measurements for point at x/y
-   * Triggered by a click on the canvas that _isn't_ an existin
+   * Triggered by a click on the canvas that _isn't_ an existing
    *    surveypoint
    * @param x
    * @param y
-   * @returns
+   * @returns null, but after having added the point to surveyPoints[]
+   *
+   * Error handling:
+   * If there are errors, this routine throws a string with an explanation
    */
   const measureSurveyPoint = async (surveyClick: { x: number; y: number }) => {
     const x = Math.round(surveyClick.x);
     const y = Math.round(surveyClick.y);
+    let result: SurveyResult = { state: "pending" };
 
-    const settingsErrorMessage = await checkSettings(settings);
-    if (settingsErrorMessage !== "") {
-      setAlertMessage(settingsErrorMessage);
-      return null;
+    // an object with a single property: settings
+    const partialSettings = {
+      settings: {
+        iperfServerAdrs: settings.iperfServerAdrs,
+        testDuration: settings.testDuration,
+        sudoerPassword: settings.sudoerPassword,
+        // ignoredSSIDs: settings.ignoredSSIDs,
+        // sameSSID: settings.sameSSID,
+      },
+    };
+    // console.log(`PartialSettings: ${JSON.stringify(partialSettings)}`);
+    // Kick off the measurement process by calling "action=start"
+    // This returns immediately, then poll for data
+    const res = await fetch("/api/start-task?action=start", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(partialSettings),
+    });
+    if (!res.ok) {
+      throw new Error(`Server error: ${res.status}`);
     }
 
-    try {
-      const newPoint = await startSurvey(settings);
-      // null is OK - it just means that measurement was cancelled
-      if (!newPoint) {
-        return;
+    const startTime = Date.now();
+    while (true) {
+      try {
+        const res = await fetch("/api/start-task?action=results");
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        result = await res.json();
+        console.log(`Status is: ${JSON.stringify(result)}`);
+        if (result.state != "pending") {
+          // got a result - status is "done" or "error"
+          break;
+        }
+      } catch (err) {
+        // Typical: handle network errors, aborts, etc.
+        console.error(`Measurement process gave error: ${err}`);
       }
-      addSurveyPoint(newPoint, x, y, settings);
-    } catch (error) {
-      setAlertMessage(`An error occurred: ${error}`);
+      await delay(1000); // ask again in one second
+    }
+    console.log(`Measurement took ${Date.now() - startTime} ms`);
+
+    // console.log(`Result from results API: ${JSON.stringify(result)}`);
+    if (result.state === "error") {
+      setIsToastOpen(false);
+      setAlertMessage(`${result.explanation}`);
       return;
     }
+    if (!result.results!.wifiData || !result.results!.iperfData) {
+      setIsToastOpen(false);
+      setAlertMessage("Measurement cancelled");
+      return;
+    }
+    const { wifiData, iperfData } = result.results!;
+    // Got measurements: add the x/y point, point number, and enabled
+    // console.log(`Got a set of measurements`);
+    const newPoint = {
+      wifiData,
+      iperfData,
+      x,
+      y,
+      timestamp: Date.now(),
+      isEnabled: true,
+      id: `Point_${settings.nextPointNum}`,
+    };
+    addSurveyPoint(newPoint, x, y, settings);
   };
 
   function addSurveyPoint(
@@ -164,7 +216,7 @@ export default function ClickableFloorplan(): ReactNode {
       id: `Point_${pointNum}`,
     };
     updateSettings({ nextPointNum: pointNum + 1 });
-    console.log(`Updated Pointnum: ${settings.nextPointNum}`);
+    // console.log(`Updated Pointnum: ${settings.nextPointNum}`);
     surveyPointActions.add(addedPoint);
   }
 
