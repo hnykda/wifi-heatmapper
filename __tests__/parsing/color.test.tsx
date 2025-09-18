@@ -60,12 +60,12 @@ test("Specific color value: 1.1", () => {
 /**
  * Display color spectrum
  *   show color increments from 1.1 .. -0.1 to verify the RGB values
- * (Uncomment the two lines to show the tests)
+ * (Uncomment the two lines to show the gradient RGB values)
  */
 test("Color spectrum", () => {
   for (let i = 1.1; i > -0.1; i = i - 0.05) {
-    const resultColor = objectToRGBAString(getColorAt(i, settings.gradient));
-    console.log(`value/color: ${i.toFixed(2)} ${JSON.stringify(resultColor)}`);
+    // const resultColor = objectToRGBAString(getColorAt(i, settings.gradient));
+    // console.log(`value/color: ${i.toFixed(2)} ${JSON.stringify(resultColor)}`);
   }
 });
 

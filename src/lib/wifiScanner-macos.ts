@@ -24,7 +24,7 @@ export class MacOSWifiActions implements WifiActions {
    *   * sudoerPassword - non-empty and correct
    *
    * @param settings
-   * @returns string - empty, or error message to display
+   * @returns empty array of SSIDs, plus "" or error string
    */
   async preflightSettings(
     settings: PartialHeatmapSettings,
@@ -78,7 +78,7 @@ export class MacOSWifiActions implements WifiActions {
   /**
    * checkIperfServer() - test if an iperf3 server is available at the address
    * @param settings includes the iperfServerAddress
-   * @returns "" or error string
+   * @returns empty array of SSIDs, plus "" or error string
    */
   async checkIperfServer(
     settings: PartialHeatmapSettings,
@@ -101,11 +101,11 @@ export class MacOSWifiActions implements WifiActions {
   }
 
   /**
-   * findWifi() - find the name of the wifi interface
+   * findWifiInterface() - find the name of the wifi interface
    * save in a class variable
    * @returns name of (the first) wifi interface (string)
    */
-  async findWifi(): Promise<string> {
+  async findWifiInterface(): Promise<string> {
     // logger.info(`Called findWifi():`);
 
     const { stdout } = await execAsync(
@@ -116,7 +116,7 @@ export class MacOSWifiActions implements WifiActions {
   }
 
   /**
-   * findBestWifi() - return an array of available wifi SSIDs plus a reason string
+   * scanWifi() - return an array of available wifi SSIDs plus a reason string
    * These are sorted by the strongest RSSI
    */
   async scanWifi(_settings: PartialHeatmapSettings): Promise<WifiScanResults> {
@@ -126,7 +126,7 @@ export class MacOSWifiActions implements WifiActions {
     };
     // let stdout: string;
     let jsonResults: SPAirPortRoot;
-    const currentIf = await this.findWifi();
+    const currentIf = await this.findWifiInterface();
 
     try {
       // Get the Wifi information from system_profiler
@@ -144,8 +144,7 @@ export class MacOSWifiActions implements WifiActions {
     } catch (err) {
       response.reason = `Cannot get wifi info: ${err}"`;
     }
-    // ======= FINALLY WE ARE DONE! =======
-    return response;
+    return response; // WifiScanResults which is array of WifiResults and error code
   }
 
   /**

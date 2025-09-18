@@ -161,7 +161,7 @@ export default function ClickableFloorplan(): ReactNode {
         const res = await fetch("/api/start-task?action=results");
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         result = await res.json();
-        console.log(`Status is: ${JSON.stringify(result)}`);
+        // console.log(`Status is: ${JSON.stringify(result)}`);
         if (result.state != "pending") {
           // got a result - status is "done" or "error"
           break;

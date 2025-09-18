@@ -31,6 +31,30 @@ Ideas for making the program better - in no particular order:
   manually switching to SSID-B.)
 * This behavior would probably require some kind of "Use this SSID" / "Use best SSID"
   option, since blinking the Wi-Fi frequently adds 10-12 seconds to each measurement.
+* Change `popupDetails` to look like this.
+  Maybe only display strongest SSID and signal strength.
+
+| Stat | Value |
+| ---- | ----- |
+| ID | Point ###  |
+| SSID | abcdef |
+| Signal Strength | 50% |
+| RSSI | -70 dBm |
+| Channel | 6 |
+| Band | 2.4 GHz |
+| BSSID | ##:##:##:##:##:## |
+| AP Name | |
+|  |  |
+| Strongest SSID | abcdef-5 |
+| Strongest Strength | 97% |
+| Strongest RSSI | -42 dBm |
+| Strongest Channel | 144 |
+| Strongest Band | 5 GHz |
+| Strongest BSSID | ##:##:##:##:##:## |
+| TCP Download | 0.00 Mbps |
+| TCP Upload | 0.00 Mbps |
+| Position | X: 274, Y: 47 |
+| Created  | 9/16/2025, 9:39:44 PM |
 
 ## Bugs
 

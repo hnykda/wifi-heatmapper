@@ -136,7 +136,7 @@ export async function runSurveyTests(
     // to be practical.
 
     while (attempts < maxRetries) {
-      console.log(`Top of runSurveyTest loop:`);
+      attempts++;
       try {
         const server = settings.iperfServerAdrs;
         const duration = settings.testDuration;
@@ -152,8 +152,6 @@ export async function runSurveyTests(
         sendSSEMessage(getUpdatedMessage());
 
         // Run the TCP tests
-        console.log(`run TCP Tests: `);
-
         if (performIperfTest) {
           newIperfData.tcpDownload = await runSingleTest(
             server,
@@ -181,8 +179,6 @@ export async function runSurveyTests(
         sendSSEMessage(getUpdatedMessage());
 
         // Run the UDP tests
-        console.log(`run UDP Tests: `);
-
         if (performIperfTest) {
           newIperfData.udpDownload = await runSingleTest(
             server,
@@ -207,7 +203,7 @@ export async function runSurveyTests(
         wifiStrengths.push(wifiDataAfter.SSIDs[0].signalStrength);
         displayStates.strength = arrayAverage(wifiStrengths).toString();
         checkForCancel();
-        console.log(`wifiStrengths: ${wifiStrengths}`);
+        // console.log(`wifiStrengths: ${wifiStrengths}`);
 
         // Send the final update - type is "done"
         displayStates.type = "done";
@@ -231,19 +227,14 @@ export async function runSurveyTests(
           signalStrength: strength, // use the average signalStrength
           rssi: percentageToRssi(strength), // set corresponding RSSI
         };
-        attempts++;
       } catch (error: any) {
+        logger.error(`Attempt ${attempts} failed:`, error);
         if (error.message == "cancelled") {
           return {
             iperfData: null,
             wifiData: null,
             status: "test was cancelled",
           };
-        }
-        logger.error(`Attempt ${attempts + 1} failed:`, error);
-        attempts++;
-        if (attempts >= maxRetries) {
-          throw error;
         }
       }
     }

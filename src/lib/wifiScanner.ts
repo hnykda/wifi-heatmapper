@@ -5,6 +5,7 @@ import { execAsync, runDetached, delay } from "./server-utils";
 import { getLogger } from "./logger";
 import { MacOSWifiActions } from "./wifiScanner-macos";
 import { WindowsWifiActions } from "./wifiScanner-windows";
+import { LinuxWifiActions } from "./wifiScanner-linux";
 /**
  * wifiScanner.ts is a factory module that returns the proper set of
  * functions for the underlying OS
@@ -19,8 +20,8 @@ export async function createWifiActions(): Promise<WifiActions> {
       return new MacOSWifiActions();
     case "win32":
       return new WindowsWifiActions();
-    // case "linux":
-    //   return new LinuxWifiActions();
+    case "linux":
+      return new LinuxWifiActions();
     default:
       throw new Error(`Unsupported platform: ${platform}`);
   }
@@ -29,15 +30,21 @@ export async function createWifiActions(): Promise<WifiActions> {
 /**
  * loopUntilCondition - execute the command every `interval` msec
  *    and exit when the command's return code matches the condition
- * @param cmd - string to be executed
+ * @param cmd - command to be executed
+ * @param testCmd - command to determine if it has completed
  * @param condition
  *   - 0 means "loop until success" (noErr returned)
  *   - 1 means "loop until failure" (error condition returned)
  * @param timeout - number of seconds
+ *
+ * Example usage:
+ * - issue the cmd to start an action (say, bring up the wifi)
+ * - continually execute testCmd and wait for its success or failure
+ *   to indicate that it has succeeded (or times out)
  */
 export async function loopUntilCondition(
   cmd: string,
-  testcmd: string,
+  testCmd: string,
   condition: number, // 0 = loop until no error; 1 = loop until error
   timeout: number, // seconds
 ) {
@@ -54,7 +61,7 @@ export async function loopUntilCondition(
     // let exit = "";
     let outcome;
     try {
-      await execAsync(`${testcmd}`); // run the testcmd
+      await execAsync(`${testCmd}`); // run the testcmd
       // const resp = await execAsync(`${testcmd}`); // run the testcmd
       // exit = resp.stdout;
       // console.log(`${testcmd} is OK: ${i} ${Date.now()} "${exit}"`);
