@@ -17,7 +17,7 @@ const logger = getLogger("iperfRunner");
 type TestType = "TCP" | "UDP";
 type TestDirection = "Up" | "Down";
 
-export const wifiActions = await createWifiActions();
+const wifiActions = await createWifiActions();
 
 const validateWifiDataConsistency = (
   wifiDataBefore: WifiResults,
@@ -134,6 +134,10 @@ export async function runSurveyTests(
     // SSID, then switch to it, then make the measurements.
     // This is too hard on macOS (too many credential prompts)
     // to be practical.
+
+    // scan the neighborhood, anyway
+    // ensures this.currentSSIDName is set
+    await wifiActions.scanWifi(settings);
 
     while (attempts < maxRetries) {
       attempts++;
