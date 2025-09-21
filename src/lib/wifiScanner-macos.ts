@@ -6,15 +6,25 @@ import {
   SPAirPortRoot,
 } from "./types";
 import { execAsync } from "./server-utils";
+import {
+  rssiToPercentage,
+  delay,
+  isValidMacAddress,
+  normalizeMacAddress,
+  channelToBand,
+  bySignalStrength,
+} from "./utils";
 import { getLogger } from "./logger";
-import { rssiToPercentage, bySignalStrength, delay } from "./utils";
-import { isValidMacAddress, normalizeMacAddress, channelToBand } from "./utils";
-import { setSSID, getSSID } from "./server-globals";
-
 const logger = getLogger("wifi-macOS");
 
+export type MergeResult = {
+  added: boolean; // current SSID was added to the results
+  index: number; // position that the current was inserted into
+};
 export class MacOSWifiActions implements WifiActions {
-  nameOfWifi: string = "";
+  nameOfWifi: string = ""; // OS-specific name of the current wifi interface
+  currentSSIDName: string = ""; // name of the current SSID
+  strongestSSID: WifiResults | null = null; // strongest SSID if not currentSSID
 
   /**
    * preflightSettings - check whether the settings are "primed" to run a test
@@ -134,13 +144,19 @@ export class MacOSWifiActions implements WifiActions {
       jsonResults = JSON.parse(result.stdout);
 
       // jsonResults holds the Wifi environment from system_profiler
-      response.SSIDs = getCandidateSSIDs(
+      response.SSIDs = getNeighborSSIDs(
         jsonResults,
         currentIf,
-        _settings.ignoredSSIDs,
+        // _settings.ignoredSSIDs,
       );
-      // console.log(`Local SSIDs: ${response.SSIDs.length}`);
-      // console.log(`Local SSIDs: ${JSON.stringify(response.SSIDs, null, 2)}`);
+      const currentSSID = getCurrentSSID(
+        jsonResults,
+        currentIf,
+        // _settings.ignoredSSIDs,
+      );
+      if (currentSSID) {
+        this.currentSSIDName = currentSSID[0].ssid;
+      }
     } catch (err) {
       response.reason = `Cannot get wifi info: ${err}"`;
     }
@@ -160,20 +176,25 @@ export class MacOSWifiActions implements WifiActions {
     settings: PartialHeatmapSettings,
     newWifiSettings: WifiResults,
   ): Promise<WifiScanResults> {
+    //
+    // NOT IMPLEMENTED - DON'T USE THIS FUNCTION
+    throw "wifi-heatmapper does not implement setWifi()";
+
     const response: WifiScanResults = {
       SSIDs: [],
       reason: "",
     };
-    setSSID(null); // assume a bad outcome
+    return response;
+
     let netInfo: WifiResults;
 
     if (!newWifiSettings) {
       throw `setWifi error: Empty SSID "${JSON.stringify(newWifiSettings)}`;
     }
 
-    console.log(
-      `Setting Wifi SSID on interface ${this.nameOfWifi}: ${newWifiSettings.ssid}`,
-    );
+    // console.log(
+    //   `Setting Wifi SSID on interface ${this.nameOfWifi}: ${newWifiSettings.ssid}`,
+    // );
     // `networksetup -setairportnetwork ${this.nameOfWifi} ${newWifiSettings.ssid}`
     const { stdout, stderr } = await execAsync(
       `networksetup -setairportnetwork ${this.nameOfWifi} ${newWifiSettings.ssid}`,
@@ -188,11 +209,10 @@ export class MacOSWifiActions implements WifiActions {
       if (Date.now() > start + timeout) {
         throw `Can't set wifi to "${newWifiSettings.ssid}": Timed out after ${timeout / 1000} seconds`;
       }
-      netInfo = await this.getWdutilResults(settings);
-      console.log(`wdutils: SSID: ${netInfo.ssid} txRate: ${netInfo.txRate}`);
+      netInfo = await getWdutilResults(settings);
+      // console.log(`wdutils: SSID: ${netInfo.ssid} txRate: ${netInfo.txRate}`);
       if (netInfo.txRate != 0) {
         netInfo.ssid = newWifiSettings.ssid;
-        setSSID(netInfo); // save it globally
         response.SSIDs.push(netInfo);
         return response;
       }
@@ -211,11 +231,10 @@ export class MacOSWifiActions implements WifiActions {
       reason: "",
     };
     try {
-      const netInfo: WifiResults = await this.getWdutilResults(settings);
-      const wifiResults = getSSID(); // SSID we tried to set
+      const netInfo: WifiResults = await getWdutilResults(settings);
       // if the returned SSID contains "redacted" use the "global SSID"
-      if (wifiResults != null && netInfo.ssid.includes("redacted")) {
-        netInfo.ssid = wifiResults.ssid;
+      if (netInfo.ssid.includes("redacted")) {
+        netInfo.ssid = this.currentSSIDName; // patch up the SSID
       }
       response.SSIDs.push(netInfo);
     } catch (err) {
@@ -223,46 +242,236 @@ export class MacOSWifiActions implements WifiActions {
     }
     return response;
   }
-
-  /**
-   * getWdutilResults() call `wdutil` to get the signal strength, etc.
-   * This code simply parses the response, returning all the values it finds
-   * (txRate may not be available right away, so the caller may re-try)
-   * @param settings - the full set of settings, including sudoerPassword
-   * @returns a WiFiResults description to be added to the surveyPoints
-   */
-  async getWdutilResults(
-    settings: PartialHeatmapSettings,
-  ): Promise<WifiResults> {
-    // Issue the OS command
-    const wdutilOutput = await execAsync(
-      `echo ${settings.sudoerPassword} | sudo -S wdutil info`,
-    );
-    // parse that command into wdutilNetworkInfo
-    const wdutilNetworkInfo = parseWdutilOutput(wdutilOutput.stdout);
-    // logger.trace("WDUTIL output:", wdutilNetworkInfo);
-
-    if (!isValidMacAddress(wdutilNetworkInfo.ssid)) {
-      // logger.trace("Invalid SSID, getting it from ioreg");
-      const ssidOutput = await getIoregSsid();
-      if (isValidMacAddress(ssidOutput)) {
-        wdutilNetworkInfo.ssid = ssidOutput;
-      }
-    }
-
-    if (!isValidMacAddress(wdutilNetworkInfo.bssid)) {
-      // logger.trace("Invalid BSSID, getting it from ioreg");
-      const bssidOutput = await getIoregBssid();
-      if (isValidMacAddress(bssidOutput)) {
-        wdutilNetworkInfo.bssid = bssidOutput;
-      }
-    }
-
-    logger.trace("Final WiFi data:", wdutilNetworkInfo);
-    // console.log(`Wifi strength: ${wdutilNetworkInfo.signalStrength}%`);
-    return wdutilNetworkInfo;
-  }
 }
+/**
+ * END OF MacOSWifiActions - the remainder is a set of helper functions
+ */
+
+/**
+ * getWdutilResults() call `wdutil` to get the signal strength, etc.
+ * This code simply parses the response, returning all the values it finds
+ * (txRate may not be available right away, so the caller may re-try)
+ * @param settings - the full set of settings, including sudoerPassword
+ * @returns a WiFiResults description to be added to the surveyPoints
+ */
+async function getWdutilResults(
+  settings: PartialHeatmapSettings,
+): Promise<WifiResults> {
+  // Issue the OS command
+  const wdutilOutput = await execAsync(
+    `echo ${settings.sudoerPassword} | sudo -S wdutil info`,
+  );
+  // parse that command into wdutilNetworkInfo
+  const wdutilNetworkInfo = parseWdutilOutput(wdutilOutput.stdout);
+  // logger.trace("WDUTIL output:", wdutilNetworkInfo);
+
+  if (!isValidMacAddress(wdutilNetworkInfo.ssid)) {
+    // logger.trace("Invalid SSID, getting it from ioreg");
+    const ssidOutput = await getIoregSsid();
+    if (isValidMacAddress(ssidOutput)) {
+      wdutilNetworkInfo.ssid = ssidOutput;
+    }
+  }
+
+  if (!isValidMacAddress(wdutilNetworkInfo.bssid)) {
+    // logger.trace("Invalid BSSID, getting it from ioreg");
+    const bssidOutput = await getIoregBssid();
+    if (isValidMacAddress(bssidOutput)) {
+      wdutilNetworkInfo.bssid = bssidOutput;
+    }
+  }
+
+  logger.trace("Final WiFi data:", wdutilNetworkInfo);
+  return wdutilNetworkInfo;
+}
+
+/**
+ * getNeighborSSIDs(jsonResults) - pluck up the SSIDs "in the neighborhood"
+ * @param spData - output from the system_profiler command
+ * @param currentInterface - name of the current wifi interface
+ * @returns WifiResults[] sorted by signalStrength
+ */
+
+export const getNeighborSSIDs = (
+  spData: SPAirPortRoot,
+  currentInterface: string,
+  // ignoredSSIDs: string[],
+): WifiResults[] => {
+  // pluck out the local candidate SSIDs from the system_profiler output
+  const neighbors = (
+    spData.SPAirPortDataType.flatMap(
+      (entry) => entry.spairport_airport_interfaces || [],
+    ).find((iface) => iface._name === currentInterface)
+      ?.spairport_airport_other_local_wireless_networks ?? []
+  ).map((network) => ({
+    ...network,
+    currentSSID: false,
+  }));
+  // const localCount = localCandidates.length;
+
+  // logSPResults(localCandidates);
+
+  // convert each to a WifiResults
+  const candidates = neighbors.map((item) => convertToWifiResults(item));
+
+  // console.log(
+  //   `SSIDs: ${localCount} ${currentCount} \n${JSON.stringify(candidates, null, 2)}`,
+  // );
+
+  // eliminate any RSSI=0 (no reading), then sort by RSSI
+  const nonZeroCandidates = candidates.filter((item) => item.rssi != 0);
+  // eliminate any SSIDs to be ignored
+  // const nonIgnoredCandidates = nonZeroCandidates.filter(
+  //   (item) => !ignoredSSIDs.includes(item.ssid),
+  // );
+  // sort the remainder by signal strength
+  const sortedCandidates = nonZeroCandidates.sort(bySignalStrength);
+  return sortedCandidates;
+};
+
+/**
+ * getCurrentSSID(jsonResults) - get the SSID designated as current ssid
+ * @param spData - output from the system_profiler command
+ * @param currentInterface - name of the current wifi interface
+ * @returns WifiResults[] sorted by signalStrength
+ *      result will be [] if no current found
+ *      result will be [WifiResult] if one is found
+ *      that WifiResult will be marked with  currentSSID: true
+ */
+
+export const getCurrentSSID = (
+  spData: SPAirPortRoot,
+  currentInterface: string,
+  // ignoredSSIDs: string[],
+): WifiResults[] => {
+  const result: WifiResults[] = [];
+
+  // Get the current SSID (if any)
+  const thisSSID = spData.SPAirPortDataType.flatMap(
+    (entry) => entry.spairport_airport_interfaces || [],
+  ).find(
+    (iface) => iface._name === currentInterface,
+  )?.spairport_current_network_information;
+
+  if (!thisSSID) return result; // no "current info", return []
+
+  // convert to a WifiResults
+  let current = convertToWifiResults(thisSSID);
+  // mark it as the current SSID
+  current = { ...current, currentSSID: true };
+  // add it to the (empty) result
+  result.push(current);
+  return result;
+};
+
+/**
+ * mergeSSIDS(neighbors, current) determine whether
+ * the "current" SSID info is the same as one of the neighbors
+ * or whether to merge it into the list
+ *
+ * Scan the neighbors list for those that match the
+ *   "current" SSID channel and encryption match
+ * Find the minimum difference between each and the current RSSI
+ * If the difference between those two RSSI's
+ *  is less than ALLOWED_DELTA, replace that item
+ *  with the current SSID (because it typically has more information)
+ * In any event, return whether the item was _added_ to the array
+ *  (not replaced) and the index of the replacement (or -1)
+ *
+ * Special cases to handle and test for:
+ * Return value is { added: boolean; index: number }
+ * - More than one "current" - throw an error (can't happen)
+ * - No current (current.length == 0) return false/-1
+ * - No neighbors (neighbors.length == 0) push, return true/0
+ * - No neighbors match, push new, return true/ix
+ * - Min. diff of RSSI <= ALLOWED_DELTA replace, return false/ix)
+ * - Min. diff of RSSI > ALLOWED DELTA push new, return true/ix
+ */
+
+export function mergeSSIDs(
+  neighbors: WifiResults[],
+  current: WifiResults[],
+): MergeResult {
+  const ALLOWED_DELTA = 4; // allowed difference between neighbor and current
+  const result: MergeResult = { added: false, index: -1 };
+  try {
+    // console.log(`============`);
+    // let ix = 0;
+    // neighbors.forEach((item) =>
+    //   console.log(
+    //     `Neighbor: ${ix++} ${item.currentSSID} ${item.ssid} ${item.channel} ${item.rssi} ${item.security}`,
+    //   ),
+    // );
+    // ix = 0;
+    // current.forEach((item) =>
+    //   console.log(
+    //     `Current: ${ix++} ${item.currentSSID} ${item.ssid} ${item.channel} ${item.rssi} ${item.security}`,
+    //   ),
+    // );
+
+    // handle simple cases
+    if (current.length > 1) throw "Current contains multiple entries";
+    if (current.length === 0) {
+      // handle case of no current
+      return result;
+    }
+    if (neighbors.length === 0) {
+      neighbors.push(current[0]);
+      result.added = true;
+      result.index = 0;
+      return result;
+    }
+    // start the merge
+    let bestDelta = 105; // larger than the largest possible delta
+    let bestIndex = -1;
+    for (let i = 0; i < neighbors.length; i++) {
+      const item = neighbors[i];
+      const currDelta = Math.abs(item.rssi - current[0].rssi);
+      if (
+        item.ssid == current[0].ssid &&
+        item.channel == current[0].channel &&
+        item.security == current[0].security &&
+        currDelta < bestDelta
+      ) {
+        bestIndex = i;
+        bestDelta = currDelta;
+      }
+    }
+    if (bestIndex == -1) {
+      // no match found
+      result.added = true;
+      result.index = neighbors.length;
+      neighbors.push(current[0]);
+    }
+    // bestIndex points to the best merge candidate
+    // if bestIndex is "close enough" to current
+    // (that is, delta is small enough), replace it
+    else if (bestDelta <= ALLOWED_DELTA) {
+      // replace the previous at bestIndex
+      neighbors[bestIndex] = current[0];
+      result.added = false;
+      result.index = bestIndex;
+    } else {
+      // otherwise, the bestDelta isn't close enough
+      // add current at the end
+      result.added = true;
+      result.index = neighbors.length;
+      neighbors.push(current[0]);
+    }
+  } catch (err) {
+    console.log(`Error in merging: ${err} ${JSON.stringify(current)}`);
+  }
+  // let ix = 0;
+  // neighbors.forEach((item) =>
+  //   console.log(
+  //     `Neighbor: ${ix++} ${item.currentSSID} ${item.ssid} ${item.channel} ${item.rssi} ${item.security}`,
+  //   ),
+  // );
+  // console.log(`result: ${JSON.stringify(result)}`);
+  // console.log(`============`);
+  return result;
+}
+
 /**
  * parse `ioreg` commands (used if "wdutil" doesn't work)
  * @returns
@@ -332,7 +541,7 @@ const parseChannel = (channelString: string): number[] => {
 };
 
 /**
- * parseWdutilOutput - parses the string from `wdutil` into a WifiNetwork object
+ * parseWdutilOutput - parses the output from `wdutil` into a WifiNetwork object
  */
 export function parseWdutilOutput(output: string): WifiResults {
   const partialNetworkInfo: Partial<WifiResults> = {};
@@ -389,65 +598,6 @@ export function parseWdutilOutput(output: string): WifiResults {
   // logger.info(`Final WiFi data: ${JSON.stringify(networkInfo)}`);
   return networkInfo;
 }
-
-/**
- * getCandidates(jsonResults) - pluck up the local SSIDs from the JSON
- * @param - Object that contains output of system_profiler for Wifi
- * @returns WifiResults[] sorted by signalStrength
- */
-
-export const getCandidateSSIDs = (
-  spData: SPAirPortRoot,
-  currentInterface: string,
-  ignoredSSIDs: string[],
-): WifiResults[] => {
-  // pluck out the local candidate SSIDs from the system_profiler output
-  const localCandidates = (
-    spData.SPAirPortDataType.flatMap(
-      (entry) => entry.spairport_airport_interfaces || [],
-    ).find((iface) => iface._name === currentInterface)
-      ?.spairport_airport_other_local_wireless_networks ?? []
-  ).map((network) => ({
-    ...network,
-    active: false,
-  }));
-  // const localCount = localCandidates.length;
-
-  // Get the current SSID (if any)
-  const current = spData.SPAirPortDataType.flatMap(
-    (entry) => entry.spairport_airport_interfaces || [],
-  ).find(
-    (iface) => iface._name === currentInterface,
-  )?.spairport_current_network_information;
-  // add active: true if there is an SSID
-  const fullCurrent = current ? { ...current, active: true } : undefined;
-
-  // let currentCount = 0;
-  if (fullCurrent) {
-    // const currentPlus = { ...current, inUse: true };
-    // currentCount = 1;
-    localCandidates.push(fullCurrent);
-  }
-  // logSPResults(localCandidates);
-
-  // convert each to a WifiResults
-  const candidates = localCandidates.map((item) => convertToWifiResults(item));
-
-  // console.log(
-  //   `SSIDs: ${localCount} ${currentCount} \n${JSON.stringify(candidates, null, 2)}`,
-  // );
-
-  // eliminate any RSSI=0 (no reading), then sort by RSSI
-  const nonZeroCandidates = candidates.filter((item) => item.rssi != 0);
-  // eliminate any SSIDs to be ignored
-  const nonIgnoredCandidates = nonZeroCandidates.filter(
-    (item) => !ignoredSSIDs.includes(item.ssid),
-  );
-  // sort the remainder by signal strength
-  const sortedCandidates = nonIgnoredCandidates.sort(bySignalStrength);
-
-  return sortedCandidates;
-};
 
 /**
  * Map system_profiler values into a WifiResults object
@@ -625,7 +775,8 @@ function convertToWifiResults(obj: object): WifiResults {
     band: Number(sp.band),
     txRate: Number(sp.txRate),
     channelWidth: Number(sp.channelWidth),
-    // activeSSID: Boolean(sp.active),
+    currentSSID: false,
+    strongestSSID: null,
   };
   // console.log(`Final mapping: ${JSON.stringify(result, null, 2)}`);
 

@@ -19,30 +19,64 @@ These include:
 * `npm run lint` - run the linter on all files
 * `npm test` - run all the test cases
 
+## How wifi-heatmapper works
+
+To get information about the Wi-Fi signal and other parameters,
+**wifi-heatmapper** invokes
+the commands below via JS `child_process` and parses the output.
+The webapp then just stores everything in simple JSON
+"database" file in localStorage().
+
 ## Platform-Specific Commands
 
-**wifi-heatmapper** parses the outputs of the following CLI commands
-to get the measurements of the Wi-Fi strength and throughput.
+**wifi-heatmapper** runs the following CLI commands:
+they must be installed on your computer
+to make the measurements of Wi-Fi strength and throughput.
 
 | Platform | Commands          | Notes                                                                                                                                                    |
 | -------- | ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| macOS    | `wdutil`, `ioreg` | Both are usually part of the system, sudo password is needed for `wdutil`                                             |
+| macOS    | `wdutil`, `ioreg`, `system_profiler` | sudo password is needed for `wdutil`                                             |
 | Windows  | `netsh`           | Part of the system  |                                                                                       
-| Linux    | `iw`              | `iw` might need to be installed via your distro package manager, you will need to provide your wireless device id (e.g. "wlp4s0", we do try to infer it) |
+| Linux    | `nmcli`, `iw`     | `iw` might need to be installed via your distro package manager. wifi-heatmapper infers the device id of the wireless device (e.g. "wlp4s0"). |
+| All | `iperf3` | See note below |
 
-**wifi-heatmapper** requires that `iperf3` be installed locally to make TCP
-or UDP measurements. 
+**iperf3** must be installed locally to make TCP or UDP measurements.
+(If it is not installed, those measurements will be skipped.) 
+A version greater than 3.17 is recommended for both server and client
+(ideally the same version, but that's not strictly necessary). 
+It also must be available in `PATH`.
+For Windows you might have to set the path
+`set PATH=%PATH%;C:\path\to\iperf3`, e.g. do `set PATH=%PATH%;C:\iperf3` (or `setx` to make it permanent) before running `npm run dev`.
 
-In all cases, `iperf3` must be available in `PATH`. For Windows you might have to do something like `set PATH=%PATH%;C:\path\to\iperf3`, e.g. do `set PATH=%PATH%;C:\iperf3` (or `setx` to make it permanent) before running `npm run dev`. The version of at least 3.17 is weakly recommended for `iperf3` on both server and client (ideally the same version, but that's not strictly necessary). 
+## Platform-specific `WifiActions`
 
-## How wifi-heatmapper works
+All platform-specific code is encapsulated in a `WifiActions` object
+that implements the following functions.
+All functions take a parameter of `PartialHeatmapSettings` that include
+sudo password, iperf server address, and test duration.
+All the functions return an array (possibly empty) of `WifiResults`
+and a human readable error message suitable for display in the user interface or "" for a successful operation.
 
-To get the information, **wifi-heatmapper** invokes
-`iperf3`, `wdutil` and `ioreg` commands
-(or equivalent on different platforms)
-via JS `child_process` and parses the output.
-The webapp then just stores everything in simple JSON
-"database" file in localStorage().
+* `preflightSettings()` Check all the settings to see if the test
+  can proceed. Return a human-readable error message if not.
+* `checkIperfServer()` Check that the iperf3 server is reachable,
+  or return an error message.
+* `findWifiInterface()` Return the platform-specific name of the wifi interface
+* `scanWifi()` Return an array of SSIDs "in the neighborhood",
+  sorted by signal strength. 
+  The current SSID (whether the strongest or not)
+  is marked with `{ currentSSID: true }`
+  _This may be useful for showing when the strongest SSID is not the
+  SSID currently in use._  
+* `setWifi()` Change the current SSID to use a new SSID, specified in the
+  additional `newWifiSettings` parameter.
+  _NB: This function was (partially) implemented on macOS,
+  but does not work on modern versions of macOS (15+).
+  The problem is that user-level code cannot change the SSID
+  without a credential check for **every** new change.
+  This is unworkable: that effort has been abanonded for now._  
+* `getWifi()` Return a single `WifiResults` with all the information
+  available for the current SSID.  
 
 ## Running with higher LOG_LEVEL
 
@@ -167,23 +201,59 @@ Arguably, the zero point of the percentage scale should be
 frequently sits around -90dBm.
 [Room for further experimentation.]
 
-This table shows readings both ways: RSSI (dBm) <-> Percentage
+This table shows readings both ways: RSSI (dBm) <-> Signal strength (%).
+The **Drop in power** column is the decrease in power from
+a reference signal of 100% (-40 dBm).
+For manual calculations, see the
+[RSSI to Percentage](./RSSI-Percentage.xlsx)
+spreadsheet in _/docs_.
 
-| Pct | dBm |   | dBm | Pct | dBm | Pct |
-|-----|-----|---|-----|-----|-----|-----|
-| 0% | -100dBm |  | -100dBm | 0% |  -100dBm | 0% |
-| 10% | -94dBm |  |  -94dBm | 10% |  -90dBm | 17% |
-| 20% | -88dBm |  |  -88dBm | 20% |  -80dBm | 33% |
-| 25% | -85dBm |  |  -85dBm | 25% |  -75dBm | 42% |
-| 30% | -82dBm |  |  -82dBm | 30% |  -70dBm | 50% |
-| 40% | -76dBm |  |  -76dBm | 40% |  -65dBm | 58% |
-| 50% | -70dBm |  |  -70dBm | 50% |  -60dBm | 67% |
-| 60% | -64dBm |  |  -64dBm | 60% |  -55dBm | 75% |
-| 70% | -58dBm |  |  -58dBm | 70% |  -50dBm | 83% |
-| 75% | -55dBm |  |  -55dBm | 75% |  -45dBm | 92% |
-| 80% | -52dBm |  |  -52dBm | 80% |  -40dBm | 100% |
-| 90% | -46dBm |  |  -46dBm | 90% |   |
-| 100% | -40dBm |  |  -40dBm | 100% | |
+| dBm | Percent |  | Percentage | dBm |  | Drop in power |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| -40 | 100% |  | 100% | -40 |  | 100.000000% |
+| -45 | 92% |  | 95% | -43 |  | 50.000000% |
+| -50 | 83% |  | 90% | -46 |  | 25.000000% |
+| -55 | 75% |  | 85% | -49 |  | 12.500000% |
+| -60 | 67% |  | 80% | -52 |  | 6.250000% |
+| -65 | 58% |  | 75% | -55 |  | 3.125000% |
+| -70 | 50% |  | 70% | -58 |  | 1.562500% |
+| -75 | 42% |  | 65% | -61 |  | 0.781250% |
+| -80 | 33% |  | 60% | -64 |  | 0.390625% |
+| -85 | 25% |  | 55% | -67 |  | 0.195313% |
+| -90 | 17% |  | 50% | -70 |  | 0.097656% |
+| -95 | 8% |  | 45% | -73 |  | 0.048828% |
+| -100 | 0% |  | 40% | -76 |  | 0.024414% |
+|  |  |  | 35% | -79 |  | 0.012207% |
+|  |  |  | 30% | -82 |  | 0.006104% |
+|  |  |  | 25% | -85 |  | 0.003052% |
+|  |  |  | 20% | -88 |  | 0.001526% |
+|  |  |  | 15% | -91 |  | 0.000763% |
+|  |  |  | 10% | -94 |  | 0.000381% |
+|  |  |  | 5% | -97 |  | 0.000191% |
+|  |  |  | 0% | -100 |  | 0.000095% |
+
+## What's my SSID?
+
+In Windows 10 & 11 and in Linux (tested in Ubuntu 24.04),
+the APIs to retrieve signal strength also return the SSID and BSSID.
+
+That's not the case in macOS 15 (September 2024) and newer.
+In those newer macOS releases, Apple locks down those two values
+for security purposes, and those values return as "\<redacted>".
+It appears not to be possible to get the real values without
+creating a signed binary that acquires Location Access permissions
+from the user.
+
+There is a partial workaround on macOS, though.
+The `system_profiler` call provides a list of _all_ the SSIDs
+"in the neighborhood" along with their signal strengths.
+The current SSID _IS_ available from the
+`spairport_current_network_information` property of the command's output.
+(The BSSID is still not available, though.)
+
+The `scanWifi()` function looks for the presence of the
+current network from `system_profiler` and saves that value to
+replace "\<redacted>" when returning measured the WifiResults.
 
 ## Localization
 

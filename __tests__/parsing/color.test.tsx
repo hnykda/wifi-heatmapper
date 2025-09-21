@@ -1,5 +1,5 @@
 import { expect, test, beforeAll } from "vitest";
-import { getColorAt, objectToRGBAString } from "../../src/lib/utils-gradient";
+import { getColorAt } from "../../src/lib/utils-gradient";
 import { getDefaults } from "../../src/components/GlobalSettings";
 import { HeatmapSettings } from "../../src/lib/types";
 

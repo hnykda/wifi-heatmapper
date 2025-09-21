@@ -9,13 +9,13 @@
  * * cancelMeasurement (maybe)
  */
 import type { SSEMessageType } from "@/app/api/events/route";
-import { SurveyResult, WifiResults } from "./types";
+import { SurveyResult } from "./types";
 
 const SSE_KEY = "__sseSend__";
 const CANCEL_KEY = "__sseFlag__";
 const STATUS_KEY = "__status__";
 const RESULTS_KEY = "__results__";
-const SSID_KEY = "__ssid__";
+// const SSID_KEY = "__ssid__";
 
 export function registerSSESender(fn: (msg: SSEMessageType) => void) {
   (globalThis as any)[SSE_KEY] = fn;
@@ -69,12 +69,14 @@ export function getSurveyResults(): SurveyResult {
   return (globalThis as any)[RESULTS_KEY];
 }
 
-// === Global copy of the current SSID ===
-
-export function setSSID(value: WifiResults | null) {
-  (globalThis as any)[SSID_KEY] = value;
-}
-
-export function getSSID(): WifiResults | null {
-  return (globalThis as any)[SSID_KEY];
-}
+// Originally used to hold the desired SSID
+// in the `scan-wifi` branch, now abandoned
+// // === Global copy of the current SSID ===
+//
+// export function setSSID(value: WifiResults | null) {
+//   (globalThis as any)[SSID_KEY] = value;
+// }
+//
+// export function getSSID(): WifiResults | null {
+//   return (globalThis as any)[SSID_KEY];
+// }

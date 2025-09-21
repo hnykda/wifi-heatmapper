@@ -31,6 +31,8 @@ test("parsing netsh output", () => {
     txRate: 866.7,
     phyMode: "",
     security: "",
+    currentSSID: false,
+    strongestSSID: null,
   });
 });
 
@@ -97,6 +99,8 @@ test("Handling 'nmcli dev wifi list'", () => {
     txRate: 130,
     phyMode: "",
     security: "WPA1 WPA2",
+    currentSSID: false,
+    strongestSSID: null,
   });
 
   // checking that the "\" and ":" are escaped properly in the SSID
@@ -111,6 +115,8 @@ test("Handling 'nmcli dev wifi list'", () => {
     txRate: 130,
     phyMode: "",
     security: "WPA2",
+    currentSSID: false,
+    strongestSSID: null,
   });
 
   expect(candidates[10]).toStrictEqual({
@@ -124,5 +130,7 @@ test("Handling 'nmcli dev wifi list'", () => {
     txRate: 130,
     phyMode: "",
     security: "WPA2 WPA3",
+    currentSSID: false,
+    strongestSSID: null,
   });
 });

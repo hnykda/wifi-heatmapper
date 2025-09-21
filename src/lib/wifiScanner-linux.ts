@@ -5,20 +5,21 @@ import {
   WifiActions,
 } from "./types";
 import { execAsync } from "./server-utils";
-import { getLogger } from "./logger";
 import {
   channelToBand,
-  delay,
   getDefaultWifiResults,
   percentageToRssi,
   bySignalStrength,
+  normalizeMacAddress,
+  rssiToPercentage,
 } from "./utils";
-import { setSSID, getSSID } from "./server-globals";
-
+import { getLogger } from "./logger";
 const logger = getLogger("wifi-Linux");
 
 export class LinuxWifiActions implements WifiActions {
-  nameOfWifi: string = "";
+  nameOfWifi: string = ""; // OS-specific name of the current wifi interface
+  currentSSIDName: string = ""; // name of the current SSID
+  strongestSSID: WifiResults | null = null; // strongest SSID if not currentSSID
 
   /**
    * preflightSettings - check whether the settings are "primed" to run a test
@@ -48,7 +49,6 @@ export class LinuxWifiActions implements WifiActions {
       reason =
         "iperf3 not installed. Install it,\n or set the iperfServer to 'localhost'.";
     }
-    // console.log(`partialSettings: ${JSON.stringify(settings)}`);
     // test duration must be > 0 - otherwise iperf3 runs forever
     if (settings.testDuration <= 0) {
       reason = "Test duration must be greater than zero.";
@@ -144,7 +144,6 @@ export class LinuxWifiActions implements WifiActions {
 
   /**
    * setWifi(settings, newWifiSettings) - associate with the named SSID
-   *
    * @param settings - same as always
    * @param newWifiSettings - .ssid has the new SSID to associate with
    * @returns either:
@@ -152,47 +151,51 @@ export class LinuxWifiActions implements WifiActions {
    *    or throw("reason explaining the error")
    */
   async setWifi(
-    settings: PartialHeatmapSettings,
-    newWifiSettings: WifiResults,
+    _settings: PartialHeatmapSettings,
+    _newWifiSettings: WifiResults,
   ): Promise<WifiScanResults> {
+    //
+    // NOT IMPLEMENTED - DON'T USE THIS FUNCTION
+    throw "wifi-heatmapper does not implement setWifi()";
+
     const response: WifiScanResults = {
       SSIDs: [],
       reason: "",
     };
-    setSSID(null); // assume a bad outcome
-    let netInfo: WifiResults;
+    return response;
 
-    if (!newWifiSettings) {
-      throw `setWifi error: Empty SSID "${JSON.stringify(newWifiSettings)}`;
-    }
+    // let netInfo: WifiResults;
 
-    console.log(
-      `Setting Wifi SSID on interface ${this.nameOfWifi}: ${newWifiSettings.ssid}`,
-    );
-    // `networksetup -setairportnetwork ${this.nameOfWifi} ${newWifiSettings.ssid}`
-    const { stdout, stderr } = await execAsync(
-      `networksetup -setairportnetwork ${this.nameOfWifi} ${newWifiSettings.ssid}`,
-    );
-    if (stdout != "" || stderr != "") {
-      throw stdout + stderr;
-    }
+    // if (!newWifiSettings) {
+    //   throw `setWifi error: Empty SSID "${JSON.stringify(newWifiSettings)}`;
+    // }
 
-    const start = Date.now();
-    const timeout = 40_000; // 40 seconds
-    while (true) {
-      if (Date.now() > start + timeout) {
-        throw `Can't set wifi to "${newWifiSettings.ssid}": Timed out after ${timeout / 1000} seconds`;
-      }
-      netInfo = await this.getWdutilResults(settings);
-      console.log(`wdutils: SSID: ${netInfo.ssid} txRate: ${netInfo.txRate}`);
-      if (netInfo.txRate != 0) {
-        netInfo.ssid = newWifiSettings.ssid;
-        setSSID(netInfo); // save it globally
-        response.SSIDs.push(netInfo);
-        return response;
-      }
-      await delay(200);
-    }
+    // console.log(
+    //   `Setting Wifi SSID on interface ${this.nameOfWifi}: ${newWifiSettings.ssid}`,
+    // );
+    // // `networksetup -setairportnetwork ${this.nameOfWifi} ${newWifiSettings.ssid}`
+    // const { stdout, stderr } = await execAsync(
+    //   `networksetup -setairportnetwork ${this.nameOfWifi} ${newWifiSettings.ssid}`,
+    // );
+    // if (stdout != "" || stderr != "") {
+    //   throw stdout + stderr;
+    // }
+
+    // const start = Date.now();
+    // const timeout = 40_000; // 40 seconds
+    // while (true) {
+    //   if (Date.now() > start + timeout) {
+    //     throw `Can't set wifi to "${newWifiSettings.ssid}": Timed out after ${timeout / 1000} seconds`;
+    //   }
+    //   netInfo = await this.getWdutilResults(settings);
+    //   console.log(`wdutils: SSID: ${netInfo.ssid} txRate: ${netInfo.txRate}`);
+    //   if (netInfo.txRate != 0) {
+    //     netInfo.ssid = newWifiSettings.ssid;
+    //     response.SSIDs.push(netInfo);
+    //     return response;
+    //   }
+    //   await delay(200);
+    // }
   }
 
   /**
@@ -206,19 +209,113 @@ export class LinuxWifiActions implements WifiActions {
       reason: "",
     };
     try {
-      const netInfo: WifiResults = await this.getWdutilResults(settings);
-      const wifiResults = getSSID(); // SSID we tried to set
-      // if the returned SSID contains "redacted" use the "global SSID"
-      if (wifiResults != null && netInfo.ssid.includes("redacted")) {
-        netInfo.ssid = wifiResults.ssid;
-      }
-      response.SSIDs.push(netInfo);
+      let wlanInterface: string = "";
+      wlanInterface = await inferWifiDeviceIdOnLinux();
+
+      const [linkOutput, infoOutput] = await Promise.all([
+        iwDevLink(wlanInterface, settings.sudoerPassword),
+        iwDevInfo(wlanInterface),
+      ]);
+
+      logger.trace("IW output:", linkOutput);
+      logger.trace("IW info:", infoOutput);
+      const parsed = parseIwOutput(linkOutput, infoOutput);
+      logger.trace("Final WiFi data:", parsed);
+      response.SSIDs.push(parsed);
     } catch (err) {
-      response.reason = `Can't getWifi: ${err}`;
+      response.reason = String(err);
     }
     return response;
   }
 }
+/**
+ * END OF LinuxOSWifiActions - the remainder is a set of helper functions
+ */
+
+async function inferWifiDeviceIdOnLinux(): Promise<string> {
+  logger.debug("Inferring WLAN interface ID on Linux");
+  const { stdout } = await execAsync(
+    "iw dev | awk '$1==\"Interface\"{print $2}' | head -n1",
+  );
+  return stdout.trim();
+}
+
+async function iwDevLink(interfaceId: string, pw: string): Promise<string> {
+  const command = `echo "${pw}" | sudo -S iw dev ${interfaceId} link`;
+  const { stdout } = await execAsync(command);
+  return stdout;
+}
+
+async function iwDevInfo(interfaceId: string): Promise<string> {
+  const command = `iw dev ${interfaceId} info`;
+  const { stdout } = await execAsync(command);
+  return stdout;
+}
+
+/**
+ * parseIwOutput from Linux host
+ * @param linkOutput
+ * @param infoOutput
+ * @returns
+ */
+export function parseIwOutput(
+  linkOutput: string,
+  infoOutput: string,
+): WifiResults {
+  const networkInfo = getDefaultWifiResults();
+  const linkLines = linkOutput.split("\n");
+  linkLines.forEach((line) => {
+    const trimmedLine = line.trim();
+    if (trimmedLine.startsWith("SSID:")) {
+      networkInfo.ssid = trimmedLine.split("SSID:")[1]?.trim() || "";
+    } else if (trimmedLine.startsWith("Connected to")) {
+      networkInfo.bssid = normalizeMacAddress(
+        trimmedLine.split(" ")[2]?.trim() || "",
+      );
+    } else if (trimmedLine.startsWith("signal:")) {
+      const signalMatch = trimmedLine.match(/signal:\s*(-?\d+)\s*dBm/);
+      if (signalMatch) {
+        networkInfo.rssi = parseInt(signalMatch[1]);
+      }
+    } else if (trimmedLine.startsWith("freq:")) {
+      const freqMatch = trimmedLine.match(/freq:\s*(\d+)/);
+      if (freqMatch) {
+        const freqMhz = parseInt(freqMatch[1]);
+        networkInfo.band = Math.round((freqMhz / 1000) * 100) / 100; // Convert MHz to GHz with 2 decimal places
+      }
+    } else if (trimmedLine.startsWith("tx bitrate:")) {
+      const txRate = trimmedLine.split("tx bitrate:")[1]?.trim() || "";
+      networkInfo.txRate = parseFloat(txRate.split(" ")[0]);
+    } else if (trimmedLine.includes("width:")) {
+      const width = trimmedLine.split("width:")[1]?.trim() || "";
+      networkInfo.channelWidth = parseInt(width.split(" ")[0]);
+    }
+  });
+
+  const infoLines = infoOutput.split("\n");
+  infoLines.forEach((line) => {
+    const trimmedLine = line.trim();
+    if (trimmedLine.startsWith("channel")) {
+      const channelMatch = trimmedLine.match(
+        /channel\s+(\d+)\s+\((\d+)\s*MHz\),\s*width:\s*(\d+)\s*MHz/,
+      );
+      if (channelMatch) {
+        networkInfo.channel = parseInt(channelMatch[1]);
+        // Update frequency band if not already set from linkOutput
+        if (!networkInfo.band) {
+          const freqMhz = parseInt(channelMatch[2]);
+          networkInfo.band = Math.round((freqMhz / 1000) * 100) / 100;
+        }
+        networkInfo.channelWidth = parseInt(channelMatch[3]);
+      }
+    }
+  });
+  // Always set signalStrength, too
+  networkInfo.signalStrength = rssiToPercentage(networkInfo.rssi);
+
+  return networkInfo;
+}
+
 /**
  * splitColonDelimited() - split a colon-delimited string
  * @param line - read from nmcli -t command (":" delimited)

@@ -99,7 +99,8 @@ export const getDefaultWifiResults = (): WifiResults => {
     txRate: 0,
     phyMode: "",
     security: "",
-    // activeSSID: false, // formerly: strongest SSID was current SSID; now disregarded
+    currentSSID: false, // true if this is the SSID actually in useact
+    strongestSSID: null, // WifiResults for the strongest SSID in neighborhood
   };
 };
 

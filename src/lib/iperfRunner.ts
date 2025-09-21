@@ -10,14 +10,14 @@ import { execAsync } from "./server-utils";
 import { getCancelFlag, sendSSEMessage } from "./server-globals";
 import { percentageToRssi, toMbps, getDefaultIperfResults } from "./utils";
 import { SSEMessageType } from "@/app/api/events/route";
-import { getLogger } from "./logger";
 import { createWifiActions } from "./wifiScanner";
+import { getLogger } from "./logger";
+const logger = getLogger("iperfRunner");
 
 type TestType = "TCP" | "UDP";
 type TestDirection = "Up" | "Down";
 
-const logger = getLogger("iperfRunner");
-const wifiInfo = await createWifiActions();
+export const wifiActions = await createWifiActions();
 
 const validateWifiDataConsistency = (
   wifiDataBefore: WifiResults,
@@ -92,7 +92,7 @@ export async function runSurveyTests(
   status: string;
 }> {
   // first check the settings and return cogent error if not good
-  const preResults = await wifiInfo.preflightSettings(settings);
+  const preResults = await wifiActions.preflightSettings(settings);
   if (preResults.reason != "") {
     // console.log(`preflightSettings returned: ${preResults}`);
     return { iperfData: null, wifiData: null, status: preResults.reason };
@@ -109,7 +109,7 @@ export async function runSurveyTests(
   }
   // otherwise check if the server is available
   else {
-    const resp = await wifiInfo.checkIperfServer(settings);
+    const resp = await wifiActions.checkIperfServer(settings);
     if (resp.reason != "") {
       performIperfTest = false;
       noIperfTestReason = resp.reason;
@@ -142,7 +142,7 @@ export async function runSurveyTests(
         const duration = settings.testDuration;
         const wifiStrengths: number[] = []; // percentages
 
-        const wifiDataBefore = await wifiInfo.getWifi(settings);
+        const wifiDataBefore = await wifiActions.getWifi(settings);
         console.log(
           `Elapsed time for scan and switch: ${Date.now() - startTime}`,
         );
@@ -172,7 +172,7 @@ export async function runSurveyTests(
         checkForCancel();
         sendSSEMessage(getUpdatedMessage());
 
-        const wifiDataMiddle = await wifiInfo.getWifi(settings);
+        const wifiDataMiddle = await wifiActions.getWifi(settings);
         wifiStrengths.push(wifiDataMiddle.SSIDs[0].signalStrength);
         displayStates.strength = arrayAverage(wifiStrengths).toString();
         checkForCancel();
@@ -199,7 +199,7 @@ export async function runSurveyTests(
         checkForCancel();
         sendSSEMessage(getUpdatedMessage());
 
-        const wifiDataAfter = await wifiInfo.getWifi(settings);
+        const wifiDataAfter = await wifiActions.getWifi(settings);
         wifiStrengths.push(wifiDataAfter.SSIDs[0].signalStrength);
         displayStates.strength = arrayAverage(wifiStrengths).toString();
         checkForCancel();

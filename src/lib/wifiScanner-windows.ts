@@ -15,13 +15,14 @@ import {
   delay,
 } from "./utils";
 import { initLocalization } from "./localization";
-
-const localizer = await initLocalization();
-
+// import { getLogger } from "./logger";
 // const logger = getLogger("wifi-Windows");
 
+const localizer = await initLocalization();
 export class WindowsWifiActions implements WifiActions {
-  nameOfWifi: string = "";
+  nameOfWifi: string = ""; // OS-specific name of the current wifi interface
+  currentSSIDName: string = ""; // name of the current SSID
+  strongestSSID: WifiResults | null = null; // strongest SSID if not currentSSID
 
   /**
    * preflightSettings - check whether the settings are "primed" to run a test
@@ -132,10 +133,16 @@ export class WindowsWifiActions implements WifiActions {
     settings: PartialHeatmapSettings,
     wifiSettings: WifiResults,
   ): Promise<WifiScanResults> {
+    //
+    // NOT IMPLEMENTED - DON'T USE THIS FUNCTION
+    throw "wifi-heatmapper does not implement setWifi()";
+
     const response: WifiScanResults = {
       SSIDs: [],
       reason: "",
     };
+    return response;
+
     const profiles = await getProfiles();
     const theProfile = await getProfileFromSSID(profiles, wifiSettings.ssid);
 
@@ -181,6 +188,9 @@ export class WindowsWifiActions implements WifiActions {
     return response;
   }
 }
+/**
+ * END OF WindowsOSWifiActions - the remainder is a set of helper functions
+ */
 
 function assignWindowsNetworkInfoValue<K extends keyof WifiResults>(
   networkInfo: WifiResults,
