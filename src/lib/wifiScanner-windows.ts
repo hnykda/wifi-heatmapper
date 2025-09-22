@@ -115,6 +115,12 @@ export class WindowsWifiActions implements WifiActions {
     try {
       const { stdout } = await execAsync(`netsh wlan show networks mode=bssid`);
       response.SSIDs = parseNetshNetworks(stdout);
+      const currSSIDResults = await this.getWifi(_settings);
+      // console.log(`getWifi : ${JSON.stringify(currSSIDResults.SSIDs[0])}`);
+      const currSSID = response.SSIDs.filter(
+        (item) => item.bssid == currSSIDResults.SSIDs[0].bssid,
+      );
+      currSSID[0].currentSSID = true;
     } catch (err) {
       response.reason = `Cannot get wifi info: ${err}"`;
     }
@@ -258,7 +264,7 @@ export function parseNetshNetworks(text: string): WifiResults[] {
     if (key == "bssid") {
       currentBSSID = val;
       wifiResult.ssid = currentSSID;
-      wifiResult.bssid = currentBSSID;
+      wifiResult.bssid = normalizeMacAddress(currentBSSID);
       wifiResult.security = currentSecurity;
       continue;
     }

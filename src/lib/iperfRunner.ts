@@ -137,6 +137,7 @@ export async function runSurveyTests(
 
     // Scan the wifi neighborhood, retrieve the ssidName from the current
     const ssids = await wifiActions.scanWifi(settings);
+    // console.log(`SSIDs: ${JSON.stringify(ssids, null, 2)}`);
     const thisSSID = ssids.SSIDs.filter((item) => item.currentSSID);
     const ssidName = thisSSID[0].ssid;
 

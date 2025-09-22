@@ -23,7 +23,7 @@ function checkEachItem(item: WifiResults) {
 test("Parsing English Win11 'netsh ... networks'", () => {
   const netsh_output = fs.readFileSync(
     path.join(__dirname, "../data/win-netsh-networks-en.txt"),
-    "utf-8",
+    "utf-8"
   );
   const results = parseNetshNetworks(netsh_output);
 
@@ -33,7 +33,7 @@ test("Parsing English Win11 'netsh ... networks'", () => {
 
   expect(results[0]).toStrictEqual({
     ssid: "SSID-1",
-    bssid: "fe:dc:ba:09:87:03",
+    bssid: "fedcba098703",
     channel: 6,
     phyMode: "802.11n",
     security: "Open",
@@ -54,7 +54,7 @@ test("Parsing English Win11 'netsh ... networks'", () => {
 test("Parsing English Win11 'netsh ... networks'-Blank SSID", () => {
   const netsh_output = fs.readFileSync(
     path.join(__dirname, "../data/win-netsh-networks-blank-ssid-en.txt"),
-    "utf-8",
+    "utf-8"
   );
   const results = parseNetshNetworks(netsh_output);
 
@@ -64,7 +64,7 @@ test("Parsing English Win11 'netsh ... networks'-Blank SSID", () => {
 
   expect(results[0]).toStrictEqual({
     ssid: "SSID-2",
-    bssid: "fe:dc:ba:09:87:03",
+    bssid: "fedcba098703",
     channel: 11,
     phyMode: "802.11ax",
     security: "Open",
@@ -85,7 +85,7 @@ test("Parsing English Win11 'netsh ... networks'-Blank SSID", () => {
 test("Parsing French Win11 'netsh ... networks'", () => {
   const netsh_output = fs.readFileSync(
     path.join(__dirname, "../data/win-netsh-networks-fr.txt"),
-    "utf-8",
+    "utf-8"
   );
   const results = parseNetshNetworks(netsh_output);
 
@@ -95,7 +95,7 @@ test("Parsing French Win11 'netsh ... networks'", () => {
 
   expect(results[0]).toStrictEqual({
     ssid: "SSID-3",
-    bssid: "fe:dc:ba:09:87:07",
+    bssid: "fedcba098707",
     channel: 1,
     phyMode: "802.11ax",
     security: "Ouvrir",
@@ -116,7 +116,7 @@ test("Parsing French Win11 'netsh ... networks'", () => {
 test("Parsing German Win11 'netsh ... networks'", () => {
   const netsh_output = fs.readFileSync(
     path.join(__dirname, "../data/win-netsh-networks-de.txt"),
-    "utf-8",
+    "utf-8"
   );
   const results = parseNetshNetworks(netsh_output);
 
@@ -126,7 +126,7 @@ test("Parsing German Win11 'netsh ... networks'", () => {
 
   expect(results[0]).toStrictEqual({
     ssid: "SSID-4",
-    bssid: "fe:dc:ba:09:87:06",
+    bssid: "fedcba098706",
     channel: 6,
     phyMode: "802.11n",
     security: "Offen",
@@ -147,7 +147,7 @@ test("Parsing German Win11 'netsh ... networks'", () => {
 test("Parsing Italian Win11 'netsh ... networks'", () => {
   const netsh_output = fs.readFileSync(
     path.join(__dirname, "../data/win-netsh-networks-it.txt"),
-    "utf-8",
+    "utf-8"
   );
   const results = parseNetshNetworks(netsh_output);
 
@@ -157,7 +157,7 @@ test("Parsing Italian Win11 'netsh ... networks'", () => {
 
   expect(results[0]).toStrictEqual({
     ssid: "SSID-6",
-    bssid: "fe:dc:ba:09:87:09",
+    bssid: "fedcba098709",
     channel: 6,
     phyMode: "802.11n",
     security: "Aperta",
@@ -178,7 +178,7 @@ test("Parsing Italian Win11 'netsh ... networks'", () => {
 test("Parsing Spanish Win11 'netsh ... networks'", () => {
   const netsh_output = fs.readFileSync(
     path.join(__dirname, "../data/win-netsh-networks-es.txt"),
-    "utf-8",
+    "utf-8"
   );
   const results = parseNetshNetworks(netsh_output);
 
@@ -188,7 +188,7 @@ test("Parsing Spanish Win11 'netsh ... networks'", () => {
 
   expect(results[0]).toStrictEqual({
     ssid: "SSID-3",
-    bssid: "fe:dc:ba:09:87:06",
+    bssid: "fedcba098706",
     channel: 6,
     phyMode: "802.11n",
     security: "Abierta",
