@@ -131,9 +131,8 @@ export class LinuxWifiActions implements WifiActions {
     try {
       // Get the Wifi information from system_profiler
       const result = await execAsync(`nmcli -t dev wifi list`);
-      const nmcliOutput = JSON.parse(result.stdout);
 
-      response.SSIDs = getCandidateSSIDs(nmcliOutput);
+      response.SSIDs = getCandidateSSIDs(result.stdout);
       // console.log(`Local SSIDs: ${response.SSIDs.length}`);
       // console.log(`Local SSIDs: ${JSON.stringify(response.SSIDs, null, 2)}`);
     } catch (err) {
@@ -367,6 +366,7 @@ export const getCandidateSSIDs = (nmcliData: string): WifiResults[] => {
 
     // now do something with the columns
     const candidate = getDefaultWifiResults();
+    candidate.currentSSID = cols[0] == "*";
     candidate.bssid = cols[1];
     candidate.ssid = cols[2];
     candidate.channel = parseInt(cols[4]);
