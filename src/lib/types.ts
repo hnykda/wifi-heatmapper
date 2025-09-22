@@ -91,7 +91,7 @@ export interface HeatmapSettings {
   minOpacity: number;
   blur: number;
   gradient: Gradient;
-  // these two props were use for the "scan wifi" effort
+  // these two props were used for the "scan-wifi" branch
   // that has been (temporarily?) abandoned
   // sameSSID: string; // "same", "best"
   // ignoredSSIDs: string[];

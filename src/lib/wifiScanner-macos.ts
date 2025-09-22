@@ -144,7 +144,7 @@ export class MacOSWifiActions implements WifiActions {
       jsonResults = JSON.parse(result.stdout);
 
       // jsonResults holds the Wifi environment from system_profiler
-      response.SSIDs = getNeighborSSIDs(
+      const neighbors = getNeighborSSIDs(
         jsonResults,
         currentIf,
         // _settings.ignoredSSIDs,
@@ -157,6 +157,8 @@ export class MacOSWifiActions implements WifiActions {
       if (currentSSID) {
         this.currentSSIDName = currentSSID[0].ssid;
       }
+      mergeSSIDs(neighbors, currentSSID);
+      response.SSIDs = neighbors;
     } catch (err) {
       response.reason = `Cannot get wifi info: ${err}"`;
     }

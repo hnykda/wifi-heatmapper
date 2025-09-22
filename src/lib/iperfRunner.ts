@@ -135,9 +135,10 @@ export async function runSurveyTests(
     // This is too hard on macOS (too many credential prompts)
     // to be practical.
 
-    // scan the neighborhood, anyway
-    // ensures this.currentSSIDName is set
-    await wifiActions.scanWifi(settings);
+    // Scan the wifi neighborhood, retrieve the ssidName from the current
+    const ssids = await wifiActions.scanWifi(settings);
+    const thisSSID = ssids.SSIDs.filter((item) => item.currentSSID);
+    const ssidName = thisSSID[0].ssid;
 
     while (attempts < maxRetries) {
       attempts++;
@@ -145,6 +146,7 @@ export async function runSurveyTests(
         const server = settings.iperfServerAdrs;
         const duration = settings.testDuration;
         const wifiStrengths: number[] = []; // percentages
+        displayStates.header = `Measuring Wi-Fi (${ssidName})`;
 
         const wifiDataBefore = await wifiActions.getWifi(settings);
         console.log(

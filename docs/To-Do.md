@@ -7,13 +7,15 @@ Random observations and questions that arise at the start of the project
 Ideas for making the program better - in no particular order:
 
 * Add a "Add notation" with ctl/cmd-click to place a notation on a floor plan.
-  Saved as "notations" array in the HeatampSettings
+  Saved as "notations" array (similar to SurveyPoints array)
+  in the HeatmapSettings
 * Automatically add the background image name and
   date/time (of the latest survey point?) to the canvas
   so that the information is preserved in a screen shot
 * Use the `scanWifi()` information to add a `strongestSSID` WifiResults
   to the SurveyPoint to indicate that there is a stronger SSID
   in the neighborhood than the SSID currently being used
+* If no TCP tests, set iperfData to null in the SurveyPoint
 * Export `wifi-heatmapper-imagename` and the image itself to a saved file so it can be loaded later
 * A click on the `Floorplan` pane should immediately display an
   empty dot (no color) to indicate that's where the click was.
@@ -25,39 +27,6 @@ Ideas for making the program better - in no particular order:
   This helps the user determine if they need
   more measurements (finer granularity) for the map.
 * Bundle this into an installable (electron?) app so it can be easily installed on a tablet. Might also allow the app to get Localization permissions on macOS 15 and above so it could show the SSID/AP Name, etc.
-* "Blink"" WiFi off and then back on before measurement to improve the values.
-  This might give the Wi-Fi driver a chance to select a better Wi-Fi SSID
-  Use case: you have used SSID-A and SSID-B in the past. You start the test near SSID-A, but subsequent survey points get farther and farther away - and closer to
-  SSID-B. Since your device tends to select the strongest signal, "blinking" the Wi-FI
-  might choose SSID-B automatically.
-  (The current behavior is that the measured signal level gets lower and lower until
-  manually switching to SSID-B.)
-* This behavior would probably require some kind of "Use this SSID" / "Use best SSID"
-  option, since blinking the Wi-Fi frequently adds 10-12 seconds to each measurement.
-* Change `popupDetails` to look like this.
-  Maybe only display strongest SSID and signal strength.
-
-| Stat | Value |
-| ---- | ----- |
-| ID | Point ###  |
-| SSID | abcdef |
-| Signal Strength | 50% |
-| RSSI | -70 dBm |
-| Channel | 6 |
-| Band | 2.4 GHz |
-| BSSID | ##:##:##:##:##:## |
-| AP Name | |
-|  |  |
-| Strongest SSID | abcdef-5 |
-| Strongest Strength | 97% |
-| Strongest RSSI | -42 dBm |
-| Strongest Channel | 144 |
-| Strongest Band | 5 GHz |
-| Strongest BSSID | ##:##:##:##:##:## |
-| TCP Download | 0.00 Mbps |
-| TCP Upload | 0.00 Mbps |
-| Position | X: 274, Y: 47 |
-| Created  | 9/16/2025, 9:39:44 PM |
 
 ## Bugs
 
@@ -75,7 +44,6 @@ Ideas for making the program better - in no particular order:
   with the server (perhaps because `npm run dev` has been stopped)
 * Fix display of BSSID; Windows parsing test code not updated;
   macOS shows `<R-ED-AC-TED>` or some such nonsense (should be "Not available")
-* Fix display of dBm in the heatmap scale when not showing as %. Currently, it shows 100dBm (positive number) as green, with 0 dBm as red. The scale should use the limits of the rssiToPercentage() function.
 * If browser window is at 30%, the TabPanel looks too small, yet the FloorPlan is OK.
   Do we need to give an indication of this?
 
@@ -166,3 +134,33 @@ Ideas for making the program better - in no particular order:
 * Test code from wifiScanner_windows should be moved to a separate \_test.ts file [DONE]
 * Make the app more user-friendly and informative (step by step wizard for the measurements) [DONE for now]
 * Add leaflet to make the maps interactive [NOT FOR NOW]
+* Change `PopupDetails` to look like this.
+  May link to the strongest SSID in another PopupDetails.
+  | Stat | Value |
+  | ---- | ----- |
+  | ID | Point ###  |
+  | SSID | abcdef |
+  | Signal Strength | 50% |
+  | RSSI | -70 dBm |
+  | Channel | 6 |
+  | Band | 2.4 GHz |
+  | BSSID | ##:##:##:##:##:## |
+  | AP Name | |
+  |  |  |
+  | Strongest SSID |<link to another PopupDetail ?> |
+  | TCP Download | 0.00 Mbps |
+  | TCP Upload | 0.00 Mbps |
+  | Position | X: 274, Y: 47 |
+  | Created  | 9/16/2025, 9:39:44 PM |
+
+* (Abandoned )"Blink"" WiFi off and then back on before measurement to improve the values.
+  This might give the Wi-Fi driver a chance to select a better Wi-Fi SSID
+  Use case: you have used SSID-A and SSID-B in the past. You start the test near SSID-A, but subsequent survey points get farther and farther away - and closer to
+  SSID-B. Since your device tends to select the strongest signal, "blinking" the Wi-FI
+  might choose SSID-B automatically.
+  (The current behavior is that the measured signal level gets lower and lower until
+  manually switching to SSID-B.)
+* This behavior would probably require some kind of "Use this SSID" / "Use best SSID"
+  option, since blinking the Wi-Fi frequently adds 10-12 seconds to each measurement.
+* Update the NewToast to display the current SSID name
+* Fix display of dBm in the heatmap scale when not showing as %. Currently, it shows 100dBm (positive number) as green, with 0 dBm as red. The scale should use the limits of the rssiToPercentage() function.
