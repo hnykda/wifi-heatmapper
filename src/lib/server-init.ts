@@ -64,6 +64,7 @@ export async function initServer() {
     });
 
     copyToMediaFolder("EmptyFloorPlan.png"); // seed with empty floorplan
+    copyToMediaFolder("House & Garage.jpg"); // seed with generic Google map view
 
     // only load the localization code if it's running on Windows
     if (os.platform() == "win32") {

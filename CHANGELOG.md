@@ -4,10 +4,23 @@ _This section follows the precepts of [Keep a Changelog](https://keepachangelog.
 
 ## [Unreleased]
 
-* First cut at `refactor-wifi` branch. _wifiScanner.ts_ is now a factory
+* Updated screen shot on README.md to impose a heat map on a (fake) 
+  Google Maps image of home and garage.
+* Factored wifi into separate `WifiActions`.
+  _wifiScanner.ts_ is now a factory
   that returns an OS-specific object with functions for preflightSettings(),
   checkIperfServer(), scanWifiSettings(), setWifi(), and getWifi()
-* These functions are defined in the _wifiScanner-xxxx.ts_ files
+  These functions are defined in the _wifiScanner-xxxx.ts_ files
+* Updated _wifiScanner-macos.ts_ to use `system_profiler` to retrieve
+  name of the current SSID. Still cannot get its BSSID.
+* Removed (cause to throw an error) `setWifi()` since the entire
+  `scan-wifi` branch was too hard to implement.
+  See Theory of Operations for details.
+* Updated _wifiScanner-linux.ts_ to implement `WifiActions`.
+  Includes new tests for parsing `nmcli ...`
+* Re-ordered `PopupDetails` to list most important fields first
+* Changed all public-facing names to use "Wi-Fi" - the (mostly)
+  accepted "official" name.
 * Will probably become version 0.3.5
 
 ---
