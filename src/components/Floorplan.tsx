@@ -369,11 +369,8 @@ export default function ClickableFloorplan(): ReactNode {
         Interactive Floorplan
       </h2>
       <div className="p-2 rounded-md text-sm">
-        <p>Click on the plan to start a new measurement.</p>
-        <p>
-          Click on existing points to see the measurement details. You need at
-          least two active (not disabled) measurements.
-        </p>
+        <p>Click on the floor plan to start a new measurement.</p>
+        <p>Click on existing points to see the measurement details.</p>
 
         <div className="space-y-2 flex flex-col">
           {settings.surveyPoints?.length > 0 && (

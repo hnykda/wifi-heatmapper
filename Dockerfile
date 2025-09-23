@@ -5,6 +5,18 @@
 # You’d need to run the app directly on the host OS or in a Linux VM
 # (like WSL2 or a remote dev server).
 
+# To run this container:
+
+#    docker build -t wifi-heatmapper .
+
+#    docker run \
+#    --net="host" \
+#    --privileged \
+#    -p 3000:3000 \
+#    -v ./datas/data:/app/data \
+#    -v ./datas/media:/app/public/media \
+#    wifi-heatmapper
+
 # Use Node.js base image
 FROM node:22-alpine
 

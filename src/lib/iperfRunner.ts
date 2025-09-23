@@ -8,7 +8,12 @@ import {
 // import { scanWifi, blinkWifi } from "./wifiScanner";
 import { execAsync } from "./server-utils";
 import { getCancelFlag, sendSSEMessage } from "./server-globals";
-import { percentageToRssi, toMbps, getDefaultIperfResults } from "./utils";
+import {
+  percentageToRssi,
+  toMbps,
+  getDefaultIperfResults,
+  delay,
+} from "./utils";
 import { SSEMessageType } from "@/app/api/events/route";
 import { createWifiActions } from "./wifiScanner";
 import { getLogger } from "./logger";
@@ -174,6 +179,7 @@ export async function runSurveyTests(
           );
           displayStates.tcp = `${toMbps(newIperfData.tcpDownload.bitsPerSecond)} / ${toMbps(newIperfData.tcpUpload.bitsPerSecond)} Mbps`;
         } else {
+          await delay(500);
           displayStates.tcp = noIperfTestReason;
         }
         checkForCancel();
@@ -201,6 +207,7 @@ export async function runSurveyTests(
           );
           displayStates.udp = `${toMbps(newIperfData.udpDownload.bitsPerSecond)} / ${toMbps(newIperfData.udpUpload.bitsPerSecond)} Mbps`;
         } else {
+          await delay(500);
           displayStates.udp = noIperfTestReason;
         }
         checkForCancel();

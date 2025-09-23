@@ -63,9 +63,12 @@ export async function initServer() {
       logger.error("Failed to log system information:", error);
     });
 
-    copyToMediaFolder("EmptyFloorPlan.png"); // seed with empty image
-    await initLocalization(); // load up the localization files
+    copyToMediaFolder("EmptyFloorPlan.png"); // seed with empty floorplan
 
+    // only load the localization code if it's running on Windows
+    if (os.platform() == "win32") {
+      await initLocalization(); // load up the localization files
+    }
     initialized = true;
     // logger.info(`Server initialization complete.`);
   }
