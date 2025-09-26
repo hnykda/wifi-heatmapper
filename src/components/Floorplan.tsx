@@ -176,13 +176,11 @@ export default function ClickableFloorplan(): ReactNode {
 
     // console.log(`Result from results API: ${JSON.stringify(result)}`);
     if (result.state === "error") {
-      setIsToastOpen(false);
-      setAlertMessage(`${result.explanation}`);
+      cleanupFailedTest(`${result.explanation}`);
       return;
     }
     if (!result.results!.wifiData || !result.results!.iperfData) {
-      setIsToastOpen(false);
-      setAlertMessage("Measurement cancelled");
+      cleanupFailedTest("Measurement cancelled");
       return;
     }
     const { wifiData, iperfData } = result.results!;
@@ -199,6 +197,22 @@ export default function ClickableFloorplan(): ReactNode {
     };
     addSurveyPoint(newPoint, x, y, settings);
   };
+
+  /**
+   * cleanupFailedTest() - if something went wrong during the measurement,
+   *   close NewToast
+   *   remove the empty survey point by re-drawing the canvas
+   *     (without the prospective empty survey point)
+   *   set the proper alert message
+   * @param errorMessage Message to reuturn
+   * @returns void
+   */
+  function cleanupFailedTest(errorMessage: string): void {
+    setIsToastOpen(false);
+    drawCanvas(); // restore the points on the canvas (not the empty point)
+    setAlertMessage(errorMessage);
+    return;
+  }
 
   function addSurveyPoint(
     newPoint: SurveyPoint,
