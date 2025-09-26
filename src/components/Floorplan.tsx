@@ -9,7 +9,7 @@ import {
 } from "../lib/utils";
 import { getColorAt, objectToRGBAString } from "@/lib/utils-gradient";
 import { useSettings } from "./GlobalSettings";
-import { HeatmapSettings, SurveyPoint, SurveyResult } from "../lib/types";
+import { HeatmapSettings, SurveyResult, SurveyPoint } from "../lib/types";
 import { Toaster } from "@/components/ui/toaster";
 import NewToast from "@/components/NewToast";
 import PopupDetails from "@/components/PopupDetails";
@@ -250,73 +250,127 @@ export default function ClickableFloorplan(): ReactNode {
    * @param points
    */
   const drawPoints = (points: SurveyPoint[], ctx: CanvasRenderingContext2D) => {
-    points.forEach((point) => drawPoint(point, ctx));
+    const canvas = canvasRef.current;
+    points.forEach((point) => drawPoint(point, ctx, { bgW: canvas!.width }));
   };
 
-  const drawPoint = (point: SurveyPoint, ctx: CanvasRenderingContext2D) => {
-    if (point.wifiData) {
-      const wifiInfo = point.wifiData;
-
-      // Draw the main point
-      ctx.beginPath();
-      ctx.arc(point.x, point.y, 8, 0, 2 * Math.PI);
-      ctx.fillStyle = point.isEnabled
-        ? objectToRGBAString(
-            getColorAt(
-              rssiToPercentage(wifiInfo.rssi) / 100,
-              settings.gradient,
-            ),
-          )
-        : "rgba(156, 163, 175, 0.9)";
-      ctx.fill();
-
-      // Draw a grey border
-      ctx.strokeStyle = "grey";
-      ctx.lineWidth = 2;
-      ctx.closePath();
-      ctx.stroke();
-
-      const annotation = `${wifiInfo.signalStrength}%`;
-
-      ctx.font = "12px Arial";
-      const lines = annotation.split("\n");
-      const lineHeight = 14;
-      const padding = 4;
-      const boxWidth =
-        Math.max(...lines.map((line) => ctx.measureText(line).width)) +
-        padding * 2;
-      const boxHeight = lines.length * lineHeight + padding * 2;
-
-      // Draw shadow
-      ctx.shadowColor = "rgba(0, 0, 0, 0.2)";
-      ctx.shadowBlur = 4;
-      ctx.shadowOffsetX = 2;
-      ctx.shadowOffsetY = 2;
-
-      // Draw bounding box with increased transparency
-      ctx.fillStyle = "rgba(255, 255, 255, 0.6)";
-      ctx.fillRect(point.x - boxWidth / 2, point.y + 15, boxWidth, boxHeight);
-
-      // Reset shadow for text
-      ctx.shadowColor = "transparent";
-      ctx.shadowBlur = 0;
-      ctx.shadowOffsetX = 0;
-      ctx.shadowOffsetY = 0;
-
-      // Draw text
-      ctx.fillStyle = "#1F2937";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "top";
-
-      lines.forEach((line, index) => {
-        ctx.fillText(
-          line,
-          point.x,
-          point.y + 15 + padding + index * lineHeight,
-        );
-      });
-    }
+  type ScaleOpts = {
+    bgW: number; // background width in CSS px
+    crisp1px?: boolean; // keep borders at ~1px regardless of scale
+    dpr?: number; // pass window.devicePixelRatio
   };
+
+  function drawPoint(
+    point: SurveyPoint,
+    ctx: CanvasRenderingContext2D,
+    opts: ScaleOpts,
+  ) {
+    if (!point.wifiData) return;
+
+    const { bgW, crisp1px = true, dpr = window.devicePixelRatio || 1 } = opts;
+
+    // All sizes derived from bg width
+    const R = 0.008 * bgW; // marker radius = 0.8% of bg width
+    const BORDER = crisp1px ? 1 / dpr : 0.002 * bgW; // ~1px or 0.2% of bg width
+    const FONT = 0.012 * bgW; // 1.2% of bg width
+    const LINE_H = 1.2 * FONT;
+    const PAD = 0.004 * bgW;
+    const LABEL_OFFSET_Y = 0.015 * bgW;
+    const SHADOW_BLUR = 0.004 * bgW;
+    const SHADOW_OFF = 0.002 * bgW;
+
+    const wifiInfo = point.wifiData;
+
+    // Main point
+    ctx.beginPath();
+    ctx.arc(point.x, point.y, R, 0, 2 * Math.PI);
+    ctx.fillStyle = point.isEnabled
+      ? objectToRGBAString(
+          getColorAt(rssiToPercentage(wifiInfo.rssi) / 100, settings.gradient),
+        )
+      : "rgba(156, 163, 175, 0.9)";
+    ctx.fill();
+
+    // Border
+    ctx.strokeStyle = "grey";
+    ctx.lineWidth = BORDER;
+    ctx.closePath();
+    ctx.stroke();
+
+    // Annotation
+    const annotation = `${wifiInfo.signalStrength}%`;
+    ctx.font = `${FONT}px Arial`;
+    const lines = annotation.split("\n");
+    const boxWidth =
+      Math.max(...lines.map((line) => ctx.measureText(line).width)) + PAD * 2;
+    const boxHeight = lines.length * LINE_H + PAD * 2;
+
+    // Shadow
+    ctx.shadowColor = "rgba(0, 0, 0, 0.2)";
+    ctx.shadowBlur = SHADOW_BLUR;
+    ctx.shadowOffsetX = SHADOW_OFF;
+    ctx.shadowOffsetY = SHADOW_OFF;
+
+    // Label box
+    ctx.fillStyle = "rgba(255, 255, 255, 0.6)";
+    ctx.fillRect(
+      point.x - boxWidth / 2,
+      point.y + LABEL_OFFSET_Y,
+      boxWidth,
+      boxHeight,
+    );
+
+    // Reset shadow
+    ctx.shadowColor = "transparent";
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
+
+    // Text
+    ctx.fillStyle = "#1F2937";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
+    lines.forEach((line, i) => {
+      ctx.fillText(line, point.x, point.y + LABEL_OFFSET_Y + PAD + i * LINE_H);
+    });
+  }
+
+  /**
+   * drawEmptyPoint() - draw an empty point, grey boundary to be filled
+   *   in when the data returns.
+   * @param point
+   * @param ctx
+   * @param opts
+   */
+  function drawEmptyPoint(
+    point: SurveyPoint,
+    ctx: CanvasRenderingContext2D,
+    opts: ScaleOpts,
+  ) {
+    const { R, BORDER } = sizesFrom(opts);
+
+    // ensure no inherited shadows
+    ctx.shadowColor = "transparent";
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
+
+    ctx.beginPath();
+    ctx.arc(point.x, point.y, R, 0, Math.PI * 2);
+    ctx.fillStyle = "#fff";
+    ctx.fill();
+    ctx.strokeStyle = "grey";
+    ctx.lineWidth = BORDER;
+    ctx.stroke();
+  }
+
+  function sizesFrom(opts: ScaleOpts) {
+    const dpr = opts.dpr ?? (window.devicePixelRatio || 1);
+    return {
+      R: 0.008 * opts.bgW,
+      BORDER: (opts.crisp1px ?? true) ? 1 / dpr : 0.002 * opts.bgW,
+    };
+  }
 
   /**
    * handleCanvasClick - a click anywhere in the canvas
@@ -341,9 +395,9 @@ export default function ClickableFloorplan(): ReactNode {
     const y = (event.clientY - rect.top) / scale;
     setSurveyClick({ x: x, y: y }); // retain the X/Y of the clicked point
 
-    // Find closest surveyPoint (within 10 units?)
+    // Find closest surveyPoint (within 20 units?)
     const clickedPoint = settings.surveyPoints.find(
-      (point) => Math.sqrt((point.x - x) ** 2 + (point.y - y) ** 2) < 10,
+      (point) => Math.sqrt((point.x - x) ** 2 + (point.y - y) ** 2) < 20,
     );
 
     // if they clicked an existing point, set the selected point
@@ -357,6 +411,9 @@ export default function ClickableFloorplan(): ReactNode {
       });
     } else {
       // otherwise, start a measurement
+      drawEmptyPoint({ x, y } as SurveyPoint, canvas.getContext("2d")!, {
+        bgW: canvas!.width,
+      });
       setSelectedPoint(null);
       setAlertMessage("");
       setIsToastOpen(true);

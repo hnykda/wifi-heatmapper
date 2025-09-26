@@ -23,7 +23,7 @@ function checkEachItem(item: WifiResults) {
 test("Parsing English Win11 'netsh ... networks'", () => {
   const netsh_output = fs.readFileSync(
     path.join(__dirname, "../data/win-netsh-networks-en.txt"),
-    "utf-8"
+    "utf-8",
   );
   const results = parseNetshNetworks(netsh_output);
 
@@ -54,7 +54,7 @@ test("Parsing English Win11 'netsh ... networks'", () => {
 test("Parsing English Win11 'netsh ... networks'-Blank SSID", () => {
   const netsh_output = fs.readFileSync(
     path.join(__dirname, "../data/win-netsh-networks-blank-ssid-en.txt"),
-    "utf-8"
+    "utf-8",
   );
   const results = parseNetshNetworks(netsh_output);
 
@@ -85,7 +85,7 @@ test("Parsing English Win11 'netsh ... networks'-Blank SSID", () => {
 test("Parsing French Win11 'netsh ... networks'", () => {
   const netsh_output = fs.readFileSync(
     path.join(__dirname, "../data/win-netsh-networks-fr.txt"),
-    "utf-8"
+    "utf-8",
   );
   const results = parseNetshNetworks(netsh_output);
 
@@ -116,7 +116,7 @@ test("Parsing French Win11 'netsh ... networks'", () => {
 test("Parsing German Win11 'netsh ... networks'", () => {
   const netsh_output = fs.readFileSync(
     path.join(__dirname, "../data/win-netsh-networks-de.txt"),
-    "utf-8"
+    "utf-8",
   );
   const results = parseNetshNetworks(netsh_output);
 
@@ -147,7 +147,7 @@ test("Parsing German Win11 'netsh ... networks'", () => {
 test("Parsing Italian Win11 'netsh ... networks'", () => {
   const netsh_output = fs.readFileSync(
     path.join(__dirname, "../data/win-netsh-networks-it.txt"),
-    "utf-8"
+    "utf-8",
   );
   const results = parseNetshNetworks(netsh_output);
 
@@ -178,7 +178,7 @@ test("Parsing Italian Win11 'netsh ... networks'", () => {
 test("Parsing Spanish Win11 'netsh ... networks'", () => {
   const netsh_output = fs.readFileSync(
     path.join(__dirname, "../data/win-netsh-networks-es.txt"),
-    "utf-8"
+    "utf-8",
   );
   const results = parseNetshNetworks(netsh_output);
 

@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { parseIwOutput } from "../../src/lib/wifiScanner-linux-OLD";
+import { parseIwOutput } from "../../src/lib/wifiScanner-linux";
 import {
   splitColonDelimited,
   getCandidateSSIDs,

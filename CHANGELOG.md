@@ -4,24 +4,38 @@ _This section follows the precepts of [Keep a Changelog](https://keepachangelog.
 
 ## [Unreleased]
 
-* Updated screen shot on README.md to impose a heat map on a (fake) 
-  Google Maps image of home and garage.
-* Factored wifi into separate `WifiActions`.
+---
+
+## Version 0.3.5 - 2025-09-25
+
+* Scale each survey point in the Floorplan to make them "large enough"
+  relative to the width of the background image/floorplan.
+  This makes them more visually prominent (survey points don't display as
+  "tiny dots"), and easier to touch on a touch screen.
+* Floorplan now checks a click to see if it is less than 20 units (not 10) from an
+  existing survey point to determine if that was the point that was clicked.
+* Each click for a measurement now leaves an empty circle
+  to indicate the location of the click.
+  The circle gets filled in when the measurement completes.
+* Updated screen shot on README.md to use a heat map drawn on a (fake)
+  image of home and garage in the style of Google Maps.
+* Include that Home & Garage.jpg image as on of the default images.
+* Factor wifi into separate `WifiActions`.
   _wifiScanner.ts_ is now a factory
   that returns an OS-specific object with functions for preflightSettings(),
   checkIperfServer(), scanWifiSettings(), setWifi(), and getWifi()
   These functions are defined in the _wifiScanner-xxxx.ts_ files
 * Updated _wifiScanner-macos.ts_ to use `system_profiler` to retrieve
   name of the current SSID. Still cannot get its BSSID.
-* Removed (cause to throw an error) `setWifi()` since the entire
-  `scan-wifi` branch was too hard to implement.
-  See Theory of Operations for details.
+* The `setWifi()` function now throws an error for all platforms.
+  This function is no longer implemented (it was a hold-over) from
+  the `scan-wifi` branch that had too many constraints.
+  See [Theory of Operations](./docs/Theory_of_Operation.md#what-are-the-ssid-and-bssid-on-macos?) for more info.
 * Updated _wifiScanner-linux.ts_ to implement `WifiActions`.
   Includes new tests for parsing `nmcli ...`
-* Re-ordered `PopupDetails` to list most important fields first
-* Changed all public-facing names to use "Wi-Fi" - the (mostly)
+* Re-ordered items in `PopupDetails` to show most important fields first
+* Changed all public-facing names to use the term "Wi-Fi" - the (mostly)
   accepted "official" name.
-* Will probably become version 0.3.5
 
 ---
 

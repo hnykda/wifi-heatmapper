@@ -6,27 +6,34 @@ Random observations and questions that arise at the start of the project
 
 Ideas for making the program better - in no particular order:
 
-* Add a "Add notation" with ctl/cmd-click to place a notation on a floor plan.
+* Add a "Add notation" with ctl/cmd-click to place a notation
+  at an X/Y position on a floor plan.
   Saved as "notations" array (similar to SurveyPoints array)
   in the HeatmapSettings
-* Automatically add the background image name and
+* Automatically add the floorplan/background image name and
   date/time (of the latest survey point?) to the canvas
   so that the information is preserved in a screen shot
 * Use the `scanWifi()` information to add a `strongestSSID` WifiResults
   to the SurveyPoint to indicate that there is a stronger SSID
   in the neighborhood than the SSID currently being used
 * If no TCP tests, set iperfData to null in the SurveyPoint
+* Add two new tabs:
+  * **AP Mapping** that revives the original March 2025 GUI that
+    allows the user to set names for each BSSID.
+    When BSSIDs are available, wifi-heatmapper could then automatically
+    insert the AP name into the PopupDetails for each survey point
+  * **About** To display information about
+    wifi-heatmapper, including the information logged by
+    _server-init.ts_ as well as other descriptive info.
 * Export `wifi-heatmapper-imagename` and the image itself to a saved file so it can be loaded later
-* A click on the `Floorplan` pane should immediately display an
-  empty dot (no color) to indicate that's where the click was.
-  (Improves behavior on a touch-screen - you can see where you clicked.)
-* Scale the size of the surveyPoint dot to the image, to prevent
-  dots from appearing as tiny dots on a large image.
-* (Maybe) During the FloorPlan measurement process, display the wifi signal
-  strength heatmap underneath or as a separate floating window.
+* (Maybe) During the FloorPlan measurement process, display the heatmap
+  for wifi signal strength as a separate floating window.
   This helps the user determine if they need
   more measurements (finer granularity) for the map.
-* Bundle this into an installable (electron?) app so it can be easily installed on a tablet. Might also allow the app to get Localization permissions on macOS 15 and above so it could show the SSID/AP Name, etc.
+  (This is less necessary with the newer WebGL circle algorithm)
+* Bundle this into an installable (electron?) app so it can be easily installed on a tablet.
+* Make a signed macOS app so it can get Location Access permissions
+  and show the SSID/BSSID, etc.
 
 ## Bugs
 
@@ -165,3 +172,8 @@ Ideas for making the program better - in no particular order:
 * Update the NewToast to display the current SSID name
 * Fix display of dBm in the heatmap scale when not showing as %. Currently, it shows 100dBm (positive number) as green, with 0 dBm as red. The scale should use the limits of the rssiToPercentage() function.
 * Only load the localization code if running on Windows
+* A click on the `Floorplan` pane should immediately display an
+  empty dot (no color) to indicate that's where the click was.
+  (Improves behavior on a touch-screen - you can see where you clicked.)
+* Scale the size of surveyPoint dots to the Floorplan image, to prevent
+  them from appearing as tiny dots on a large image.
