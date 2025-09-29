@@ -1,11 +1,13 @@
 {
-  "ssid": "SSID",
-  "bssid": "AP BSSID",
-  "signalStrength": "Signal",
-  "channel": "Kanal",
-  "security": "Authentifizierung",
-  "txRate": "Übertragungsrate (MBit/s)",
-  "phyMode": "Funktyp"
+  "SSID": "ssid",
+  "SSID-Name": "ssid",
+  "AP BSSID": "bssid",
+  "Signal":"signalStrength",
+  "Kanal": "channel",
+  "Authentifizierung": "security",
+  "Übertragungsrate (MBit/s)": "txRate",
+  "Funktyp":"phyMode",
+  "Name":"name"
 }
 
 // Output from netsh wlan show interfaces on Windows 10 (or 11?) - German

@@ -1,0 +1,25 @@
+netsh wlan show interfaces
+Hay 1 interfaz en el sistema:
+   Nombre                   : Wi-Fi
+   Descripción            : Intel(R) Wi-Fi 6 AX201 160MHz
+   GUID                   : f899e530-fd03-44a9-8307-4d4fc4827eab
+   Dirección       : fe:dc:ba:09:87:01
+   Tipo de interfaz         : Principal
+   Estado                  : conectado
+   SSID                   : SSID-1
+   AP BSSID               : fe:dc:ba:09:87:02
+   Banda                 : 2,4 GHz
+   Canal: 11
+   Tipo de red            : Infraestructura
+   Tipo de radio          : 802.11ax
+   Autenticación          : Abierta
+   Cifrado                : Ninguna
+   Modo de conexión       : Conexión automática
+   Velocidad de recepción (Mbps)   : 69
+   Velocidad de transmisión (Mbps) : 206
+   Señal                           : 81%
+   Perfil                 : Profile-1
+   MSCS de QoS configurado: 0
+   Asignación de QoS configurada: 0
+   Asignación de QoS permitida por la directiva : 0
+   

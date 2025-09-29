@@ -1,8 +1,14 @@
 import React, { ReactNode, useRef, useState } from "react";
 import { useEffect } from "react";
-import { rssiToPercentage } from "../lib/utils";
+import {
+  getDefaultWifiResults,
+  getDefaultIperfResults,
+  percentageToRssi,
+  rssiToPercentage,
+} from "../lib/utils";
+import { getColorAt, objectToRGBAString } from "@/lib/utils-gradient";
 import { useSettings } from "./GlobalSettings";
-import { SurveyPoint, RGB, Gradient } from "../lib/types";
+import { HeatmapSettings, SurveyPoint } from "../lib/types";
 import { checkSettings, startSurvey } from "@/lib/iperfRunner";
 import { Toaster } from "@/components/ui/toaster";
 import NewToast from "@/components/NewToast";
@@ -25,6 +31,27 @@ export default function ClickableFloorplan(): ReactNode {
   const [surveyClick, setSurveyClick] = useState({ x: 0, y: 0 });
 
   /**
+   * Adding test points
+   * if idx is null, the following useEffect() is idle
+   * else, idx is the current value of the signalStrength to use
+   * Clicking the "Add test points" button calls startTestPoints()
+   * that sets idx to zero, and kicks off the process
+   */
+  const [idx, setIdx] = useState<number | null>(null); // null = idle
+  const startTestPoints = () => setIdx(0);
+
+  useEffect(() => {
+    if (idx === null) return; // back to idle
+
+    (async () => {
+      addTestPoint(idx);
+      // let React commit + run effects before next iteration
+      await new Promise(requestAnimationFrame);
+      setIdx((i) => (i! < 100 ? i! + 5 : null));
+    })();
+  }, [idx]);
+
+  /**
    * Load the image (and the canvas) when the component is mounted
    */
   useEffect(() => {
@@ -43,6 +70,36 @@ export default function ClickableFloorplan(): ReactNode {
       };
     }
   }, []);
+
+  /**
+   * addTestPoint() - add a test point
+   * to the floor plan for signalStrength values 0 .. 100
+   * @param idx - the signal strength to use, also sets the X position and PointID
+   * @returns
+   */
+  function addTestPoint(idx: number): void {
+    const width = settings.dimensions.width;
+    const x = width / 10;
+    const y = 350;
+    const deltaX = (width * 0.8) / 100;
+    // console.log(`width, x, y, deltaX: ${width} ${x} ${y} ${deltaX}`);
+    const wifiData = getDefaultWifiResults();
+    const iperfData = getDefaultIperfResults();
+    wifiData.signalStrength = idx;
+    wifiData.rssi = percentageToRssi(idx);
+    console.log(`signal & rssi: ${idx} ${percentageToRssi(idx)}`);
+    const newPoint = {
+      wifiData,
+      iperfData,
+      x: 0,
+      y,
+      timestamp: Date.now(),
+      id: "bad ID",
+      isEnabled: true,
+    };
+    // console.log(`idx, x, y: ${idx} ${x + idx * deltaX} ${y}`);
+    addSurveyPoint(newPoint, x + idx * deltaX, y, settings);
+  }
 
   useEffect(() => {
     if (imageLoaded && canvasRef.current) {
@@ -79,28 +136,37 @@ export default function ClickableFloorplan(): ReactNode {
     }
 
     try {
-      let newPoint = await startSurvey(settings);
+      const newPoint = await startSurvey(settings);
       // null is OK - it just means that measurement was cancelled
       if (!newPoint) {
         return;
       }
-      // otherwise, add the point, bumping the point number
-      const pointNum = settings.nextPointNum;
-      newPoint = {
-        ...newPoint,
-        x,
-        y,
-        isEnabled: true,
-        id: `Point_${pointNum}`,
-      };
-      updateSettings({ nextPointNum: pointNum + 1 });
-
-      surveyPointActions.add(newPoint);
+      addSurveyPoint(newPoint, x, y, settings);
     } catch (error) {
       setAlertMessage(`An error occurred: ${error}`);
       return;
     }
   };
+
+  function addSurveyPoint(
+    newPoint: SurveyPoint,
+    x: number,
+    y: number,
+    settings: HeatmapSettings,
+  ): void {
+    // otherwise, add the point, bumping the point number
+    const pointNum = settings.nextPointNum;
+    const addedPoint = {
+      ...newPoint,
+      x,
+      y,
+      isEnabled: true,
+      id: `Point_${pointNum}`,
+    };
+    updateSettings({ nextPointNum: pointNum + 1 });
+    console.log(`Updated Pointnum: ${settings.nextPointNum}`);
+    surveyPointActions.add(addedPoint);
+  }
 
   /**
    * drawCanvas - make the entire drawing go...
@@ -135,65 +201,6 @@ export default function ClickableFloorplan(): ReactNode {
     points.forEach((point) => drawPoint(point, ctx));
   };
 
-  /**
-   * Converts a rgba to an {r, g, b, a} object.
-   */
-  function rgbaToObject(rgba: string): RGB {
-    const match = rgba.match(/rgba?\((\d+),\s*(\d+),\s*(\d+),?\s*([\d.]+)?\)/);
-
-    if (!match) return { r: 0, g: 0, b: 0, a: 1.0 }; // Invalid input - black
-
-    return {
-      r: parseInt(match[1], 10),
-      g: parseInt(match[2], 10),
-      b: parseInt(match[3], 10),
-      a: match[4] !== undefined ? parseFloat(match[4]) : 1, // Default alpha to 1 if missing
-    };
-  }
-
-  /**
-   * Interpolates between two RGBA colors.
-   */
-  function interpolateColor(color1: RGB, color2: RGB, factor: number): RGB {
-    return {
-      r: Math.round(color1.r + (color2.r - color1.r) * factor),
-      g: Math.round(color1.g + (color2.g - color1.g) * factor),
-      b: Math.round(color1.b + (color2.b - color1.b) * factor),
-      a: color1.a + (color2.a - color1.a) * factor,
-    };
-  }
-
-  /**
-   * Returns the interpolated RGBA color for a given value (0-1) from a gradient.
-   */
-  function getColorAt(value: number, gradient: Gradient): string {
-    // sort the keys to be in increasing order
-    const keys = Object.keys(gradient)
-      .map(Number)
-      .sort((a, b) => a - b);
-
-    // Constrain theValue to be 0..1
-    const theValue = Math.min(1.0, Math.max(0.0, value));
-
-    for (let i = 0; i < keys.length - 1; i++) {
-      const lower = keys[i];
-      const upper = keys[i + 1];
-
-      if (theValue >= lower && theValue <= upper) {
-        const factor = (theValue - lower) / (upper - lower);
-        const color1 = rgbaToObject(gradient[lower]);
-        const color2 = rgbaToObject(gradient[upper]);
-
-        const interpolated = interpolateColor(color1, color2, factor);
-        return `rgba(${interpolated.r}, ${interpolated.g}, ${interpolated.b}, ${interpolated.a.toFixed(2)})`;
-      }
-    }
-
-    // Return the last gradient color if out of bounds
-    const lastColor = rgbaToObject(gradient[keys[keys.length - 1]]);
-    return `rgba(${lastColor.r}, ${lastColor.g}, ${lastColor.b}, ${lastColor.a.toFixed(2)})`;
-  }
-
   const drawPoint = (point: SurveyPoint, ctx: CanvasRenderingContext2D) => {
     if (point.wifiData) {
       const wifiInfo = point.wifiData;
@@ -202,7 +209,12 @@ export default function ClickableFloorplan(): ReactNode {
       ctx.beginPath();
       ctx.arc(point.x, point.y, 8, 0, 2 * Math.PI);
       ctx.fillStyle = point.isEnabled
-        ? getColorAt(rssiToPercentage(wifiInfo.rssi) / 100, settings.gradient)
+        ? objectToRGBAString(
+            getColorAt(
+              rssiToPercentage(wifiInfo.rssi) / 100,
+              settings.gradient,
+            ),
+          )
         : "rgba(156, 163, 175, 0.9)";
       ctx.fill();
 
@@ -355,6 +367,14 @@ export default function ClickableFloorplan(): ReactNode {
             toastIsReady={handleToastIsReady}
           />
         )}
+        {/* COMMENT THIS BUTTON OUT FOR PRODUCTION */}
+        <button
+          className="mt-2 px-2 py-1 bg-blue-500 text-white rounded"
+          onClick={startTestPoints}
+          disabled={idx !== null}
+        >
+          Add test points...
+        </button>
       </div>
     </div>
   );

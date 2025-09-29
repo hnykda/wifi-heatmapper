@@ -1,0 +1,98 @@
+netsh wlan show networks mode=bssid
+Nombre de interfaz : Wi-Fi
+Actualmente hay 3 redes visibles.
+SSID 1 : SSID-1
+   Tipo de red             : Infraestructura
+   Autenticación           : Abierta
+   Cifrado                 : Ninguna
+   BSSID 1                 : fe:dc:ba:09:87:01
+        Señal             : 53%
+        Tipo de radio         : 802.11ax
+        Banda               : 5 GHz
+        Canal            : 149
+        Carga Bss:
+            Estaciones conectadas:          0
+            Uso del canal:          1 (0 %)
+            Capacidad disponible media: 0 (0 us/s)
+mscs QoS          admitidos: 0
+        Asignación de QoS admitida: 1
+ Velocidades básicas (Mbps): 6 12 24
+   Otras velocidades (Mbps): 9 18 36 48 54
+   BSSID 2                 : fe:dc:ba:09:87:02
+        Señal             : 22%
+        Tipo de radio         : 802.11ax
+        Banda               : 5 GHz
+        Canal            : 144
+        Carga Bss:
+            Estaciones conectadas:          0
+            Uso del canal:          1 (0 %)
+            Capacidad disponible media: 0 (0 us/s)
+mscs QoS          admitidos: 0
+        Asignación de QoS admitida: 1
+ Velocidades básicas (Mbps): 6 12 24
+   Otras velocidades (Mbps): 9 18 36 48 54
+   BSSID 3                 : fe:dc:ba:09:87:03
+        Señal             : 86%
+        Tipo de radio         : 802.11ax
+        Banda               : 5 GHz
+        Canal            : 44
+mscs QoS          admitidos: 0
+        Asignación de QoS admitida: 1
+ Velocidades básicas (Mbps): 6 12 24
+   Otras velocidades (Mbps): 9 18 36 48 54
+SSID 2 : SSID-2
+   Tipo de red             : Infraestructura
+   Autenticación           : WPA2-Personal
+   Cifrado                 : CCMP
+   BSSID 1                 : fe:dc:ba:09:87:04
+        Señal             : 82%
+        Tipo de radio         : 802.11n
+        Banda               : 2,4 GHz
+        Canal            : 4
+mscs QoS          admitidos: 0
+        Asignación de QoS admitida: 0
+ Velocidades básicas (Mbps): 1 2 5.5 11
+   Otras velocidades (Mbps): 6 9 12 18 24 36 48 54
+SSID 3 : SSID-3
+   Tipo de red             : Infraestructura
+   Autenticación           : Abierta
+   Cifrado                 : Ninguna
+   BSSID 1                 : fe:dc:ba:09:87:05
+        Señal             : 40%
+        Tipo de radio         : 802.11n
+        Banda               : 2,4 GHz
+        Canal            : 6
+        Carga Bss:
+            Estaciones conectadas:          1
+            Uso del canal:          18 (7 %)
+            Capacidad disponible media: 0 (0 us/s)
+mscs QoS          admitidos: 0
+        Asignación de QoS admitida: 0
+ Velocidades básicas (Mbps): 1 2
+   Otras velocidades (Mbps): 5.5 6 9 11 12 18 24 36 48 54
+   BSSID 2                 : fe:dc:ba:09:87:06
+        Señal             : 90%
+        Tipo de radio         : 802.11n
+        Banda               : 2,4 GHz
+        Canal            : 6
+        Carga Bss:
+            Estaciones conectadas:          10
+            Uso del canal:          52 (20 %)
+            Capacidad disponible media: 0 (0 us/s)
+mscs QoS          admitidos: 0
+        Asignación de QoS admitida: 1
+ Velocidades básicas (Mbps): 6 12 24
+   Otras velocidades (Mbps): 9 18 36 48 54
+   BSSID 3                 : fe:dc:ba:09:87:07
+        Señal             : 81%
+        Tipo de radio         : 802.11ax
+        Banda               : 2,4 GHz
+        Canal            : 11
+        Carga Bss:
+            Estaciones conectadas:          3
+            Uso del canal:          3 (1 %)
+            Capacidad disponible media: 0 (0 us/s)
+mscs QoS          admitidos: 0
+        Asignación de QoS admitida: 1
+ Velocidades básicas (Mbps): 6 12 24
+   Otras velocidades (Mbps): 9 18 36 48 54

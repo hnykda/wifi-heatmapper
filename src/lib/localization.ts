@@ -2,28 +2,30 @@
 
 import { readdirSync, readFileSync } from "fs";
 import { join } from "path";
-
-type LocalizationMap = Record<string, string>;
-const reverseMap: Map<string, string> = new Map();
+import { LocalizerMap } from "./types";
 
 /**
  * initLocalization() - reads the files from _data/localization_
- * builds a "reverse map" then returns it so the caler
- * can look up (localized) strings to get canonical names
- * @returns "reverse map"
+ * builds an object whose properties are the localized strings
+ * from the `netsh ...` command, the values are the internal names
+ * e.g. ssid, bssid, txRate, etc.
+ * @returns localizer object
  */
-export async function initLocalization(): Promise<Map<string, string>> {
+
+export async function initLocalization(): Promise<LocalizerMap> {
   const localizationDir = join("data", "localization");
   // console.log(`__dirname: ${__dirname}`);
   // console.log(`localization dir: ${localizationDir}`);
 
   const files = readdirSync(localizationDir).filter((f) => f.endsWith(".json"));
 
-  // Build a reverse map: value -> key
+  const localizer: LocalizerMap = {};
+
+  // Build the object "localizedPhrase": "internal name"
   for (const file of files) {
     try {
       const filePath = join(localizationDir, file);
-
+      // console.log(`File: ${filePath}`);
       // Read and strip comment lines from the .json files
       const raw = readFileSync(filePath, "utf-8");
       const cleaned = raw
@@ -31,30 +33,37 @@ export async function initLocalization(): Promise<Map<string, string>> {
         .filter((line) => !line.trim().startsWith("//"))
         .join("\n");
 
-      const content: LocalizationMap = JSON.parse(cleaned);
-
+      const content = JSON.parse(cleaned);
       for (const [key, value] of Object.entries(content)) {
-        if (!reverseMap.has(value)) {
-          reverseMap.set(value, key); // First match wins
-        } else {
-          // console.log(`localization value: ${value} key: ${key} duplicate `);
-        }
+        addPropertyWithConflictCheck(localizer, String(key), value);
       }
-    } catch {
+    } catch (err) {
       // Ignore a bad file and simply log it
-      console.log(`*** Error reading localization file: ${file}`);
+      console.log(`*** Error reading localization file: ${file} (${err})`);
     }
   }
-  return reverseMap;
+  return localizer;
 }
 
-// async lookup that the client could call.
-// May not be necessary now that the init function returns the map
-export async function reverseLookup(term: string): Promise<string | null> {
-  return reverseMap.get(term) ?? null;
-}
-
-//
-export async function getReverseLookupMap(): Promise<Map<string, string>> {
-  return reverseMap;
+/**
+ * addPropertyWithConflictCheck() add a property to the localizer
+ *   ensuring that an existing property maps to the same internal name
+ * @param target - the localizer object
+ * @param key - key (localized phrase) to add
+ * @param value - internal name
+ */
+function addPropertyWithConflictCheck<T extends object>(
+  target: T,
+  key: keyof T,
+  value: T[keyof T],
+): void {
+  if (key in target) {
+    if (target[key] != value) {
+      throw new Error(
+        `Conflict for '${String(key)}': existing=${target[key]}, incoming=${value}`,
+      );
+    }
+  } else {
+    target[key] = value;
+  }
 }

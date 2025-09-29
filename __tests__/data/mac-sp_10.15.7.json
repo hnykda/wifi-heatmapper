@@ -1,0 +1,242 @@
+
+{
+  "TestDescriptionDEADBEEF":" macOS 10.15.7 (Latitude) at Location1",
+ "SPAirPortDataType" : [
+   {
+     "spairport_airport_interfaces" : [
+       {
+         "_name" : "en1",
+         "spairport_airdrop_channel" : 149,
+         "spairport_airport_other_local_wireless_networks" : [
+           {
+             "_name" : "SSID-1",
+             "spairport_network_bssid" : "fe:dc:ba:09:87:65",
+             "spairport_network_channel" : 4,
+             "spairport_network_phymode" : "802.11n",
+             "spairport_network_type" : "spairport_network_type_station",
+             "spairport_security_mode" : "spairport_security_mode_wpa2_personal",
+             "spairport_signal_noise" : "-57 dBm / 0 dBm"
+           },
+           {
+             "_name" : "SSID-2",
+             "spairport_network_bssid" : "fe:dc:ba:09:87:65",
+             "spairport_network_channel" : 6,
+             "spairport_network_country_code" : "US",
+             "spairport_network_phymode" : "802.11n",
+             "spairport_network_type" : "spairport_network_type_station",
+             "spairport_security_mode" : "spairport_security_mode_wpa2_personal",
+             "spairport_signal_noise" : "-88 dBm / -98 dBm"
+           },
+           {
+             "_name" : "SSID-3",
+             "spairport_network_bssid" : "fe:dc:ba:09:87:65",
+             "spairport_network_channel" : 1,
+             "spairport_network_phymode" : "802.11n",
+             "spairport_network_type" : "spairport_network_type_station",
+             "spairport_security_mode" : "spairport_security_mode_none",
+             "spairport_signal_noise" : "-73 dBm / 0 dBm"
+           },
+           {
+             "_name" : "SSID-4",
+             "spairport_network_bssid" : "fe:dc:ba:09:87:65",
+             "spairport_network_channel" : 1,
+             "spairport_network_phymode" : "802.11n",
+             "spairport_network_type" : "spairport_network_type_station",
+             "spairport_security_mode" : "spairport_security_mode_none",
+             "spairport_signal_noise" : "-86 dBm / 0 dBm"
+           },
+           {
+             "_name" : "SSID-5",
+             "spairport_network_bssid" : "fe:dc:ba:09:87:65",
+             "spairport_network_channel" : 11,
+             "spairport_network_phymode" : "802.11n",
+             "spairport_network_type" : "spairport_network_type_station",
+             "spairport_security_mode" : "spairport_security_mode_none",
+             "spairport_signal_noise" : "-54 dBm / 0 dBm"
+           },
+           {
+             "_name" : "SSID-6",
+             "spairport_network_bssid" : "fe:dc:ba:09:87:65",
+             "spairport_network_channel" : 6,
+             "spairport_network_phymode" : "802.11n",
+             "spairport_network_type" : "spairport_network_type_station",
+             "spairport_security_mode" : "spairport_security_mode_none",
+             "spairport_signal_noise" : "-59 dBm / -98 dBm"
+           },
+           {
+             "_name" : "SSID-7",
+             "spairport_network_bssid" : "fe:dc:ba:09:87:65",
+             "spairport_network_channel" : 1,
+             "spairport_network_phymode" : "802.11n",
+             "spairport_network_type" : "spairport_network_type_station",
+             "spairport_security_mode" : "spairport_security_mode_none",
+             "spairport_signal_noise" : "-84 dBm / 0 dBm"
+           },
+           {
+             "_name" : "SSID-8",
+             "spairport_network_bssid" : "fe:dc:ba:09:87:65",
+             "spairport_network_channel" : 144,
+             "spairport_network_country_code" : "US",
+             "spairport_network_phymode" : "802.11n",
+             "spairport_network_type" : "spairport_network_type_station",
+             "spairport_security_mode" : "spairport_security_mode_none",
+             "spairport_signal_noise" : "-80 dBm / 0 dBm"
+           },
+           {
+             "_name" : "SSID-9",
+             "spairport_network_bssid" : "fe:dc:ba:09:87:65",
+             "spairport_network_channel" : "149,+1",
+             "spairport_network_country_code" : "US",
+             "spairport_network_phymode" : "802.11n",
+             "spairport_network_type" : "spairport_network_type_station",
+             "spairport_security_mode" : "spairport_security_mode_none",
+             "spairport_signal_noise" : "-70 dBm / 0 dBm"
+           },
+           {
+             "_name" : "SSID-10",
+             "spairport_network_bssid" : "fe:dc:ba:09:87:65",
+             "spairport_network_channel" : 44,
+             "spairport_network_phymode" : "802.11n",
+             "spairport_network_type" : "spairport_network_type_station",
+             "spairport_security_mode" : "spairport_security_mode_none",
+             "spairport_signal_noise" : "-51 dBm / 0 dBm"
+           },
+           {
+             "_name" : "SSID-11",
+             "spairport_network_bssid" : "fe:dc:ba:09:87:65",
+             "spairport_network_channel" : 153,
+             "spairport_network_phymode" : "802.11n",
+             "spairport_network_type" : "spairport_network_type_station",
+             "spairport_security_mode" : "spairport_security_mode_none",
+             "spairport_signal_noise" : "-82 dBm / 0 dBm"
+           },
+           {
+             "_name" : "SSID-12",
+             "spairport_network_bssid" : "fe:dc:ba:09:87:65",
+             "spairport_network_channel" : 6,
+             "spairport_network_country_code" : "US",
+             "spairport_network_phymode" : "802.11n",
+             "spairport_network_type" : "spairport_network_type_station",
+             "spairport_security_mode" : "spairport_security_mode_wpa2_personal",
+             "spairport_signal_noise" : "-83 dBm / -98 dBm"
+           },
+           {
+             "_name" : "SSID-13",
+             "spairport_network_bssid" : "fe:dc:ba:09:87:65",
+             "spairport_network_channel" : 11,
+             "spairport_network_country_code" : "US",
+             "spairport_network_phymode" : "802.11n",
+             "spairport_network_type" : "spairport_network_type_station",
+             "spairport_security_mode" : "spairport_security_mode_wpa2_personal",
+             "spairport_signal_noise" : "-92 dBm / 0 dBm"
+           },
+           {
+             "_name" : "SSID-14",
+             "spairport_network_bssid" : "fe:dc:ba:09:87:65",
+             "spairport_network_channel" : 11,
+             "spairport_network_country_code" : "US",
+             "spairport_network_phymode" : "802.11n",
+             "spairport_network_type" : "spairport_network_type_station",
+             "spairport_security_mode" : "spairport_security_mode_none",
+             "spairport_signal_noise" : "-90 dBm / 0 dBm"
+           },
+           {
+             "_name" : "SSID-15",
+             "spairport_network_bssid" : "fe:dc:ba:09:87:65",
+             "spairport_network_channel" : 11,
+             "spairport_network_country_code" : "US",
+             "spairport_network_phymode" : "802.11n",
+             "spairport_network_type" : "spairport_network_type_station",
+             "spairport_security_mode" : "spairport_security_mode_wpa2_personal",
+             "spairport_signal_noise" : "-91 dBm / 0 dBm"
+           },
+           {
+             "_name" : "SSID-16",
+             "spairport_network_bssid" : "fe:dc:ba:09:87:65",
+             "spairport_network_channel" : "11,-1",
+             "spairport_network_phymode" : "802.11n",
+             "spairport_network_type" : "spairport_network_type_station",
+             "spairport_security_mode" : "spairport_security_mode_wpa2_personal",
+             "spairport_signal_noise" : "-88 dBm / 0 dBm"
+           },
+           {
+             "_name" : "SSID-17",
+             "spairport_network_bssid" : "fe:dc:ba:09:87:65",
+             "spairport_network_channel" : 6,
+             "spairport_network_phymode" : "802.11n",
+             "spairport_network_type" : "spairport_network_type_station",
+             "spairport_security_mode" : "spairport_security_mode_wpa2_personal",
+             "spairport_signal_noise" : "-92 dBm / -98 dBm"
+           }
+         ],
+         "spairport_caps_airdrop" : "spairport_caps_supported",
+         "spairport_caps_autounlock" : "spairport_caps_supported",
+         "spairport_current_network_information" : {
+           "_name" : "SSID-6",
+           "spairport_network_bssid" : "fe:dc:ba:09:87:65",
+           "spairport_network_channel" : 6,
+           "spairport_network_country_code" : "US",
+           "spairport_network_mcs" : 15,
+           "spairport_network_phymode" : "802.11n",
+           "spairport_network_rate" : 145,
+           "spairport_network_type" : "spairport_network_type_station",
+           "spairport_security_mode" : "spairport_security_mode_none",
+           "spairport_signal_noise" : "-55 dBm / -98 dBm"
+         },
+         "spairport_status_information" : "spairport_status_connected",
+         "spairport_supported_channels" : [
+           1,
+           2,
+           3,
+           4,
+           5,
+           6,
+           7,
+           8,
+           9,
+           10,
+           11,
+           36,
+           40,
+           44,
+           48,
+           52,
+           56,
+           60,
+           64,
+           100,
+           104,
+           108,
+           112,
+           116,
+           132,
+           136,
+           140,
+           144,
+           149,
+           153,
+           157,
+           161,
+           165
+         ],
+         "spairport_supported_phymodes" : "802.11 a/b/g/n/ac",
+         "spairport_wireless_card_type" : "spairport_wireless_card_type_airport_extreme (0x14E4, 0x2154)",
+         "spairport_wireless_country_code" : "US",
+         "spairport_wireless_firmware_version" : "Broadcom BCM43xx 1.0 (7.77.111.1 AirPortDriverBrcmNIC-1615.7)",
+         "spairport_wireless_locale" : "FCC",
+         "spairport_wireless_mac_address" : "fe:dc:ba:09:87:65"
+       }
+     ],
+     "spairport_software_information" : {
+       "spairport_corewlan_version" : "13.0 ((null))",
+       "spairport_corewlankit_version" : "13.0 ((null))",
+       "spairport_diagnostics_version" : "1.0 (910)",
+       "spairport_extra_version" : "13.0 ((null))",
+       "spairport_family_version" : "12.0 (1200.12.2b1)",
+       "spairport_profiler_version" : "12.0 (1500)",
+       "spairport_utility_version" : "spairport_not_installed"
+     }
+   }
+ ]
+}
+

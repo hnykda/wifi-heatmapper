@@ -1,0 +1,30 @@
+
+{
+  "TestDescriptionDEADBEEF":" macOS 15.5 - wifi disabled in menu bar",
+  "SPAirPortDataType" : [
+    {
+      "spairport_airport_interfaces" : [
+        {
+          "_name" : "en0",
+          "spairport_caps_airdrop" : "spairport_caps_supported",
+          "spairport_caps_autounlock" : "spairport_caps_supported",
+          "spairport_caps_wow" : "spairport_caps_supported",
+          "spairport_status_information" : "spairport_status_off",
+          "spairport_supported_phymodes" : "802.11 a/b/g/n/ac/ax",
+          "spairport_wireless_card_type" : "spairport_wireless_card_type_wifi (0x14E4, 0x4388)",
+          "spairport_wireless_firmware_version" : "wl0: Mar 22 2025 02:16:34 version 23.40.30.0.41.51.180 FWID 01-5f726d72\nIO80211_driverkit-1475.39 \"IO80211_driverkit-1475.39\" Apr 18 2025 20:10:40",
+          "spairport_wireless_mac_address" : "fe:dc:ba:09:87:65"
+        }
+      ],
+      "spairport_software_information" : {
+        "spairport_corewlan_version" : "16.0 (1657)",
+        "spairport_corewlankit_version" : "16.0 (1657)",
+        "spairport_diagnostics_version" : "11.0 (1163)",
+        "spairport_extra_version" : "17.0 (1728)",
+        "spairport_family_version" : "12.0 (1200.13.1)",
+        "spairport_profiler_version" : "15.0 (1502)",
+        "spairport_utility_version" : "6.3.9 (639.26)"
+      }
+    }
+  ]
+}

@@ -1,0 +1,44 @@
+#  netsh wlan show profile name="Profile1 2"
+
+# Profil Profile1 2 sur l’interface Wi-Fi :
+
+Appliqué : Profil Tous les utilisateurs
+Informations sur le profil
+
+---
+
+Version : 1
+Type : Réseau local sans fil
+Nom : Profile1 2
+Options de contrôle :
+Mode de connexion : connexion manuelle
+Diffusion réseau : Connecter uniquement si ce réseau diffuse
+Commutation auto : ne pas basculer vers d’autres réseaux
+Randomisation MAC : Désactivée
+Paramètres de connectivité
+
+---
+
+Nombre de SSID : 1
+Nom du SSID : "SSID-1"
+Type de réseau : Infrastructure
+Type de radio : [ Tous les types de radio ]
+Extension du fournisseur : absente
+Paramètres de sécurité
+
+---
+
+Authentification : Ouvrir
+Chiffrement : Aucun
+Clé de sécurité : Absent
+Index de la clé : 1
+Paramètres de coût
+
+---
+
+Coût  : sans restriction
+Encombrement : Non
+Limite de données presque atteinte : Non
+Limite de données dépassée : Non
+Itinérance : Non
+Source de coût : Par défaut

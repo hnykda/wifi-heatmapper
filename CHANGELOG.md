@@ -6,6 +6,18 @@ _This section follows the precepts of [Keep a Changelog](https://keepachangelog.
 
 ---
 
+## Version 0.3.4 - 2025-08-31
+
+* Revamp localization code (swapping the maping object to use "localized-string":"internal-name")
+* Refactor certain utility routines: move them into _utils.ts_
+* Incorporate HeatmapModal fix for #49
+* Added code to macos & windows wifi_scanner to be able to test parsing
+* Significant number of new test data files, along with many
+  new test _xxx.test.tsx_ files.
+* Print macOS name and version at startup (e.g., Sequoia 15.5) instead of
+  "darwin" and some obscure build number. They are available in the
+  OS details printed on the next line.
+
 ## Version 0.3.3 - 2025-08-27
 
 * Add "Command to test" in Advanced settings to run a command-line and display the results in the Console

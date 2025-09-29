@@ -1,0 +1,13 @@
+netsh wlan show profiles
+Perfiles en la interfaz  Wi-Fi:
+Perfiles de directiva de grupo (solo lectura)
+---------------------------------------------
+   <Ninguno>
+Perfiles de usuario
+-------------------
+   Perfil de todos los usuarios     : Profile1 2
+   Perfil de todos los usuarios     : Profile2
+   Perfil de todos los usuarios     : Profile3
+   Perfil de todos los usuarios     : Profile4
+   Perfil de todos los usuarios     : Profile5
+   Perfil de todos los usuarios     : Profile6

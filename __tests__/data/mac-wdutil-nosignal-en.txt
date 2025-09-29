@@ -1,0 +1,37 @@
+————————————————————————————————————————————————————————————————————
+WIFI
+————————————————————————————————————————————————————————————————————
+    MAC Address          : <redacted> (hw=<redacted>)
+    Interface Name       : en0
+    Power                : On [On]
+    Op Mode              : None
+    SSID                 : None
+    BSSID                : None
+    RSSI                 : 0 dBm
+    CCA                  : 0 %
+    Noise                : 0 dBm
+    Tx Rate              : 0.0 Mbps
+    Security             : None
+    PHY Mode             : None
+    MCS Index            : 11
+    Guard Interval       : 0
+    NSS                  : 2
+    Channel              : 2g1/20
+    Country Code         : US
+    Scan Cache Count     : 29
+    NetworkServiceID     : 2210B7DE-F323-448F-96D9-D4DF5B3B4141
+    IPv4 Config Method   : DHCP
+    IPv4 Address         : None
+    IPv4 Router          : None
+    IPv6 Config Method   : Automatic
+    IPv6 Address         : None
+    IPv6 Router          : None
+    DNS                  : None
+    BTC Mode             : Off
+    Desense              :
+    Chain Ack            : []
+    BTC Profile 2.4GHz   : Disabled
+    BTC Profile 5GHz     : Disabled
+    Sniffer Supported    : YES
+    Supports 6e          : No
+    Supported Channels   : 2g1/20,2g2/20,2g3/20,2g4/20,2g5/20,2g6/20,2g7/20,2g8/20,2g9/20,2g10/20,2g11/20,2g12/20,2g13/20,5g36/20,5g40/20,5g44/20,5g48/20,5g52/20,5g56/20,5g60/20,5g64/20,5g100/20,5g104/20,5g108/20,5g112/20,5g116/20,5g120/20,5g124/20,5g128/20,5g132/20,5g136/20,5g140/20,5g144/20,5g149/20,5g153/20,5g157/20,5g161/20,5g165/20,5g36/40,5g40/40,5g44/40,5g48/40,5g52/40,5g56/40,5g60/40,5g64/40,5g100/40,5g104/40,5g108/40,5g112/40,5g116/40,5g120/40,5g124/40,5g128/40,5g132/40,5g136/40,5g140/40,5g144/40,5g149/40,5g153/40,5g157/40,5g161/40,5g36/80,5g40/80,5g44/80,5g48/80,5g52/80,5g56/80,5g60/80,5g64/80,5g100/80,5g104/80,5g108/80,5g112/80,5g116/80,5g120/80,5g124/80,5g128/80,5g132/80,5g136/80,5g140/80,5g144/80,5g149/80,5g153/80,5g157/80,5g161/80

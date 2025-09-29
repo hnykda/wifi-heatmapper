@@ -221,17 +221,15 @@ To create a localization file for your Windows system's language:
   `netsh wlan...` output.
 * Restart the `wifi-heatmapper` server (`npm run dev`)
   to read the new localized values
-* Please add the new file as an Issue to the repo
-  (https://github.com/hnykda/wifi-heatmapper/issues)
-  so it can be incorporated into the program. 
+* Please add the new file as an
+  [Issue to the repo](https://github.com/hnykda/wifi-heatmapper/issues)
+  so it can be incorporated into the program.
 
 ## WebGL Heatmap Rendering
 
 Heatmaps are rendered using WebGL.
 
 The rendering technique uses **Inverse Distance Weighted (IDW) interpolation**. For each pixel, nearby survey points within a defined [Radius](#radius-calculations) contribute values inversely proportional to their distance. Closer points have more influence, while farther ones contribute less. This creates a smooth, continuous surface representing signal strength or throughput across the floorplan.
-
-
 
 ## Radius Calculations
 

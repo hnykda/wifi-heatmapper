@@ -1,3 +1,5 @@
+// Used for localization map
+export type LocalizerMap = Record<string, any>;
 export interface IperfTestProperty {
   bitsPerSecond: number;
   retransmits?: number;
@@ -65,16 +67,8 @@ export interface ApMapping {
   apName: string;
   macAddress: string;
 }
-export type RGB = { r: number; g: number; b: number; a: number };
-export type Gradient = Record<number, string>; // Maps 0-1 values to colors
 
-export type HeatmapConfig = {
-  radius: number;
-  maxOpacity: number;
-  minOpacity: number;
-  blur: number;
-  gradient: Record<string, string>;
-};
+export type Gradient = Record<number, string>; // Maps 0-1 values to colors
 
 /**
  * The full set of data for a particular background image
@@ -118,7 +112,7 @@ export interface PartialHeatmapSettings {
 /**
  * SurveyPoint - all the information we have about a particular point
  */
-export interface SurveyPoint {
+export type SurveyPoint = {
   x: number;
   y: number;
   wifiData: WifiResults;
@@ -126,7 +120,7 @@ export interface SurveyPoint {
   timestamp: number;
   id: string;
   isEnabled: boolean;
-}
+};
 
 /**
  * SurveyResults - returned from runSurveyTests()

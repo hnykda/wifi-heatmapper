@@ -10,6 +10,7 @@ import {
   MeasurementTestType,
   testTypes,
 } from "@/lib/types";
+import { getColorAt, objectToRGBAString } from "@/lib/utils-gradient";
 
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
@@ -223,13 +224,14 @@ export function Heatmaps() {
     const colorBarX = settings.dimensions.width + 40;
     const colorBarY = 20;
 
-    const gradient = ctx.createLinearGradient(0, h + y, 0, y);
-    Object.entries(settings.gradient).forEach(([stop, color]) => {
-      gradient.addColorStop(parseFloat(stop), color);
-    });
-
-    ctx.fillStyle = gradient;
-    ctx.fillRect(colorBarX, colorBarY, colorBarWidth, colorBarHeight);
+    // create the gradient by sampling each element in the color bar
+    for (let i = 0; i < colorBarHeight; i++) {
+      const normalized = (colorBarHeight - i) / colorBarHeight;
+      ctx.fillStyle = objectToRGBAString(
+        getColorAt(normalized, settings.gradient),
+      );
+      ctx.fillRect(colorBarX, colorBarY + i, colorBarWidth, 1);
+    }
 
     // define ticks and labels
     const numTicks = 10;
