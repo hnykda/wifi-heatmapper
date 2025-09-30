@@ -82,10 +82,18 @@ a human readable error message suitable for display in the user interface.
 
 ## Running with higher LOG_LEVEL
 
-You can use `LOG_LEVEL=level npm run dev` to control logging,
-where the `level` is
+On **macOS or Linux**, use `LOG_LEVEL=level npm run dev`
+to control logging, where the `level` is
 0: silly, 1: trace, 2: debug, 3: info, 4: warn, 5: error, 6: fatal.
 Use this when submitting the bug reports.
+
+On **Windows**, use the `set...` command like this:
+
+```sh
+set LOG_LEVEL=level
+# echo %LOG_LEVEL% # optionally display the LOG_LEVEL
+npm run dev
+```
 
 ## Component Hierarchy
 

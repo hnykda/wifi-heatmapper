@@ -142,7 +142,6 @@ _NB: The Dockerfile does not work on macOS or Windows. See the note in the Docke
    --privileged \
    -v ./datas/data:/app/data \
    -v ./datas/media:/app/public/media \
-   -v ./data/localization:/app/data/localization \
    wifi-heatmapper
    ```
 

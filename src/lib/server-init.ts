@@ -3,7 +3,7 @@ import { copyToMediaFolder } from "../lib/actions";
 import { getLogger } from "./logger";
 import os from "os";
 import { promises as fs } from "fs";
-
+import isDocker from "is-docker";
 import { execAsync } from "./server-utils";
 import { initLocalization } from "./localization";
 
@@ -31,6 +31,9 @@ async function logSystemInfo(): Promise<void> {
       logger.info(`OS: ${platform} ${release}`);
     }
     logger.info(`OS Details: ${version}`);
+    if (isDocker()) {
+      logger.info(`Running in a Docker container`);
+    }
 
     try {
       const { stdout } = await execAsync("iperf3 --version");

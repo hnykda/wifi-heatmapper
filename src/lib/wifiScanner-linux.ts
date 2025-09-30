@@ -13,6 +13,7 @@ import {
   normalizeMacAddress,
   rssiToPercentage,
 } from "./utils";
+import isDocker from "is-docker";
 import { getLogger } from "./logger";
 const logger = getLogger("wifi-Linux");
 
@@ -60,20 +61,23 @@ export class LinuxWifiActions implements WifiActions {
     }
 
     // Linux requires a sudo password
-    else if (!settings.sudoerPassword || settings.sudoerPassword == "") {
-      reason = "Please set sudo password. It is required on macOS.";
-    }
+    // but Docker doesn't
+    else if (!isDocker()) {
+      if (!settings.sudoerPassword || settings.sudoerPassword == "") {
+        // don't require sudo password on a Docker container
+        reason = "Please set sudo password. It is required on macOS.";
+      }
 
-    // check that the sudo password is actually correct
-    // execAsync() throws if there is an error
-    else {
-      try {
-        await execAsync(`echo ${settings.sudoerPassword} | sudo -S ls`);
-      } catch {
-        reason = "Please enter a valid sudo password.";
+      // check that the sudo password is actually correct
+      // execAsync() throws if there is an error
+      else {
+        try {
+          await execAsync(`echo ${settings.sudoerPassword} | sudo -S ls`);
+        } catch {
+          reason = "Please enter a valid sudo password.";
+        }
       }
     }
-
     // fill in the reason and return it
     response.reason = reason;
     return response;
@@ -240,7 +244,13 @@ async function inferWifiDeviceIdOnLinux(): Promise<string> {
 }
 
 async function iwDevLink(interfaceId: string, pw: string): Promise<string> {
-  const command = `echo "${pw}" | sudo -S iw dev ${interfaceId} link`;
+  // const command = `echo "${pw}" | sudo -S iw dev ${interfaceId} link`;
+
+  let command = `iw dev ${interfaceId} link`;
+  if (!isDocker()) {
+    command = `echo "${pw}" | sudo -S ` + command;
+  }
+
   const { stdout } = await execAsync(command);
   return stdout;
 }

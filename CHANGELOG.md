@@ -20,6 +20,11 @@ _This section follows the precepts of [Keep a Changelog](https://keepachangelog.
 * Updated screen shot on README.md to use a heat map drawn on a (fake)
   image of home and garage in the style of Google Maps.
 * Include that Home & Garage.jpg image as on of the default images.
+* Ignore password requirement on Docker - even though it's Linux
+  the process runs as root in a Docker container
+* Re-ordered items in `PopupDetails` to show most important fields first
+* Changed all public-facing names to use the term "Wi-Fi" - the (mostly)
+  accepted "official" name.
 * Factor wifi into separate `WifiActions`.
   _wifiScanner.ts_ is now a factory
   that returns an OS-specific object with functions for preflightSettings(),
@@ -33,9 +38,7 @@ _This section follows the precepts of [Keep a Changelog](https://keepachangelog.
   See [Theory of Operations](./docs/Theory_of_Operation.md#what-are-the-ssid-and-bssid-on-macos?) for more info.
 * Updated _wifiScanner-linux.ts_ to implement `WifiActions`.
   Includes new tests for parsing `nmcli ...`
-* Re-ordered items in `PopupDetails` to show most important fields first
-* Changed all public-facing names to use the term "Wi-Fi" - the (mostly)
-  accepted "official" name.
+
 
 ---
 
