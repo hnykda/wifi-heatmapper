@@ -99,7 +99,7 @@ export async function runSurveyTests(
   // first check the settings and return cogent error if not good
   const preResults = await wifiActions.preflightSettings(settings);
   if (preResults.reason != "") {
-    // console.log(`preflightSettings returned: ${preResults}`);
+    logger.info(`preflightSettings returned: ${JSON.stringify(preResults)}`);
     return { iperfData: null, wifiData: null, status: preResults.reason };
   }
   // check if iperf3 server is available
@@ -115,6 +115,8 @@ export async function runSurveyTests(
   // otherwise check if the server is available
   else {
     const resp = await wifiActions.checkIperfServer(settings);
+    logger.info(`checkIperfServer returned: ${resp}`);
+
     if (resp.reason != "") {
       performIperfTest = false;
       noIperfTestReason = resp.reason;
@@ -142,6 +144,8 @@ export async function runSurveyTests(
 
     // Scan the wifi neighborhood, retrieve the ssidName from the current
     const ssids = await wifiActions.scanWifi(settings);
+    logger.info(`scanWifi returned: ${JSON.stringify(ssids)}`);
+
     // console.log(`SSIDs: ${JSON.stringify(ssids, null, 2)}`);
     const thisSSID = ssids.SSIDs.filter((item) => item.currentSSID);
     const ssidName = thisSSID[0].ssid;
@@ -155,6 +159,7 @@ export async function runSurveyTests(
         displayStates.header = `Measuring Wi-Fi (${ssidName})`;
 
         const wifiDataBefore = await wifiActions.getWifi(settings);
+        logger.info(`getWifi() returned: ${JSON.stringify(wifiDataBefore)}`);
         console.log(
           `Elapsed time for scan and switch: ${Date.now() - startTime}`,
         );
