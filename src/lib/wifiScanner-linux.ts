@@ -35,6 +35,7 @@ export class LinuxWifiActions implements WifiActions {
   async preflightSettings(
     settings: PartialHeatmapSettings,
   ): Promise<WifiScanResults> {
+    logger.info(`preflightSettings()`);
     const response: WifiScanResults = {
       SSIDs: [],
       reason: "",
@@ -91,6 +92,7 @@ export class LinuxWifiActions implements WifiActions {
   async checkIperfServer(
     settings: PartialHeatmapSettings,
   ): Promise<WifiScanResults> {
+    logger.info(`checkIperfServer()`);
     const response: WifiScanResults = {
       SSIDs: [],
       reason: "",
@@ -115,6 +117,8 @@ export class LinuxWifiActions implements WifiActions {
    */
   async findWifiInterface(): Promise<string> {
     logger.debug("Inferring WLAN interface ID on Linux");
+
+    logger.info(`findWifiInterface()`);
     const { stdout } = await execAsync(
       "iw dev | awk '$1==\"Interface\"{print $2}' | head -n1",
     );
@@ -127,6 +131,7 @@ export class LinuxWifiActions implements WifiActions {
    * These are sorted by the strongest RSSI
    */
   async scanWifi(_settings: PartialHeatmapSettings): Promise<WifiScanResults> {
+    logger.info(`scanWifi()`);
     const response: WifiScanResults = {
       SSIDs: [],
       reason: "",
@@ -159,6 +164,7 @@ export class LinuxWifiActions implements WifiActions {
   ): Promise<WifiScanResults> {
     //
     // NOT IMPLEMENTED - DON'T USE THIS FUNCTION
+    logger.info(`setWifi()`);
     throw "wifi-heatmapper does not implement setWifi()";
 
     const response: WifiScanResults = {
@@ -166,39 +172,6 @@ export class LinuxWifiActions implements WifiActions {
       reason: "",
     };
     return response;
-
-    // let netInfo: WifiResults;
-
-    // if (!newWifiSettings) {
-    //   throw `setWifi error: Empty SSID "${JSON.stringify(newWifiSettings)}`;
-    // }
-
-    // console.log(
-    //   `Setting Wifi SSID on interface ${this.nameOfWifi}: ${newWifiSettings.ssid}`,
-    // );
-    // // `networksetup -setairportnetwork ${this.nameOfWifi} ${newWifiSettings.ssid}`
-    // const { stdout, stderr } = await execAsync(
-    //   `networksetup -setairportnetwork ${this.nameOfWifi} ${newWifiSettings.ssid}`,
-    // );
-    // if (stdout != "" || stderr != "") {
-    //   throw stdout + stderr;
-    // }
-
-    // const start = Date.now();
-    // const timeout = 40_000; // 40 seconds
-    // while (true) {
-    //   if (Date.now() > start + timeout) {
-    //     throw `Can't set wifi to "${newWifiSettings.ssid}": Timed out after ${timeout / 1000} seconds`;
-    //   }
-    //   netInfo = await this.getWdutilResults(settings);
-    //   console.log(`wdutils: SSID: ${netInfo.ssid} txRate: ${netInfo.txRate}`);
-    //   if (netInfo.txRate != 0) {
-    //     netInfo.ssid = newWifiSettings.ssid;
-    //     response.SSIDs.push(netInfo);
-    //     return response;
-    //   }
-    //   await delay(200);
-    // }
   }
 
   /**
@@ -207,6 +180,7 @@ export class LinuxWifiActions implements WifiActions {
    * @returns
    */
   async getWifi(settings: PartialHeatmapSettings): Promise<WifiScanResults> {
+    logger.info(`getWifi()`);
     const response: WifiScanResults = {
       SSIDs: [],
       reason: "",
