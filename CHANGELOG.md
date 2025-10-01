@@ -8,21 +8,25 @@ _This section follows the precepts of [Keep a Changelog](https://keepachangelog.
 
 ## Version 0.3.5 - 2025-09-25
 
-* Scale each survey point in the Floorplan to make them "large enough"
+* Updated screen shot on README.md to use a heat map drawn on a
+  (ChatGPT generated) image of home and garage
+  in the style of Google Maps.
+* Include that Home & Garage.jpg image as on of the default images.
+* Re-ordered items in `PopupDetails` to show most important fields first
+* Scale the visual size of each survey point in the Floorplan
+  to make them "large enough"
   relative to the width of the background image/floorplan.
   This makes them more visually prominent (survey points don't display as
   "tiny dots"), and easier to touch on a touch screen.
-* Floorplan now checks a click to see if it is less than 20 units (not 10) from an
-  existing survey point to determine if that was the point that was clicked.
-* Each click for a measurement now leaves an empty circle
+* Floorplan now checks a click to see if it is less than 20 units
+  (not 10) from an existing survey point to determine if
+  that was the point that was clicked.
+* Each click for a survey point now leaves an empty circle
   to indicate the location of the click.
-  The circle gets filled in when the measurement completes.
-* Updated screen shot on README.md to use a heat map drawn on a (fake)
-  image of home and garage in the style of Google Maps.
-* Include that Home & Garage.jpg image as on of the default images.
+  The circle gets filled in when the measurement completes,
+  or removed if there is an error or the measurement is cancelled.
 * Ignore password requirement on Docker - even though it's Linux
   the process runs as root in a Docker container
-* Re-ordered items in `PopupDetails` to show most important fields first
 * Changed all public-facing names to use the term "Wi-Fi" - the (mostly)
   accepted "official" name.
 * Factor wifi into separate `WifiActions`.
@@ -38,7 +42,8 @@ _This section follows the precepts of [Keep a Changelog](https://keepachangelog.
   See [Theory of Operations](./docs/Theory_of_Operation.md#what-are-the-ssid-and-bssid-on-macos?) for more info.
 * Updated _wifiScanner-linux.ts_ to implement `WifiActions`.
   Includes new tests for parsing `nmcli ...`
-
+* frequencyToChannel() function turns Linux frequency
+  into the proper channel.
 
 ---
 

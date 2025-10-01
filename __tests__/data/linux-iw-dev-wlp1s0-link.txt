@@ -1,0 +1,6 @@
+# sudo iw dev wlp1s0 link
+Connected to fe:dc:ba:98:76:02 (on wlp1s0)
+    SSID: SSID-1
+    freq: 2412.0
+    signal: -51 dBm
+    tx bitrate: 26.0 MBit/s

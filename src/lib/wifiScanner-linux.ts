@@ -290,7 +290,16 @@ export function parseIwOutput(
       const freqMatch = trimmedLine.match(/freq:\s*(\d+)/);
       if (freqMatch) {
         const freqMhz = parseInt(freqMatch[1]);
-        networkInfo.band = Math.round((freqMhz / 1000) * 100) / 100; // Convert MHz to GHz with 2 decimal places
+        const chan = frequencyToChannel(freqMhz);
+        console.log(`freq/channel: ${freqMhz} ${chan}`);
+        if (chan) {
+          networkInfo.channel = chan;
+          networkInfo.band = channelToBand(chan);
+        } else {
+          networkInfo.channel = 0;
+          networkInfo.band = 0;
+        }
+        // networkInfo.band = Math.round((freqMhz / 1000) * 100) / 100; // Convert MHz to GHz with 2 decimal places
       }
     } else if (trimmedLine.startsWith("tx bitrate:")) {
       const txRate = trimmedLine.split("tx bitrate:")[1]?.trim() || "";
@@ -410,3 +419,41 @@ function stripMbps(str: string): number {
   const strs = str.split(" ");
   return parseInt(strs[0]);
 }
+
+/**
+ * frequencyToChannel(freq)
+ * @param frequency (as number)
+ * @returns channel (number)
+ */
+export function frequencyToChannel(freqMHz: number): number | null {
+  // 2.4 GHz band
+  if (freqMHz >= 2412 && freqMHz <= 2472) {
+    return (freqMHz - 2407) / 5; // 1–13
+  }
+  if (freqMHz === 2484) {
+    return 14;
+  }
+
+  // 5 GHz band
+  if (freqMHz >= 5180 && freqMHz <= 5895) {
+    return (freqMHz - 5000) / 5; // 36–177+
+  }
+
+  // 6 GHz band (Wi-Fi 6E, 5955–7115 MHz)
+  if (freqMHz >= 5955 && freqMHz <= 7115) {
+    return (freqMHz - 5950) / 5; // 1–233
+  }
+
+  return null;
+}
+
+// Examples
+// console.log(frequencyToChannel(2412));  // 1
+// console.log(frequencyToChannel(2437));  // 6
+// console.log(frequencyToChannel(2462));  // 11
+// console.log(frequencyToChannel(2484));  // 14
+// console.log(frequencyToChannel(5180));  // 36
+// console.log(frequencyToChannel(5805));  // 161
+// console.log(frequencyToChannel(5955));  // 1 (6 GHz)
+// console.log(frequencyToChannel(6115));  // 33 (6 GHz)
+// console.log(frequencyToChannel(7115));  // 233 (6 GHz)

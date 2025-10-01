@@ -26,9 +26,37 @@ test("parsing netsh output", () => {
     rssi: -56,
     channel: 36,
     signalStrength: 73,
-    band: 5.18,
+    band: 5,
     channelWidth: 80,
     txRate: 866.7,
+    phyMode: "",
+    security: "",
+    currentSSID: false,
+    strongestSSID: null,
+  });
+});
+
+test("parsing Ubuntu 24.04", () => {
+  const linkOutput = fs.readFileSync(
+    path.join(__dirname, "../data/linux-iw-dev-wlp1s0-link.txt"),
+    "utf-8",
+  );
+
+  const infoOutput = fs.readFileSync(
+    path.join(__dirname, "../data/linux-iw-dev-wlp1s0-info.txt"),
+    "utf-8",
+  );
+
+  const output = parseIwOutput(linkOutput, infoOutput);
+  expect(output).toStrictEqual({
+    ssid: "SSID-1",
+    bssid: "fedcba987602",
+    rssi: -51,
+    channel: 1,
+    signalStrength: 82,
+    band: 2.4,
+    channelWidth: 0,
+    txRate: 26,
     phyMode: "",
     security: "",
     currentSSID: false,
