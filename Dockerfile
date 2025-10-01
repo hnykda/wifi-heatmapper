@@ -26,7 +26,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install needed packages
-RUN apk add --no-cache iw iperf3
+RUN apk add --no-cache iw iperf3 networkmanager networkmanager-cli
 
 # Install dependencies
 RUN npm install
