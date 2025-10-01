@@ -145,7 +145,14 @@ _NB: The Dockerfile does not work on macOS or Windows. See the note in the Docke
    wifi-heatmapper
    ```
 
-use `-v` options if you want to save db + floorplanpicture to the _datas_ folder
+### Docker Tips
+
+* Use `-v` options if you want to save db + floorplanpicture
+  to the _datas_ folder
+* Ctl-C to abort the Docker container
+* If you want to "ssh into the Docker container", execute this:
+  `docker exec -it container-name /bin/bash`
+  where `container-name` is shown in the `docker ps` command
 
 ## History
 

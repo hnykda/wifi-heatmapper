@@ -21,25 +21,87 @@ import { exec, ExecOptions, spawn } from "child_process";
  * @param command to execute
  * @returns { stdout , stderr }
  */
-export const execAsync = async (
-  command: string,
-): Promise<{ stdout: string; stderr: string }> => {
-  // @ts-expect-error // "shell" is the name of the shell program, but prop must be boolean
-  const options: ExecOptions = { shell: true }; // Node.js finds the right binary for the OS
 
-  return new Promise((resolve, reject) => {
-    // logger.info("Executing command:", command);
+// import { exec, ExecOptions } from "child_process";
+
+export class ExecError extends Error {
+  code?: number | string;
+  stdout: string;
+  stderr: string;
+  signal: NodeJS.Signals | null;
+  cmd: string;
+  constructor(
+    msg: string,
+    init: {
+      code?: number | string;
+      stdout: string;
+      stderr: string;
+      signal: NodeJS.Signals | null;
+      cmd: string;
+    },
+  ) {
+    super(msg);
+    this.name = "ExecError";
+    this.code = init.code;
+    this.stdout = init.stdout;
+    this.stderr = init.stderr;
+    this.signal = init.signal;
+    this.cmd = init.cmd;
+  }
+}
+
+export const execAsync = (
+  command: string,
+  opts: ExecOptions = {},
+): Promise<{ stdout: string; stderr: string }> =>
+  new Promise((resolve, reject) => {
+    const options: ExecOptions = {
+      // @ts-expect-error // "shell" is the name of the shell program, but prop must be boolean
+      shell: true, // `/bin/sh` or `cmd.exe`
+      windowsHide: true,
+      ...opts,
+    };
     exec(command, options, (error, stdout, stderr) => {
+      const out = stdout.trimEnd();
+      const err = stderr.trimEnd();
       if (error) {
-        // logger.info(`execAsync(${command} rejects with "${error}")`);
-        reject(error);
-      } else {
-        // logger.info(`Command result: ${JSON.stringify(stdout)}`);
-        resolve({ stdout: stdout.trimEnd(), stderr: stderr.trimEnd() });
+        // Preserve exit code (127 for command-not-found with shell:true; ENOENT if no shell)
+        const code = (error as any).code;
+        const signal = (error as any).signal ?? null;
+        reject(
+          new ExecError(`Command failed (${code ?? "unknown"}): ${command}`, {
+            code,
+            stdout: out,
+            stderr: err,
+            signal,
+            cmd: command,
+          }),
+        );
+        return;
       }
+      resolve({ stdout: out, stderr: err });
     });
   });
-};
+
+// export const execAsync = async (
+//   command: string,
+// ): Promise<{ stdout: string; stderr: string }> => {
+//   // @ts-expect-error // "shell" is the name of the shell program, but prop must be boolean
+//   const options: ExecOptions = { shell: true }; // Node.js finds the right binary for the OS
+
+//   return new Promise((resolve, reject) => {
+//     // logger.info("Executing command:", command);
+//     exec(command, options, (error, stdout, stderr) => {
+//       if (error) {
+//         // logger.info(`execAsync(${command} rejects with "${error}")`);
+//         reject(error);
+//       } else {
+//         // logger.info(`Command result: ${JSON.stringify(stdout)}`);
+//         resolve({ stdout: stdout.trimEnd(), stderr: stderr.trimEnd() });
+//       }
+//     });
+//   });
+// };
 
 /**
  * runDetached(cmd, [args])

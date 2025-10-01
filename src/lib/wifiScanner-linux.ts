@@ -65,7 +65,7 @@ export class LinuxWifiActions implements WifiActions {
     else if (!isDocker()) {
       if (!settings.sudoerPassword || settings.sudoerPassword == "") {
         // don't require sudo password on a Docker container
-        reason = "Please set sudo password. It is required on macOS.";
+        reason = "Please set sudo password. It is required on Linux.";
       }
 
       // check that the sudo password is actually correct
@@ -140,7 +140,7 @@ export class LinuxWifiActions implements WifiActions {
       // console.log(`Local SSIDs: ${response.SSIDs.length}`);
       // console.log(`Local SSIDs: ${JSON.stringify(response.SSIDs, null, 2)}`);
     } catch (err) {
-      response.reason = `Cannot get wifi info: ${err}"`;
+      response.reason = `Cannot get wifi info: ${err}`;
     }
     return response; // WifiScanResults which is array of WifiResults and error code
   }
