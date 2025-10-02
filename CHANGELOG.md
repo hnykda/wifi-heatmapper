@@ -29,7 +29,7 @@ _This section follows the precepts of [Keep a Changelog](https://keepachangelog.
   The circle gets filled in when the measurement completes,
   or removed if there is an error or the measurement is cancelled.
 * Dockerfile now works with new WifiActions.
-  Required installation of `networkmanager` and `networkmanager-cli` 
+  Required installation of `networkmanager` and `networkmanager-cli`
   along with some fiddling with `docker run ...` command
 * Eliminated the sudo password requirement on Docker:
   even though the container runs Alpine Linux,
@@ -61,7 +61,7 @@ _This section follows the precepts of [Keep a Changelog](https://keepachangelog.
 
 ## Version 0.3.4 - 2025-08-31
 
-* Revamp localization code (swapping the maping object to use "localized-string":"internal-name")
+* Revamp localization code (swapping the mapping object to use "localized-string":"internal-name")
 * Refactor certain utility routines: move them into _utils.ts_
 * Incorporate HeatmapModal fix for #49
 * Added code to macos & windows wifi_scanner to be able to test parsing
@@ -73,11 +73,13 @@ _This section follows the precepts of [Keep a Changelog](https://keepachangelog.
 
 ## Version 0.3.3 - 2025-08-27
 
-* Add "Command to test" in Advanced settings to run a command-line and display the results in the Console
+* Add "Command to test" in Advanced settings to run a
+  command-line and display the results in the Console
 * Fixed bug in displaying heatmap when "use dBm instead of %" is selected
 * Fixed bug in drawing ticks in the scale bar when showing dBm readings
   Fixes #30
-* Fixed bug where RSSI of 0 (no signal) was reported as 100% not 0% signal strength. Fixes #32
+* Fixed bug where RSSI of 0 (no signal) was reported as
+  100% not 0% signal strength. Fixes #32
 * Fixed bug in Firefox that caused the dropdown for the background image to freeze
 * Merge many fixes from the (temporarily abandoned) "scan-wifi" branch
 * Tune up appearance of the NewToast progress window
@@ -85,7 +87,8 @@ _This section follows the precepts of [Keep a Changelog](https://keepachangelog.
 
 ## Version 0.3.2 - 2025-07-25
 
-* Migrated from `heatmap.js` to a custom WebGL-based renderer using inverse-distance weighting (IDW)
+* Migrated from `heatmap.js` to a custom WebGL-based renderer
+  using inverse-distance weighting (IDW)
 * (This was never formally given the 0.3.2 version number)
 
 ## Version 0.3.1 - 2025-06-08
@@ -113,7 +116,9 @@ _This section follows the precepts of [Keep a Changelog](https://keepachangelog.
 * If there are no iperf3 tests (TCP or UDP), their heat maps are not shown.
 * All Settings items have an "information" button.
 * Significant editorial work on README and other pages in _docs_
-* Changed the Popup details window to use the term "Band" instead of "Frequency". Fixed the units to use "GHz" (was "MHz")
+* Changed the Popup details window to use the term "Band"
+  instead of "Frequency".
+  Fixed the units to use "GHz" (was "MHz")
 * Now parses the `wdutil` command on macOS 12 ("Catalina")
 * Obfuscated the SSID, BSSID, and Profile for wifi test files
 * Passes all tests: `npm run typecheck`, `npm run lint`, `npm test`
@@ -147,7 +152,9 @@ _This section follows the precepts of [Keep a Changelog](https://keepachangelog.
   Yellow and red (35% and below) indicate poor signal strength.
 * Update survey points to show the color of the signal strength
   at that point along with the strength (as percent)
-* Heatmaps use a heuristic for the "heat spot" sizes; use global "spot size" to adjust as needed. (Wants to be a slider...)
+* Heatmaps use a heuristic for the "heat spot" sizes;
+  use global "spot size" to adjust as needed.
+  (Wants to be a slider...)
 * Toast-based window now shows progress
   during the entire Wi-Fi and speed test survey process
   and allows canceling the measurement

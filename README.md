@@ -19,7 +19,7 @@ Yellow and red colors indicate poor signal levels.
 
 The screen shot above is a sample heat map.
 It was created by measuring about a dozen points around the house,
-especially locations where people actually use a computer. 
+especially locations where people actually use a computer.
 The heat map shows that the signal levels throughout the house
 are acceptable &mdash; mostly green, turquoise, and blue.
 The areas of yellow or red are at the edges.
@@ -59,7 +59,7 @@ that reflects your laptop's location.
 **wifi-heatmapper** measures the WiFi signal strength and
 (optionally) the throughput at that point.
 When the measurement is complete, the floor plan displays
-a dot colored by its signal stength.
+a dot colored by its signal strength.
 Click the dot to get more information.
 
 5. **Move to other locations** and make further measurements.
@@ -69,7 +69,7 @@ Multiple measurements per room provide more fine-grained data.
 6. **Click the Heatmap tab** to see the resulting heat map.
 Areas with strong signal will be green,
 lower signal levels will follow the
-Green -> Tuquoise -> Blue -> Yellow -> Red transition.
+Green -> Turquoise -> Blue -> Yellow -> Red transition.
 Adjust the **Radius** slider until the spots grow together.
 Go back to the Floor Plan tab to make more measurements if needed.
 
@@ -94,6 +94,7 @@ To install the software:
    npm install
    npm run dev
    ```
+
 2. Browse to [http://localhost:3000](http://localhost:3000)
    and follow the steps at the top of this page
 
@@ -126,7 +127,8 @@ To take advantage of `iperf3` throughput (speed) tests:
 
 WiFi Heatmapper includes a Dockerfile that automates much of
 the installation process for Linux.
-_NB: The Dockerfile does not work on macOS or Windows. See the note in the Dockerfile for more information._
+_NB: The Dockerfile does not work on macOS or Windows.
+See the note in the Dockerfile for more information._
 
 1. Build the Docker Image
 
@@ -148,19 +150,21 @@ _NB: The Dockerfile does not work on macOS or Windows. See the note in the Docke
 
 ### Docker Tips
 
-* Use `-v` options if you want to save db + floorplanpicture
+* Use `-v` options if you want to save db + floorplan picture
   to the _datas_ folder
 * Ctl-C to abort the Docker container
 * If you want to "ssh into the Docker container", execute this:
   `docker exec -it container-name /bin/bash`
   where `container-name` is shown in the `docker ps` command
 * _Note: `networkmanager` needs to use `dbus` to communicate within
-  a Docker container. The `/var/run/dbus...` line accomplishes this._
+  a Docker container.
+  The `/var/run/dbus...` line accomplishes this._
 
 ## History
 
 This project is a WiFi heatmapper solution for macOS/Windows/Linux, inspired by [python-wifi-survey-heatmap](https://github.com/jantman/python-wifi-survey-heatmap).
-@hnykda wanted to create a heatmap of his WiFi coverage, but the original project didn't work because he is running on Mac.
+@hnykda wanted to create a heatmap of his WiFi coverage,
+but the original project didn't work because he is running on Mac.
 He also wanted something that might be slightly easier to use, i.e. using a browser.
 @richb-hanover refactored the GUI to its current four-tab appearance.
 
@@ -177,8 +181,11 @@ blue was "cool" (weak).
 
 ## Credits
 
-This project was inspired by [python-wifi-survey-heatmap](https://github.com/jantman/python-wifi-survey-heatmap). Special thanks to the original author for their work.
+This project was inspired by
+[python-wifi-survey-heatmap](https://github.com/jantman/python-wifi-survey-heatmap).
+Special thanks to the original author for their work.
 
 ## Contributing
 
-Feel free to contribute to this project by opening an issue or submitting a pull request. I am more than happy for that!
+Feel free to contribute to this project by opening an issue
+or submitting a pull request. I am more than happy for that!

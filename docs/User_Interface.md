@@ -9,7 +9,7 @@ The **wifi-heatmapper** user interface has a number of tabs.
   Use _Upload an image..._ to add to the list.
   The selected image is displayed as a background behind both
   the Floor Plan pane and the heatmaps.
-* **iperfServer** - addess or DNS name for the "iperf3 server".
+* **iperfServer** - address or DNS name for the "iperf3 server".
   To disable iperf3 tests, set this to "localhost"
 * **Test duration** - in seconds. Defaults to one second.
 * **sudo Password** - required for macOS and Linux

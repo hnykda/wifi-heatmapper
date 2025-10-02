@@ -87,7 +87,7 @@ Ideas for making the program better - in no particular order:
 * ~~Need better error message when initially starting survey (empty password) on macOS~~
 * ~~Coalesce all the settings into a single object that can then be saved to a file. (Remember to isolate the sudoer password - never save it).~~
 * ~~`wifiScanner` must throw quickly if sudoerPassword is _empty_~~
-* ~~Keep Platform on the server. Don't dislay in the Settings Pane. Obviously `wifiScanner.ts` must determine the platform, but none of the other code needs to know it. We can decide on-the-fly when `platform` is needed~~
+* ~~Keep Platform on the server. Don't display in the Settings Pane. Obviously `wifiScanner.ts` must determine the platform, but none of the other code needs to know it. We can decide on-the-fly when `platform` is needed~~
 * Change Password field to conceal the characters
 * Come up with a better mechanism (than random strings) for naming survey points
 * Clicking in Password field (and other fields) should select the field for editing; pressing Return should accept the new value
@@ -111,7 +111,7 @@ Ideas for making the program better - in no particular order:
   Both receive the full list of points, and return an updated list back to `GlobalSettings`
 * ~~Add slider to heatmap. Always set it to the computed value, unless user has changed it, then remember that value in the global settings. Initialize it to null: a numeric value indicates it has been changed. Sliding the value to 0 should re-set the value to null.~~
 * ~~Remove Scale size/radius divider from AdvancedHeatMap settings. All the above logic should remain within the Heatmap component~~
-* ~~Retain the "Size Adjustment" setting (and other Advancd Configuration settings?) in the global object~~
+* ~~Retain the "Size Adjustment" setting (and other Advanced Configuration settings?) in the global object~~
 * ~~The Wi-Fi signal strength heat map should always display a scale of 0-100% because people deserve to know when their wifi strength is low.~~
 * Convert all references to the "advanced settings" of the Floorplan
   to use the `GlobalSettings` object instead of the Floorplan

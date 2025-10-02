@@ -32,17 +32,17 @@ The web GUI then just stores everything in simple JSON
 they must be installed on your computer
 to make the measurements of Wi-Fi strength and throughput.
 
-| Platform | Commands          | Notes                                                                                                                                                    |
-| -------- | ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| macOS    | `wdutil`, `ioreg`, `system_profiler` | sudo password is needed for `wdutil`                                             |
-| Windows  | `netsh`           | Part of the system  |                                                                                       
-| Linux    | `nmcli`, `iw`     | `iw` might need to be installed via your distro package manager. wifi-heatmapper infers the device id of the wireless device (e.g. "wlp4s0"). |
+| Platform | Commands          | Notes |
+| -------- | ----------------- | ----- |
+| macOS    | `wdutil`, `ioreg`, `system_profiler` | sudo password required for `wdutil` |
+| Windows  | `netsh`           | Part of the system  |
+| Linux    | `nmcli`, `iw`     | `iw` or `nmcli` might need to be installed. |
 | All | `iperf3` | See **iperf3** note below |
 
 **iperf3** must be installed locally to make TCP or UDP measurements.
-(If it is not installed, those measurements will be skipped.) 
+(If it is not installed, those measurements will be skipped.)
 A version greater than 3.17 is recommended for both server and client
-(ideally the same version, but that's not strictly necessary). 
+(ideally the same version, but that's not strictly necessary).
 The `iperf3` binary also must be available in `PATH`.
 For Windows you might have to set the path
 `set PATH=%PATH%;C:\path\to\iperf3`,
@@ -56,7 +56,7 @@ that implements the following functions.
 These functions take a parameter of `PartialHeatmapSettings` that includes
 sudo password, iperf server address, and test duration.
 All the functions return an array (possibly empty) of `WifiResults`
-and "" for a successful operation or 
+and "" for a successful operation or
 a human readable error message suitable for display in the user interface.
 
 * `preflightSettings()` Check all the settings to see if the test
@@ -65,7 +65,7 @@ a human readable error message suitable for display in the user interface.
   or return an error message.
 * `findWifiInterface()` Return the platform-specific name of the wifi interface
 * `scanWifi()` Return an array of SSIDs "in the neighborhood",
-  sorted by signal strength. 
+  sorted by signal strength.
   The current SSID (whether the strongest or not)
   is marked with `{ currentSSID: true }`
   _This may be useful for showing when the strongest SSID is not the
@@ -76,7 +76,7 @@ a human readable error message suitable for display in the user interface.
   but does not work on modern versions of macOS (15+).
   The problem is that user-level code cannot change the SSID
   without a credential check for **every** new change.
-  That constraint is unworkable: that effort has been abanonded for now._  
+  That constraint is unworkable: that effort has been abandonded for now._  
 * `getWifi()` Return the array with a single `WifiResults` with all the
   information for the current SSID.  
 
@@ -118,8 +118,9 @@ The _App()_ in `page.tsx` returns two major GUI components:
 
 WebGL-based heatmap rendering lives in:
 
-* `webGL/` provides GPU-accelerated heatmap rendering 
-  * `renderers/` – high-level orchestration (`mainRenderer.ts`), layered renderers (heatmap, background)  
+* `webGL/` provides GPU-accelerated heatmap rendering
+  * `renderers/` – high-level orchestration (`mainRenderer.ts`),
+    layered renderers (heatmap, background)  
   * `shaders/` – vertex & fragment shader code  
   * `textures/` – LUT gradient generator  
   * `utils/` – buffer setup, program linking, default config
@@ -133,7 +134,7 @@ WebGL-based heatmap rendering lives in:
   A POST _api/media/filename.png_ uploads a file to that directory.
   
 * The _api/events/route.ts_ file listens for a GET request,
-  then keeps open a connection that sends 
+  then keeps open a connection that sends
   `sseMessageType` events to the client.
   These indicate the progress of the measurement or
   that the measurement had been cancelled.
@@ -155,12 +156,12 @@ and displays the progress of the measurements.
   POST _api/start=task/action=start_
   that immediately returns an "OK" response and
   in parallel starts an IIFE on the server that ultimately calls
-  `runSurveyTest()` 
+  `runSurveyTest()`
   
 * The Floorplan also polls once per second with
   GET _/api/start-task?action=results_.
   The result is a `SurveyResult` that contains `wifiData`, `iperfData`,
-  and a `state`. 
+  and a `state`.
   When the returned `state` is "done", the rest of the results
   contain the information about the measurement.
 
@@ -169,7 +170,7 @@ and displays the progress of the measurements.
   NewToast is "conditionally rendered" (`{toastIsOpen && <NewToast... />}`
   in the JSX).
   NewToast issues GET _/api/events_ that starts a stream of
-  Server Sent Events with `sendToClient()` 
+  Server Sent Events with `sendToClient()`
   that is registered in the global _sseGlobal.ts_ module.
   Those events contain information used to update the information
   shown in NewToast.
@@ -182,7 +183,7 @@ and displays the progress of the measurements.
   
 _NB: Why are there two separate processes - SSE and polling within Floorplan?
 They could have been combined into a single mechanism.
-However, the SSE process was initially implemented, 
+However, the SSE process was initially implemented,
 but subsequent changes (turning Wi-Fi off and on) disrupted the SSE stream.
 So now Floorplan polls for the status in parallel with the SSE stream.
 wifi-heatmapper no longer turns off the Wi-Fi, but we leave both in place._
@@ -233,7 +234,7 @@ In practice:
 
 This table shows readings both ways: RSSI (in dBm) <-> Signal strength (%).
 The **Drop in power** column is the decrease in power from
-a reference signal of one milliwat (100% or -40 dBm).
+a reference signal of one milliwatt (100% or -40 dBm).
 For more fine-grained calculations, see the
 [RSSI to Percentage](./RSSI-Percentage.xlsx)
 spreadsheet in _/docs_.
@@ -297,7 +298,7 @@ The Windows `netsh wlan ...` code is localized for the
 system's language setting.
 Curiously, different English systems also use slightly different
 labels (e.g. "AP BSSID" vs "BSSID").
-Consequently, there is no obvious algorithm for retriving values
+Consequently, there is no obvious algorithm for retreiving values
 from the `netsh...` output.
 
 To address this, at server startup, the _lib/localization.ts_ code
@@ -321,14 +322,16 @@ To create a localization file for your Windows system's language:
   * `netsh wlan show interfaces`
   * `netsh wlan show networks mode="bssid"`
   * `netsh wlan show profiles`
-  * `netsh wlan show profile name="profile"` where `profile` is one of the profiles listed in the previous command
+  * `netsh wlan show profile name="profile"` where
+    `profile` is one of the profiles listed in the previous command
 * Paste the output of the all four commands into the bottom of the new file.
 * Comment out the new lines (use `//` at the start of the line),
   and remove the prior output
 * Add a comment (use "//") indicating the version of Windows (Win10, Win11)
   and the system language
-* In the JSON structure at the top of the file, replace the localized
-  phrases from the `netsh wlan...` output (on the left) with the corresponding phrase on the right.
+* In the JSON structure at the top of the file,
+  replace the localized phrases from the `netsh wlan...` output
+  (on the left) with the corresponding phrase on the right.
 * Restart the `wifi-heatmapper` server (`npm run dev`)
   to read the new localized values
 * If you have a new file, or if you have questions, create an
@@ -338,7 +341,13 @@ To create a localization file for your Windows system's language:
 
 Heatmaps are rendered using WebGL.
 
-The rendering technique uses **Inverse Distance Weighted (IDW) interpolation**. For each pixel, nearby survey points within a defined [Radius](#radius-calculations) contribute values inversely proportional to their distance. Closer points have more influence, while farther ones contribute less. This creates a smooth, continuous surface representing signal strength or throughput across the floorplan.
+The rendering technique uses **Inverse Distance Weighted (IDW) interpolation**.
+For each pixel, nearby survey points within a defined
+[Radius](.#radius-slider-in-heatmaps) contribute values
+inversely proportional to their distance.
+Closer points have more influence, while farther ones contribute less.
+This creates a smooth, continuous surface representing signal
+strength or throughput across the floorplan.
 
 ## Radius slider in Heatmaps
 
