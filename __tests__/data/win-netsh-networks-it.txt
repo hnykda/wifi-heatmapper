@@ -1,0 +1,162 @@
+netsh wlan show networks mode="bssid"
+Nome interfaccia: Wi-Fi
+6 reti visibili.
+SSID 1 : SSID-1
+   Tipo di rete            : Infrastruttura
+   Autenticazione          : WPA2-Personal
+   Crittografia            : CCMP
+   BSSID 1                 : fe:dc:ba:09:87:01
+        Segnale             : 16%
+        Tipo di radio         : 802.11n
+        Banda               : 2,4 GHz
+        Canale            : 11
+        Caric BSS:
+            Stazioni connesse: 0
+            Utilizzo canale: 179 (70%)
+            Capacità media disponibile: 31250 (1000000 US/s)
+        QoS MSCS supportato: 0
+        Mappa QoS supportata : 0
+        Velocità di base (Mbps) : 1 2 5.5 11
+        Altre velocità (Mbps) : 6 9 12 18 24 36 48 54
+SSID 2 :
+   Tipo di rete            : Infrastruttura
+   Autenticazione          : WPA2-Personal
+   Crittografia            : CCMP
+   BSSID 1                 : fe:dc:ba:09:87:02
+        Segnale             : 20%
+        Tipo di radio         : 802.11n
+        Banda               : 2,4 GHz
+        Canale            : 11
+        Caric BSS:
+            Stazioni connesse: 0
+            Utilizzo canale: 179 (70%)
+            Capacità media disponibile: 31250 (1000000 US/s)
+        QoS MSCS supportato: 0
+        Mappa QoS supportata : 0
+        Velocità di base (Mbps) : 1 2 5.5 11
+        Altre velocità (Mbps) : 6 9 12 18 24 36 48 54
+SSID 3 : SSID-3
+   Tipo di rete            : Infrastruttura
+   Autenticazione          : WPA2-Personal
+   Crittografia            : CCMP
+   BSSID 1                 : fe:dc:ba:09:87:03
+        Segnale             : 20%
+        Tipo di radio         : 802.11n
+        Banda               : 2,4 GHz
+        Canale            : 11
+        Caric BSS:
+            Stazioni connesse: 0
+            Utilizzo canale: 180 (70%)
+            Capacità media disponibile: 31250 (1000000 US/s)
+        QoS MSCS supportato: 0
+        Mappa QoS supportata : 0
+        Velocità di base (Mbps) : 1 2 5.5 11
+        Altre velocità (Mbps) : 6 9 12 18 24 36 48 54
+SSID 4 : SSID-4
+   Tipo di rete            : Infrastruttura
+   Autenticazione          : Aperta
+   Crittografia            : Nessuno
+   BSSID 1                 : fe:dc:ba:09:87:04
+        Segnale             : 46%
+        Tipo di radio         : 802.11ax
+        Banda               : 5 GHz
+        Canale            : 149
+        Caric BSS:
+            Stazioni connesse: 0
+            Utilizzo canale: 1 (0%)
+            Capacità media disponibile: 0 (0 US/s)
+        QoS MSCS supportato: 0
+        Mappa QoS supportata : 1
+        Velocità di base (Mbps) : 6 12 24
+        Altre velocità (Mbps) : 9 18 36 48 54
+   BSSID 2                 : fe:dc:ba:09:87:05
+        Segnale             : 22%
+        Tipo di radio         : 802.11ax
+        Banda               : 5 GHz
+        Canale            : 144
+        Caric BSS:
+            Stazioni connesse: 0
+            Utilizzo canale: 1 (0%)
+            Capacità media disponibile: 0 (0 US/s)
+        QoS MSCS supportato: 0
+        Mappa QoS supportata : 1
+        Velocità di base (Mbps) : 6 12 24
+        Altre velocità (Mbps) : 9 18 36 48 54
+   BSSID 3                 : fe:dc:ba:09:87:06
+        Segnale             : 85%
+        Tipo di radio         : 802.11ax
+        Banda               : 5 GHz
+        Canale            : 44
+        QoS MSCS supportato: 0
+        Mappa QoS supportata : 1
+        Velocità di base (Mbps) : 6 12 24
+        Altre velocità (Mbps) : 9 18 36 48 54
+SSID 5 : SSID-5
+   Tipo di rete            : Infrastruttura
+   Autenticazione          : WPA2-Personal
+   Crittografia            : CCMP
+   BSSID 1                 : fe:dc:ba:09:87:07
+        Segnale             : 88%
+        Tipo di radio         : 802.11n
+        Banda               : 2,4 GHz
+        Canale            : 4
+        QoS MSCS supportato: 0
+        Mappa QoS supportata : 0
+        Velocità di base (Mbps) : 1 2 5.5 11
+        Altre velocità (Mbps) : 6 9 12 18 24 36 48 54
+SSID 6 : SSID-6
+   Tipo di rete            : Infrastruttura
+   Autenticazione          : Aperta
+   Crittografia            : Nessuno
+   BSSID 1                 : fe:dc:ba:09:87:08
+        Segnale             : 53%
+        Tipo di radio         : 802.11n
+        Banda               : 2,4 GHz
+        Canale            : 6
+        Caric BSS:
+            Stazioni connesse: 1
+            Utilizzo canale: 19 (7%)
+            Capacità media disponibile: 0 (0 US/s)
+        QoS MSCS supportato: 0
+        Mappa QoS supportata : 0
+        Velocità di base (Mbps) : 1 2
+        Altre velocità (Mbps) : 5.5 6 9 11 12 18 24 36 48 54
+   BSSID 2                 : fe:dc:ba:09:87:09
+        Segnale             : 92%
+        Tipo di radio         : 802.11n
+        Banda               : 2,4 GHz
+        Canale            : 6
+        Caric BSS:
+            Stazioni connesse: 10
+            Utilizzo canale: 42 (16%)
+            Capacità media disponibile: 0 (0 US/s)
+        QoS MSCS supportato: 0
+        Mappa QoS supportata : 1
+        Velocità di base (Mbps) : 6 12 24
+        Altre velocità (Mbps) : 9 18 36 48 54
+   BSSID 3                 : fe:dc:ba:09:87:0a
+        Segnale             : 29%
+        Tipo di radio         : 802.11ax
+        Banda               : 2,4 GHz
+        Canale            : 1
+        Caric BSS:
+            Stazioni connesse: 4
+            Utilizzo canale: 124 (48%)
+            Capacità media disponibile: 0 (0 US/s)
+        QoS MSCS supportato: 0
+        Mappa QoS supportata : 1
+        Velocità di base (Mbps) : 6 12 24
+        Altre velocità (Mbps) : 9 18 36 48 54
+   BSSID 4                 : fe:dc:ba:09:87:0b
+        Segnale             : 81%
+        Tipo di radio         : 802.11ax
+        Banda               : 2,4 GHz
+        Canale            : 11
+        Caric BSS:
+            Stazioni connesse: 2
+            Utilizzo canale: 1 (0%)
+            Capacità media disponibile: 0 (0 US/s)
+        QoS MSCS supportato: 0
+        Mappa QoS supportata : 1
+        Velocità di base (Mbps) : 6 12 24
+        Altre velocità (Mbps) : 9 18 36 48 54

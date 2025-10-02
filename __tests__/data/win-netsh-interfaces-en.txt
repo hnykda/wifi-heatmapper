@@ -1,0 +1,23 @@
+# netsh wlan show interfaces - English
+Interface name : Wi-Fi
+There are 1 interfaces on the system:
+
+    Name                   : Wi-Fi
+    Description           : Intel(R) Wi-Fi 6 AX201 160MHz
+    GUID                  : 7825d47a-5d59-4c93-8d91-2b0e1b5f6c4b
+    Physical address      : fe:dc:ba:09:87:01
+    State                 : connected
+    SSID                  : SSID-1
+    BSSID                 : fe:dc:ba:09:87:02
+    Network type         : Infrastructure
+    Radio type           : 802.11ax
+    Authentication       : WPA2-Personal
+    Cipher               : CCMP
+    Connection mode      : Profile
+    Channel              : 44
+    Receive rate (Mbps)  : 103
+    Transmit rate (Mbps) : 103
+    Signal               : 42%
+    Profile              : SomeProfile
+
+    Hosted network status : Not available

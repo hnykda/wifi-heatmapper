@@ -1,11 +1,14 @@
 {
-  "ssid": "SSID",
-  "bssid": "BSSID",
-  "signalStrength": "Señal",
-  "channel": "Canal",
-  "security": "Autenticación",
-  "txRate": "Velocidad de transmisión (Mbps)",
-  "phyMode": "Tipo de radio"
+  "SSID": "ssid",
+  "Nombre de SSID": "ssid",
+  "BSSID": "bssid",
+  "AP BSSID": "bssid",
+  "Señal": "signalStrength",
+  "Canal": "channel",
+  "Autenticación": "security",
+  "Velocidad de transmisión (Mbps)": "txRate",
+  "Tipo de radio": "phyMode",
+  "Nombre": "name"
 }
 
 // Output from netsh wlan show interfaces on Win 11 Spanish (ES)

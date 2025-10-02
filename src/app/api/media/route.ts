@@ -16,15 +16,6 @@ export const config = {
   },
 };
 
-// function streamToBuffer(stream: Readable): Promise<Buffer> {
-//   return new Promise((resolve, reject) => {
-//     const chunks: Uint8Array[] = [];
-//     stream.on("data", (chunk) => chunks.push(chunk));
-//     stream.on("end", () => resolve(Buffer.concat(chunks)));
-//     stream.on("error", reject);
-//   });
-// }
-
 export async function GET() {
   try {
     const mediaDir = path.join(process.cwd(), "public", "media");

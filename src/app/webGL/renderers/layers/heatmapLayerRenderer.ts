@@ -9,7 +9,7 @@ import {
 } from "../../utils/webGLUtils";
 import { fullscreenQuadVertexShaderFlipY } from "@/app/webGL/shaders/fullscreenQuadVertexShader";
 import _ from "lodash";
-import createGradientLUTTexture from "../textures/createGradientLUTTexture";
+import { createGradientLUTTexture } from "../textures/createGradientLUTTexture";
 
 export const createHeatmapLayerRenderer = (
   gl: WebGLRenderingContext,

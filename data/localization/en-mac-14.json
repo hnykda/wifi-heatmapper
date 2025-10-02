@@ -1,12 +1,14 @@
 {
-  "ssid": "SSID",
-  "bssid": "BSSID",
-  "signalStrength": "Signal",
-  "channel": "Channel",
-  "security": "Authentication",
-  "txRate": "Transmit rate (Mbps)",
-  "phyMode": "Radio type",
-  "channelWidth": "number"
+  "SSID": "ssid",
+  "SSID name": "ssid",
+  "BSSID": "bssid",
+  "Signal": "signalStrength",
+  "Channel": "channel",
+  "Authentication": "security",
+  "Transmit rate (Mbps)": "txRate",
+  "Radio type": "phyMode",
+  "number": "channelWidth",
+  "Name":"name"
 }
 
 // Output from netsh wlan show interfaces on Windows 

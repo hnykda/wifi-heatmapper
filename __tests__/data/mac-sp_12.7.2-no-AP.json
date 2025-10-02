@@ -1,0 +1,72 @@
+{
+  "TestDescriptionDEADBEEF":" macOS 12.7.2 (Macbook air) at Location2, not connected to iPhone",
+  "SPAirPortDataType" : [
+    {
+      "spairport_airport_interfaces" : [
+        {
+          "_name" : "en0",
+          "spairport_airdrop_channel" : 0,
+          "spairport_caps_airdrop" : "spairport_caps_supported",
+          "spairport_caps_autounlock" : "spairport_caps_supported",
+          "spairport_caps_wow" : "spairport_caps_supported",
+          "spairport_status_information" : "spairport_status_disassociated",
+          "spairport_supported_channels" : [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            36,
+            40,
+            44,
+            48,
+            52,
+            56,
+            60,
+            64,
+            100,
+            104,
+            108,
+            112,
+            116,
+            120,
+            124,
+            128,
+            132,
+            136,
+            140,
+            144,
+            149,
+            153,
+            157,
+            161,
+            165
+          ],
+          "spairport_supported_phymodes" : "802.11 a/b/g/n/ac/ax",
+          "spairport_wireless_card_type" : "spairport_wireless_card_type_wifi",
+          "spairport_wireless_country_code" : "X0",
+          "spairport_wireless_firmware_version" : "wl0: Mar 23 2022 19:57:59 version 18.60.27.0.7.8.129 FWID 01-570be953",
+          "spairport_wireless_locale" : "FCC",
+          "spairport_wireless_mac_address" : "fe:dc:ba:09:87:65"
+        }
+      ],
+      "spairport_software_information" : {
+        "spairport_corewlan_version" : "16.0 (1657)",
+        "spairport_corewlankit_version" : "16.0 (1657)",
+        "spairport_diagnostics_version" : "11.0 (1163)",
+        "spairport_extra_version" : "17.0 (1728)",
+        "spairport_family_version" : "12.0 (1200.12.2b2)",
+        "spairport_profiler_version" : "15.0 (1502)",
+        "spairport_utility_version" : "6.3.9 (639.16)"
+      }
+    }
+  ]
+}

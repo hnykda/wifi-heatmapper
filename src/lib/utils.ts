@@ -10,15 +10,13 @@ import {
   testTypes,
   MeasurementTestType,
   WifiResults,
+  IperfResults,
 } from "./types";
+import { LocalizerMap } from "./types";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
-
-export const formatMacAddress = (macAddress: string) => {
-  return macAddress.replace(/../g, "$&-").toUpperCase().slice(0, -1);
-};
 
 export const rssiToPercentage = (rssi: number): number => {
   if (rssi == 0) return 0;
@@ -80,6 +78,66 @@ export const metricFormatter = (
   return value.toFixed(2);
 };
 
+/**
+ * delay a given number of milliseconds
+ * @param ms:number - number of milliseconds to delay
+ * @returns Promise<void>
+ */
+export async function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+export const getDefaultWifiResults = (): WifiResults => {
+  return {
+    ssid: "",
+    bssid: "",
+    rssi: 0,
+    signalStrength: 0,
+    channel: 0,
+    band: 0, // frequency band will be either 2.4 or 5 (GHz)
+    channelWidth: 0,
+    txRate: 0,
+    phyMode: "",
+    security: "",
+    currentSSID: false, // true if this is the SSID actually in useact
+    strongestSSID: null, // WifiResults for the strongest SSID in neighborhood
+  };
+};
+
+/**
+ * formatMacAddress() - add punctuation: convert "0123456789ab" to "01-23-45-67-89-AB"
+ * @param macAddress
+ * @returns formatted string
+ */
+export const formatMacAddress = (macAddress: string) => {
+  if (macAddress.includes("redacted")) {
+    return macAddress;
+  }
+  return macAddress.replace(/../g, "$&-").toUpperCase().slice(0, -1);
+};
+
+/**
+ * normalizeMacAddress - remove punctuation ("-", ":") from MAC address
+ * @param macAddress
+ * @returns
+ */
+export const normalizeMacAddress = (macAddress: string): string => {
+  return macAddress.replace(/[:-]/g, "").toLowerCase();
+};
+
+/**
+ * isValidMacAddress - return true if it's a valid MAC address
+ * @param macAddress
+ * @returns
+ */
+export const isValidMacAddress = (macAddress: string): boolean => {
+  const cleanedMacAddress = normalizeMacAddress(macAddress);
+  if (cleanedMacAddress === "000000000000") {
+    // sometimes returned by ioreg, for example
+    return false;
+  }
+  return /^[0-9a-f]{12}$/.test(cleanedMacAddress);
+};
 /**
  * The iperfRunner code receives a JSON object of all the test results.
  * This function extracts the interesting values and returns
@@ -163,18 +221,77 @@ export function extractIperfResults(
   };
 }
 
-export const getDefaultWifiResults = (): WifiResults => {
-  return {
-    ssid: "",
-    bssid: "",
-    rssi: 0,
-    signalStrength: 0,
-    channel: 0,
-    band: 0, // frequency band will be either 2.4 or 5 (GHz)
-    channelWidth: 0,
-    txRate: 0,
-    phyMode: "",
-    security: "",
-    active: false,
-  };
+/**
+ * bySignalStrength() - takes the signalStrength from two WifiResults and gives their ordering
+ * @param a
+ * @param b
+ * @returns
+ */
+// sort by the signalStrength value (may be null)
+export function bySignalStrength(a: any, b: any): number {
+  const signalA = a.signalStrength;
+  const signalB = b.signalStrength;
+
+  if (signalA === null && signalB === null) return 0;
+  if (signalA === null) return 1; // move A to end
+  if (signalB === null) return -1; // move B to end
+
+  // Descending: stronger (less negative) signal first
+  return signalB - signalA;
+}
+
+/**
+ * splitLine - split a line from command output into the label and value
+ * Look up the label in the (optional) localization table to get the "real" label
+ * Remove digits and whitespace from a label containing SSID or BSSID
+ * Remove '"' from returned value
+ * @param line - a "label" separated by a ":" followed by a value
+ * @returns array of strings: [label, key, value] may be ["", "",""] if no ":"
+ */
+export function splitLine(line: string, localizer: LocalizerMap): string[] {
+  const pos = line.indexOf(":");
+  if (pos == -1) return ["", "", ""]; // no ":"? return empty values
+  let label = line.slice(0, pos).trim(); // the (trimmed) label up to the ":"
+  const val = line
+    .slice(pos + 1)
+    .trim()
+    .replace(/"/g, ""); // use the rest of the line trimming '"' and whitespace
+
+  // remove trailing digits from BSSID or SSID line
+  label = label.replace(/^(B?SSID)\s*\d*\s*$/, "$1");
+
+  // localize the label to produce the key
+  let key = label;
+  if (localizer) {
+    key = localizer[label];
+    if (!key) key = "";
+  }
+  return [label, key, val];
+}
+
+/**
+ * channelToBand - convert channel (number) to the band (number)
+ * @param channel
+ * @returns 2.4 or 5 (as number)
+ */
+export function channelToBand(channel: number): number {
+  return channel <= 14 ? 2.4 : 5;
+}
+
+export const emptyIperfTestProperty: IperfTestProperty = {
+  bitsPerSecond: 0,
+  retransmits: 0,
+  jitterMs: 0,
+  lostPackets: 0,
+  packetsReceived: 0,
+  signalStrength: 0,
 };
+
+export function getDefaultIperfResults(): IperfResults {
+  return {
+    tcpDownload: emptyIperfTestProperty,
+    tcpUpload: emptyIperfTestProperty,
+    udpDownload: emptyIperfTestProperty,
+    udpUpload: emptyIperfTestProperty,
+  };
+}

@@ -7,22 +7,28 @@ assignees: ''
 
 ---
 
-**Describe the bug**
+## Describe the bug
 
+## To Reproduce
 
-**To Reproduce**
+## Screenshots
 
-**Screenshots**
+## Environment
 
-**Environment (please complete the following information, it's printed in the terminal after you start it):**
- - wifi-heatmapper version: (x.x.x or commit hash)
- - Node version: 
- - OS: [e.g. iOS, Windows, Linux]
- - OS version [e.g. macOS 15 Sequoia, Win 11, Ubuntu 22]
- - Browser [e.g. chrome, safari]
- - iperf version (`iperf3 --version`):
+Please enter the following information.
+It's printed in the terminal after you start wifi-heatmapper:
 
-**Additional context**
+* wifi-heatmapper version: (x.x.x or commit hash)
+* Node version:
+* OS: [e.g. iOS, Windows, Linux]
+* OS version [e.g. macOS 15 Sequoia, Win 11, Ubuntu 22]
+* Docker container or not
+* Browser [e.g. chrome, safari]
+* iperf version (`iperf3 --version`):
 
+## Additional context
 
-If relevant, consider running minimal execution path that leads to the problem with `LOG_LEVEL=1 npm run dev | tee -a out.log` and share that `out.log` with us here or via https://gist.github.com/.
+If relevant, consider running minimal execution path that leads
+to the problem with `LOG_LEVEL=1 npm run dev | tee -a out.log`
+and share that `out.log` with us here or via
+[Github issue](https://gist.github.com/).

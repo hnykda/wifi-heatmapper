@@ -16,7 +16,7 @@ import { join } from "path";
  * @param floorPlan - desired floor plan, or "" if unknown
  * @returns Set of default settings for that floor plan
  */
-const getDefaults = (floorPlan: string): HeatmapSettings => {
+export const getDefaults = (floorPlan: string): HeatmapSettings => {
   return {
     surveyPoints: [],
     floorplanImageName: floorPlan,
@@ -33,10 +33,10 @@ const getDefaults = (floorPlan: string): HeatmapSettings => {
     blur: 0.99,
     gradient: {
       0: "rgba(255, 0, 0, 0.6)", // 0%, -100 dBm
-      0.35: "rgba(255, 255, 0, 0.6)", // 35%, -83 dBm
-      // 0.5: "rgba(0, 0, 0, 0.6)", // -% --dBm
-      0.4: "rgba(0, 0, 255, 0.6)", // 40%, -76 dBm
+      0.45: "rgba(255, 255, 0, 0.6)", // 45%, -73 dBm
+      0.5: "rgba(0, 0, 255, 0.6)", // 40%, -76 dBm
       0.6: "rgba(0, 255, 255, 0.6)", // 60%, -64 dBm
+      0.75: "rgba(0, 255, 0, 0.6)", // 75%, -55 dBm
       0.9: "rgba(0, 255, 0, 0.6)", // 90%, -46 dBm
       1.0: "rgba(0, 255, 0, 0.6)", // 100%, -40 dBm
     },

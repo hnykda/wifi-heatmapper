@@ -1,0 +1,16 @@
+# netsh wlan show profiles
+
+Profile auf Schnittstelle Wi-Fi:
+
+## Gruppenrichtlinienprofile (schreibgeschützt)
+
+    <Kein>
+
+## Benutzerprofile
+
+    Profil für alle Benutzer : Profile1 2
+    Profil für alle Benutzer : Profile2
+    Profil für alle Benutzer : Profile3
+    Profil für alle Benutzer : Profile4
+    Profil für alle Benutzer : Profile5
+    Profil für alle Benutzer : Profile6

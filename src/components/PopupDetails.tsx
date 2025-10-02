@@ -33,19 +33,36 @@ const PopupDetails: React.FC<PopupDetailsProps> = ({
   // if no point passed in, just return
   if (!point) return;
 
+  //   | Stat | Value |
+  // | ---- | ----- |
+  // | ID | Point ###  |
+  // | SSID | abcdef |
+  // | Signal Strength | 50% |
+  // | RSSI | -70 dBm |
+  // | Channel | 6 |
+  // | Band | 2.4 GHz |
+  // | BSSID | ##:##:##:##:##:## |
+  // | AP Name | |
+  // |  |  |
+  // | Strongest SSID |<link to another PopupDetail?> |
+  // | TCP Download | 0.00 Mbps |
+  // | TCP Upload | 0.00 Mbps |
+  // | Position | X: 274, Y: 47 |
+  // | Created  | 9/16/2025, 9:39:44 PM |
+
   // const { settings, updateSettings } = useSettings();
   const [isEnabled, setIsEnabled] = useState(point.isEnabled);
   const rows = [
     { label: "ID", value: point.id },
-    { label: "RSSI", value: `${point.wifiData.rssi} dBm` },
+    { label: "SSID", value: point.wifiData?.ssid },
     {
       label: "Signal Strength",
       value: `${point.wifiData.signalStrength}%`,
       // value: `${point.wifiData?.signalStrength || rssiToPercentage(point.wifiData?.rssi)}%`,
     },
-    { label: "Created", value: new Date(point.timestamp).toLocaleString() },
-    { label: "SSID", value: point.wifiData?.ssid },
+    { label: "RSSI", value: `${point.wifiData.rssi} dBm` },
     { label: "Channel", value: point.wifiData?.channel },
+    { label: "Band", value: `${point.wifiData?.band} GHz` },
     { label: "BSSID", value: formatMacAddress(point.wifiData?.bssid || "") },
     {
       label: "AP Name",
@@ -53,8 +70,6 @@ const PopupDetails: React.FC<PopupDetailsProps> = ({
         (ap) => ap.macAddress === point.wifiData?.bssid,
       )?.apName,
     },
-    { label: "Band", value: `${point.wifiData?.band} GHz` },
-    { label: "Position", value: `X: ${point.x}, Y: ${point.y}` },
   ];
 
   if (point.iperfData) {
@@ -77,6 +92,11 @@ const PopupDetails: React.FC<PopupDetailsProps> = ({
       },
     );
   }
+  rows.push({ label: "Position", value: `X: ${point.x}, Y: ${point.y}` });
+  rows.push({
+    label: "Created",
+    value: new Date(point.timestamp).toLocaleString(),
+  });
 
   /**
    * User clicked the Enabled switch.

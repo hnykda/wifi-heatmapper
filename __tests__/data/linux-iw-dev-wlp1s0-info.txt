@@ -1,0 +1,9 @@
+# iw dev wlp1s0 info
+Interface wlp1s0
+    ifindex 3
+    wdev 0x1
+    addr fe:dc:ba:98:76:01
+    ssid HBTL
+    type managed
+    wiphy 0
+

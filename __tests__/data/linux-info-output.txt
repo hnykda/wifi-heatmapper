@@ -1,0 +1,4 @@
+Interface wlan0
+	type: managed
+	wiphy: 0
+	channel 36 (5180 MHz), width: 80 MHz, center1: 5210 MHz

@@ -14,27 +14,9 @@ import { useSettings } from "@/components/GlobalSettings";
 import { HeatmapSettings } from "@/lib/types";
 import { debounce } from "lodash";
 import { execAsync } from "@/lib/server-utils";
-
-// const logger = getLogger("HeatmapAdvancedConfig");
-
-const rgbaToHex = (rgba: string) => {
-  const parts = rgba.match(/[\d.]+/g);
-  if (!parts || parts.length < 3) return "#000000";
-
-  const r = parseInt(parts[0]);
-  const g = parseInt(parts[1]);
-  const b = parseInt(parts[2]);
-
-  return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
-};
-
-const hexToRgba = (hex: string, alpha: number) => {
-  const r = parseInt(hex.slice(1, 3), 16);
-  const g = parseInt(hex.slice(3, 5), 16);
-  const b = parseInt(hex.slice(5, 7), 16);
-
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-};
+import { rgbaToHex, hexToRgba } from "@/lib/utils-gradient";
+import { getLogger } from "@/lib/logger";
+const logger = getLogger("HeatmapAdvancedConfig");
 
 export function HeatmapAdvancedConfig() {
   const { settings, updateSettings } = useSettings();
@@ -60,13 +42,13 @@ export function HeatmapAdvancedConfig() {
   const runCommand = async () => {
     const cmd = (document.getElementById("cmdToRun") as HTMLInputElement).value;
     if (cmd) {
-      console.log(`command to run: "${cmd}"`);
+      logger.info(`command to run: "${cmd}"`);
       try {
         const { stdout, stderr } = await execAsync(cmd);
-        console.log(`STDOUT: "${stdout}"`);
-        console.log(`STDERR: "${stderr}"`);
+        logger.info(`STDOUT: "${stdout}"`);
+        logger.info(`STDERR: "${stderr}"`);
       } catch (err) {
-        console.log(`CAUGHT ERR:\n${err}`);
+        logger.info(`CAUGHT ERR:\n${err}`);
       }
     }
   };

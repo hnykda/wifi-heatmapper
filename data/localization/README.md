@@ -17,18 +17,21 @@ wifi-heatmapper server.
 
 ## How it works
 
-At startup, wifi-heatmapper creates a reverse lookup
-table for the localized strings.
-When it reads the output of the command,
-it checks each label for a match in the table.
-If there's a match, we use the result as the property
-and the command's value for the value.
+At startup, wifi-heatmapper creates a _localizer_ object
+whose properties are the localized phrases from the `netsh ...`
+output, and whose values are the internal name.
+For example, `{ "Velocidad de transmisión (Mbps)": "_txRate_"}`
+
+Each line from a `netsh ...` command is broken into a
+"label" and "value", the label is looked
+up in the localizer object to produce the "key".
+If the key is present, use the value as the internal name.
 
 ## Notes on these files
 
 * Comments not allowed in .json files
 * No trailing comma is allowed on the last line
 * There is no need to create any of the following fields:
-  * "rssi" is computed from signalStrenth (%)
+  * "rssi" is computed from signalStrength (%)
   * "band" is 2.4 or 5, and computed from channel
   * "channelWidth" is not returned in Windows

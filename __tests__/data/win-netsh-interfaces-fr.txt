@@ -1,0 +1,25 @@
+# PS C:\Users\richb> netsh wlan show interfaces 
+Il existe 1 interface sur le système :
+   Nom                   : Wi-Fi
+   Description            : Intel(R) Wi-Fi 6 AX201 160MHz
+   GUID                   : f899e530-fd03-44a9-8307-4d4fc4827eab
+   Adresse physique       : fe:dc:ba:09:87:01
+   Type d’interface         : Primaire
+   État                  : connecté
+   SSID                  : SSID-1
+   Point d'accès d’identificateur SSID (Service Set Identifier) : fe:dc:ba:09:87:02
+   Bande                   : 2,4 GHz
+   Canal                : 11
+   Type de réseau           : Infrastructure
+   Type de radio             : 802.11ax
+   Authentification         : Ouvrir
+   Chiffrement                 : Aucun
+   Mode de connexion        : Profil
+   Réception (Mbits/s)    : 103
+   Transmission (Mbits/s)   : 206
+   Signal                 : 80%
+   Profil                : SomeProfile
+   QoS MSCS configuré : 0
+   Carte QoS configurée : 0
+   Mappage QoS autorisé par la stratégie : 0
+   État du réseau hébergé: Non disponible
