@@ -25,7 +25,6 @@ export async function initLocalization(): Promise<LocalizerMap> {
   for (const file of files) {
     try {
       const filePath = join(localizationDir, file);
-      // console.log(`File: ${filePath}`);
       // Read and strip comment lines from the .json files
       const raw = readFileSync(filePath, "utf-8");
       const cleaned = raw
@@ -48,6 +47,11 @@ export async function initLocalization(): Promise<LocalizerMap> {
 /**
  * addPropertyWithConflictCheck() add a property to the localizer
  *   ensuring that an existing property maps to the same internal name
+ *
+ * This is belt-and-suspenders: we're in deep yogurt if the OS uses the
+ * identical localized phrase for a different local label.
+ * In that case, throw'ing an error is the least that we can do.
+ *
  * @param target - the localizer object
  * @param key - key (localized phrase) to add
  * @param value - internal name

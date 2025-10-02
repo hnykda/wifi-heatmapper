@@ -53,7 +53,6 @@ export function interpolateColor(
  */
 export function getColorAt(value: number, gradient: Gradient): RGBA {
   // sort the keys to be in increasing order
-  // console.log(`gradient before sort: ${JSON.stringify(gradient)}`);
   // Make a sorted array of entries, largest to smallest
   const sortedArray = Object.entries(gradient)
     .map(([k, v]) => [Number(k), v] as [number, string])
@@ -71,7 +70,6 @@ export function getColorAt(value: number, gradient: Gradient): RGBA {
   for (let i = 0; i < arrayLength - 1; i++) {
     const upperVal = sortedArray[i][0];
     const lowerVal = sortedArray[i + 1][0];
-    // console.log(`i/upper/lower: ${i} ${upperVal} ${lowerVal}`);
     if (theValue >= lowerVal && theValue <= upperVal) {
       const factor = (upperVal - theValue) / (upperVal - lowerVal);
       const color1 = rgbaStringToObject(sortedArray[i][1]);

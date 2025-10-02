@@ -35,7 +35,6 @@ export class LinuxWifiActions implements WifiActions {
   async preflightSettings(
     settings: PartialHeatmapSettings,
   ): Promise<WifiScanResults> {
-    logger.info(`preflightSettings()`);
     const response: WifiScanResults = {
       SSIDs: [],
       reason: "",
@@ -92,7 +91,6 @@ export class LinuxWifiActions implements WifiActions {
   async checkIperfServer(
     settings: PartialHeatmapSettings,
   ): Promise<WifiScanResults> {
-    logger.info(`checkIperfServer()`);
     const response: WifiScanResults = {
       SSIDs: [],
       reason: "",
@@ -118,7 +116,6 @@ export class LinuxWifiActions implements WifiActions {
   async findWifiInterface(): Promise<string> {
     logger.debug("Inferring WLAN interface ID on Linux");
 
-    logger.info(`findWifiInterface()`);
     const { stdout } = await execAsync(
       "iw dev | awk '$1==\"Interface\"{print $2}' | head -n1",
     );
@@ -131,7 +128,6 @@ export class LinuxWifiActions implements WifiActions {
    * These are sorted by the strongest RSSI
    */
   async scanWifi(_settings: PartialHeatmapSettings): Promise<WifiScanResults> {
-    logger.info(`scanWifi()`);
     const response: WifiScanResults = {
       SSIDs: [],
       reason: "",
@@ -142,8 +138,8 @@ export class LinuxWifiActions implements WifiActions {
       const result = await execAsync(`nmcli -t dev wifi list`);
 
       response.SSIDs = getCandidateSSIDs(result.stdout);
-      // console.log(`Local SSIDs: ${response.SSIDs.length}`);
-      // console.log(`Local SSIDs: ${JSON.stringify(response.SSIDs, null, 2)}`);
+      logger.debug(`Local SSIDs: ${response.SSIDs.length}`);
+      logger.debug(`Local SSIDs: ${JSON.stringify(response.SSIDs, null, 2)}`);
     } catch (err) {
       response.reason = `Cannot get wifi info: ${err}`;
     }
@@ -164,7 +160,6 @@ export class LinuxWifiActions implements WifiActions {
   ): Promise<WifiScanResults> {
     //
     // NOT IMPLEMENTED - DON'T USE THIS FUNCTION
-    logger.info(`setWifi()`);
     throw "wifi-heatmapper does not implement setWifi()";
 
     const response: WifiScanResults = {
@@ -180,7 +175,6 @@ export class LinuxWifiActions implements WifiActions {
    * @returns
    */
   async getWifi(settings: PartialHeatmapSettings): Promise<WifiScanResults> {
-    logger.info(`getWifi()`);
     const response: WifiScanResults = {
       SSIDs: [],
       reason: "",
@@ -265,7 +259,7 @@ export function parseIwOutput(
       if (freqMatch) {
         const freqMhz = parseInt(freqMatch[1]);
         const chan = frequencyToChannel(freqMhz);
-        console.log(`freq/channel: ${freqMhz} ${chan}`);
+        logger.debug(`freq/channel: ${freqMhz} ${chan}`);
         if (chan) {
           networkInfo.channel = chan;
           networkInfo.band = channelToBand(chan);
@@ -371,7 +365,6 @@ export const getCandidateSSIDs = (nmcliData: string): WifiResults[] => {
     // skip phymode, channelWidth
 
     candidates.push(candidate);
-    // console.log(`candidate: ${JSON.stringify(candidate, null, 2)}`);
   }
   // eliminate any RSSI=0 (no reading), then sort by RSSI
   const nonZeroCandidates = candidates.filter((item) => item.rssi != 0);
@@ -420,14 +413,3 @@ export function frequencyToChannel(freqMHz: number): number | null {
 
   return null;
 }
-
-// Examples
-// console.log(frequencyToChannel(2412));  // 1
-// console.log(frequencyToChannel(2437));  // 6
-// console.log(frequencyToChannel(2462));  // 11
-// console.log(frequencyToChannel(2484));  // 14
-// console.log(frequencyToChannel(5180));  // 36
-// console.log(frequencyToChannel(5805));  // 161
-// console.log(frequencyToChannel(5955));  // 1 (6 GHz)
-// console.log(frequencyToChannel(6115));  // 33 (6 GHz)
-// console.log(frequencyToChannel(7115));  // 233 (6 GHz)

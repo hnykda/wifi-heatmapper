@@ -22,7 +22,6 @@ export function registerSSESender(fn: (msg: SSEMessageType) => void) {
 }
 
 export function clearSSESender() {
-  // console.log(`clearing sendToClient: ${sendToClient}`);
   (globalThis as any)[SSE_KEY] = null;
 }
 

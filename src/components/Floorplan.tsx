@@ -14,6 +14,8 @@ import { Toaster } from "@/components/ui/toaster";
 import NewToast from "@/components/NewToast";
 import PopupDetails from "@/components/PopupDetails";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { getLogger } from "../lib/logger";
+const logger = getLogger("Floorplan");
 
 export default function ClickableFloorplan(): ReactNode {
   const { settings, updateSettings, surveyPointActions } = useSettings();
@@ -82,12 +84,10 @@ export default function ClickableFloorplan(): ReactNode {
     const x = width / 10;
     const y = 350;
     const deltaX = (width * 0.8) / 100;
-    // console.log(`width, x, y, deltaX: ${width} ${x} ${y} ${deltaX}`);
     const wifiData = getDefaultWifiResults();
     const iperfData = getDefaultIperfResults();
     wifiData.signalStrength = idx;
     wifiData.rssi = percentageToRssi(idx);
-    // console.log(`signal & rssi: ${idx} ${percentageToRssi(idx)}`);
     const newPoint = {
       wifiData,
       iperfData,
@@ -97,7 +97,7 @@ export default function ClickableFloorplan(): ReactNode {
       id: "bad ID",
       isEnabled: true,
     };
-    // console.log(`idx, x, y: ${idx} ${x + idx * deltaX} ${y}`);
+    logger.debug(`idx, x, y: ${idx} ${x + idx * deltaX} ${y}`);
     addSurveyPoint(newPoint, x + idx * deltaX, y, settings);
   }
 
@@ -143,7 +143,6 @@ export default function ClickableFloorplan(): ReactNode {
         // sameSSID: settings.sameSSID,
       },
     };
-    // console.log(`PartialSettings: ${JSON.stringify(partialSettings)}`);
     // Kick off the measurement process by calling "action=start"
     // This returns immediately, then poll for data
     const res = await fetch("/api/start-task?action=start", {
@@ -161,7 +160,7 @@ export default function ClickableFloorplan(): ReactNode {
         const res = await fetch("/api/start-task?action=results");
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         result = await res.json();
-        // console.log(`Status is: ${JSON.stringify(result)}`);
+        logger.debug(`Status is: ${JSON.stringify(result)}`);
         if (result.state != "pending") {
           // got a result - status is "done" or "error"
           break;
@@ -174,7 +173,6 @@ export default function ClickableFloorplan(): ReactNode {
     }
     console.log(`Measurement took ${Date.now() - startTime} ms`);
 
-    // console.log(`Result from results API: ${JSON.stringify(result)}`);
     if (result.state === "error") {
       cleanupFailedTest(`${result.explanation}`);
       return;
@@ -185,7 +183,6 @@ export default function ClickableFloorplan(): ReactNode {
     }
     const { wifiData, iperfData } = result.results!;
     // Got measurements: add the x/y point, point number, and enabled
-    // console.log(`Got a set of measurements`);
     const newPoint = {
       wifiData,
       iperfData,
@@ -230,7 +227,6 @@ export default function ClickableFloorplan(): ReactNode {
       id: `Point_${pointNum}`,
     };
     updateSettings({ nextPointNum: pointNum + 1 });
-    // console.log(`Updated Pointnum: ${settings.nextPointNum}`);
     surveyPointActions.add(addedPoint);
   }
 

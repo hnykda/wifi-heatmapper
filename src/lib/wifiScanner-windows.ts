@@ -4,7 +4,7 @@ import {
   WifiScanResults,
   WifiActions,
 } from "./types";
-import { execAsync } from "./server-utils";
+import { execAsync, delay } from "./server-utils";
 import {
   getDefaultWifiResults,
   isValidMacAddress,
@@ -12,7 +12,6 @@ import {
   percentageToRssi,
   channelToBand,
   bySignalStrength,
-  delay,
 } from "./utils";
 import { initLocalization } from "./localization";
 // import { getLogger } from "./logger";
@@ -116,7 +115,6 @@ export class WindowsWifiActions implements WifiActions {
       const { stdout } = await execAsync(`netsh wlan show networks mode=bssid`);
       response.SSIDs = parseNetshNetworks(stdout);
       const currSSIDResults = await this.getWifi(_settings);
-      // console.log(`getWifi : ${JSON.stringify(currSSIDResults.SSIDs[0])}`);
       const currSSID = response.SSIDs.filter(
         (item) => item.bssid == currSSIDResults.SSIDs[0].bssid,
       );
@@ -180,16 +178,13 @@ export class WindowsWifiActions implements WifiActions {
     while (true) {
       const execOutput = await execAsync(command);
       stdout = execOutput.stdout;
-      // console.log(`Interfaces: ${stdout}`);
       const lines = stdout.split("\n");
       const state = lines.filter((line) => line.includes("State"));
-      // console.log(`State line: ${state}`);
       const [, , val] = splitLine(state[0]);
       if (val == "connected") break;
       await delay(200);
     }
     const parsed = parseNetshInterfaces(stdout);
-    // logger.info("Final WiFi data:", parsed);
     response.SSIDs.push(parsed);
     return response;
   }
@@ -248,7 +243,6 @@ export function parseNetshNetworks(text: string): WifiResults[] {
       if (currentSSID != "" && currentBSSID != "") {
         results.push(wifiResult);
         currentBSSID = ""; // reset the parameters
-        // console.log(`***** wifiResult: ${JSON.stringify(wifiResult)}`);
         wifiResult = getDefaultWifiResults();
       }
     }
@@ -295,11 +289,9 @@ export function parseNetshNetworks(text: string): WifiResults[] {
 
   // completed the loop - push out final accumulated record
   results.push(wifiResult);
-  // console.log(`***** wifiResult: ${JSON.stringify(wifiResult)}`);
 
   const sortedResults = results.sort(bySignalStrength);
   const nonEmptyResults = sortedResults.filter((item) => item.ssid != "");
-  // console.log(`Network Results: ${JSON.stringify(nonEmptyResults, null, 2)}`);
   return nonEmptyResults;
 }
 
@@ -355,7 +347,6 @@ export function parseNetshInterfaces(output: string): WifiResults {
     networkInfo.channel == 0 ||
     networkInfo.txRate == 0
   ) {
-    // console.log(`NetworkInfo: ${JSON.stringify(networkInfo, null, 2)}`);
     throw new Error(
       `Could not read Wi-Fi info. Perhaps wifi-heatmapper is not localized for your system. See https://github.com/hnykda/wifi-heatmapper/issues/26 for details.`,
     );
@@ -397,7 +388,6 @@ export function parseProfiles(stdout: string): string[] {
       response.push(val);
     }
   }
-  // console.log(`Profiles: ${JSON.stringify(response)}`);
   return response;
 }
 /**
@@ -456,10 +446,7 @@ export function findProfileFromSSID(
   const lines = stdout.split("\n");
   const ssidLines = [];
   for (const line of lines) {
-    // console.log(`theLine: ${line}`);
-
     const [, key, value] = splitLine(line);
-    // console.log(`Key/Val: "${key}" "${value}"`);
     if (key == "ssid") {
       ssidLines.push(value);
     }

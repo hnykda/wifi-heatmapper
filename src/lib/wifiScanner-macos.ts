@@ -5,14 +5,14 @@ import {
   WifiActions,
   SPAirPortRoot,
 } from "./types";
-import { execAsync } from "./server-utils";
+import { execAsync, delay } from "./server-utils";
 import {
   rssiToPercentage,
-  delay,
   isValidMacAddress,
   normalizeMacAddress,
   channelToBand,
   bySignalStrength,
+  getDefaultWifiResults,
 } from "./utils";
 import { getLogger } from "./logger";
 const logger = getLogger("wifi-macOS");
@@ -54,7 +54,6 @@ export class MacOSWifiActions implements WifiActions {
       reason =
         "iperf3 not installed. Install it,\n or set the iperfServer to 'localhost'.";
     }
-    // console.log(`partialSettings: ${JSON.stringify(settings)}`);
     // test duration must be > 0 - otherwise iperf3 runs forever
     if (settings.testDuration <= 0) {
       reason = "Test duration must be greater than zero.";
@@ -134,6 +133,20 @@ export class MacOSWifiActions implements WifiActions {
       SSIDs: [],
       reason: "",
     };
+
+    // macOS 26 returns "<redacted>" both for SSID and BSSID
+    // There is no longer a reason to call system_profiler
+    // (which takes several seconds) when it doesn't
+    // produce any information not available from `wdutil`
+    //
+    // Therefore: Just create a default result,
+    // set ssid to <redacted> and mark it as the currentSSID
+    const netInfo = getDefaultWifiResults();
+    netInfo.ssid = "<redacted>";
+    netInfo.currentSSID = true;
+    response.SSIDs.push(netInfo);
+    return response;
+
     // let stdout: string;
     let jsonResults: SPAirPortRoot;
     const currentIf = await this.findWifiInterface();
@@ -194,9 +207,6 @@ export class MacOSWifiActions implements WifiActions {
       throw `setWifi error: Empty SSID "${JSON.stringify(newWifiSettings)}`;
     }
 
-    // console.log(
-    //   `Setting Wifi SSID on interface ${this.nameOfWifi}: ${newWifiSettings.ssid}`,
-    // );
     // `networksetup -setairportnetwork ${this.nameOfWifi} ${newWifiSettings.ssid}`
     const { stdout, stderr } = await execAsync(
       `networksetup -setairportnetwork ${this.nameOfWifi} ${newWifiSettings.ssid}`,
@@ -316,10 +326,6 @@ export const getNeighborSSIDs = (
   // convert each to a WifiResults
   const candidates = neighbors.map((item) => convertToWifiResults(item));
 
-  // console.log(
-  //   `SSIDs: ${localCount} ${currentCount} \n${JSON.stringify(candidates, null, 2)}`,
-  // );
-
   // eliminate any RSSI=0 (no reading), then sort by RSSI
   const nonZeroCandidates = candidates.filter((item) => item.rssi != 0);
   // eliminate any SSIDs to be ignored
@@ -397,20 +403,6 @@ export function mergeSSIDs(
   const ALLOWED_DELTA = 4; // allowed difference between neighbor and current
   const result: MergeResult = { added: false, index: -1 };
   try {
-    // console.log(`============`);
-    // let ix = 0;
-    // neighbors.forEach((item) =>
-    //   console.log(
-    //     `Neighbor: ${ix++} ${item.currentSSID} ${item.ssid} ${item.channel} ${item.rssi} ${item.security}`,
-    //   ),
-    // );
-    // ix = 0;
-    // current.forEach((item) =>
-    //   console.log(
-    //     `Current: ${ix++} ${item.currentSSID} ${item.ssid} ${item.channel} ${item.rssi} ${item.security}`,
-    //   ),
-    // );
-
     // handle simple cases
     if (current.length > 1) throw "Current contains multiple entries";
     if (current.length === 0) {
@@ -463,14 +455,6 @@ export function mergeSSIDs(
   } catch (err) {
     console.log(`Error in merging: ${err} ${JSON.stringify(current)}`);
   }
-  // let ix = 0;
-  // neighbors.forEach((item) =>
-  //   console.log(
-  //     `Neighbor: ${ix++} ${item.currentSSID} ${item.ssid} ${item.channel} ${item.rssi} ${item.security}`,
-  //   ),
-  // );
-  // console.log(`result: ${JSON.stringify(result)}`);
-  // console.log(`============`);
   return result;
 }
 
@@ -765,7 +749,6 @@ function parseRSSI(input: string): {
  */
 function convertToWifiResults(obj: object): WifiResults {
   const sp = mapSPToWifiResults(obj, spToWifiResultMap);
-  // console.log(`mapped to WifiResults: ${JSON.stringify(sp, null, 2)}`);
   const result: WifiResults = {
     ssid: sp.ssid,
     bssid: sp.bssid,
@@ -780,8 +763,6 @@ function convertToWifiResults(obj: object): WifiResults {
     currentSSID: false,
     strongestSSID: null,
   };
-  // console.log(`Final mapping: ${JSON.stringify(result, null, 2)}`);
-
   return result;
 }
 
@@ -797,7 +778,6 @@ function postProcessWifiResults(
   obj.band = String(channelToBand(parseInt(obj.channel)));
   obj.channelWidth = inferChannelWidth(obj.channelWidthIndicator, obj.phyMode);
   if (!obj.rssi) {
-    // console.log(`No RSSI found...`);
     obj.rssi = "-100";
     obj.signalStrength = "0";
   }

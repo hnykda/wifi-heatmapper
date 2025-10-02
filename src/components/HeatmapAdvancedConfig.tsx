@@ -15,8 +15,8 @@ import { HeatmapSettings } from "@/lib/types";
 import { debounce } from "lodash";
 import { execAsync } from "@/lib/server-utils";
 import { rgbaToHex, hexToRgba } from "@/lib/utils-gradient";
-
-// const logger = getLogger("HeatmapAdvancedConfig");
+import { getLogger } from "@/lib/logger";
+const logger = getLogger("HeatmapAdvancedConfig");
 
 export function HeatmapAdvancedConfig() {
   const { settings, updateSettings } = useSettings();
@@ -42,13 +42,13 @@ export function HeatmapAdvancedConfig() {
   const runCommand = async () => {
     const cmd = (document.getElementById("cmdToRun") as HTMLInputElement).value;
     if (cmd) {
-      console.log(`command to run: "${cmd}"`);
+      logger.info(`command to run: "${cmd}"`);
       try {
         const { stdout, stderr } = await execAsync(cmd);
-        console.log(`STDOUT: "${stdout}"`);
-        console.log(`STDERR: "${stderr}"`);
+        logger.info(`STDOUT: "${stdout}"`);
+        logger.info(`STDERR: "${stderr}"`);
       } catch (err) {
-        console.log(`CAUGHT ERR:\n${err}`);
+        logger.info(`CAUGHT ERR:\n${err}`);
       }
     }
   };

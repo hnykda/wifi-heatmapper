@@ -229,11 +229,6 @@ export function extractIperfResults(
  */
 // sort by the signalStrength value (may be null)
 export function bySignalStrength(a: any, b: any): number {
-  // const parseSignal = (val: string | undefined): number | null => {
-  //   const match = val?.match(/^(-?\d+)\s+dBm/);
-  //   return match ? parseInt(match[1], 10) : null;
-  // };
-
   const signalA = a.signalStrength;
   const signalB = b.signalStrength;
 

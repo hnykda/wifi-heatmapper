@@ -275,7 +275,7 @@ create a signed binary that acquires Location Access permissions
 from the user.
 This task is mentioned in the To-Do.md as a long-term project.
 
-There is a workaround for the SSID on macOS.
+There is a workaround for the SSID on macOS 15.
 The `system_profiler` call provides a list of _all_ the SSIDs
 "in the neighborhood" along with their signal strengths.
 The current SSID _IS_ available from the
@@ -285,6 +285,11 @@ The current SSID _IS_ available from the
 The `scanWifi()` function looks for the presence of the
 current SSID name from `system_profiler` and uses that name to
 replace `<redacted>` when returning measured the WifiResults.
+
+**BUT...** it gets worse with macOS 26 (released in September 2025).
+The `system_profiler` command returns `<redacted>` for both SSID and BSSID.
+There does not appear to be a way that a Javascript/Typescript
+program can return the actual values.
 
 ## Localization
 

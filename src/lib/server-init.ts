@@ -6,6 +6,7 @@ import { promises as fs } from "fs";
 import isDocker from "is-docker";
 import { execAsync } from "./server-utils";
 import { initLocalization } from "./localization";
+import { execFileSync } from "node:child_process";
 
 const loadJson = async (filePath: string) => {
   const contents = await fs.readFile(filePath, "utf-8");
@@ -77,8 +78,6 @@ export async function initServer() {
     // logger.info(`Server initialization complete.`);
   }
 }
-
-import { execFileSync } from "node:child_process";
 
 /**
  * getMacOSNameAndVersion() - Return a string with OS name and version

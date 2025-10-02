@@ -14,6 +14,7 @@
 #    --privileged \
 #    -v ./datas/data:/app/data \
 #    -v ./datas/media:/app/public/media \
+#    -v /var/run/dbus:/var/run dbus \
 #    wifi-heatmapper
 
 # Use Node.js base image

@@ -142,6 +142,7 @@ _NB: The Dockerfile does not work on macOS or Windows. See the note in the Docke
    --privileged \
    -v ./datas/data:/app/data \
    -v ./datas/media:/app/public/media \
+   -v /var/run/dbus:/var/run dbus \
    wifi-heatmapper
    ```
 
@@ -153,6 +154,8 @@ _NB: The Dockerfile does not work on macOS or Windows. See the note in the Docke
 * If you want to "ssh into the Docker container", execute this:
   `docker exec -it container-name /bin/bash`
   where `container-name` is shown in the `docker ps` command
+* _Note: `networkmanager` needs to use `dbus` to communicate within
+  a Docker container. The `/var/run/dbus...` line accomplishes this._
 
 ## History
 

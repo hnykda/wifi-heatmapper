@@ -12,6 +12,8 @@ import {
   getSurveyResults,
 } from "@/lib/server-globals";
 import { runSurveyTests } from "@/lib/iperfRunner";
+import { getLogger } from "../../../lib/logger";
+const logger = getLogger("start-task");
 
 // handle a "status" request
 export async function GET(req: NextRequest) {
@@ -37,7 +39,7 @@ export async function POST(req: NextRequest) {
   // action=start: expects an object with a single property: settings
   if (action === "start") {
     const { settings } = await req.json();
-    // console.log(`action=start: ${JSON.stringify(settings)}`);
+    logger.debug(`action=start: ${JSON.stringify(settings)}`);
     setSurveyResults({ state: "pending" });
 
     // Start off the survey process immediately
@@ -69,17 +71,13 @@ export async function POST(req: NextRequest) {
     // and immediately retun an OK status
     return NextResponse.json("OK");
 
-    // const result = await startSurvey(settings);
-    // console.log(`startSurvey results: ${JSON.stringify(result)}`);
-    // const safe = JSON.parse(JSON.stringify(result));
-
     // Stop
   } else if (action === "stop") {
     setCancelFlag(true); // in sseGlobal.ts
     return NextResponse.json({ message: "Task stopped" });
   }
 
-  // console.log(`Unexpected action received: ${action}`);
+  logger.debug(`Unexpected action received: ${action}`);
   return NextResponse.json(
     { error: `Invalid action "${action}"` },
     { status: 400 },

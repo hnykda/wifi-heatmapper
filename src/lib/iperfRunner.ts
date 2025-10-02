@@ -6,14 +6,9 @@ import {
   WifiResults,
 } from "./types";
 // import { scanWifi, blinkWifi } from "./wifiScanner";
-import { execAsync } from "./server-utils";
+import { execAsync, delay } from "./server-utils";
 import { getCancelFlag, sendSSEMessage } from "./server-globals";
-import {
-  percentageToRssi,
-  toMbps,
-  getDefaultIperfResults,
-  delay,
-} from "./utils";
+import { percentageToRssi, toMbps, getDefaultIperfResults } from "./utils";
 import { SSEMessageType } from "@/app/api/events/route";
 import { createWifiActions } from "./wifiScanner";
 import { getLogger } from "./logger";
@@ -37,7 +32,7 @@ const validateWifiDataConsistency = (
     return true;
   }
   const logString = `${JSON.stringify(wifiDataBefore.bssid)} ${JSON.stringify(wifiDataAfter.bssid)}`;
-  logger.info(logString);
+  logger.debug(logString);
 };
 
 function arrayAverage(arr: number[]): number {
@@ -115,7 +110,7 @@ export async function runSurveyTests(
   // otherwise check if the server is available
   else {
     const resp = await wifiActions.checkIperfServer(settings);
-    logger.info(`checkIperfServer returned: ${resp}`);
+    logger.debug(`checkIperfServer returned: ${resp}`);
 
     if (resp.reason != "") {
       performIperfTest = false;
@@ -146,7 +141,6 @@ export async function runSurveyTests(
     const ssids = await wifiActions.scanWifi(settings);
     logger.info(`scanWifi returned: ${JSON.stringify(ssids)}`);
 
-    // console.log(`SSIDs: ${JSON.stringify(ssids, null, 2)}`);
     const thisSSID = ssids.SSIDs.filter((item) => item.currentSSID);
     const ssidName = thisSSID[0].ssid;
 
@@ -156,10 +150,15 @@ export async function runSurveyTests(
         const server = settings.iperfServerAdrs;
         const duration = settings.testDuration;
         const wifiStrengths: number[] = []; // percentages
-        displayStates.header = `Measuring Wi-Fi (${ssidName})`;
+        // add the SSID to the header if it's not <redacted>
+        let newHeader = "Measuring Wi-Fi";
+        if (!ssidName.includes("redacted")) {
+          newHeader += ` (${ssidName})`;
+        }
+        displayStates.header = newHeader;
 
         const wifiDataBefore = await wifiActions.getWifi(settings);
-        logger.info(`getWifi() returned: ${JSON.stringify(wifiDataBefore)}`);
+        logger.debug(`getWifi() returned: ${JSON.stringify(wifiDataBefore)}`);
         console.log(
           `Elapsed time for scan and switch: ${Date.now() - startTime}`,
         );
@@ -222,7 +221,6 @@ export async function runSurveyTests(
         wifiStrengths.push(wifiDataAfter.SSIDs[0].signalStrength);
         displayStates.strength = arrayAverage(wifiStrengths).toString();
         checkForCancel();
-        // console.log(`wifiStrengths: ${wifiStrengths}`);
 
         // Send the final update - type is "done"
         displayStates.type = "done";
