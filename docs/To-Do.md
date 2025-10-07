@@ -6,6 +6,9 @@ Random observations and questions that arise at the start of the project
 
 Ideas for making the program better - in no particular order:
 
+* Although I have not tried it, consider
+  `eslint-plugin-react-you-might-not-need-an-effect` at
+  [Github](https://github.com/NickvanDyke/eslint-plugin-react-you-might-not-need-an-effect)
 * Add a "Add notation" with ctl/cmd-click to place a notation
   at an X/Y position on a floor plan.
   Saved as "notations" array (similar to SurveyPoints array)
