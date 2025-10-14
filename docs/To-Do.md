@@ -6,26 +6,37 @@ Random observations and questions that arise at the start of the project
 
 Ideas for making the program better - in no particular order:
 
+* Although I have not tried it, consider
+  `eslint-plugin-react-you-might-not-need-an-effect` at
+  [Github](https://github.com/NickvanDyke/eslint-plugin-react-you-might-not-need-an-effect)
+* Add a "Add notation" with ctl/cmd-click to place a notation
+  at an X/Y position on a floor plan.
+  Saved as "notations" array (similar to SurveyPoints array)
+  in the HeatmapSettings
+* Automatically add the floorplan/background image name and
+  date/time (of the latest survey point?) to the canvas
+  so that the information is preserved in a screen shot
+* Use the `scanWifi()` information to add a `strongestSSID` WifiResults
+  to the SurveyPoint to indicate that there is a stronger SSID
+  in the neighborhood than the SSID currently being used
+* If no TCP tests, set iperfData to null in the SurveyPoint
+* Add two new tabs:
+  * **AP Mapping** that revives the original March 2025 GUI that
+    allows the user to set names for each BSSID.
+    When BSSIDs are available, wifi-heatmapper could then automatically
+    insert the AP name into the PopupDetails for each survey point
+  * **About** To display information about
+    wifi-heatmapper, including the information logged by
+    _server-init.ts_ as well as other descriptive info.
 * Export `wifi-heatmapper-imagename` and the image itself to a saved file so it can be loaded later
-* A click on the `Floorplan` pane should immediately display an
-  empty dot (no color) to indicate that's where the click was.
-  (Improves behavior on a touch-screen - you can see where you clicked.)
-* Scale the size of the surveyPoint dot to the image, to prevent
-  dots from appearing as tiny dots on a large image.
-* (Maybe) During the FloorPlan measurement process, display the wifi signal
-  strength heatmap underneath or as a separate floating window.
+* (Maybe) During the FloorPlan measurement process, display the heatmap
+  for wifi signal strength as a separate floating window.
   This helps the user determine if they need
   more measurements (finer granularity) for the map.
-* Bundle this into an installable (electron?) app so it can be easily installed on a tablet. Might also allow the app to get Localization permissions on macOS 15 and above so it could show the SSID/AP Name, etc.
-* "Blink"" WiFi off and then back on before measurement to improve the values.
-  This might give the Wi-Fi driver a chance to select a better Wi-Fi SSID
-  Use case: you have used SSID-A and SSID-B in the past. You start the test near SSID-A, but subsequent survey points get farther and farther away - and closer to
-  SSID-B. Since your device tends to select the strongest signal, "blinking" the Wi-FI
-  might choose SSID-B automatically.
-  (The current behavior is that the measured signal level gets lower and lower until
-  manually switching to SSID-B.)
-* This behavior would probably require some kind of "Use this SSID" / "Use best SSID"
-  option, since blinking the Wi-Fi frequently adds 10-12 seconds to each measurement.
+  (This is less necessary with the newer WebGL circle algorithm)
+* Bundle this into an installable (electron?) app so it can be easily installed on a tablet.
+* Make a signed macOS app so it can get Location Access permissions
+  and show the SSID/BSSID, etc.
 
 ## Bugs
 
@@ -43,7 +54,6 @@ Ideas for making the program better - in no particular order:
   with the server (perhaps because `npm run dev` has been stopped)
 * Fix display of BSSID; Windows parsing test code not updated;
   macOS shows `<R-ED-AC-TED>` or some such nonsense (should be "Not available")
-* Fix display of dBm in the heatmap scale when not showing as %. Currently, it shows 100dBm (positive number) as green, with 0 dBm as red. The scale should use the limits of the rssiToPercentage() function.
 * If browser window is at 30%, the TabPanel looks too small, yet the FloorPlan is OK.
   Do we need to give an indication of this?
 
@@ -80,7 +90,7 @@ Ideas for making the program better - in no particular order:
 * ~~Need better error message when initially starting survey (empty password) on macOS~~
 * ~~Coalesce all the settings into a single object that can then be saved to a file. (Remember to isolate the sudoer password - never save it).~~
 * ~~`wifiScanner` must throw quickly if sudoerPassword is _empty_~~
-* ~~Keep Platform on the server. Don't dislay in the Settings Pane. Obviously `wifiScanner.ts` must determine the platform, but none of the other code needs to know it. We can decide on-the-fly when `platform` is needed~~
+* ~~Keep Platform on the server. Don't display in the Settings Pane. Obviously `wifiScanner.ts` must determine the platform, but none of the other code needs to know it. We can decide on-the-fly when `platform` is needed~~
 * Change Password field to conceal the characters
 * Come up with a better mechanism (than random strings) for naming survey points
 * Clicking in Password field (and other fields) should select the field for editing; pressing Return should accept the new value
@@ -104,7 +114,7 @@ Ideas for making the program better - in no particular order:
   Both receive the full list of points, and return an updated list back to `GlobalSettings`
 * ~~Add slider to heatmap. Always set it to the computed value, unless user has changed it, then remember that value in the global settings. Initialize it to null: a numeric value indicates it has been changed. Sliding the value to 0 should re-set the value to null.~~
 * ~~Remove Scale size/radius divider from AdvancedHeatMap settings. All the above logic should remain within the Heatmap component~~
-* ~~Retain the "Size Adjustment" setting (and other Advancd Configuration settings?) in the global object~~
+* ~~Retain the "Size Adjustment" setting (and other Advanced Configuration settings?) in the global object~~
 * ~~The Wi-Fi signal strength heat map should always display a scale of 0-100% because people deserve to know when their wifi strength is low.~~
 * Convert all references to the "advanced settings" of the Floorplan
   to use the `GlobalSettings` object instead of the Floorplan
@@ -134,3 +144,39 @@ Ideas for making the program better - in no particular order:
 * Test code from wifiScanner_windows should be moved to a separate \_test.ts file [DONE]
 * Make the app more user-friendly and informative (step by step wizard for the measurements) [DONE for now]
 * Add leaflet to make the maps interactive [NOT FOR NOW]
+* Change `PopupDetails` to look like this.
+  May link to the strongest SSID in another PopupDetails.
+  | Stat | Value |
+  | ---- | ----- |
+  | ID | Point ###  |
+  | SSID | abcdef |
+  | Signal Strength | 50% |
+  | RSSI | -70 dBm |
+  | Channel | 6 |
+  | Band | 2.4 GHz |
+  | BSSID | ##:##:##:##:##:## |
+  | AP Name | |
+  |  |  |
+  | Strongest SSID |<link to another PopupDetail ?> |
+  | TCP Download | 0.00 Mbps |
+  | TCP Upload | 0.00 Mbps |
+  | Position | X: 274, Y: 47 |
+  | Created  | 9/16/2025, 9:39:44 PM |
+
+* (Abandoned )"Blink"" WiFi off and then back on before measurement to improve the values.
+  This might give the Wi-Fi driver a chance to select a better Wi-Fi SSID
+  Use case: you have used SSID-A and SSID-B in the past. You start the test near SSID-A, but subsequent survey points get farther and farther away - and closer to
+  SSID-B. Since your device tends to select the strongest signal, "blinking" the Wi-FI
+  might choose SSID-B automatically.
+  (The current behavior is that the measured signal level gets lower and lower until
+  manually switching to SSID-B.)
+* This behavior would probably require some kind of "Use this SSID" / "Use best SSID"
+  option, since blinking the Wi-Fi frequently adds 10-12 seconds to each measurement.
+* Update the NewToast to display the current SSID name
+* Fix display of dBm in the heatmap scale when not showing as %. Currently, it shows 100dBm (positive number) as green, with 0 dBm as red. The scale should use the limits of the rssiToPercentage() function.
+* Only load the localization code if running on Windows
+* A click on the `Floorplan` pane should immediately display an
+  empty dot (no color) to indicate that's where the click was.
+  (Improves behavior on a touch-screen - you can see where you clicked.)
+* Scale the size of surveyPoint dots to the Floorplan image, to prevent
+  them from appearing as tiny dots on a large image.

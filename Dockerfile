@@ -5,6 +5,18 @@
 # You’d need to run the app directly on the host OS or in a Linux VM
 # (like WSL2 or a remote dev server).
 
+# To run this container:
+#
+#    docker build -t wifi-heatmapper .
+#
+#    docker run \
+#    --net="host" \
+#    --privileged \
+#    -v ./datas/data:/app/data \
+#    -v ./datas/media:/app/public/media \
+#    -v /var/run/dbus:/var/run dbus \
+#    wifi-heatmapper
+
 # Use Node.js base image
 FROM node:22-alpine
 
@@ -15,7 +27,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install needed packages
-RUN apk add --no-cache iw iperf3
+RUN apk add --no-cache iw iperf3 networkmanager networkmanager-cli
 
 # Install dependencies
 RUN npm install

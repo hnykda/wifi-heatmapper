@@ -10,6 +10,8 @@ import {
   sendSSEMessage,
   setCancelFlag,
 } from "../../../lib/server-globals";
+import { getLogger } from "../../../lib/logger";
+const logger = getLogger("api-events");
 
 export type SSEMessageType = {
   type: string;
@@ -36,7 +38,7 @@ export async function GET(req: NextRequest) {
   registerSSESender(sendToClient);
 
   // Send a ready event and clear the (global) cancel flag
-  console.log("SSE client connected");
+  logger.debug("SSE client connected");
   sendSSEMessage({
     type: "ready",
     header: "",
@@ -58,7 +60,7 @@ export async function GET(req: NextRequest) {
     clearInterval(heartbeat);
     clearSSESender();
     writer.close();
-    console.log("SSE client disconnected");
+    logger.debug("SSE client disconnected because of abort");
   });
 
   return new Response(stream.readable, {

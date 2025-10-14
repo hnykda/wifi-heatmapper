@@ -1,0 +1,12 @@
+Profils sur l’interface Wi-Fi :
+Profils de stratégies de groupe (lecture seule)
+-----------------------------------------------
+   <Aucun>
+Profils utilisateurs
+-------------
+   Profil Tous les utilisateurs     : Profile1 2
+   Profil Tous les utilisateurs     : Profile2
+   Profil Tous les utilisateurs     : Profile3
+   Profil Tous les utilisateurs     : Profile4
+   Profil Tous les utilisateurs     : Profile5
+   Profil Tous les utilisateurs     : Profile6

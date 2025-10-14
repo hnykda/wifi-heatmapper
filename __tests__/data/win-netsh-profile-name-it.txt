@@ -1,0 +1,36 @@
+netsh wlan show profile name="Profile1 2"
+Profilo Profile1 2 sull'interfaccia Wi-Fi:
+=======================================================================
+Applicato/a: Tutti i profili utente
+Informazioni profilo
+-------------------
+   Versione               : 1
+   Tipo                   : LAN wireless
+   Nome                   : Profile1 2
+   Opzioni di controllo   :
+       Modalità connessione     : Connetti manualmente
+       Broadcast rete          : Connetti solo in presenza di
+                                 broadcast della rete
+       Passaggio automatico     : Non passare ad altre reti
+       Assegnazione casuale indirizzi MAC  : disabilitata
+Impostazioni connettività
+---------------------
+   Numero di SSID         : 1
+   Nome SSID                    : "SSID-1"
+   Tipo rete              : Infrastruttura
+   Tipo frequenza radio              : [ Qualsiasi tipo frequenza radio ]
+   Estensione fornitore   : non presente
+Impostazioni sicurezza
+-----------------
+   Autenticazione         : Aperta
+   Crittografia               : Nessuno
+   Chiave di sicurezza      : Assente
+   Indice chiave               : 1
+Impostazioni costo
+-------------
+   Costo                   : Senza restrizioni
+   Traffico eccessivo              : No
+   Limite dati quasi raggiunto : No
+   Limite dati superato        : No
+   Roaming                : No
+   Origine costo            : Predefinito

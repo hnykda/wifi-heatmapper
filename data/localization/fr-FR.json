@@ -1,11 +1,13 @@
 {
-  "ssid": "SSID",
-  "bssid": "Point d'accès d’identificateur SSID (Service Set Identifier)",
-  "signalStrength": "Signal",
-  "channel": "Canal",
-  "security": "Authentification",
-  "txRate": "Transmission (Mbits/s)",
-  "phyMode": "Type de radio"
+  "SSID": "ssid",
+  "Nom du SSID": "ssid",
+  "Point d'accès d’identificateur SSID (Service Set Identifier)": "bssid",
+  "Signal": "signalStrength",
+  "Canal": "channel",
+  "Authentification": "security",
+  "Transmission (Mbits/s)": "txRate",
+  "Type de radio": "phyMode",
+  "Nom": "name"
 }
 
 // \Users\Test User> netsh wlan show interfaces - Win11 French

@@ -1,11 +1,14 @@
 {
-  "ssid": "SSID",
-  "bssid": "BSSID",
-  "signalStrength": "Segnale",
-  "channel": "Canale",
-  "security": "Autenticazione",
-  "txRate": "Velocità trasmissione (Mbps)",
-  "phyMode": "Tipo frequenza radio"
+  "SSID": "ssid",
+  "Nome SSID": "ssid",
+  "BSSID": "bssid",
+  "Segnale": "signalStrength",
+  "Canale": "channel",
+  "Autenticazione": "security",
+  "Velocità trasmissione (Mbps)": "txRate",
+  "Tipo frequenza radio": "phyMode",
+  "Tipo di radio": "phyMode",
+  "Nome": "name"
 }
 
 // Output from netsh wlan show interfaces on Windows 10 - Italian

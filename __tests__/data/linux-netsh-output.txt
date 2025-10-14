@@ -1,0 +1,8 @@
+Connected to 12:34:56:3f:19:7c (on wlan0)
+SSID: HomeNetwork_5G
+freq: 5180
+RX: 780.0 Mbps
+TX: 866.7 Mbps
+signal: -56 dBm
+tx bitrate: 866.7 MBit/s
+rx bitrate: 780.0 MBit/s

@@ -1,4 +1,4 @@
-# WiFi Heatmapper
+# Wi-Fi Heatmapper
 
 **wifi-heatmapper** displays heat maps of both
 Wi-Fi signal strength and
@@ -9,22 +9,20 @@ If there is a signal-strength problem, you can use the
 heat map to optimize access point placement,
 or to add new mesh devices or extenders.
 
-![heatmap example](docs/images/HeatmapPane.png)
-
-The heat maps use a green color ("green is good")
-to show areas of strong signal
-(or high data transfer speeds).
+The heat maps show areas of strong signal
+(or high data transfer speeds) with green ("green is good").
 Signal levels fade to turquoise, then to blue
 (lowest acceptable).
 Yellow and red colors indicate poor signal levels.
 
+![heatmap example](docs/images/Heatmap.jpg)
+
 The screen shot above is a sample heat map.
-It was created by measuring about two dozen points around the house,
-especially locations where people actually use a computer. 
+It was created by measuring about a dozen points around the house,
+especially locations where people actually use a computer.
 The heat map shows that the signal levels throughout the house
 are acceptable &mdash; mostly green, turquoise, and blue.
-The areas of yellow or red are at the edges, or on a stairway
-where no measurement was taken (the large yellow area in the middle).
+The areas of yellow or red are at the edges.
 (Don't have a floor plan for your home?
 See the [FAQ](docs/FAQ.md).)
 
@@ -61,7 +59,7 @@ that reflects your laptop's location.
 **wifi-heatmapper** measures the WiFi signal strength and
 (optionally) the throughput at that point.
 When the measurement is complete, the floor plan displays
-a dot colored by its signal stength.
+a dot colored by its signal strength.
 Click the dot to get more information.
 
 5. **Move to other locations** and make further measurements.
@@ -71,7 +69,7 @@ Multiple measurements per room provide more fine-grained data.
 6. **Click the Heatmap tab** to see the resulting heat map.
 Areas with strong signal will be green,
 lower signal levels will follow the
-Green -> Tuquoise -> Blue -> Yellow -> Red transition.
+Green -> Turquoise -> Blue -> Yellow -> Red transition.
 Adjust the **Radius** slider until the spots grow together.
 Go back to the Floor Plan tab to make more measurements if needed.
 
@@ -96,6 +94,7 @@ To install the software:
    npm install
    npm run dev
    ```
+
 2. Browse to [http://localhost:3000](http://localhost:3000)
    and follow the steps at the top of this page
 
@@ -128,7 +127,8 @@ To take advantage of `iperf3` throughput (speed) tests:
 
 WiFi Heatmapper includes a Dockerfile that automates much of
 the installation process for Linux.
-_NB: The Dockerfile does not work on macOS or Windows. See the note in the Dockerfile for more information._
+_NB: The Dockerfile does not work on macOS or Windows.
+See the note in the Dockerfile for more information._
 
 1. Build the Docker Image
 
@@ -144,16 +144,27 @@ _NB: The Dockerfile does not work on macOS or Windows. See the note in the Docke
    --privileged \
    -v ./datas/data:/app/data \
    -v ./datas/media:/app/public/media \
-   -v ./data/localization:/app/data/localization \
+   -v /var/run/dbus:/var/run dbus \
    wifi-heatmapper
    ```
 
-use `-v` options if you want to save db + floorplanpicture to the _datas_ folder
+### Docker Tips
+
+* Use `-v` options if you want to save db + floorplan picture
+  to the _datas_ folder
+* Ctl-C to abort the Docker container
+* If you want to "ssh into the Docker container", execute this:
+  `docker exec -it container-name /bin/bash`
+  where `container-name` is shown in the `docker ps` command
+* _Note: `networkmanager` needs to use `dbus` to communicate within
+  a Docker container.
+  The `/var/run/dbus...` line accomplishes this._
 
 ## History
 
 This project is a WiFi heatmapper solution for macOS/Windows/Linux, inspired by [python-wifi-survey-heatmap](https://github.com/jantman/python-wifi-survey-heatmap).
-@hnykda wanted to create a heatmap of his WiFi coverage, but the original project didn't work because he is running on Mac.
+@hnykda wanted to create a heatmap of his WiFi coverage,
+but the original project didn't work because he is running on Mac.
 He also wanted something that might be slightly easier to use, i.e. using a browser.
 @richb-hanover refactored the GUI to its current four-tab appearance.
 
@@ -170,8 +181,11 @@ blue was "cool" (weak).
 
 ## Credits
 
-This project was inspired by [python-wifi-survey-heatmap](https://github.com/jantman/python-wifi-survey-heatmap). Special thanks to the original author for their work.
+This project was inspired by
+[python-wifi-survey-heatmap](https://github.com/jantman/python-wifi-survey-heatmap).
+Special thanks to the original author for their work.
 
 ## Contributing
 
-Feel free to contribute to this project by opening an issue or submitting a pull request. I am more than happy for that!
+Feel free to contribute to this project by opening an issue
+or submitting a pull request. I am more than happy for that!

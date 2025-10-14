@@ -1,0 +1,230 @@
+# netsh wlan show networks mode=bssid
+Interface name : Wi-Fi
+There are 9 networks currently visible.
+SSID 1 :
+   Network type            : Infrastructure
+   Authentication          : WPA2-Personal
+   Encryption              : CCMP
+   BSSID 1                 : fe:dc:ba:09:87:01
+        Signal             : 14%
+        Radio type         : 802.11n
+        Band               : 2.4 GHz
+        Channel            : 11
+        Bss Load:
+            Connected Stations:         0
+            Channel Utilization:        148 (58 %)
+            Medium Available Capacity:  31250 (1000000 us/s)
+        QoS MSCS Supported    : 0
+        QoS Map Supported     : 0
+        Basic rates (Mbps) : 1 2 5.5 11
+        Other rates (Mbps) : 6 9 12 18 24 36 48 54
+SSID 2 : SSID-2
+   Network type            : Infrastructure
+   Authentication          : Open
+   Encryption              : None
+   BSSID 1                 : fe:dc:ba:09:87:02
+        Signal             : 13%
+        Radio type         : 802.11n
+        Band               : 2.4 GHz
+        Channel            : 6
+        Bss Load:
+            Connected Stations:         1
+            Channel Utilization:        38 (14 %)
+            Medium Available Capacity:  0 (0 us/s)
+        QoS MSCS Supported    : 0
+        QoS Map Supported     : 0
+        Basic rates (Mbps) : 1 2
+        Other rates (Mbps) : 5.5 6 9 11 12 18 24 36 48 54
+   BSSID 2                 : fe:dc:ba:09:87:03
+        Signal             : 81%
+        Radio type         : 802.11ax
+        Band               : 2.4 GHz
+        Channel            : 11
+        Bss Load:
+            Connected Stations:         8
+            Channel Utilization:        1 (0 %)
+            Medium Available Capacity:  0 (0 us/s)
+        QoS MSCS Supported    : 0
+        QoS Map Supported     : 1
+        Basic rates (Mbps) : 6 12 24
+        Other rates (Mbps) : 9 18 36 48 54
+   BSSID 3                 : fe:dc:ba:09:87:04
+        Signal             : 35%
+        Radio type         : 802.11n
+        Band               : 2.4 GHz
+        Channel            : 6
+        Bss Load:
+            Connected Stations:         6
+            Channel Utilization:        52 (20 %)
+            Medium Available Capacity:  0 (0 us/s)
+        QoS MSCS Supported    : 0
+        QoS Map Supported     : 1
+        Basic rates (Mbps) : 6 12 24
+        Other rates (Mbps) : 9 18 36 48 54
+   BSSID 4                 : fe:dc:ba:09:87:05
+        Signal             : 65%
+        Radio type         : 802.11n
+        Band               : 2.4 GHz
+        Channel            : 1
+        Bss Load:
+            Connected Stations:         6
+            Channel Utilization:        14 (5 %)
+            Medium Available Capacity:  0 (0 us/s)
+        QoS MSCS Supported    : 0
+        QoS Map Supported     : 1
+        Basic rates (Mbps) : 6 12 24
+        Other rates (Mbps) : 9 18 36 48 54
+   BSSID 5                 : fe:dc:ba:09:87:06
+        Signal             : 81%
+        Radio type         : 802.11ax
+        Band               : 2.4 GHz
+        Channel            : 1
+        Bss Load:
+            Connected Stations:         9
+            Channel Utilization:        108 (42 %)
+            Medium Available Capacity:  0 (0 us/s)
+        QoS MSCS Supported    : 0
+        QoS Map Supported     : 1
+        Basic rates (Mbps) : 6 12 24
+        Other rates (Mbps) : 9 18 36 48 54
+SSID 3 : SSID-3
+   Network type            : Infrastructure
+   Authentication          : WPA2-Personal
+   Encryption              : CCMP
+   BSSID 1                 : fe:dc:ba:09:87:07
+        Signal             : 11%
+        Radio type         : 802.11n
+        Band               : 2.4 GHz
+        Channel            : 11
+        Bss Load:
+            Connected Stations:         0
+            Channel Utilization:        148 (58 %)
+            Medium Available Capacity:  31250 (1000000 us/s)
+        QoS MSCS Supported    : 0
+        QoS Map Supported     : 0
+        Basic rates (Mbps) : 1 2 5.5 11
+        Other rates (Mbps) : 6 9 12 18 24 36 48 54
+SSID 4 : SSID-4
+   Network type            : Infrastructure
+   Authentication          : Open
+   Encryption              : None
+   BSSID 1                 : fe:dc:ba:09:87:08
+        Signal             : 11%
+        Radio type         : 802.11n
+        Band               : 2.4 GHz
+        Channel            : 11
+        Bss Load:
+            Connected Stations:         2
+            Channel Utilization:        148 (58 %)
+            Medium Available Capacity:  31250 (1000000 us/s)
+        QoS MSCS Supported    : 0
+        QoS Map Supported     : 0
+        Basic rates (Mbps) : 1 2 5.5 11
+        Other rates (Mbps) : 6 9 12 18 24 36 48 54
+SSID 5 : SSID-5
+   Network type            : Infrastructure
+   Authentication          : WPA2-Personal
+   Encryption              : CCMP
+   BSSID 1                 : fe:dc:ba:09:87:09
+        Signal             : 14%
+        Radio type         : 802.11n
+        Band               : 2.4 GHz
+        Channel            : 11
+        Bss Load:
+            Connected Stations:         0
+            Channel Utilization:        148 (58 %)
+            Medium Available Capacity:  31250 (1000000 us/s)
+        QoS MSCS Supported    : 0
+        QoS Map Supported     : 0
+        Basic rates (Mbps) : 1 2 5.5 11
+        Other rates (Mbps) : 6 9 12 18 24 36 48 54
+SSID 6 : SSID-6
+   Network type            : Infrastructure
+   Authentication          : WPA2-Personal
+   Encryption              : CCMP
+   BSSID 1                 : fe:dc:ba:09:87:0a
+        Signal             : 31%
+        Radio type         : 802.11n
+        Band               : 2.4 GHz
+        Channel            : 6
+        Bss Load:
+            Connected Stations:         0
+            Channel Utilization:        70 (27 %)
+            Medium Available Capacity:  0 (0 us/s)
+        QoS MSCS Supported    : 0
+        QoS Map Supported     : 0
+        Basic rates (Mbps) : 1 2 5.5 11
+        Other rates (Mbps) : 6 9 12 18 24 36 48 54
+SSID 7 : SSID-7
+   Network type            : Infrastructure
+   Authentication          : Open
+   Encryption              : None
+   BSSID 1                 : fe:dc:ba:09:87:0b
+        Signal             : 33%
+        Radio type         : 802.11n
+        Band               : 2.4 GHz
+        Channel            : 1
+        Bss Load:
+            Connected Stations:         1
+            Channel Utilization:        94 (36 %)
+            Medium Available Capacity:  0 (0 us/s)
+        QoS MSCS Supported    : 0
+        QoS Map Supported     : 1
+        Basic rates (Mbps) : 6 12 24
+        Other rates (Mbps) : 9 18 36 48 54
+SSID 8 : SSID-8
+   Network type            : Infrastructure
+   Authentication          : WPA2-Personal
+   Encryption              : CCMP
+   BSSID 1                 : fe:dc:ba:09:87:0c
+        Signal             : 31%
+        Radio type         : 802.11n
+        Band               : 2.4 GHz
+        Channel            : 4
+        QoS MSCS Supported    : 0
+        QoS Map Supported     : 0
+        Basic rates (Mbps) : 1 2 5.5 11
+        Other rates (Mbps) : 6 9 12 18 24 36 48 54
+SSID 9 : SSID-9
+   Network type            : Infrastructure
+   Authentication          : Open
+   Encryption              : None
+   BSSID 1                 : fe:dc:ba:09:87:0d
+        Signal             : 29%
+        Radio type         : 802.11ax
+        Band               : 5 GHz
+        Channel            : 52
+        Bss Load:
+            Connected Stations:         0
+            Channel Utilization:        1 (0 %)
+            Medium Available Capacity:  0 (0 us/s)
+        QoS MSCS Supported    : 0
+        QoS Map Supported     : 1
+        Basic rates (Mbps) : 6 12 24
+        Other rates (Mbps) : 9 18 36 48 54
+   BSSID 2                 : fe:dc:ba:09:87:0e
+        Signal             : 53%
+        Radio type         : 802.11ax
+        Band               : 5 GHz
+        Channel            : 149
+        Bss Load:
+            Connected Stations:         0
+            Channel Utilization:        4 (1 %)
+            Medium Available Capacity:  0 (0 us/s)
+        QoS MSCS Supported    : 0
+        QoS Map Supported     : 1
+        Basic rates (Mbps) : 6 12 24
+        Other rates (Mbps) : 9 18 36 48 54
+   BSSID 3                 : fe:dc:ba:09:87:0f
+        Signal             : 75%
+        Radio type         : 802.11ax
+        Band               : 5 GHz
+        Channel            : 144
+        Bss Load:
+            Connected Stations:         0
+            Channel Utilization:        1 (0 %)
+            Medium Available Capacity:  0 (0 us/s)
+        QoS MSCS Supported    : 0
+        QoS Map Supported     : 1
+        Basic rates (Mbps) : 6 12 24
+        Other rates (Mbps) : 9 18 36 48 54

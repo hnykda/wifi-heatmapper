@@ -1,0 +1,21 @@
+
+// richb:/$ nmcli -t dev wifi list
+// in SSID-2, there is really only one "\"
+// These are no longer sorted by signal strength
+
+ :FE\:DC\:BA\:09\:87\:01:SSID-1:Infra:6:130 Mbit/s:100:▂▄▆█:WPA1 WPA2
+ :FE\:DC\:BA\:09\:87\:02:SSID-2-\\foo\:bar:Infra:6:130 Mbit/s:100:▂▄▆█:WPA2
+
+ :FE\:DC\:BA\:09\:87\:0B:SSID-11:Infra:11:130 Mbit/s:15:▂___:WPA2 WPA3
+
+ :FE\:DC\:BA\:09\:87\:05:SSID-5:Infra:1:260 Mbit/s:54:▂▄__:
+ :FE\:DC\:BA\:09\:87\:06:SSID-6:Infra:4:65 Mbit/s:54:▂▄__:WPA2
+ :FE\:DC\:BA\:09\:87\:08:SSID-8:Infra:6:195 Mbit/s:32:▂▄__:
+ :FE\:DC\:BA\:09\:87\:09:SSID-9:Infra:11:130 Mbit/s:27:▂___:WPA2 WPA3
+ :FE\:DC\:BA\:09\:87\:0A:SSID-10:Infra:11:130 Mbit/s:24:▂___:
+
+ :FE\:DC\:BA\:09\:87\:04:SSID-4:Infra:11:130 Mbit/s:65:▂▄▆_:
+
+ :FE\:DC\:BA\:09\:87\:07:SSID-7:Infra:1:195 Mbit/s:47:▂▄__:
+
+*:FE\:DC\:BA\:09\:87\:03:SSID-3:Infra:1:260 Mbit/s:87:▂▄▆█:
