@@ -279,15 +279,17 @@ export default function ClickableFloorplan(): ReactNode {
 
     const { bgW, crisp1px = true, dpr = window.devicePixelRatio || 1 } = opts;
 
+    const bgWidth = Math.max(bgW, 1000); // Calculate using at least 1000 px image
+
     // All sizes derived from bg width
-    const R = 0.008 * bgW; // marker radius = 0.8% of bg width
-    const BORDER = crisp1px ? 1 / dpr : 0.002 * bgW; // ~1px or 0.2% of bg width
-    const FONT = 0.012 * bgW; // 1.2% of bg width
+    const R = 0.008 * bgWidth; // marker radius = 0.8% of bg width
+    const BORDER = crisp1px ? 1 / dpr : 0.002 * bgWidth; // ~1px or 0.2% of bg width
+    const FONT = 0.012 * bgWidth; // 1.2% of bg width
     const LINE_H = 1.2 * FONT;
-    const PAD = 0.004 * bgW;
-    const LABEL_OFFSET_Y = 0.015 * bgW;
-    const SHADOW_BLUR = 0.004 * bgW;
-    const SHADOW_OFF = 0.002 * bgW;
+    const PAD = 0.004 * bgWidth;
+    const LABEL_OFFSET_Y = 0.015 * bgWidth;
+    const SHADOW_BLUR = 0.004 * bgWidth;
+    const SHADOW_OFF = 0.002 * bgWidth;
 
     const wifiInfo = point.wifiData;
 
