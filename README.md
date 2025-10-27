@@ -80,7 +80,7 @@ Remove errant points using this tab.
 ## Installing and Running
 
 **wifi-heatmapper** requires a recent Javascript environment
-(tested on Node 23).
+(tested on Node 23), most specifically having `npm` available.
 Install it on a laptop device so you can move from place to place.
 To install the software:
 
@@ -97,6 +97,8 @@ To install the software:
 
 2. Browse to [http://localhost:3000](http://localhost:3000)
    and follow the steps at the top of this page
+
+3. (Linux Only) You need to have `iw` installed and in `PATH`.
 
 ### Installing iperf3
 
