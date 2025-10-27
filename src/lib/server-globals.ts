@@ -79,3 +79,30 @@ export function getSurveyResults(): SurveyResult {
 // export function getSSID(): WifiResults | null {
 //   return (globalThis as any)[SSID_KEY];
 // }
+
+
+export interface IperfConfig {
+  duration: number; // Duration of the test in seconds (`-t` flag)
+  parallelStreams: number; // Number of parallel client streams to run (`-P` flag)
+  port: number; // Server port to listen on/connect to (`-p` flag)
+  udp: boolean; // Use UDP instead of TCP (`-u` flag)
+  bandwidth: string | null; // Target bandwidth in bits/sec (e.g., "1M", "100K") (`-b` flag)
+  reverse: boolean; // Run in reverse mode (server sends, client receives) (`-R` flag)
+  zeroCopy: boolean; // Use a 'zero copy' method of sending data (`-Z` flag)
+  interval: number; // Interval in seconds between periodic bandwidth reports (`-i` flag)
+  noDelay: boolean; // Set TCP no delay, disabling Nagle's algorithm (`-N` flag)
+  jsonOutput: boolean; // Output results in JSON format (always true for programmatic use) (`-J` flag)
+}
+
+export const DEFAULT_IPERF_CONFIG: IperfConfig = {
+  duration: 10, // 10 seconds
+  parallelStreams: 1, // 1 stream
+  port: 5201, // Default iperf3 port
+  udp: false, // Use TCP by default
+  bandwidth: null, // No bandwidth limit by default
+  reverse: false, // Client sends, server receives by default
+  zeroCopy: false, // No zero copy by default
+  interval: 1, // Report every second
+  noDelay: false, // Nagle's algorithm enabled by default
+  jsonOutput: true, // Always output JSON for programmatic processing
+};

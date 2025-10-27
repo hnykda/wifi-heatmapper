@@ -12,6 +12,7 @@ import { percentageToRssi, toMbps, getDefaultIperfResults } from "./utils";
 import { SSEMessageType } from "@/app/api/events/route";
 import { createWifiActions } from "./wifiScanner";
 import { getLogger } from "./logger";
+import { IperfConfig, DEFAULT_IPERF_CONFIG } from "../lib/server-globals"; // Step 3
 const logger = getLogger("iperfRunner");
 
 type TestType = "TCP" | "UDP";
@@ -82,15 +83,20 @@ function checkForCancel() {
 /**
  * runSurveyTests() - get the WiFi and iperf readings
  * @param settings
+ * @param iperfConfigOverrides (Optional) Partial configuration to override default iperf3 parameters. (Step 4)
  * @returns the WiFi and iperf results for this location
  */
 export async function runSurveyTests(
   settings: PartialHeatmapSettings,
+  iperfConfigOverrides?: Partial<IperfConfig>, // Step 4
 ): Promise<{
   iperfData: IperfResults | null;
   wifiData: WifiResults | null;
   status: string;
 }> {
+  // Merge provided config with defaults (Step 5)
+  const effectiveIperfConfig = { ...DEFAULT_IPERF_CONFIG, ...iperfConfigOverrides };
+
   // first check the settings and return cogent error if not good
   const preResults = await wifiActions.preflightSettings(settings);
   if (preResults.reason != "") {
@@ -148,7 +154,7 @@ export async function runSurveyTests(
       attempts++;
       try {
         const server = settings.iperfServerAdrs;
-        const duration = settings.testDuration;
+        // The duration is now handled by effectiveIperfConfig, not settings.testDuration
         const wifiStrengths: number[] = []; // percentages
         // add the SSID to the header if it's not <redacted>
         let newHeader = "Measuring Wi-Fi";
@@ -171,13 +177,13 @@ export async function runSurveyTests(
         if (performIperfTest) {
           newIperfData.tcpDownload = await runSingleTest(
             server,
-            duration,
+            effectiveIperfConfig, // Pass effective config (Step 5)
             "Down",
             "TCP",
           );
           newIperfData.tcpUpload = await runSingleTest(
             server,
-            duration,
+            effectiveIperfConfig, // Pass effective config (Step 5)
             "Up",
             "TCP",
           );
@@ -199,13 +205,13 @@ export async function runSurveyTests(
         if (performIperfTest) {
           newIperfData.udpDownload = await runSingleTest(
             server,
-            duration,
+            effectiveIperfConfig, // Pass effective config (Step 5)
             "Down",
             "UDP",
           );
           newIperfData.udpUpload = await runSingleTest(
             server,
-            duration,
+            effectiveIperfConfig, // Pass effective config (Step 5)
             "Up",
             "UDP",
           );
@@ -272,23 +278,25 @@ export async function runSurveyTests(
 
 async function runSingleTest(
   server: string,
-  duration: number,
+  iperfConfig: IperfConfig, // Updated to accept IperfConfig (Step 5)
   testDir: TestDirection,
   testType: TestType,
 ): Promise<IperfTestProperty> {
   const logger = getLogger("runSingleTest");
 
-  let port = "";
+  // Extract just the host from the server string, ignoring any port specified there.
+  // The port from iperfConfig will be used for consistency.
+  let host = server;
   if (server.includes(":")) {
-    const [host, serverPort] = server.split(":");
-    server = host;
-    port = serverPort;
+    [host] = server.split(":"); // Discard port from server string
   }
+
   const isUdp = testType == "UDP";
   const isDownload = testDir == "Down";
-  const command = `iperf3 -c ${server} ${
-    port ? `-p ${port}` : ""
-  } -t ${duration} ${isDownload ? "-R" : ""} ${isUdp ? "-u -b 0" : ""} -J`;
+
+  // Construct the iperf3 command using parameters from effectiveIperfConfig (Step 6)
+  const command = `iperf3 -c ${host} -p ${iperfConfig.port} -t ${iperfConfig.duration} -P ${iperfConfig.parallelStreams} ${isDownload ? "-R" : ""} ${isUdp ? "-u -b 0" : ""} -J`;
+
   const { stdout } = await execAsync(command);
   const result = JSON.parse(stdout);
   logger.trace("Iperf JSON-parsed result:", result);
