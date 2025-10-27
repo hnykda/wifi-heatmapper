@@ -188,4 +188,8 @@ Special thanks to the original author for their work.
 ## Contributing
 
 Feel free to contribute to this project by opening an issue
-or submitting a pull request. I am more than happy for that!
+or submitting a pull request. We are more than happy for that and review new PRs and issues regularly! 
+
+If you are a first time contributor, consider going after [good first issue](https://github.com/hnykda/wifi-heatmapper/issues?q=is%3Aissue%20state%3Aopen%20label%3A%22good%20first%20issue%22) label.
+
+Note that every PR needs at least minimal testing, be it covered by automatic tests (that you can implement, prefered), or manually. In the case of the latter, a screenshot or a comment is necessary. Apart from just better understanding for reviewers, this also serves as a filter against automatic LLM slop PRs.
