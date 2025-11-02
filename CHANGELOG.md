@@ -4,6 +4,15 @@ _This section follows the precepts of [Keep a Changelog](https://keepachangelog.
 
 ## [Unreleased]
 
+- The ID, SSID, and BSSID fields of PopupDetails are editable.
+  This permits:
+  1) Changing the ID_# to a useful information about the location;
+  2) Setting the SSID and BSSID to a useful value on macOS.
+  NB: you cannot change the ID of a SurveyPoint
+  to the ID of an existing SurveyPoint.
+- Update _docs/User\_Interface.md_ to use screen shots using
+  the new heatmap algorithm and the updated PopupDetails window.
+
 ---
 
 ## Version 0.3.5 - 2025-10-01

@@ -1,9 +1,14 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { SurveyPoint, HeatmapSettings, SurveyPointActions } from "@/lib/types";
-import { formatMacAddress, metricFormatter } from "@/lib/utils";
+import {
+  formatMacAddress,
+  metricFormatter,
+  normalizeMacAddress,
+} from "@/lib/utils";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { X, Trash2 } from "lucide-react";
 import { AlertDialogModal } from "@/components/AlertDialogModal";
 
@@ -52,9 +57,180 @@ const PopupDetails: React.FC<PopupDetailsProps> = ({
 
   // const { settings, updateSettings } = useSettings();
   const [isEnabled, setIsEnabled] = useState(point.isEnabled);
+  type EditableField = "id" | "ssid" | "bssid";
+
+  const [editableValues, setEditableValues] = useState<
+    Record<EditableField, string>
+  >({
+    id: point.id,
+    ssid: point.wifiData?.ssid ?? "",
+    bssid: formatMacAddress(point.wifiData?.bssid ?? ""),
+  });
+  const [currentPointId, setCurrentPointId] = useState(point.id);
+  const [hasIdError, setHasIdError] = useState(false);
+  const idInputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    setIsEnabled(point.isEnabled);
+    setCurrentPointId(point.id);
+    setHasIdError(false);
+    setEditableValues({
+      id: point.id,
+      ssid: point.wifiData?.ssid ?? "",
+      bssid: formatMacAddress(point.wifiData?.bssid ?? ""),
+    });
+  }, [point]);
+
+  const handleInputChange = (field: EditableField) => {
+    return (event: React.ChangeEvent<HTMLInputElement>) => {
+      const { value } = event.target;
+      setEditableValues((prev) => ({ ...prev, [field]: value }));
+      if (field === "id") {
+        setHasIdError(false);
+      }
+    };
+  };
+
+  const handleInputBlur = (field: EditableField) => {
+    return (_event: React.FocusEvent<HTMLInputElement>) => {
+      if (field === "id") {
+        const newId = editableValues.id.trim();
+        if (newId.length === 0) {
+          setEditableValues((prev) => ({ ...prev, id: currentPointId }));
+          setHasIdError(true);
+          setTimeout(() => {
+            idInputRef.current?.focus();
+            idInputRef.current?.select();
+          }, 0);
+          return;
+        }
+        if (newId === currentPointId) {
+          if (newId !== editableValues.id) {
+            setEditableValues((prev) => ({ ...prev, id: newId }));
+          }
+          setHasIdError(false);
+          return;
+        }
+        const duplicateExists = settings.surveyPoints.some(
+          (surveyPoint) =>
+            surveyPoint.id === newId && surveyPoint.id !== currentPointId,
+        );
+        if (duplicateExists) {
+          setEditableValues((prev) => ({ ...prev, id: currentPointId }));
+          setHasIdError(true);
+          setTimeout(() => {
+            idInputRef.current?.focus();
+            idInputRef.current?.select();
+          }, 0);
+          return;
+        }
+        surveyPointActions.update(point, { id: newId });
+        setCurrentPointId(newId);
+        point.id = newId;
+        setEditableValues((prev) => ({ ...prev, id: newId }));
+        setHasIdError(false);
+        return;
+      }
+
+      if (field === "ssid") {
+        const newSsid = editableValues.ssid;
+        if (newSsid === (point.wifiData?.ssid ?? "")) {
+          return;
+        }
+        const updatedWifiData = { ...point.wifiData, ssid: newSsid };
+        surveyPointActions.update(point, { wifiData: updatedWifiData });
+        point.wifiData.ssid = newSsid;
+        return;
+      }
+
+      if (field === "bssid") {
+        const normalized = normalizeMacAddress(editableValues.bssid);
+        const formatted = normalized ? formatMacAddress(normalized) : "";
+        if (normalized === (point.wifiData?.bssid ?? "")) {
+          if (formatted !== editableValues.bssid) {
+            setEditableValues((prev) => ({ ...prev, bssid: formatted }));
+          }
+          return;
+        }
+        const updatedWifiData = { ...point.wifiData, bssid: normalized };
+        surveyPointActions.update(point, { wifiData: updatedWifiData });
+        point.wifiData.bssid = normalized;
+        setEditableValues((prev) => ({ ...prev, bssid: formatted }));
+      }
+    };
+  };
+
+  const handleInputKeyDown = (field: EditableField) => {
+    return (event: React.KeyboardEvent<HTMLInputElement>) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        event.currentTarget.blur();
+      }
+      if (event.key === "Escape") {
+        event.preventDefault();
+        if (field === "id") {
+          setEditableValues((prev) => ({ ...prev, id: point.id }));
+          setHasIdError(false);
+        } else if (field === "ssid") {
+          setEditableValues((prev) => ({
+            ...prev,
+            ssid: point.wifiData?.ssid ?? "",
+          }));
+        } else {
+          const formattedBssid = point.wifiData?.bssid
+            ? formatMacAddress(point.wifiData.bssid)
+            : "";
+          setEditableValues((prev) => ({ ...prev, bssid: formattedBssid }));
+        }
+        event.currentTarget.blur();
+      }
+    };
+  };
+
   const rows = [
-    { label: "ID", value: point.id },
-    { label: "SSID", value: point.wifiData?.ssid },
+    {
+      label: "ID",
+      value: (
+        <Input
+          value={editableValues.id}
+          onChange={handleInputChange("id")}
+          onBlur={handleInputBlur("id")}
+          onKeyDown={handleInputKeyDown("id")}
+          className={`h-7 px-2 py-1 text-xs ${
+            hasIdError ? "border border-red-500 focus-visible:ring-red-500" : ""
+          }`}
+          spellCheck={false}
+          ref={idInputRef}
+        />
+      ),
+    },
+    {
+      label: "SSID",
+      value: (
+        <Input
+          value={editableValues.ssid}
+          onChange={handleInputChange("ssid")}
+          onBlur={handleInputBlur("ssid")}
+          onKeyDown={handleInputKeyDown("ssid")}
+          className="h-7 px-2 py-1 text-xs"
+          spellCheck={false}
+        />
+      ),
+    },
+    {
+      label: "BSSID",
+      value: (
+        <Input
+          value={editableValues.bssid}
+          onChange={handleInputChange("bssid")}
+          onBlur={handleInputBlur("bssid")}
+          onKeyDown={handleInputKeyDown("bssid")}
+          className="h-7 px-2 py-1 text-xs"
+          spellCheck={false}
+          placeholder="00-00-00-00-00-00"
+        />
+      ),
+    },
     {
       label: "Signal Strength",
       value: `${point.wifiData.signalStrength}%`,
@@ -63,7 +239,7 @@ const PopupDetails: React.FC<PopupDetailsProps> = ({
     { label: "RSSI", value: `${point.wifiData.rssi} dBm` },
     { label: "Channel", value: point.wifiData?.channel },
     { label: "Band", value: `${point.wifiData?.band} GHz` },
-    { label: "BSSID", value: formatMacAddress(point.wifiData?.bssid || "") },
+
     {
       label: "AP Name",
       value: settings.apMapping.find(
