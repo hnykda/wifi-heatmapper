@@ -80,7 +80,7 @@ Remove errant points using this tab.
 ## Installing and Running
 
 **wifi-heatmapper** requires a recent Javascript environment
-(tested on Node 23).
+(tested on Node 23), most specifically having `npm` available.
 Install it on a laptop device so you can move from place to place.
 To install the software:
 
@@ -97,6 +97,8 @@ To install the software:
 
 2. Browse to [http://localhost:3000](http://localhost:3000)
    and follow the steps at the top of this page
+
+3. (Linux Only) You need to have `iw` installed and in `PATH`.
 
 ### Installing iperf3
 
@@ -188,4 +190,8 @@ Special thanks to the original author for their work.
 ## Contributing
 
 Feel free to contribute to this project by opening an issue
-or submitting a pull request. I am more than happy for that!
+or submitting a pull request. We are more than happy for that and review new PRs and issues regularly! 
+
+If you are a first time contributor, consider going after [good first issue](https://github.com/hnykda/wifi-heatmapper/issues?q=is%3Aissue%20state%3Aopen%20label%3A%22good%20first%20issue%22) label.
+
+Note that every PR needs at least minimal testing, be it covered by automatic tests (that you can implement, prefered), or manually. In the case of the latter, a screenshot or a comment is necessary. Apart from just better understanding for reviewers, this also serves as a filter against automatic LLM slop PRs.
