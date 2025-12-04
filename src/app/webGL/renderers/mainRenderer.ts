@@ -30,6 +30,7 @@ const mainRenderer = (
     minOpacity?: number;
     maxOpacity?: number;
     influenceRadius?: number;
+    maxSignal?: number;
   }) => {
     const {
       width,
@@ -38,6 +39,7 @@ const mainRenderer = (
       maxOpacity = 0.7,
       influenceRadius = 100,
       backgroundImageSrc,
+      maxSignal,
     } = props;
 
     canvas.width = width;
@@ -55,6 +57,7 @@ const mainRenderer = (
       influenceRadius,
       minOpacity,
       maxOpacity,
+      maxSignal,
     });
   };
 
