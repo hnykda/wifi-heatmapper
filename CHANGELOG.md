@@ -6,6 +6,14 @@ _This section follows the precepts of [Keep a Changelog](https://keepachangelog.
 
 ---
 
+## Version 0.3.6 - 2026-01-04
+
+* Enable debug logging for command execution in `execAsync()`.
+  Run with `LOG_LEVEL=2` to see commands and their output.
+  Helps diagnose issues like #65.
+
+---
+
 ## Version 0.3.5 - 2025-10-01
 
 * Updated screen shot on README.md to use a heat map drawn on
