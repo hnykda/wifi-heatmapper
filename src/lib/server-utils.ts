@@ -1,7 +1,7 @@
 "use server";
 import { exec, ExecOptions, spawn } from "child_process";
-// import { getLogger } from "./logger";
-// const logger = getLogger("server-utils");
+import { getLogger } from "./logger";
+const logger = getLogger("server-utils");
 
 /**
  * exexAsync - asynchronously run the command, return { stdout, stderr }
@@ -29,13 +29,13 @@ export const execAsync = async (
   const options: ExecOptions = { shell: true }; // Node.js finds the right binary for the OS
 
   return new Promise((resolve, reject) => {
-    // logger.info("Executing command:", command);
+    logger.debug("Executing command:", command);
     exec(command, options, (error, stdout, stderr) => {
       if (error) {
-        // logger.info(`execAsync(${command} rejects with "${error}")`);
+        logger.debug(`execAsync(${command}) rejects with "${error}"`);
         reject(error);
       } else {
-        // logger.info(`Command result: ${JSON.stringify(stdout)}`);
+        logger.debug(`Command result: ${JSON.stringify(stdout)}`);
         resolve({ stdout: stdout.trimEnd(), stderr: stderr.trimEnd() });
       }
     });
