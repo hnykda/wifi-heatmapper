@@ -8,6 +8,11 @@ import {
   ReactNode,
 } from "react";
 import { readSettingsFromFile, writeSettingsToFile } from "../lib/fileHandler";
+import {
+  hasLocalStorageData,
+  hasMigrated,
+  migrateLocalStorageToFiles,
+} from "../lib/localStorageMigration";
 import { HeatmapSettings, SurveyPoint, SurveyPointActions } from "../lib/types";
 import { join } from "path";
 
@@ -71,7 +76,21 @@ export function useSettings() {
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<HeatmapSettings>(getDefaults(""));
   const [floorplanImage, setFloorplanImage] = useState<string>("");
+  const [migrationDone, setMigrationDone] = useState(false);
   const defaultFloorPlan = "EmptyFloorPlan.png";
+
+  // Run localStorage migration on mount
+  useEffect(() => {
+    async function runMigration() {
+      if (hasLocalStorageData() && !hasMigrated()) {
+        console.log("Migrating localStorage data to file-based storage...");
+        const count = await migrateLocalStorageToFiles();
+        console.log(`Migration complete. Migrated ${count} survey(s).`);
+      }
+      setMigrationDone(true);
+    }
+    runMigration();
+  }, []);
 
   async function loadSettings(floorplanImage: string) {
     let newHeatmapSettings: HeatmapSettings | null =
@@ -91,9 +110,12 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   }
 
   // Load settings from file on mount, or whenever the floorplanImage changes
+  // Wait for migration to complete before loading
   useEffect(() => {
-    loadSettings(floorplanImage);
-  }, [floorplanImage]);
+    if (migrationDone) {
+      loadSettings(floorplanImage);
+    }
+  }, [floorplanImage, migrationDone]);
 
   const readNewSettingsFromFile = (fileName: string) => {
     setFloorplanImage(fileName); // set the new floorplanImage, and let useEffect() do the work
