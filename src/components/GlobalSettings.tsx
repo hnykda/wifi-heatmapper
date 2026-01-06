@@ -86,6 +86,12 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         console.log("Migrating localStorage data to file-based storage...");
         const count = await migrateLocalStorageToFiles();
         console.log(`Migration complete. Migrated ${count} survey(s).`);
+        if (count > 0) {
+          alert(
+            `Migrated ${count} survey(s) from browser storage to data/surveys/.\n\n` +
+              `Your survey data is now stored as JSON files that you can backup and version control.`,
+          );
+        }
       }
       setMigrationDone(true);
     }

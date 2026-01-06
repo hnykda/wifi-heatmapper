@@ -125,6 +125,23 @@ To take advantage of `iperf3` throughput (speed) tests:
    * Check the connection to the iperf3 server
       with `iperf3 -c address-of-iperf3-server`
 
+## Data Storage
+
+Survey data is stored as JSON files in `data/surveys/`. Each floorplan
+has its own file (e.g., `data/surveys/MyFloorPlan.png.json`).
+
+This means you can:
+- **Backup** your survey data by copying the `data/surveys/` folder
+- **Version control** your surveys alongside the project
+- **Transfer** surveys between machines by copying the JSON files
+- **Edit** survey data manually if needed
+
+The directory is created automatically on first use.
+
+_Note: If you're upgrading from an older version that used browser
+localStorage, your data will be automatically migrated to files
+on first load._
+
 ## Usage with Docker
 
 WiFi Heatmapper includes a Dockerfile that automates much of
