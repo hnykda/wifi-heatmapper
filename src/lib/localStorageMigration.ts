@@ -14,34 +14,17 @@ const BASE_KEY = "wifi*heatmapper";
 // Guard against double execution in React strict mode
 let migrationInProgress = false;
 
-/**
- * Check if there's localStorage data that needs migration
- */
 export function hasLocalStorageData(): boolean {
   if (typeof window === "undefined") return false;
   return localStorage.getItem(BASE_KEY) !== null;
 }
 
-/**
- * Check if migration has already been performed
- * Returns the migration timestamp if migrated, null otherwise
- */
-export function getMigrationTimestamp(): string | null {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem(MIGRATION_TIMESTAMP_KEY);
-}
-
-/**
- * Check if migration has already been performed
- */
 export function hasMigrated(): boolean {
-  return getMigrationTimestamp() !== null;
+  if (typeof window === "undefined") return false;
+  return localStorage.getItem(MIGRATION_TIMESTAMP_KEY) !== null;
 }
 
-/**
- * Get all survey data from localStorage
- */
-export function getLocalStorageSurveys(): {
+function getLocalStorageSurveys(): {
   name: string;
   data: HeatmapSettings;
 }[] {
@@ -49,7 +32,6 @@ export function getLocalStorageSurveys(): {
 
   const surveys: { name: string; data: HeatmapSettings }[] = [];
 
-  // Find all wifi-heatmapper-* keys
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
     if (
@@ -64,7 +46,7 @@ export function getLocalStorageSurveys(): {
           surveys.push({ name: floorplanName, data });
         }
       } catch {
-        console.warn(`Failed to parse localStorage data for key: ${key}`);
+        // Skip malformed entries
       }
     }
   }
@@ -73,17 +55,16 @@ export function getLocalStorageSurveys(): {
 }
 
 /**
- * Migrate all localStorage data to file-based storage
- * Returns the number of surveys migrated
+ * Migrate all localStorage data to file-based storage.
+ * Returns the number of surveys migrated.
+ * Skips surveys that already exist as files (won't overwrite).
+ * localStorage data is preserved so users can revert if needed.
  */
 export async function migrateLocalStorageToFiles(): Promise<number> {
   if (typeof window === "undefined") return 0;
 
   // Guard against double execution (React strict mode)
-  if (migrationInProgress) {
-    console.log("Migration already in progress, skipping...");
-    return 0;
-  }
+  if (migrationInProgress) return 0;
   migrationInProgress = true;
 
   try {
@@ -92,23 +73,16 @@ export async function migrateLocalStorageToFiles(): Promise<number> {
 
     for (const { name, data } of surveys) {
       try {
-        // Check if this survey already exists in file storage
         const existing = await readSettingsFromFile(name);
         if (!existing) {
-          // Migrate to file storage
           await writeSettingsToFile(data);
-          console.log(`Migrated survey: ${name}`);
           migrated++;
-        } else {
-          console.log(`Survey already exists in file storage: ${name}`);
         }
-      } catch (err) {
-        console.error(`Failed to migrate survey ${name}:`, err);
+      } catch {
+        // Continue with other surveys if one fails
       }
     }
 
-    // Mark migration as complete with timestamp
-    // Note: localStorage data is preserved so users can revert if needed
     if (migrated > 0 || surveys.length > 0) {
       localStorage.setItem(MIGRATION_TIMESTAMP_KEY, new Date().toISOString());
     }
@@ -117,24 +91,4 @@ export async function migrateLocalStorageToFiles(): Promise<number> {
   } finally {
     migrationInProgress = false;
   }
-}
-
-/**
- * Clear localStorage data after successful migration (optional)
- * Call this only after confirming migration was successful
- */
-export function clearLocalStorageData(): void {
-  if (typeof window === "undefined") return;
-
-  const keysToRemove: string[] = [];
-
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
-    if (key && (key.startsWith("wifi-heatmapper") || key === BASE_KEY)) {
-      keysToRemove.push(key);
-    }
-  }
-
-  keysToRemove.forEach((key) => localStorage.removeItem(key));
-  console.log(`Cleared ${keysToRemove.length} localStorage entries`);
 }

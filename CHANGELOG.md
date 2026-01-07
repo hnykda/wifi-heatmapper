@@ -14,7 +14,7 @@ _This section follows the precepts of [Keep a Changelog](https://keepachangelog.
   - No size limits
 
 * Existing localStorage data is automatically migrated on first load.
-  Users will see an alert confirming the migration.
+  Users will see a toast notification confirming the migration.
 
 * New API endpoint `/api/settings` handles reading/writing survey files.
 

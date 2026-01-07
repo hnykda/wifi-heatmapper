@@ -73,20 +73,3 @@ export async function writeSettingsToFile(
   }
 }
 
-/**
- * List all available survey files
- */
-export async function listSurveys(): Promise<string[]> {
-  try {
-    const response = await fetch("/api/settings?list=true");
-    if (!response.ok) {
-      console.error("Error listing surveys:", await response.text());
-      return [];
-    }
-    const data = await response.json();
-    return data.surveys || [];
-  } catch (error) {
-    console.error("Error listing surveys:", error);
-    return [];
-  }
-}
