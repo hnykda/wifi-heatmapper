@@ -72,4 +72,3 @@ export async function writeSettingsToFile(
     console.error("Error saving settings:", error);
   }
 }
-
