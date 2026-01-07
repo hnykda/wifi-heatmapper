@@ -41,28 +41,57 @@ export class LinuxWifiActions implements WifiActions {
     };
 
     let reason: string = "";
-    // check that iperf3 is really installed if it's needed
+
+    // Check for required Linux tools
+    logger.info("Checking for required Linux tools...");
+    const missingTools: string[] = [];
+
     try {
-      if (settings.iperfServerAdrs != "localhost") {
-        await execAsync("iperf3 --version");
-      }
+      await execAsync("which iw");
+      logger.info("  ✓ iw found");
     } catch {
-      reason =
-        "iperf3 not installed. Install it,\n or set the iperfServer to 'localhost'.";
+      logger.warn("  ✗ iw not found");
+      missingTools.push("iw");
+    }
+
+    try {
+      await execAsync("which nmcli");
+      logger.info("  ✓ nmcli found");
+    } catch {
+      logger.warn("  ✗ nmcli not found");
+      missingTools.push("nmcli (NetworkManager)");
+    }
+
+    if (missingTools.length > 0) {
+      reason = `Missing required tools: ${missingTools.join(", ")}. Install them with your package manager (e.g., apt install iw network-manager).`;
+      logger.error(reason);
+    }
+
+    // check that iperf3 is really installed if it's needed
+    if (!reason && settings.iperfServerAdrs != "localhost") {
+      try {
+        await execAsync("iperf3 --version");
+        logger.info("  ✓ iperf3 found");
+      } catch {
+        reason =
+          "iperf3 not installed. Install it,\n or set the iperfServer to 'localhost'.";
+        logger.warn("  ✗ iperf3 not found");
+        logger.error(reason);
+      }
     }
     // test duration must be > 0 - otherwise iperf3 runs forever
-    if (settings.testDuration <= 0) {
+    if (!reason && settings.testDuration <= 0) {
       reason = "Test duration must be greater than zero.";
     }
 
     // iperfServerAddress must not be empty or ""
-    else if (!settings.iperfServerAdrs) {
+    if (!reason && !settings.iperfServerAdrs) {
       reason = "Please set iperf3 server address";
     }
 
     // Linux requires a sudo password
     // but Docker doesn't
-    else if (!isDocker()) {
+    if (!reason && !isDocker()) {
       if (!settings.sudoerPassword || settings.sudoerPassword == "") {
         // don't require sudo password on a Docker container
         reason = "Please set sudo password. It is required on Linux.";
