@@ -27,7 +27,7 @@ export function HeatmapAdvancedConfig() {
   );
 
   const sortedGradientEntries = () => {
-    return Object.entries(settings.gradient || {}).sort(([a], [b]) => {
+    return Object.entries(settings.gradient).sort(([a], [b]) => {
       const numA = parseFloat(a);
       const numB = parseFloat(b);
       return isNaN(numA) || isNaN(numB) ? 0 : numA - numB;
