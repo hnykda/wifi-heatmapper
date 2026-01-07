@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import "./globals.css";
 import { SettingsProvider } from "@/components/GlobalSettings";
+import { Toaster } from "@/components/ui/toaster";
 import { initServer } from "../lib/server-init";
 
 export const metadata: Metadata = {
@@ -19,7 +20,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <SettingsProvider>
-        <body>{children}</body>
+        <body>
+          {children}
+          <Toaster />
+        </body>
       </SettingsProvider>
     </html>
   );

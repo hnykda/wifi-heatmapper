@@ -10,7 +10,6 @@ import {
 import { getColorAt, objectToRGBAString } from "@/lib/utils-gradient";
 import { useSettings } from "./GlobalSettings";
 import { HeatmapSettings, SurveyResult, SurveyPoint } from "../lib/types";
-import { Toaster } from "@/components/ui/toaster";
 import NewToast from "@/components/NewToast";
 import PopupDetails from "@/components/PopupDetails";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -476,7 +475,6 @@ export default function ClickableFloorplan(): ReactNode {
           />
         </div>
 
-        <Toaster />
         {isToastOpen && (
           <NewToast
             onClose={() => setIsToastOpen(false)}

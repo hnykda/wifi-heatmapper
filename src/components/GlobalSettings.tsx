@@ -13,6 +13,7 @@ import {
   hasMigrated,
   migrateLocalStorageToFiles,
 } from "../lib/localStorageMigration";
+import { toast } from "@/components/ui/use-toast";
 import { HeatmapSettings, SurveyPoint, SurveyPointActions } from "../lib/types";
 import { join } from "path";
 
@@ -87,10 +88,10 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         const count = await migrateLocalStorageToFiles();
         console.log(`Migration complete. Migrated ${count} survey(s).`);
         if (count > 0) {
-          alert(
-            `Migrated ${count} survey(s) from browser storage to data/surveys/.\n\n` +
-              `Your survey data is now stored as JSON files that you can backup and version control.`,
-          );
+          toast({
+            title: "Survey data migrated",
+            description: `Migrated ${count} survey(s) from browser storage to data/surveys/. Your data is now stored as JSON files.`,
+          });
         }
       }
       setMigrationDone(true);
