@@ -46,12 +46,13 @@ export default function SettingsEditor() {
           <td className="text-right pr-4">
             <Label htmlFor="iperfServer" className="font-bold text-lg">
               iperfServer&nbsp;
-              <PopoverHelper text="Address of an iperf3 server. Set to 'localhost' to ignore." />
+              <PopoverHelper text="Address of an iperf3 server (e.g., 192.168.1.10 or 192.168.1.10:5201). Port 5201 is used by default. Set to 'localhost' to skip iperf tests." />
             </Label>{" "}
           </td>
           <td>
             <input
               type="text"
+              placeholder="e.g., 192.168.1.10 or 192.168.1.10:5201"
               className="w-full border border-gray-200 rounded-sm p-2 focus:outline-none focus:ring focus:ring-blue-300 focus:border-blue-400"
               value={settings.iperfServerAdrs}
               onChange={(e) =>

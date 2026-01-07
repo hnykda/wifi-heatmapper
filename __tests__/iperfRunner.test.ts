@@ -170,4 +170,3 @@ describe("buildIperfCommand", () => {
     expect(result).toBe("iperf3 -c 10.0.0.5 -t 5 -u -b 100M -J");
   });
 });
-
