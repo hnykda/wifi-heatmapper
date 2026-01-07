@@ -105,13 +105,14 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       let newHeatmapSettings: HeatmapSettings | null =
         await readSettingsFromFile(floorPlanToLoad);
 
+      // Merge with defaults to ensure all fields exist (handles old/incomplete files)
+      const defaults = getDefaults(floorPlanToLoad);
       if (newHeatmapSettings) {
-        newHeatmapSettings.sudoerPassword = "";
-        setSettings(newHeatmapSettings);
+        const mergedSettings = { ...defaults, ...newHeatmapSettings, sudoerPassword: "" };
+        setSettings(mergedSettings);
       } else {
-        newHeatmapSettings = getDefaults(floorPlanToLoad);
-        writeSettingsToFile(newHeatmapSettings);
-        setSettings(newHeatmapSettings);
+        writeSettingsToFile(defaults);
+        setSettings(defaults);
       }
     }
     loadSettings();
