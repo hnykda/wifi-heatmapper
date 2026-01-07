@@ -89,7 +89,7 @@ export default function MediaDropdown({
 
         <DropdownMenu.Content
           sideOffset={5}
-          className="bg-white border rounded shadow-md py-1 min-w-[200px]"
+          className="z-50 bg-white border rounded shadow-md py-1 min-w-[200px]"
         >
           <div className="px-2 pb-2">
             <input
