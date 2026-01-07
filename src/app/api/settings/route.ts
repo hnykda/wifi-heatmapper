@@ -47,6 +47,13 @@ export async function GET(request: NextRequest) {
     }
   }
 
+  // Get path only (without reading file contents)
+  const pathOnly = searchParams.get("path");
+  if (pathOnly === "true" && name) {
+    const relativePath = `data/surveys/${sanitizeFilename(name)}.json`;
+    return NextResponse.json({ path: relativePath });
+  }
+
   // Read a specific survey file
   if (!name) {
     return NextResponse.json(

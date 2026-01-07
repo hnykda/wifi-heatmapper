@@ -1,12 +1,24 @@
+import { useEffect, useState } from "react";
 import { useSettings } from "@/components/GlobalSettings";
 import { PasswordInput } from "./PasswordInput";
 import { Label } from "@/components/ui/label";
 import { PopoverHelper } from "@/components/PopoverHelpText";
 import HeatmapAdvancedConfig from "./HeatmapAdvancedConfig";
 import MediaDropdown from "./MediaDropdown";
+import { getSurveyFilePath } from "@/lib/fileHandler";
 
 export default function SettingsEditor() {
   const { settings, updateSettings, readNewSettingsFromFile } = useSettings();
+  const [dataFilePath, setDataFilePath] = useState<string | null>(null);
+
+  // Fetch the actual file path when floorplan changes
+  useEffect(() => {
+    if (settings.floorplanImageName) {
+      getSurveyFilePath(settings.floorplanImageName).then(setDataFilePath);
+    } else {
+      setDataFilePath(null);
+    }
+  }, [settings.floorplanImageName]);
 
   /**
    * handleNewImageFile - given the name of a new image file,
@@ -32,10 +44,8 @@ export default function SettingsEditor() {
               defaultValue={settings.floorplanImageName}
               onChange={(val) => handleNewImageFile(val)}
             />
-            {settings.floorplanImageName && (
-              <p className="text-xs text-gray-500 mt-1">
-                Data: data/surveys/{settings.floorplanImageName}.json
-              </p>
+            {dataFilePath && (
+              <p className="text-xs text-gray-500 mt-1">Data: {dataFilePath}</p>
             )}
           </td>
         </tr>

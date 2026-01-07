@@ -90,3 +90,24 @@ export async function listSurveys(): Promise<string[]> {
     return [];
   }
 }
+
+/**
+ * Get the actual file path for a floorplan's survey data
+ */
+export async function getSurveyFilePath(
+  floorplanName: string,
+): Promise<string | null> {
+  try {
+    const response = await fetch(
+      `/api/settings?name=${encodeURIComponent(floorplanName)}&path=true`,
+    );
+    if (!response.ok) {
+      return null;
+    }
+    const data = await response.json();
+    return data.path || null;
+  } catch (error) {
+    console.error("Error getting survey path:", error);
+    return null;
+  }
+}
