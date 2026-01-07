@@ -7,15 +7,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { readFile, writeFile, mkdir, readdir } from "fs/promises";
 import path from "path";
+import { sanitizeFilename } from "@/lib/utils";
 
 const SURVEYS_DIR = path.join(process.cwd(), "data", "surveys");
-
-/**
- * Sanitize filename to prevent directory traversal attacks
- */
-function sanitizeFilename(name: string): string {
-  return name.replace(/[^a-zA-Z0-9._-]/g, "_");
-}
 
 /**
  * Get the full path for a survey file

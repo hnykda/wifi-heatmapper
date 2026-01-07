@@ -4,6 +4,7 @@ import { Label } from "@/components/ui/label";
 import { PopoverHelper } from "@/components/PopoverHelpText";
 import HeatmapAdvancedConfig from "./HeatmapAdvancedConfig";
 import MediaDropdown from "./MediaDropdown";
+import { sanitizeFilename } from "@/lib/utils";
 
 export default function SettingsEditor() {
   const { settings, updateSettings, readNewSettingsFromFile } = useSettings();
@@ -34,7 +35,8 @@ export default function SettingsEditor() {
             />
             {settings.floorplanImageName && (
               <p className="text-xs text-gray-500 mt-1">
-                Data: data/surveys/{settings.floorplanImageName}.json
+                Data: data/surveys/
+                {sanitizeFilename(settings.floorplanImageName)}.json
               </p>
             )}
           </td>

@@ -18,6 +18,14 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+/**
+ * Sanitize filename to prevent directory traversal and filesystem issues.
+ * Replaces any character that isn't alphanumeric, dot, underscore, or hyphen.
+ */
+export function sanitizeFilename(name: string): string {
+  return name.replace(/[^a-zA-Z0-9._-]/g, "_");
+}
+
 export const rssiToPercentage = (rssi: number): number => {
   if (rssi == 0) return 0;
   if (rssi <= -100) return 0;
