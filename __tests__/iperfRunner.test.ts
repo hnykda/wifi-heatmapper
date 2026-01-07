@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
 import { extractIperfResults } from "../src/lib/utils";
+import {
+  buildIperfCommand,
+  defaultIperfCommands,
+} from "../src/lib/iperfRunner";
 import fs from "fs";
 import path from "path";
 
@@ -104,3 +108,66 @@ describe("extractIperfResults", () => {
     });
   });
 });
+
+describe("buildIperfCommand", () => {
+  it("should substitute server and duration placeholders", () => {
+    const result = buildIperfCommand(
+      "iperf3 -c {server} -t {duration} -J",
+      "192.168.1.1",
+      "",
+      5,
+    );
+    expect(result).toBe("iperf3 -c 192.168.1.1 -t 5 -J");
+  });
+
+  it("should substitute port placeholder when port is provided", () => {
+    const result = buildIperfCommand(
+      "iperf3 -c {server} {port} -t {duration} -J",
+      "192.168.1.1",
+      "5201",
+      5,
+    );
+    expect(result).toBe("iperf3 -c 192.168.1.1 -p 5201 -t 5 -J");
+  });
+
+  it("should remove port placeholder when port is empty", () => {
+    const result = buildIperfCommand(
+      "iperf3 -c {server} {port} -t {duration} -J",
+      "192.168.1.1",
+      "",
+      5,
+    );
+    expect(result).toBe("iperf3 -c 192.168.1.1 -t 5 -J");
+  });
+
+  it("should normalize multiple spaces to single space", () => {
+    const result = buildIperfCommand(
+      "iperf3  -c  {server}   {port}  -t {duration} -J",
+      "10.0.0.1",
+      "",
+      10,
+    );
+    expect(result).toBe("iperf3 -c 10.0.0.1 -t 10 -J");
+  });
+
+  it("should work with default TCP download command", () => {
+    const result = buildIperfCommand(
+      defaultIperfCommands.tcpDownload,
+      "myserver.local",
+      "5201",
+      3,
+    );
+    expect(result).toBe("iperf3 -c myserver.local -p 5201 -t 3 -R -J");
+  });
+
+  it("should work with default UDP upload command", () => {
+    const result = buildIperfCommand(
+      defaultIperfCommands.udpUpload,
+      "10.0.0.5",
+      "",
+      5,
+    );
+    expect(result).toBe("iperf3 -c 10.0.0.5 -t 5 -u -b 100M -J");
+  });
+});
+

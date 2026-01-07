@@ -19,7 +19,7 @@ export default function SettingsEditor() {
   }
 
   return (
-    <table className="w-auto">
+    <table className="w-full max-w-4xl">
       <tbody>
         <tr>
           <td className="text-right pr-4">

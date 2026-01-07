@@ -72,6 +72,13 @@ export interface ApMapping {
 
 export type Gradient = Record<number, string>; // Maps 0-1 values to colors
 
+export interface IperfCommands {
+  tcpDownload: string;
+  tcpUpload: string;
+  udpDownload: string;
+  udpUpload: string;
+}
+
 /**
  * The full set of data for a particular background image
  * This is "global" to the entire GUI, and passed down as needed
@@ -91,6 +98,7 @@ export interface HeatmapSettings {
   minOpacity: number;
   blur: number;
   gradient: Gradient;
+  iperfCommands: IperfCommands;
   // these two props were used for the "scan-wifi" branch
   // that has been (temporarily?) abandoned
   // sameSSID: string; // "same", "best"
@@ -108,6 +116,7 @@ export interface PartialHeatmapSettings {
   testDuration: number;
   sudoerPassword: string;
   ignoredSSIDs: string[];
+  iperfCommands: IperfCommands;
   // sameSSID: SsidStrategy;
 }
 
