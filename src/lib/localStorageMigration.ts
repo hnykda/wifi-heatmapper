@@ -8,8 +8,11 @@
 import { HeatmapSettings } from "./types";
 import { writeSettingsToFile, readSettingsFromFile } from "./fileHandler";
 
-const MIGRATION_FLAG = "wifi-heatmapper-migrated-to-file";
+const MIGRATION_TIMESTAMP_KEY = "wifi-heatmapper-migrated-to-file-storage";
 const BASE_KEY = "wifi*heatmapper";
+
+// Guard against double execution in React strict mode
+let migrationInProgress = false;
 
 /**
  * Check if there's localStorage data that needs migration
@@ -21,10 +24,18 @@ export function hasLocalStorageData(): boolean {
 
 /**
  * Check if migration has already been performed
+ * Returns the migration timestamp if migrated, null otherwise
+ */
+export function getMigrationTimestamp(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem(MIGRATION_TIMESTAMP_KEY);
+}
+
+/**
+ * Check if migration has already been performed
  */
 export function hasMigrated(): boolean {
-  if (typeof window === "undefined") return false;
-  return localStorage.getItem(MIGRATION_FLAG) === "true";
+  return getMigrationTimestamp() !== null;
 }
 
 /**
@@ -41,7 +52,11 @@ export function getLocalStorageSurveys(): {
   // Find all wifi-heatmapper-* keys
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
-    if (key && key.startsWith("wifi-heatmapper-") && key !== MIGRATION_FLAG) {
+    if (
+      key &&
+      key.startsWith("wifi-heatmapper-") &&
+      key !== MIGRATION_TIMESTAMP_KEY
+    ) {
       const floorplanName = key.replace("wifi-heatmapper-", "");
       try {
         const data = JSON.parse(localStorage.getItem(key) || "");
@@ -64,32 +79,44 @@ export function getLocalStorageSurveys(): {
 export async function migrateLocalStorageToFiles(): Promise<number> {
   if (typeof window === "undefined") return 0;
 
-  const surveys = getLocalStorageSurveys();
-  let migrated = 0;
+  // Guard against double execution (React strict mode)
+  if (migrationInProgress) {
+    console.log("Migration already in progress, skipping...");
+    return 0;
+  }
+  migrationInProgress = true;
 
-  for (const { name, data } of surveys) {
-    try {
-      // Check if this survey already exists in file storage
-      const existing = await readSettingsFromFile(name);
-      if (!existing) {
-        // Migrate to file storage
-        await writeSettingsToFile(data);
-        console.log(`Migrated survey: ${name}`);
-        migrated++;
-      } else {
-        console.log(`Survey already exists in file storage: ${name}`);
+  try {
+    const surveys = getLocalStorageSurveys();
+    let migrated = 0;
+
+    for (const { name, data } of surveys) {
+      try {
+        // Check if this survey already exists in file storage
+        const existing = await readSettingsFromFile(name);
+        if (!existing) {
+          // Migrate to file storage
+          await writeSettingsToFile(data);
+          console.log(`Migrated survey: ${name}`);
+          migrated++;
+        } else {
+          console.log(`Survey already exists in file storage: ${name}`);
+        }
+      } catch (err) {
+        console.error(`Failed to migrate survey ${name}:`, err);
       }
-    } catch (err) {
-      console.error(`Failed to migrate survey ${name}:`, err);
     }
-  }
 
-  // Mark migration as complete
-  if (migrated > 0 || surveys.length > 0) {
-    localStorage.setItem(MIGRATION_FLAG, "true");
-  }
+    // Mark migration as complete with timestamp
+    // Note: localStorage data is preserved so users can revert if needed
+    if (migrated > 0 || surveys.length > 0) {
+      localStorage.setItem(MIGRATION_TIMESTAMP_KEY, new Date().toISOString());
+    }
 
-  return migrated;
+    return migrated;
+  } finally {
+    migrationInProgress = false;
+  }
 }
 
 /**
