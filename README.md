@@ -8,6 +8,7 @@ or if there is something else wrong with your network.
 If there is a signal-strength problem, you can use the
 heat map to optimize access point placement,
 or to add new mesh devices or extenders.
+Your data never leaves your computer - everything is stored locally in simple JSON files (`data/surveys/`).
 
 The heat maps show areas of strong signal
 (or high data transfer speeds) with green ("green is good").
@@ -124,26 +125,6 @@ To take advantage of `iperf3` throughput (speed) tests:
    * Check the local iperf3 binary with `iperf3 --version`
    * Check the connection to the iperf3 server
       with `iperf3 -c address-of-iperf3-server`
-
-## Data Storage
-
-**Your data never leaves your computer.**
-Survey data is stored locally as simple JSON files in `data/surveys/`.
-Each floorplan has its own file (e.g., `data/surveys/MyFloorPlan.png.json`).
-No cloud, no accounts, no tracking - just plain files you own and control.
-
-This means you can:
-- **Backup** your survey data by copying the `data/surveys/` folder
-- **Version control** your surveys alongside the project
-- **Transfer** surveys between machines by copying the JSON files
-- **Edit** survey data manually if needed
-- **Inspect** exactly what's stored - it's just JSON
-
-The directory is created automatically on first use.
-
-_Note: If you're upgrading from an older version that used browser
-localStorage, your data will be automatically migrated to files
-on first load._
 
 ## Usage with Docker
 
