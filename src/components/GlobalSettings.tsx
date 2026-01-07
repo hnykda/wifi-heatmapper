@@ -14,7 +14,7 @@ import {
   hasMigrated,
   migrateLocalStorageToFiles,
 } from "../lib/localStorageMigration";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "./ui/use-toast";
 import { HeatmapSettings, SurveyPoint, SurveyPointActions } from "../lib/types";
 import { join } from "path";
 

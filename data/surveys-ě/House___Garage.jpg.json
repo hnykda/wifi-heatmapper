@@ -1,0 +1,80 @@
+{
+  "surveyPoints": [
+    {
+      "wifiData": {
+        "ssid": "",
+        "bssid": "<redacted>",
+        "rssi": -67,
+        "signalStrength": 55,
+        "txRate": 172,
+        "security": "WPA2 Personal",
+        "phyMode": "11ax",
+        "band": 2.4,
+        "channel": 1,
+        "channelWidth": 20
+      },
+      "iperfData": {
+        "tcpDownload": {
+          "bitsPerSecond": 0,
+          "retransmits": 0,
+          "jitterMs": 0,
+          "lostPackets": 0,
+          "packetsReceived": 0,
+          "signalStrength": 0
+        },
+        "tcpUpload": {
+          "bitsPerSecond": 0,
+          "retransmits": 0,
+          "jitterMs": 0,
+          "lostPackets": 0,
+          "packetsReceived": 0,
+          "signalStrength": 0
+        },
+        "udpDownload": {
+          "bitsPerSecond": 0,
+          "retransmits": 0,
+          "jitterMs": 0,
+          "lostPackets": 0,
+          "packetsReceived": 0,
+          "signalStrength": 0
+        },
+        "udpUpload": {
+          "bitsPerSecond": 0,
+          "retransmits": 0,
+          "jitterMs": 0,
+          "lostPackets": 0,
+          "packetsReceived": 0,
+          "signalStrength": 0
+        }
+      },
+      "x": 740,
+      "y": 662,
+      "timestamp": 1767818277515,
+      "isEnabled": true,
+      "id": "Point_1"
+    }
+  ],
+  "floorplanImageName": "House & Garage.jpg",
+  "floorplanImagePath": "/media/House & Garage.jpg",
+  "iperfServerAdrs": "localhost",
+  "apMapping": [],
+  "testDuration": 1,
+  "nextPointNum": 2,
+  "dimensions": {
+    "width": 1536,
+    "height": 1024
+  },
+  "radiusDivider": null,
+  "maxOpacity": 0.7,
+  "minOpacity": 0.2,
+  "blur": 0.99,
+  "gradient": {
+    "0": "rgba(255, 0, 0, 0.6)",
+    "1": "rgba(0, 255, 0, 0.6)",
+    "0.45": "rgba(255, 255, 0, 0.6)",
+    "0.5": "rgba(0, 0, 255, 0.6)",
+    "0.6": "rgba(0, 255, 255, 0.6)",
+    "0.75": "rgba(0, 255, 0, 0.6)",
+    "0.9": "rgba(0, 255, 0, 0.6)"
+  }
+}
