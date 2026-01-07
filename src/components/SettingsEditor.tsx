@@ -32,6 +32,11 @@ export default function SettingsEditor() {
               defaultValue={settings.floorplanImageName}
               onChange={(val) => handleNewImageFile(val)}
             />
+            {settings.floorplanImageName && (
+              <p className="text-xs text-gray-500 mt-1">
+                Data: data/surveys/{settings.floorplanImageName}.json
+              </p>
+            )}
           </td>
         </tr>
 
