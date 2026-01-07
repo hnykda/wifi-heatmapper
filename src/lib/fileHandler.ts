@@ -66,9 +66,17 @@ export async function writeSettingsToFile(
     });
 
     if (!response.ok) {
-      console.error("Error saving settings:", await response.text());
+      console.error(
+        `[wifi-heatmapper] Failed to save settings for "${settings.floorplanImageName}":`,
+        response.status,
+        response.statusText,
+        await response.text(),
+      );
     }
   } catch (error) {
-    console.error("Error saving settings:", error);
+    console.error(
+      `[wifi-heatmapper] Failed to save settings for "${settings.floorplanImageName}":`,
+      error,
+    );
   }
 }

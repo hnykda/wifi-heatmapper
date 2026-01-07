@@ -45,8 +45,11 @@ function getLocalStorageSurveys(): {
         if (data && data.floorplanImageName) {
           surveys.push({ name: floorplanName, data });
         }
-      } catch {
-        // Skip malformed entries
+      } catch (error) {
+        console.warn(
+          `[wifi-heatmapper] Skipping malformed localStorage entry "${key}":`,
+          error,
+        );
       }
     }
   }
@@ -78,8 +81,11 @@ export async function migrateLocalStorageToFiles(): Promise<number> {
           await writeSettingsToFile(data);
           migrated++;
         }
-      } catch {
-        // Continue with other surveys if one fails
+      } catch (error) {
+        console.error(
+          `[wifi-heatmapper] Failed to migrate survey "${name}" to file storage:`,
+          error,
+        );
       }
     }
 

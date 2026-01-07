@@ -2,7 +2,7 @@
 
 _This section follows the precepts of [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) so that future readers can understand the state and evolution of the project._
 
-## [Unreleased]
+## Version 0.4.0 - 2026-01-07
 
 ### Changed
 
@@ -17,6 +17,11 @@ _This section follows the precepts of [Keep a Changelog](https://keepachangelog.
   Users will see a toast notification confirming the migration.
 
 * New API endpoint `/api/settings` handles reading/writing survey files.
+
+* Floorplan dropdown is now scrollable when there are many images,
+  preventing the list from overflowing the screen.
+
+* Improved error logging for file storage operations.
 
 ---
 
