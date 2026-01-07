@@ -99,17 +99,18 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   }, []);
 
   async function loadSettings(floorplanImage: string) {
+    // Use default floor plan if none specified
+    const floorPlanToLoad = floorplanImage || defaultFloorPlan;
+
     let newHeatmapSettings: HeatmapSettings | null =
-      await readSettingsFromFile(floorplanImage);
+      await readSettingsFromFile(floorPlanToLoad);
     if (newHeatmapSettings) {
       // we read from a file, but that won't contain the password
       newHeatmapSettings.sudoerPassword = "";
       setSettings(newHeatmapSettings);
     } else {
-      // use the provided floor plan image or the default
-      const floorPlanUsed =
-        floorplanImage == "" ? defaultFloorPlan : floorplanImage;
-      newHeatmapSettings = getDefaults(floorPlanUsed);
+      // no existing file, create defaults
+      newHeatmapSettings = getDefaults(floorPlanToLoad);
       writeSettingsToFile(newHeatmapSettings);
       setSettings(newHeatmapSettings);
     }
