@@ -337,6 +337,12 @@ export function Heatmaps() {
           metric,
           showSignalStrengthAsPercentage,
         );
+        const normalizationMaxSignal =
+          metric === "signalStrength"
+            ? 100
+            : Number.isFinite(max) && max > 0
+              ? max
+              : 1;
 
         const glCanvas = document.createElement("canvas");
         glCanvas.width = settings.dimensions.width;
@@ -355,6 +361,7 @@ export function Heatmaps() {
           backgroundImageSrc: settings.floorplanImagePath,
           width: settings.dimensions.width,
           height: settings.dimensions.height,
+          maxSignal: normalizationMaxSignal,
         });
 
         ctx.drawImage(glCanvas, 0, 20);

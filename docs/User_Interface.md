@@ -37,7 +37,8 @@ This image shows the survey points collected to produce the heat map below.
 
 ## Heat Maps Pane
 
-The Heat Maps tab displays the heat map.
+The Heat Maps tab displays the heat map for the signal strength
+and any TCP/UDP measurements selected.
 The Radius slider controls the "radius" of the individual
 measurements.
 Adjust the slider so that the points merge in the heatmap.
@@ -51,3 +52,23 @@ all the points that have been collected.
 Enable or disable points, or delete one or many points at one time.
 
 ![Survey Points Pane](images/SurveyPointsPane.png)
+
+## Popup Details
+
+Clicking a Survey Point in the Floorplan view
+opens the PopupDetails window (below).
+This shows relevant information about the measurements at that location.
+The first three fields - **ID**, **SSID**, and **BSSID** - are editible.
+
+- **ID:** Edit the **ID** field to give information about the
+  location where the the measurement was taken ("Living room, back corner").
+  Note - the **ID** is used as a key for the measurements,
+  and must always be unique. (wifi-heatmapper ensures uniqueness.)
+- **SSID** and **BSSID:** _(On Windows and Linux)_ these fields are filled
+  automatically, and don't generally need to be edited.
+- **SSID** and **BSSID** _(On current macOS - versions 15 and later)_
+  the OS conceals these fields for security
+  (showing either blank or \<redacted>).
+  You can add the information manually.
+
+<img src="images/PopupDetails.png" alt="PopupDetails window" width="70%">

@@ -180,3 +180,5 @@ Ideas for making the program better - in no particular order:
   (Improves behavior on a touch-screen - you can see where you clicked.)
 * Scale the size of surveyPoint dots to the Floorplan image, to prevent
   them from appearing as tiny dots on a large image.
+* Double-clicking the ID, SSID, and BSSID of PopupDetails should
+  make them editable fields which are then saved in SurveyPoints
