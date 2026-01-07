@@ -127,14 +127,17 @@ To take advantage of `iperf3` throughput (speed) tests:
 
 ## Data Storage
 
-Survey data is stored as JSON files in `data/surveys/`. Each floorplan
-has its own file (e.g., `data/surveys/MyFloorPlan.png.json`).
+**Your data never leaves your computer.**
+Survey data is stored locally as simple JSON files in `data/surveys/`.
+Each floorplan has its own file (e.g., `data/surveys/MyFloorPlan.png.json`).
+No cloud, no accounts, no tracking - just plain files you own and control.
 
 This means you can:
 - **Backup** your survey data by copying the `data/surveys/` folder
 - **Version control** your surveys alongside the project
 - **Transfer** surveys between machines by copying the JSON files
 - **Edit** survey data manually if needed
+- **Inspect** exactly what's stored - it's just JSON
 
 The directory is created automatically on first use.
 
