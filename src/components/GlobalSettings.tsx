@@ -5,6 +5,7 @@ import {
   useContext,
   useState,
   useEffect,
+  useRef,
   ReactNode,
 } from "react";
 import { readSettingsFromFile, writeSettingsToFile } from "../lib/fileHandler";
@@ -77,53 +78,44 @@ export function useSettings() {
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<HeatmapSettings>(getDefaults(""));
   const [floorplanImage, setFloorplanImage] = useState<string>("");
-  const [migrationDone, setMigrationDone] = useState(false);
+  const migrationDone = useRef(false);
   const defaultFloorPlan = "EmptyFloorPlan.png";
 
-  // Run localStorage migration on mount
+  // Load settings (and migrate on first run)
   useEffect(() => {
-    async function runMigration() {
-      if (hasLocalStorageData() && !hasMigrated()) {
-        console.log("Migrating localStorage data to file-based storage...");
-        const count = await migrateLocalStorageToFiles();
-        console.log(`Migration complete. Migrated ${count} survey(s).`);
-        if (count > 0) {
-          toast({
-            title: "Survey data migrated",
-            description: `Migrated ${count} survey(s) from browser storage to data/surveys/. Your data is now stored as JSON files.`,
-          });
+    async function loadSettings() {
+      // One-time migration from localStorage
+      if (!migrationDone.current) {
+        if (hasLocalStorageData() && !hasMigrated()) {
+          console.log("Migrating localStorage data to file-based storage...");
+          const count = await migrateLocalStorageToFiles();
+          console.log(`Migration complete. Migrated ${count} survey(s).`);
+          if (count > 0) {
+            toast({
+              title: "Survey data migrated",
+              description: `Migrated ${count} survey(s) from browser storage to data/surveys/. Your data is now stored as JSON files.`,
+            });
+          }
         }
+        migrationDone.current = true;
       }
-      setMigrationDone(true);
-    }
-    runMigration();
-  }, []);
 
-  async function loadSettings(floorplanImage: string) {
-    // Use default floor plan if none specified
-    const floorPlanToLoad = floorplanImage || defaultFloorPlan;
+      // Load settings for current floorplan
+      const floorPlanToLoad = floorplanImage || defaultFloorPlan;
+      let newHeatmapSettings: HeatmapSettings | null =
+        await readSettingsFromFile(floorPlanToLoad);
 
-    let newHeatmapSettings: HeatmapSettings | null =
-      await readSettingsFromFile(floorPlanToLoad);
-    if (newHeatmapSettings) {
-      // we read from a file, but that won't contain the password
-      newHeatmapSettings.sudoerPassword = "";
-      setSettings(newHeatmapSettings);
-    } else {
-      // no existing file, create defaults
-      newHeatmapSettings = getDefaults(floorPlanToLoad);
-      writeSettingsToFile(newHeatmapSettings);
-      setSettings(newHeatmapSettings);
+      if (newHeatmapSettings) {
+        newHeatmapSettings.sudoerPassword = "";
+        setSettings(newHeatmapSettings);
+      } else {
+        newHeatmapSettings = getDefaults(floorPlanToLoad);
+        writeSettingsToFile(newHeatmapSettings);
+        setSettings(newHeatmapSettings);
+      }
     }
-  }
-
-  // Load settings from file on mount, or whenever the floorplanImage changes
-  // Wait for migration to complete before loading
-  useEffect(() => {
-    if (migrationDone) {
-      loadSettings(floorplanImage);
-    }
-  }, [floorplanImage, migrationDone]);
+    loadSettings();
+  }, [floorplanImage]);
 
   const readNewSettingsFromFile = (fileName: string) => {
     setFloorplanImage(fileName); // set the new floorplanImage, and let useEffect() do the work
