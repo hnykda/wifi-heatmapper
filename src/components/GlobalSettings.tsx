@@ -102,13 +102,17 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
       // Load settings for current floorplan
       const floorPlanToLoad = floorplanImage || defaultFloorPlan;
-      let newHeatmapSettings: HeatmapSettings | null =
+      const newHeatmapSettings: HeatmapSettings | null =
         await readSettingsFromFile(floorPlanToLoad);
 
       // Merge with defaults to ensure all fields exist (handles old/incomplete files)
       const defaults = getDefaults(floorPlanToLoad);
       if (newHeatmapSettings) {
-        const mergedSettings = { ...defaults, ...newHeatmapSettings, sudoerPassword: "" };
+        const mergedSettings = {
+          ...defaults,
+          ...newHeatmapSettings,
+          sudoerPassword: "",
+        };
         setSettings(mergedSettings);
       } else {
         writeSettingsToFile(defaults);

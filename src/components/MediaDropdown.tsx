@@ -109,7 +109,9 @@ export default function MediaDropdown({
                 className={`flex items-center px-3 py-1.5 text-sm cursor-pointer hover:bg-gray-100 outline-none ${item === selected ? "bg-blue-50 font-medium" : ""}`}
                 onSelect={() => handleSelect(item)}
               >
-                <span className="w-5 text-blue-600">{item === selected ? "✓" : ""}</span>
+                <span className="w-5 text-blue-600">
+                  {item === selected ? "✓" : ""}
+                </span>
                 <span>{item}</span>
               </DropdownMenu.Item>
             ))}
