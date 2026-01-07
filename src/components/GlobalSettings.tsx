@@ -5,9 +5,16 @@ import {
   useContext,
   useState,
   useEffect,
+  useRef,
   ReactNode,
 } from "react";
 import { readSettingsFromFile, writeSettingsToFile } from "../lib/fileHandler";
+import {
+  hasLocalStorageData,
+  hasMigrated,
+  migrateLocalStorageToFiles,
+} from "../lib/localStorageMigration";
+import { toast } from "./ui/use-toast";
 import { HeatmapSettings, SurveyPoint, SurveyPointActions } from "../lib/types";
 import { join } from "path";
 
@@ -71,28 +78,43 @@ export function useSettings() {
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<HeatmapSettings>(getDefaults(""));
   const [floorplanImage, setFloorplanImage] = useState<string>("");
+  const migrationDone = useRef(false);
   const defaultFloorPlan = "EmptyFloorPlan.png";
 
-  async function loadSettings(floorplanImage: string) {
-    let newHeatmapSettings: HeatmapSettings | null =
-      await readSettingsFromFile(floorplanImage);
-    if (newHeatmapSettings) {
-      // we read from a file, but that won't contain the password
-      newHeatmapSettings.sudoerPassword = "";
-      setSettings(newHeatmapSettings);
-    } else {
-      // use the provided floor plan image or the default
-      const floorPlanUsed =
-        floorplanImage == "" ? defaultFloorPlan : floorplanImage;
-      newHeatmapSettings = getDefaults(floorPlanUsed);
-      writeSettingsToFile(newHeatmapSettings);
-      setSettings(newHeatmapSettings);
-    }
-  }
-
-  // Load settings from file on mount, or whenever the floorplanImage changes
+  // Load settings (and migrate on first run)
   useEffect(() => {
-    loadSettings(floorplanImage);
+    async function loadSettings() {
+      // One-time migration from localStorage
+      if (!migrationDone.current) {
+        if (hasLocalStorageData() && !hasMigrated()) {
+          console.log("Migrating localStorage data to file-based storage...");
+          const count = await migrateLocalStorageToFiles();
+          console.log(`Migration complete. Migrated ${count} survey(s).`);
+          if (count > 0) {
+            toast({
+              title: "Survey data migrated",
+              description: `Migrated ${count} survey(s) from browser storage to data/surveys/. Your data is now stored as JSON files.`,
+            });
+          }
+        }
+        migrationDone.current = true;
+      }
+
+      // Load settings for current floorplan
+      const floorPlanToLoad = floorplanImage || defaultFloorPlan;
+      let newHeatmapSettings: HeatmapSettings | null =
+        await readSettingsFromFile(floorPlanToLoad);
+
+      if (newHeatmapSettings) {
+        newHeatmapSettings.sudoerPassword = "";
+        setSettings(newHeatmapSettings);
+      } else {
+        newHeatmapSettings = getDefaults(floorPlanToLoad);
+        writeSettingsToFile(newHeatmapSettings);
+        setSettings(newHeatmapSettings);
+      }
+    }
+    loadSettings();
   }, [floorplanImage]);
 
   const readNewSettingsFromFile = (fileName: string) => {

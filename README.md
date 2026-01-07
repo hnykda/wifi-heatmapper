@@ -8,6 +8,7 @@ or if there is something else wrong with your network.
 If there is a signal-strength problem, you can use the
 heat map to optimize access point placement,
 or to add new mesh devices or extenders.
+Your data never leaves your computer - everything is stored locally in simple JSON files (`data/surveys/`).
 
 The heat maps show areas of strong signal
 (or high data transfer speeds) with green ("green is good").

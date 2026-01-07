@@ -4,6 +4,20 @@ _This section follows the precepts of [Keep a Changelog](https://keepachangelog.
 
 ## [Unreleased]
 
+### Changed
+
+* **Breaking:** Survey data is now stored as JSON files in `data/surveys/`
+  instead of browser localStorage. This provides:
+  - Persistent storage that survives browser cache clears
+  - Easy backup and version control of survey data
+  - Portability between machines and browsers
+  - No size limits
+
+* Existing localStorage data is automatically migrated on first load.
+  Users will see a toast notification confirming the migration.
+
+* New API endpoint `/api/settings` handles reading/writing survey files.
+
 ---
 
 ## Version 0.3.6 - 2026-01-04
