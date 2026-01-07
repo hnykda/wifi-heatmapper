@@ -140,7 +140,7 @@ export default function MediaDropdown({
         <DropdownMenu.Content
           sideOffset={5}
           side="right"
-          className="bg-white border border-gray-300 rounded shadow-md py-1 max-h-64 overflow-y-auto"
+          className="bg-white border border-gray-300 rounded shadow-md py-1"
         >
           {files.map((item) => (
             <DropdownMenu.Item
