@@ -3,7 +3,7 @@ import { extractIperfResults } from "../src/lib/utils";
 import {
   buildIperfCommand,
   defaultIperfCommands,
-} from "../src/lib/iperfRunner";
+} from "../src/lib/iperfUtils";
 import fs from "fs";
 import path from "path";
 

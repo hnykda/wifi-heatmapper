@@ -13,17 +13,11 @@ import { percentageToRssi, toMbps, getDefaultIperfResults } from "./utils";
 import { SSEMessageType } from "@/app/api/events/route";
 import { createWifiActions } from "./wifiScanner";
 import { getLogger } from "./logger";
+import { defaultIperfCommands, buildIperfCommand } from "./iperfUtils";
 const logger = getLogger("iperfRunner");
 
 type TestType = "TCP" | "UDP";
 type TestDirection = "Up" | "Down";
-
-export const defaultIperfCommands: IperfCommands = {
-  tcpDownload: "iperf3 -c {server} {port} -t {duration} -R -J",
-  tcpUpload: "iperf3 -c {server} {port} -t {duration} -J",
-  udpDownload: "iperf3 -c {server} {port} -t {duration} -R -u -b 100M -J",
-  udpUpload: "iperf3 -c {server} {port} -t {duration} -u -b 100M -J",
-};
 
 const wifiActions = await createWifiActions();
 
@@ -281,20 +275,6 @@ export async function runSurveyTests(
 
     throw error;
   }
-}
-
-export function buildIperfCommand(
-  template: string,
-  server: string,
-  port: string,
-  duration: number,
-): string {
-  return template
-    .replace("{server}", server)
-    .replace("{port}", port ? `-p ${port}` : "")
-    .replace("{duration}", String(duration))
-    .replace(/\s+/g, " ")
-    .trim();
 }
 
 async function runSingleTest(
