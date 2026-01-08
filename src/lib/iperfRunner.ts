@@ -3,6 +3,7 @@ import {
   PartialHeatmapSettings,
   IperfResults,
   IperfTestProperty,
+  IperfCommands,
   WifiResults,
 } from "./types";
 // import { scanWifi, blinkWifi } from "./wifiScanner";
@@ -16,6 +17,13 @@ const logger = getLogger("iperfRunner");
 
 type TestType = "TCP" | "UDP";
 type TestDirection = "Up" | "Down";
+
+export const defaultIperfCommands: IperfCommands = {
+  tcpDownload: "iperf3 -c {server} {port} -t {duration} -R -J",
+  tcpUpload: "iperf3 -c {server} {port} -t {duration} -J",
+  udpDownload: "iperf3 -c {server} {port} -t {duration} -R -u -b 100M -J",
+  udpUpload: "iperf3 -c {server} {port} -t {duration} -u -b 100M -J",
+};
 
 const wifiActions = await createWifiActions();
 
@@ -168,18 +176,21 @@ export async function runSurveyTests(
         sendSSEMessage(getUpdatedMessage());
 
         // Run the TCP tests
+        const cmds = settings.iperfCommands ?? defaultIperfCommands;
         if (performIperfTest) {
           newIperfData.tcpDownload = await runSingleTest(
             server,
             duration,
             "Down",
             "TCP",
+            cmds,
           );
           newIperfData.tcpUpload = await runSingleTest(
             server,
             duration,
             "Up",
             "TCP",
+            cmds,
           );
           displayStates.tcp = `${toMbps(newIperfData.tcpDownload.bitsPerSecond)} / ${toMbps(newIperfData.tcpUpload.bitsPerSecond)} Mbps`;
         } else {
@@ -202,12 +213,14 @@ export async function runSurveyTests(
             duration,
             "Down",
             "UDP",
+            cmds,
           );
           newIperfData.udpUpload = await runSingleTest(
             server,
             duration,
             "Up",
             "UDP",
+            cmds,
           );
           displayStates.udp = `${toMbps(newIperfData.udpDownload.bitsPerSecond)} / ${toMbps(newIperfData.udpUpload.bitsPerSecond)} Mbps`;
         } else {
@@ -270,11 +283,26 @@ export async function runSurveyTests(
   }
 }
 
+export function buildIperfCommand(
+  template: string,
+  server: string,
+  port: string,
+  duration: number,
+): string {
+  return template
+    .replace("{server}", server)
+    .replace("{port}", port ? `-p ${port}` : "")
+    .replace("{duration}", String(duration))
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 async function runSingleTest(
   server: string,
   duration: number,
   testDir: TestDirection,
   testType: TestType,
+  iperfCommands: IperfCommands,
 ): Promise<IperfTestProperty> {
   const logger = getLogger("runSingleTest");
 
@@ -286,9 +314,17 @@ async function runSingleTest(
   }
   const isUdp = testType == "UDP";
   const isDownload = testDir == "Down";
-  const command = `iperf3 -c ${server} ${
-    port ? `-p ${port}` : ""
-  } -t ${duration} ${isDownload ? "-R" : ""} ${isUdp ? "-u -b 0" : ""} -J`;
+
+  // Select the appropriate command template
+  let template: string;
+  if (testType === "TCP") {
+    template = isDownload ? iperfCommands.tcpDownload : iperfCommands.tcpUpload;
+  } else {
+    template = isDownload ? iperfCommands.udpDownload : iperfCommands.udpUpload;
+  }
+
+  const command = buildIperfCommand(template, server, port, duration);
+  logger.debug("Executing iperf command:", command);
   const { stdout } = await execAsync(command);
   const result = JSON.parse(stdout);
   logger.trace("Iperf JSON-parsed result:", result);

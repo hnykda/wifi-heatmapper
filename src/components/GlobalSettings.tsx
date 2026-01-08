@@ -47,6 +47,12 @@ export const getDefaults = (floorPlan: string): HeatmapSettings => {
       0.9: "rgba(0, 255, 0, 0.6)", // 90%, -46 dBm
       1.0: "rgba(0, 255, 0, 0.6)", // 100%, -40 dBm
     },
+    iperfCommands: {
+      tcpDownload: "iperf3 -c {server} {port} -t {duration} -R -J",
+      tcpUpload: "iperf3 -c {server} {port} -t {duration} -J",
+      udpDownload: "iperf3 -c {server} {port} -t {duration} -R -u -b 100M -J",
+      udpUpload: "iperf3 -c {server} {port} -t {duration} -u -b 100M -J",
+    },
     // these two props were used for the "scan wifi" effort
     // that has been (temporarily?) abandoned
     // sameSSID: "same",

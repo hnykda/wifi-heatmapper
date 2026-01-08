@@ -13,11 +13,7 @@ import { PopoverHelper } from "@/components/PopoverHelpText";
 import { useSettings } from "@/components/GlobalSettings";
 import { HeatmapSettings } from "@/lib/types";
 import { debounce } from "lodash";
-import { execAsync } from "@/lib/server-utils";
 import { rgbaToHex, hexToRgba } from "@/lib/utils-gradient";
-import { getLogger } from "@/lib/logger";
-const logger = getLogger("HeatmapAdvancedConfig");
-
 export function HeatmapAdvancedConfig() {
   const { settings, updateSettings } = useSettings();
 
@@ -34,25 +30,6 @@ export function HeatmapAdvancedConfig() {
     });
   };
 
-  /**
-   * Run the command from id="cmdToRun" and show stdout and stderr
-   * Also display error if it's caught
-   * Runs on the client (which is OK, since that's also the same machine as the server)
-   */
-  const runCommand = async () => {
-    const cmd = (document.getElementById("cmdToRun") as HTMLInputElement).value;
-    if (cmd) {
-      logger.info(`command to run: "${cmd}"`);
-      try {
-        const { stdout, stderr } = await execAsync(cmd);
-        logger.info(`STDOUT: "${stdout}"`);
-        logger.info(`STDERR: "${stderr}"`);
-      } catch (err) {
-        logger.info(`CAUGHT ERR:\n${err}`);
-      }
-    }
-  };
-
   return (
     <Accordion type="single" collapsible className="w-full">
       <AccordionItem value="advanced-config">
@@ -60,7 +37,7 @@ export function HeatmapAdvancedConfig() {
           Advanced Configuration
         </AccordionTrigger>
         <AccordionContent>
-          <table className="flex flex-row gap-4">
+          <table className="w-full">
             <tbody>
               <tr>
                 <td>
@@ -224,25 +201,107 @@ export function HeatmapAdvancedConfig() {
                 </td>
               </tr>
               <tr>
-                <td className="align-top pr-2 pt-2">
-                  <Label htmlFor="cmdToRun" className="inline-flex items-start">
-                    Command to test&nbsp;
-                    <PopoverHelper text="Enter a command-line command to test it. View its output in the Console window." />{" "}
+                <td colSpan={2} className="pt-4 pb-2">
+                  <Label className="inline-flex items-center font-semibold">
+                    iperf3 Commands&nbsp;
+                    <PopoverHelper text="Customize the iperf3 commands. Placeholders: {server}, {port}, {duration}. See https://iperf.fr/iperf-doc.php for documentation." />
+                  </Label>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <Label htmlFor="tcpDownload">TCP Download</Label>
+                </td>
+                <td>
+                  <Input
+                    id="tcpDownload"
+                    type="text"
+                    value={settings.iperfCommands?.tcpDownload || ""}
+                    onChange={(e) =>
+                      debouncedUpdateSettings({
+                        iperfCommands: {
+                          ...settings.iperfCommands,
+                          tcpDownload: e.target.value,
+                        },
+                      })
+                    }
+                    className="h-9 font-mono text-sm"
+                  />
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <Label htmlFor="tcpUpload">TCP Upload</Label>
+                </td>
+                <td>
+                  <Input
+                    id="tcpUpload"
+                    type="text"
+                    value={settings.iperfCommands?.tcpUpload || ""}
+                    onChange={(e) =>
+                      debouncedUpdateSettings({
+                        iperfCommands: {
+                          ...settings.iperfCommands,
+                          tcpUpload: e.target.value,
+                        },
+                      })
+                    }
+                    className="h-9 font-mono text-sm"
+                  />
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <Label
+                    htmlFor="udpDownload"
+                    className="inline-flex items-center"
+                  >
+                    UDP Download&nbsp;
+                    <PopoverHelper text="The -b 100M bitrate is a safe default that works on most networks. If you consistently hit 100 Mbps on UDP tests, try increasing to -b 300M or higher for faster home networks." />
                   </Label>
                 </td>
                 <td>
-                  <input
+                  <Input
+                    id="udpDownload"
                     type="text"
-                    id="cmdToRun"
-                    className="w-full border border-gray-200 rounded-sm p-2 focus:outline-none focus:ring focus:ring-blue-300 focus:border-blue-400"
-                    defaultValue=""
+                    value={settings.iperfCommands?.udpDownload || ""}
+                    onChange={(e) =>
+                      debouncedUpdateSettings({
+                        iperfCommands: {
+                          ...settings.iperfCommands,
+                          udpDownload: e.target.value,
+                        },
+                      })
+                    }
+                    className="h-9 font-mono text-sm"
                   />
-                  <button
-                    className="mt-2 px-2 py-1 bg-blue-500 text-white rounded"
-                    onClick={runCommand}
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <Label
+                    htmlFor="udpUpload"
+                    className="inline-flex items-center"
                   >
-                    Do it...
-                  </button>
+                    UDP Upload&nbsp;
+                    <PopoverHelper text="The -b 100M bitrate is a safe default that works on most networks. If you consistently hit 100 Mbps on UDP tests, try increasing to -b 300M or higher for faster home networks." />
+                  </Label>
+                </td>
+                <td>
+                  <Input
+                    id="udpUpload"
+                    type="text"
+                    value={settings.iperfCommands?.udpUpload || ""}
+                    onChange={(e) =>
+                      debouncedUpdateSettings({
+                        iperfCommands: {
+                          ...settings.iperfCommands,
+                          udpUpload: e.target.value,
+                        },
+                      })
+                    }
+                    className="h-9 font-mono text-sm"
+                  />
                 </td>
               </tr>
             </tbody>
