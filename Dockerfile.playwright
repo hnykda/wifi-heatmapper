@@ -1,0 +1,21 @@
+# Dockerfile.playwright - Playwright test runner container
+
+FROM mcr.microsoft.com/playwright:v1.49.0-jammy
+
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install all dependencies (includes playwright)
+RUN npm ci
+
+# Install only Chromium (faster than all browsers)
+RUN npx playwright install chromium
+
+# Copy Playwright config and tests
+COPY playwright.config.ts ./
+COPY e2e ./e2e
+
+# Default command runs Playwright tests
+CMD ["npx", "playwright", "test", "--project=chromium"]
