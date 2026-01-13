@@ -28,7 +28,7 @@ It's printed in the terminal after you start wifi-heatmapper:
 
 ## Additional context
 
-If relevant, consider running minimal execution path that leads
-to the problem with `LOG_LEVEL=1 npm run dev | tee -a out.log`
+If relevant, please running minimal execution path that leads
+to the problem with `LOG_LEVEL=2 npm run dev | tee -a out.log`
 and share that `out.log` with us here or via
-[Github issue](https://gist.github.com/).
+[Github issue](https://gist.github.com/) and reference it in the issue.
