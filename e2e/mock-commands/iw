@@ -1,0 +1,46 @@
+#!/bin/sh
+# Mock iw command for integration tests
+# Returns fake WiFi data without requiring real hardware
+
+# Parse arguments to determine what output to provide
+case "$*" in
+  "dev")
+    # List interfaces
+    cat << 'EOF'
+phy#0
+	Interface wlan0
+		ifindex 3
+		wdev 0x1
+		addr 00:11:22:33:44:55
+		type managed
+EOF
+    ;;
+  "dev wlan0 link"|"dev wlan0 link"*)
+    # Current connection info
+    cat << 'EOF'
+Connected to AA:BB:CC:DD:EE:FF (on wlan0)
+	SSID: MockNetwork
+	freq: 5180
+	signal: -55 dBm
+	tx bitrate: 866.7 MBit/s
+EOF
+    ;;
+  "dev wlan0 info"|"dev wlan0 info"*)
+    # Interface info with channel
+    cat << 'EOF'
+Interface wlan0
+	ifindex 3
+	wdev 0x1
+	addr 00:11:22:33:44:55
+	ssid MockNetwork
+	type managed
+	wiphy 0
+	channel 36 (5180 MHz), width: 80 MHz, center1: 5210 MHz
+EOF
+    ;;
+  *)
+    # Default - just echo the args for debugging
+    echo "Mock iw called with: $*" >&2
+    exit 0
+    ;;
+esac
