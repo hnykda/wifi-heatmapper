@@ -1,9 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { extractIperfResults } from "../src/lib/utils";
-import {
-  buildIperfCommand,
-  defaultIperfCommands,
-} from "../src/lib/iperfUtils";
+import { buildIperfCommand, defaultIperfCommands } from "../src/lib/iperfUtils";
 import fs from "fs";
 import path from "path";
 

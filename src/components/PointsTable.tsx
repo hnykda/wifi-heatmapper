@@ -249,7 +249,7 @@ const SurveyPointsTable: React.FC<SurveyPointsTableProps> = ({
         signalQuality:
           point.wifiData.signalStrength ||
           rssiToPercentage(point.wifiData.rssi),
-        band: `${point.wifiData.band} Mhz`,
+        band: `${point.wifiData.band} GHz`,
         timestamp: new Date(point.timestamp).toLocaleString(),
       };
     });
