@@ -5,7 +5,6 @@ import os from "os";
 import { promises as fs } from "fs";
 import isDocker from "is-docker";
 import { execAsync } from "./server-utils";
-import { initLocalization } from "./localization";
 import { execFileSync } from "node:child_process";
 
 const loadJson = async (filePath: string) => {
@@ -70,10 +69,6 @@ export async function initServer() {
     copyToMediaFolder("EmptyFloorPlan.png"); // seed with empty floorplan
     copyToMediaFolder("House & Garage.jpg"); // seed with generic Google map view
 
-    // only load the localization code if it's running on Windows
-    if (os.platform() == "win32") {
-      await initLocalization(); // load up the localization files
-    }
     initialized = true;
     // logger.info(`Server initialization complete.`);
   }

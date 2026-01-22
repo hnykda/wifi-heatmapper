@@ -1,5 +1,3 @@
-// Used for localization map
-export type LocalizerMap = Record<string, any>;
 export interface IperfTestProperty {
   bitsPerSecond: number;
   retransmits?: number;
