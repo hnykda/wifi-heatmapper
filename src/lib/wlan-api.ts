@@ -20,30 +20,29 @@ import {
 export const isWindows = process.platform === "win32";
 
 // Type definitions for koffi - only import on Windows
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+
 type KoffiLib = {
   func: (
     convention: string,
     name: string,
     returnType: string,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    argTypes: any[]
+
+    argTypes: any[],
   ) => (...args: unknown[]) => unknown;
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type KoffiModule = {
   load: (name: string) => KoffiLib;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   struct: (name: string, definition: Record<string, any>) => unknown;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   array: (type: any, length: number) => unknown;
   pointer: (type: unknown) => unknown;
   out: (type: unknown) => unknown;
   decode: (
     buffer: unknown,
     type: unknown,
-    offset?: number
+    offset?: number,
   ) => Record<string, unknown>;
 };
 
@@ -132,7 +131,7 @@ async function initialize(): Promise<boolean> {
   try {
     // Dynamic import koffi only on Windows
     // This will fail on non-Windows platforms since koffi has no prebuilt binary
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
+
     const koffiModule = await import(/* webpackIgnore: true */ "koffi");
     koffi = koffiModule.default as unknown as KoffiModule;
 
@@ -220,14 +219,14 @@ async function initialize(): Promise<boolean> {
     });
 
     // Define function signatures
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     const koffiAny = koffi as any;
-    WlanOpenHandle = wlanapi.func(
-      "__stdcall",
-      "WlanOpenHandle",
+    WlanOpenHandle = wlanapi.func("__stdcall", "WlanOpenHandle", "uint32", [
       "uint32",
-      ["uint32", "void*", koffiAny.out(koffiAny.pointer("uint32")), "void**"]
-    ) as (...args: unknown[]) => number;
+      "void*",
+      koffiAny.out(koffiAny.pointer("uint32")),
+      "void**",
+    ]) as (...args: unknown[]) => number;
 
     WlanCloseHandle = wlanapi.func("__stdcall", "WlanCloseHandle", "uint32", [
       "void*",
@@ -238,7 +237,7 @@ async function initialize(): Promise<boolean> {
       "__stdcall",
       "WlanEnumInterfaces",
       "uint32",
-      ["void*", "void*", "void**"]
+      ["void*", "void*", "void**"],
     ) as (...args: unknown[]) => number;
 
     WlanGetNetworkBssList = wlanapi.func(
@@ -253,7 +252,7 @@ async function initialize(): Promise<boolean> {
         "uint8", // bSecurityEnabled
         "void*", // pReserved
         "void**", // ppWlanBssList
-      ]
+      ],
     ) as (...args: unknown[]) => number;
 
     WlanQueryInterface = wlanapi.func(
@@ -268,7 +267,7 @@ async function initialize(): Promise<boolean> {
         koffiAny.out(koffiAny.pointer("uint32")), // pdwDataSize
         "void**", // ppData
         "void*", // pWlanOpcodeValueType
-      ]
+      ],
     ) as (...args: unknown[]) => number;
 
     WlanFreeMemory = wlanapi.func("__stdcall", "WlanFreeMemory", "void", [
@@ -372,10 +371,10 @@ async function getFirstInterface(): Promise<{
     }
 
     try {
-      const list = koffi.decode(
-        listOut[0],
-        WLAN_INTERFACE_INFO_LIST
-      ) as Record<string, unknown>;
+      const list = koffi.decode(listOut[0], WLAN_INTERFACE_INFO_LIST) as Record<
+        string,
+        unknown
+      >;
       const count = list.dwNumberOfItems as number;
       if (count === 0) return null;
 
@@ -386,7 +385,7 @@ async function getFirstInterface(): Promise<{
       return {
         guid: firstIface.InterfaceGuid,
         description: wcharToString(
-          firstIface.strInterfaceDescription as number[]
+          firstIface.strInterfaceDescription as number[],
         ),
       };
     } finally {
@@ -429,7 +428,7 @@ export async function scanNetworks(): Promise<WifiResults[]> {
       DOT11_BSS_TYPE.dot11_BSS_type_any,
       0, // Don't filter by security
       null,
-      listOut
+      listOut,
     );
 
     if (result !== ERROR_SUCCESS || !listOut[0]) {
@@ -452,7 +451,7 @@ export async function scanNetworks(): Promise<WifiResults[]> {
         const ssidData = entry.dot11Ssid as Record<string, unknown>;
         const ssid = ssidBytesToString(
           ssidData.ucSSID as number[],
-          ssidData.uSSIDLength as number
+          ssidData.uSSIDLength as number,
         );
 
         // Skip hidden networks (empty SSID)
@@ -520,7 +519,7 @@ export async function getCurrentConnection(): Promise<WifiResults | null> {
       null,
       sizeOut,
       dataOut,
-      null
+      null,
     );
 
     if (result !== ERROR_SUCCESS || !dataOut[0]) {
@@ -531,12 +530,13 @@ export async function getCurrentConnection(): Promise<WifiResults | null> {
     try {
       const connAttrs = koffi.decode(
         dataOut[0],
-        WLAN_CONNECTION_ATTRIBUTES
+        WLAN_CONNECTION_ATTRIBUTES,
       ) as Record<string, unknown>;
 
       // Check if actually connected
       if (
-        connAttrs.isState !== WLAN_INTERFACE_STATE.wlan_interface_state_connected
+        connAttrs.isState !==
+        WLAN_INTERFACE_STATE.wlan_interface_state_connected
       ) {
         return null;
       }
@@ -553,7 +553,7 @@ export async function getCurrentConnection(): Promise<WifiResults | null> {
 
       const ssid = ssidBytesToString(
         ssidData.ucSSID as number[],
-        ssidData.uSSIDLength as number
+        ssidData.uSSIDLength as number,
       );
 
       const signalQuality = assocAttrs.wlanSignalQuality as number; // 0-100

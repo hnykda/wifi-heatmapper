@@ -91,7 +91,7 @@ describeWindows("WLAN API Integration (Windows only)", () => {
       for (let i = 1; i < networks.length; i++) {
         // Higher signal strength (closer to 0) should come first
         expect(networks[i - 1].signalStrength).toBeGreaterThanOrEqual(
-          networks[i].signalStrength
+          networks[i].signalStrength,
         );
       }
     }
@@ -119,13 +119,13 @@ describe("WLAN API module loading", () => {
       await import("../src/lib/wlan-api");
 
     await expect(scanNetworks()).rejects.toThrow(
-      "WLAN API is only available on Windows"
+      "WLAN API is only available on Windows",
     );
     await expect(getCurrentConnection()).rejects.toThrow(
-      "WLAN API is only available on Windows"
+      "WLAN API is only available on Windows",
     );
     await expect(getInterfaceName()).rejects.toThrow(
-      "WLAN API is only available on Windows"
+      "WLAN API is only available on Windows",
     );
   });
 });

@@ -12,23 +12,23 @@ declare module "koffi" {
       convention: string,
       name: string,
       returnType: string,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      argTypes: any[]
+
+      argTypes: any[],
     ): (...args: unknown[]) => unknown;
   }
 
   interface Koffi {
     load(path: string): KoffiLib;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     struct(name: string, definition: Record<string, any>): unknown;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     array(type: any, length: number): unknown;
     pointer(type: unknown): unknown;
     out(type: unknown): unknown;
     decode(
       buffer: unknown,
       type: unknown,
-      offset?: number
+      offset?: number,
     ): Record<string, unknown>;
   }
 

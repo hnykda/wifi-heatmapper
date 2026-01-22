@@ -29,7 +29,7 @@ export class WindowsWifiActions implements WifiActions {
    * @returns string - empty, or error message to display
    */
   async preflightSettings(
-    settings: PartialHeatmapSettings
+    settings: PartialHeatmapSettings,
   ): Promise<WifiScanResults> {
     const response: WifiScanResults = {
       SSIDs: [],
@@ -56,7 +56,7 @@ export class WindowsWifiActions implements WifiActions {
    * @returns "" or error string
    */
   async checkIperfServer(
-    settings: PartialHeatmapSettings
+    settings: PartialHeatmapSettings,
   ): Promise<WifiScanResults> {
     const response: WifiScanResults = {
       SSIDs: [],
@@ -130,7 +130,7 @@ export class WindowsWifiActions implements WifiActions {
    */
   async setWifi(
     _settings: PartialHeatmapSettings,
-    _wifiSettings: WifiResults
+    _wifiSettings: WifiResults,
   ): Promise<WifiScanResults> {
     // NOT IMPLEMENTED - wifi-heatmapper doesn't switch networks
     throw new Error("wifi-heatmapper does not implement setWifi()");
