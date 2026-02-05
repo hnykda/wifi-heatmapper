@@ -1,0 +1,62 @@
+version: "3.8"
+
+# Integration test setup with three containers:
+# 1. app - Next.js app with mocked WiFi commands
+# 2. iperf3-server - Real iperf3 server for throughput testing
+# 3. playwright - Browser automation tests
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    environment:
+      - NODE_ENV=development
+      # Mock commands are added to PATH in Dockerfile.test
+    ports:
+      - "3000:3000"
+    volumes:
+      - survey-data:/app/data/surveys
+    depends_on:
+      iperf3-server:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/api/settings?list=true"]
+      interval: 5s
+      timeout: 10s
+      retries: 20
+      start_period: 60s
+    networks:
+      - test-network
+
+  iperf3-server:
+    image: networkstatic/iperf3:latest
+    command: ["-s"]
+    ports:
+      - "5201:5201"
+    networks:
+      - test-network
+
+  playwright:
+    build:
+      context: .
+      dockerfile: Dockerfile.playwright
+    environment:
+      - APP_URL=http://app:3000
+      - CI=true
+    volumes:
+      - survey-data:/data/surveys:ro
+      - ./playwright-report:/app/playwright-report
+      - ./test-results:/app/test-results
+    depends_on:
+      app:
+        condition: service_healthy
+    networks:
+      - test-network
+
+volumes:
+  survey-data:
+
+networks:
+  test-network:
+    driver: bridge

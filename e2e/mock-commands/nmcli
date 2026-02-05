@@ -1,0 +1,18 @@
+#!/bin/sh
+# Mock nmcli command for integration tests
+# Returns fake WiFi scan data without requiring real hardware
+
+case "$*" in
+  "-t dev wifi list"|"-t dev wifi list"*)
+    # Colon-delimited output: IN-USE:BSSID:SSID:MODE:CHAN:RATE:SIGNAL:BARS:SECURITY
+    cat << 'EOF'
+*:AA\:BB\:CC\:DD\:EE\:FF:MockNetwork:Infra:36:866 Mbit/s:75:▂▄▆_:WPA2
+ :AA\:BB\:CC\:DD\:EE\:01:OtherNetwork:Infra:1:130 Mbit/s:50:▂▄__:WPA2
+ :AA\:BB\:CC\:DD\:EE\:02:WeakNetwork:Infra:11:65 Mbit/s:25:▂___:WPA2 WPA3
+EOF
+    ;;
+  *)
+    echo "Mock nmcli called with: $*" >&2
+    exit 0
+    ;;
+esac

@@ -44,6 +44,7 @@
   "devDependencies": {
     "@eslint/js": "^9.28.0",
     "@next/eslint-plugin-next": "^15.3.3",
+    "@playwright/test": "^1.57.0",
     "@types/eslint": "^9.6.1",
     "@types/lodash": "^4.17.17",
     "@types/node": "^22",
