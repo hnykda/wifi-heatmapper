@@ -118,7 +118,7 @@ export class WindowsWifiActions implements WifiActions {
       const currSSID = response.SSIDs.filter(
         (item) => item.bssid == currSSIDResults.SSIDs[0].bssid,
       );
-      currSSID[0].currentSSID = true;
+      if (currSSID.length > 0) currSSID[0].currentSSID = true;
     } catch (err) {
       response.reason = `Cannot get wifi info: ${err}"`;
     }
@@ -179,9 +179,8 @@ export class WindowsWifiActions implements WifiActions {
       const execOutput = await execAsync(command);
       stdout = execOutput.stdout;
       const lines = stdout.split("\n");
-      const state = lines.filter((line) => line.includes("State"));
-      const [, , val] = splitLine(state[0]);
-      if (val == "connected") break;
+      const state = lines.filter((line) => splitLine(line)[1] == "state");
+      if (state.length > 0) break; // 能找到状态行说明已连接
       await delay(200);
     }
     const parsed = parseNetshInterfaces(stdout);
@@ -340,6 +339,7 @@ export function parseNetshInterfaces(output: string): WifiResults {
       assignWindowsNetworkInfoValue(networkInfo, key as keyof WifiResults, val);
     }
   }
+  /*
   // Check to see if we didn't get any of the important info
   // If not, ask if they could provide info...
   if (
@@ -351,6 +351,7 @@ export function parseNetshInterfaces(output: string): WifiResults {
       `Could not read Wi-Fi info. Perhaps wifi-heatmapper is not localized for your system. See https://github.com/hnykda/wifi-heatmapper/issues/26 for details.`,
     );
   }
+  */
   if (!isValidMacAddress(networkInfo.bssid)) {
     throw new Error(
       `Invalid BSSID when parsing netsh output: ${networkInfo.bssid}`,

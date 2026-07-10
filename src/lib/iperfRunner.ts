@@ -144,7 +144,7 @@ export async function runSurveyTests(
     logger.debug(`scanWifi returned: ${JSON.stringify(ssids)}`);
 
     const thisSSID = ssids.SSIDs.filter((item) => item.currentSSID);
-    const ssidName = thisSSID[0].ssid;
+    const ssidName = thisSSID[0]?.ssid ?? "";
 
     while (attempts < maxRetries) {
       attempts++;

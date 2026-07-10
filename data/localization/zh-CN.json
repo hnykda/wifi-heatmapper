@@ -1,0 +1,18 @@
+{
+  "SSID": "ssid",
+  "名称": "name",
+  "状态": "state",
+  "信号": "signalStrength",
+  "通道": "channel",
+  "物理地址": "bssid",
+  "无线电类型": "phyMode",
+  "波段": "band",
+  "网络类型": "networkType",
+  "身份验证": "security",
+  "密码": "cipher",
+  "连接模式": "connectionMode",
+  "配置文件": "profile",
+  "说明": "description",
+  "接收速率(Mbps)": "rxRate",
+  "传输速率 (Mbps)": "txRate"
+}

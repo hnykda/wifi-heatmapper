@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
   if (action === "status") {
     return NextResponse.json(getGlobalStatus());
   } else if (action === "results") {
-    return NextResponse.json(getSurveyResults());
+    return NextResponse.json(getSurveyResults() ??  { state: "pending" });
   }
   // invalid action
   return NextResponse.json(
