@@ -1,0 +1,11 @@
+#!/bin/sh
+# Mock which command - always finds the tools we need
+case "$1" in
+  iw|nmcli|iperf3)
+    echo "/usr/bin/$1"
+    exit 0
+    ;;
+  *)
+    /usr/bin/which "$@"
+    ;;
+esac
