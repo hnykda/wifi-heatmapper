@@ -9,7 +9,7 @@ import {
 // import { scanWifi, blinkWifi } from "./wifiScanner";
 import { execAsync, delay } from "./server-utils";
 import { getCancelFlag, sendSSEMessage } from "./server-globals";
-import { percentageToRssi, toMbps, getDefaultIperfResults } from "./utils";
+import { toMbps, getDefaultIperfResults } from "./utils";
 import { SSEMessageType } from "@/app/api/events/route";
 import { createWifiActions } from "./wifiScanner";
 import { getLogger } from "./logger";
@@ -152,6 +152,7 @@ export async function runSurveyTests(
         const server = settings.iperfServerAdrs;
         const duration = settings.testDuration;
         const wifiStrengths: number[] = []; // percentages
+        const wifiRssiValues: number[] = [];
         // add the SSID to the header if it's not <redacted>
         let newHeader = "Measuring Wi-Fi";
         if (!ssidName.includes("redacted")) {
@@ -165,6 +166,7 @@ export async function runSurveyTests(
           `Elapsed time for scan and switch: ${Date.now() - startTime}`,
         );
         wifiStrengths.push(wifiDataBefore.SSIDs[0].signalStrength);
+        wifiRssiValues.push(wifiDataBefore.SSIDs[0].rssi);
         displayStates.strength = arrayAverage(wifiStrengths).toString();
         checkForCancel();
         sendSSEMessage(getUpdatedMessage());
@@ -194,9 +196,13 @@ export async function runSurveyTests(
         checkForCancel();
         sendSSEMessage(getUpdatedMessage());
 
-        const wifiDataMiddle = await wifiActions.getWifi(settings);
-        wifiStrengths.push(wifiDataMiddle.SSIDs[0].signalStrength);
-        displayStates.strength = arrayAverage(wifiStrengths).toString();
+        let wifiDataMiddle = wifiDataBefore; // reuse if no tests are running
+        if (performIperfTest) {
+          wifiDataMiddle = await wifiActions.getWifi(settings);
+          wifiStrengths.push(wifiDataMiddle.SSIDs[0].signalStrength);
+          wifiRssiValues.push(wifiDataMiddle.SSIDs[0].rssi);
+          displayStates.strength = arrayAverage(wifiStrengths).toString();
+        }
         checkForCancel();
         sendSSEMessage(getUpdatedMessage());
 
@@ -224,9 +230,13 @@ export async function runSurveyTests(
         checkForCancel();
         sendSSEMessage(getUpdatedMessage());
 
-        const wifiDataAfter = await wifiActions.getWifi(settings);
-        wifiStrengths.push(wifiDataAfter.SSIDs[0].signalStrength);
-        displayStates.strength = arrayAverage(wifiStrengths).toString();
+        let wifiDataAfter = wifiDataBefore; // reuse if no tests are running
+        if (performIperfTest) {
+          wifiDataAfter = await wifiActions.getWifi(settings);
+          wifiStrengths.push(wifiDataAfter.SSIDs[0].signalStrength);
+          wifiRssiValues.push(wifiDataMiddle.SSIDs[0].rssi);
+          displayStates.strength = arrayAverage(wifiStrengths).toString();
+        }
         checkForCancel();
 
         // Send the final update - type is "done"
@@ -249,7 +259,7 @@ export async function runSurveyTests(
         newWifiData = {
           ...wifiDataBefore.SSIDs[0],
           signalStrength: strength, // use the average signalStrength
-          rssi: percentageToRssi(strength), // set corresponding RSSI
+          rssi: arrayAverage(wifiRssiValues), // average of real per-sample RSSI, replacing percentageToRssi(strength)
         };
       } catch (error: any) {
         logger.error(`Attempt ${attempts} failed:`, error);

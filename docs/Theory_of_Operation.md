@@ -34,9 +34,9 @@ to make the measurements of Wi-Fi strength and throughput.
 
 | Platform | Commands          | Notes |
 | -------- | ----------------- | ----- |
-| macOS    | `wdutil`, `ioreg`, `system_profiler` | sudo password required for `wdutil` |
-| Windows  | `netsh`           | Part of the system  |
 | Linux    | `nmcli`, `iw`     | `iw` or `nmcli` might need to be installed. |
+| macOS    | `wdutil`, `ioreg`, `system_profiler` | sudo password required for `wdutil` |
+| Windows  | N/A          | Uses Win32 WlanAPI  |
 | All | `iperf3` | See **iperf3** note below |
 
 **iperf3** must be installed locally to make TCP or UDP measurements.
@@ -87,13 +87,15 @@ to control logging, where the `level` is
 0: silly, 1: trace, 2: debug, 3: info, 4: warn, 5: error, 6: fatal.
 Use this when submitting the bug reports.
 
-On **Windows**, use the `set...` command like this:
+On **Windows** with command prompt, use the `set...` command like this:
 
 ```sh
 set LOG_LEVEL=level
 # echo %LOG_LEVEL% # optionally display the LOG_LEVEL
 npm run dev
 ```
+
+Or in PowerShell use `env$LOG_LEVEL=level`
 
 ## Component Hierarchy
 
@@ -312,30 +314,7 @@ appropriate property.
 
 ### Creating a localization file for your System Language
 
-To create a localization file for your Windows system's language:
-
-* Duplicate one of the _data/localization_ files
-* Rename it to _XX.json_, where "XX" is the proper code for the language
-  (e.g., _fr.json_ for a French system). The exact name is not important
-  except for the _.json_ suffix.
-* Run these four commands from the Windows command line:
-  * `netsh wlan show interfaces`
-  * `netsh wlan show networks mode="bssid"`
-  * `netsh wlan show profiles`
-  * `netsh wlan show profile name="profile"` where
-    `profile` is one of the profiles listed in the previous command
-* Paste the output of the all four commands into the bottom of the new file.
-* Comment out the new lines (use `//` at the start of the line),
-  and remove the prior output
-* Add a comment (use "//") indicating the version of Windows (Win10, Win11)
-  and the system language
-* In the JSON structure at the top of the file,
-  replace the localized phrases from the `netsh wlan...` output
-  (on the left) with the corresponding phrase on the right.
-* Restart the `wifi-heatmapper` server (`npm run dev`)
-  to read the new localized values
-* If you have a new file, or if you have questions, create an
-  [issue in the repo](https://github.com/hnykda/wifi-heatmapper/issues).
+Versions 0.5.0 and on do not require localization / localStorage.
 
 ## WebGL Heatmap Rendering
 

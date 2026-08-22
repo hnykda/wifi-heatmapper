@@ -85,7 +85,7 @@ export function Heatmaps() {
   >(["bitsPerSecond"]);
 
   const [showSignalStrengthAsPercentage, setShowSignalStrengthAsPercentage] =
-    useState(true);
+    useState(false);
 
   // const r1 = calculateRadiusByDensity; // bad for small numbers of points
   const r2 = calculateRadiusByBoundingBox;
@@ -151,7 +151,7 @@ export function Heatmaps() {
       const data = points
         .filter((p) => p.isEnabled)
         .map((point) => {
-          let value = getMetricValue(point, metric, testType);
+          const value = getMetricValue(point, metric, testType);
           switch (metric) {
             case "tcpDownload":
             case "tcpUpload":
@@ -160,8 +160,8 @@ export function Heatmaps() {
               if (value == 0) return null;
               break;
             case "signalStrength":
-              // always map the 0-100% signal strength (not rssi)
-              value = point.wifiData.signalStrength;
+            // always map the 0-100% signal strength (not rssi)
+            //value = point.wifiData.signalStrength;
           }
           return value !== null ? { x: point.x, y: point.y, value } : null;
         })
@@ -355,6 +355,8 @@ export function Heatmaps() {
           backgroundImageSrc: settings.floorplanImagePath,
           width: settings.dimensions.width,
           height: settings.dimensions.height,
+          minSignal: min,
+          maxSignal: max,
         });
 
         ctx.drawImage(glCanvas, 0, 20);

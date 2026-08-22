@@ -14,6 +14,7 @@ import NewToast from "@/components/NewToast";
 import PopupDetails from "@/components/PopupDetails";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { getLogger } from "../lib/logger";
+import { Switch } from "@/components/ui/switch";
 const logger = getLogger("Floorplan");
 
 export default function ClickableFloorplan(): ReactNode {
@@ -30,6 +31,8 @@ export default function ClickableFloorplan(): ReactNode {
   const [alertMessage, setAlertMessage] = useState("");
   const [isToastOpen, setIsToastOpen] = useState(false);
   const [surveyClick, setSurveyClick] = useState({ x: 0, y: 0 });
+  const [showSignalStrengthAsPercentage, setShowSignalStrengthAsPercentage] =
+    useState(false); // default to RSSI
 
   /**
    * Adding test points
@@ -70,7 +73,7 @@ export default function ClickableFloorplan(): ReactNode {
         console.log(`image error`);
       };
     }
-  }, []);
+  }, [settings.floorplanImagePath]);
 
   /**
    * addTestPoint() - add a test point
@@ -110,7 +113,12 @@ export default function ClickableFloorplan(): ReactNode {
       canvas.style.height = "auto";
       drawCanvas();
     }
-  }, [imageLoaded, settings.dimensions, settings.surveyPoints]);
+  }, [
+    imageLoaded,
+    settings.dimensions,
+    settings.surveyPoints,
+    showSignalStrengthAsPercentage,
+  ]);
 
   const handleToastIsReady = (): void => {
     measureSurveyPoint(surveyClick);
@@ -242,7 +250,7 @@ export default function ClickableFloorplan(): ReactNode {
         // draw the image "behind" everything else
         ctx.drawImage(imageRef.current, 0, 0);
         // draw the points on top
-        drawPoints(settings.surveyPoints, ctx);
+        drawPoints(settings.surveyPoints, ctx, showSignalStrengthAsPercentage);
       }
     }
   };
@@ -258,9 +266,20 @@ export default function ClickableFloorplan(): ReactNode {
    * @param ctx
    * @param points
    */
-  const drawPoints = (points: SurveyPoint[], ctx: CanvasRenderingContext2D) => {
+  const drawPoints = (
+    points: SurveyPoint[],
+    ctx: CanvasRenderingContext2D,
+    showSignalStrengthAsPercentage: boolean,
+  ) => {
     const canvas = canvasRef.current;
-    points.forEach((point) => drawPoint(point, ctx, { bgW: canvas!.width }));
+    points.forEach((point) =>
+      drawPoint(
+        point,
+        ctx,
+        { bgW: canvas!.width },
+        showSignalStrengthAsPercentage,
+      ),
+    );
   };
 
   type ScaleOpts = {
@@ -273,6 +292,7 @@ export default function ClickableFloorplan(): ReactNode {
     point: SurveyPoint,
     ctx: CanvasRenderingContext2D,
     opts: ScaleOpts,
+    showSignalStrengthAsPercentage: boolean,
   ) {
     if (!point.wifiData) return;
 
@@ -289,14 +309,15 @@ export default function ClickableFloorplan(): ReactNode {
     const SHADOW_OFF = 0.002 * bgW;
 
     const wifiInfo = point.wifiData;
+    const colorValue = showSignalStrengthAsPercentage
+      ? (wifiInfo.signalStrength || 0) / 100
+      : rssiToPercentage(wifiInfo.rssi) / 100;
 
     // Main point
     ctx.beginPath();
     ctx.arc(point.x, point.y, R, 0, 2 * Math.PI);
     ctx.fillStyle = point.isEnabled
-      ? objectToRGBAString(
-          getColorAt(rssiToPercentage(wifiInfo.rssi) / 100, settings.gradient),
-        )
+      ? objectToRGBAString(getColorAt(colorValue, settings.gradient))
       : "rgba(156, 163, 175, 0.9)";
     ctx.fill();
 
@@ -307,7 +328,9 @@ export default function ClickableFloorplan(): ReactNode {
     ctx.stroke();
 
     // Annotation
-    const annotation = `${wifiInfo.signalStrength}%`;
+    const annotation = showSignalStrengthAsPercentage
+      ? `${wifiInfo.signalStrength}%`
+      : `${wifiInfo.rssi}dBm`;
     ctx.font = `${FONT}px Arial`;
     const lines = annotation.split("\n");
     const boxWidth =
@@ -443,6 +466,16 @@ export default function ClickableFloorplan(): ReactNode {
             <div>Total Measurements: {settings.surveyPoints.length}</div>
           )}
         </div>
+      </div>
+      <div className="mb-4 flex items-center space-x-2">
+        <Switch
+          id="floorplan-signal-strength-percentage"
+          checked={showSignalStrengthAsPercentage}
+          onCheckedChange={setShowSignalStrengthAsPercentage}
+        />
+        <label htmlFor="floorplan-signal-strength-percentage">
+          Show Signal Strength as Percentage
+        </label>
       </div>
       {alertMessage != "" && (
         <Alert variant="destructive">

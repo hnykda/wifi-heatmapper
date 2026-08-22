@@ -2,6 +2,14 @@
 
 _This section follows the precepts of [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) so that future readers can understand the state and evolution of the project._
 
+## Version 0.5.0 - 2026-08-21
+
+* Windows OS now uses Win32 Wlan API calls via koffi to get interfaces and measurements. 
+* Include acutual RSSI (in dBm) in Floor Plan and Heat Maps (with a toggle to switch to signal strength %)
+* Included AP Mapping tab in UI for adding friendly AP names to survey points.
+
+---
+
 ## Version 0.4.0 - 2026-01-07
 
 ### Changed

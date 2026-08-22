@@ -29,6 +29,8 @@ const mainRenderer = (
     backgroundImageSrc?: string;
     minOpacity?: number;
     maxOpacity?: number;
+    minSignal: number;
+    maxSignal: number;
     influenceRadius?: number;
   }) => {
     const {
@@ -37,6 +39,8 @@ const mainRenderer = (
       minOpacity = 0.2,
       maxOpacity = 0.7,
       influenceRadius = 100,
+      minSignal,
+      maxSignal,
       backgroundImageSrc,
     } = props;
 
@@ -55,6 +59,8 @@ const mainRenderer = (
       influenceRadius,
       minOpacity,
       maxOpacity,
+      minSignal,
+      maxSignal,
     });
   };
 

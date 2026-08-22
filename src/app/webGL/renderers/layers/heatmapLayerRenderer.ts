@@ -8,7 +8,7 @@ import {
   getUniformLocations,
 } from "../../utils/webGLUtils";
 import { fullscreenQuadVertexShaderFlipY } from "@/app/webGL/shaders/fullscreenQuadVertexShader";
-import _ from "lodash";
+//import _ from "lodash";
 import { createGradientLUTTexture } from "../textures/createGradientLUTTexture";
 
 export const createHeatmapLayerRenderer = (
@@ -26,7 +26,7 @@ export const createHeatmapLayerRenderer = (
   const uniforms = getUniformLocations(gl, program);
 
   const colorLUT = createGradientLUTTexture(gl, gradient);
-  const maxSignal = _.maxBy(points, "value")?.value ?? 0;
+  //const maxSignal = _.maxBy(points, "value")?.value ?? 0;
   const flatData = Float32Array.from(
     points.flatMap(({ x, y, value }) => [x, y, value]),
   );
@@ -37,10 +37,20 @@ export const createHeatmapLayerRenderer = (
     influenceRadius: number;
     minOpacity: number;
     maxOpacity: number;
+    minSignal: number;
+    maxSignal: number;
   }) => {
     if (!points.length) return;
 
-    const { width, height, influenceRadius, minOpacity, maxOpacity } = options;
+    const {
+      width,
+      height,
+      influenceRadius,
+      minOpacity,
+      maxOpacity,
+      minSignal,
+      maxSignal,
+    } = options;
 
     gl.useProgram(program);
     gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
@@ -51,6 +61,7 @@ export const createHeatmapLayerRenderer = (
     gl.uniform1f(uniforms.u_power, 3);
     gl.uniform1f(uniforms.u_minOpacity, minOpacity);
     gl.uniform1f(uniforms.u_maxOpacity, maxOpacity);
+    gl.uniform1f(uniforms.u_minSignal, minSignal);
     gl.uniform1f(uniforms.u_maxSignal, maxSignal);
     gl.uniform2f(uniforms.u_resolution, width, height);
     gl.uniform1i(uniforms.u_pointCount, Math.min(points.length, points.length));

@@ -15,6 +15,7 @@ const generateHeatmapFragmentShader = (pointCount: number): string => {
 
   uniform float u_radius;       // Radius of influence for each point
   uniform float u_power;        // Weight falloff exponent (higher = faster decay)
+  uniform float u_minSignal; // Minimum expected signal value (used for normalization)
   uniform float u_maxSignal;    // Maximum expected signal value (used for normalization)
   uniform float u_opacity;      // Final fragment opacity
   uniform float u_minOpacity;   // opacity when signal = 0
@@ -66,7 +67,8 @@ const generateHeatmapFragmentShader = (pointCount: number): string => {
     // Normalize signal to [0, 1] range
     // Example: if weightedSum = 3, weightTotal = 5 → signal = 0.6
     float signal = weightedSum / weightTotal;
-    float normalized = clamp(signal / u_maxSignal, 0.0, 1.0);
+    // Example: signal = -70, u_minSignal = -100, u_maxSignal = -40 → (−70−(−100)) / (−40−(−100)) = 30/60 = 0.5
+    float normalized = clamp((signal - u_minSignal) / (u_maxSignal - u_minSignal), 0.0, 1.0);
 
     // Lookup color from LUT texture using normalized signal
     // Example: normalized = 0.75 → texture2D(u_lut, vec2(0.75, 0.5))

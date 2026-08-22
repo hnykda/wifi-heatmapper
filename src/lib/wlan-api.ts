@@ -41,8 +41,8 @@ type KoffiModule = {
   out: (type: unknown) => unknown;
   decode: (
     buffer: unknown,
-    type: unknown,
-    offset?: number,
+    offsetOrType: unknown,
+    type?: unknown,
   ) => Record<string, unknown>;
 };
 
@@ -53,9 +53,11 @@ let wlanapi: KoffiLib | null = null;
 let GUID: unknown;
 let DOT11_SSID: unknown;
 let WLAN_INTERFACE_INFO: unknown;
-let WLAN_INTERFACE_INFO_LIST: unknown;
+//let WLAN_INTERFACE_INFO_LIST: unknown;
 let WLAN_BSS_ENTRY: unknown;
-let WLAN_BSS_LIST: unknown;
+//let WLAN_BSS_LIST: unknown;
+let WLAN_INTERFACE_INFO_LIST_HEADER: unknown;
+let WLAN_BSS_LIST_HEADER: unknown;
 let WLAN_ASSOCIATION_ATTRIBUTES: unknown;
 let WLAN_SECURITY_ATTRIBUTES: unknown;
 let WLAN_CONNECTION_ATTRIBUTES: unknown;
@@ -68,6 +70,7 @@ let WlanEnumInterfaces: ((...args: unknown[]) => number) | null = null;
 let WlanGetNetworkBssList: ((...args: unknown[]) => number) | null = null;
 let WlanQueryInterface: ((...args: unknown[]) => number) | null = null;
 let WlanFreeMemory: ((...args: unknown[]) => void) | null = null;
+let WlanScan: ((...args: unknown[]) => number) | null = null;
 
 // Error codes
 const ERROR_SUCCESS = 0;
@@ -109,7 +112,7 @@ const AUTH_ALGORITHM_MAP: Record<number, string> = {
   5: "WPA-None", // DOT11_AUTH_ALGO_WPA_NONE
   6: "WPA2", // DOT11_AUTH_ALGO_RSNA
   7: "WPA2-Personal", // DOT11_AUTH_ALGO_RSNA_PSK
-  8: "WPA3", // DOT11_AUTH_ALGO_WPA3
+  8: "WPA3-Enterprise (192-bit)", // DOT11_AUTH_ALGO_WPA3_ENT_192
   9: "WPA3-Personal", // DOT11_AUTH_ALGO_WPA3_SAE
   10: "OWE", // DOT11_AUTH_ALGO_OWE
   11: "WPA3-Enterprise", // DOT11_AUTH_ALGO_WPA3_ENT
@@ -131,7 +134,6 @@ async function initialize(): Promise<boolean> {
   try {
     // Dynamic import koffi only on Windows
     // This will fail on non-Windows platforms since koffi has no prebuilt binary
-
     const koffiModule = await import(/* webpackIgnore: true */ "koffi");
     koffi = koffiModule.default as unknown as KoffiModule;
 
@@ -155,13 +157,13 @@ async function initialize(): Promise<boolean> {
       strInterfaceDescription: koffi.array("uint16", 256), // WCHAR[256]
       isState: "int32",
     });
-
+    /*
     WLAN_INTERFACE_INFO_LIST = koffi.struct("WLAN_INTERFACE_INFO_LIST", {
       dwNumberOfItems: "uint32",
       dwIndex: "uint32",
       InterfaceInfo: koffi.array(WLAN_INTERFACE_INFO, 1), // Variable length
     });
-
+    */
     WLAN_RATE_SET = koffi.struct("WLAN_RATE_SET", {
       uRateSetLength: "uint32",
       usRateSet: koffi.array("uint16", 126),
@@ -185,12 +187,25 @@ async function initialize(): Promise<boolean> {
       ulIeOffset: "uint32",
       ulIeSize: "uint32",
     });
-
+    /*
     WLAN_BSS_LIST = koffi.struct("WLAN_BSS_LIST", {
       dwTotalSize: "uint32",
       dwNumberOfItems: "uint32",
       wlanBssEntries: koffi.array(WLAN_BSS_ENTRY, 1), // Variable length
     });
+    */
+    WLAN_BSS_LIST_HEADER = koffi.struct("WLAN_BSS_LIST_HEADER", {
+      dwTotalSize: "uint32",
+      dwNumberOfItems: "uint32",
+    });
+
+    WLAN_INTERFACE_INFO_LIST_HEADER = koffi.struct(
+      "WLAN_INTERFACE_INFO_LIST_HEADER",
+      {
+        dwNumberOfItems: "uint32",
+        dwIndex: "uint32",
+      },
+    );
 
     WLAN_ASSOCIATION_ATTRIBUTES = koffi.struct("WLAN_ASSOCIATION_ATTRIBUTES", {
       dot11Ssid: DOT11_SSID,
@@ -225,7 +240,7 @@ async function initialize(): Promise<boolean> {
       "uint32",
       "void*",
       koffiAny.out(koffiAny.pointer("uint32")),
-      "void**",
+      koffiAny.out(koffiAny.pointer("void*")),
     ]) as (...args: unknown[]) => number;
 
     WlanCloseHandle = wlanapi.func("__stdcall", "WlanCloseHandle", "uint32", [
@@ -233,11 +248,23 @@ async function initialize(): Promise<boolean> {
       "void*",
     ]) as (...args: unknown[]) => number;
 
+    WlanScan = wlanapi.func("__stdcall", "WlanScan", "uint32", [
+      "void*", // hClientHandle
+      koffiAny.pointer(GUID), // pInterfaceGuid
+      "void*", // pDot11Ssid (NULL = scan all)
+      "void*", // pIeData (NULL)
+      "void*", // pReserved
+    ]) as (...args: unknown[]) => number;
+
     WlanEnumInterfaces = wlanapi.func(
       "__stdcall",
       "WlanEnumInterfaces",
       "uint32",
-      ["void*", "void*", "void**"],
+      [
+        "void*",
+        "void*",
+        koffiAny.out(koffiAny.pointer("void*")), // ppInterfaceList
+      ],
     ) as (...args: unknown[]) => number;
 
     WlanGetNetworkBssList = wlanapi.func(
@@ -251,7 +278,7 @@ async function initialize(): Promise<boolean> {
         "int32", // dot11BssType
         "uint8", // bSecurityEnabled
         "void*", // pReserved
-        "void**", // ppWlanBssList
+        koffiAny.out(koffiAny.pointer("void*")), // ppWlanBssList
       ],
     ) as (...args: unknown[]) => number;
 
@@ -265,7 +292,7 @@ async function initialize(): Promise<boolean> {
         "int32", // OpCode
         "void*", // pReserved
         koffiAny.out(koffiAny.pointer("uint32")), // pdwDataSize
-        "void**", // ppData
+        koffiAny.out(koffiAny.pointer("void*")), // ppData
         "void*", // pWlanOpcodeValueType
       ],
     ) as (...args: unknown[]) => number;
@@ -309,8 +336,10 @@ function frequencyToChannel(freqKHz: number): number {
 /**
  * Convert 6-byte MAC address to normalized string (lowercase, no separators)
  */
-function macBytesToString(bytes: number[]): string {
-  return bytes.map((b) => b.toString(16).padStart(2, "0")).join("");
+function macBytesToString(bytes: number[] | Uint8Array): string {
+  return Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
 }
 
 /**
@@ -332,6 +361,30 @@ function wcharToString(wchars: number[]): string {
 }
 
 /**
+ * Decode a Win32 struct with a variable-length trailing array
+ * (the classic "struct { count; T items[1]; }" pattern).
+ */
+function decodeVariableLengthArray<T = Record<string, unknown>>(
+  buffer: unknown,
+  headerType: unknown,
+  countFieldName: string,
+  elementType: unknown,
+): T[] {
+  const header = koffi!.decode(buffer, headerType) as Record<string, unknown>;
+  const count = header[countFieldName] as number;
+
+  const headerSize = (koffi as any).sizeof(headerType);
+  const elementSize = (koffi as any).sizeof(elementType);
+
+  const items: T[] = [];
+  for (let i = 0; i < count; i++) {
+    const offset = headerSize + i * elementSize;
+    items.push(koffi!.decode(buffer, offset, elementType) as T);
+  }
+  return items;
+}
+
+/**
  * Open a handle to the WLAN API
  */
 async function openHandle(): Promise<{
@@ -344,6 +397,7 @@ async function openHandle(): Promise<{
   const handleOut = [null];
 
   const result = WlanOpenHandle(2, null, versionOut, handleOut);
+
   if (result !== ERROR_SUCCESS) {
     return null;
   }
@@ -358,7 +412,9 @@ async function getFirstInterface(): Promise<{
   guid: unknown;
   description: string;
 } | null> {
-  if (!koffi) return null;
+  if (!(await initialize()) || !koffi) {
+    throw new Error("Failed to initialize WLAN API");
+  }
 
   const session = await openHandle();
   if (!session) return null;
@@ -371,17 +427,16 @@ async function getFirstInterface(): Promise<{
     }
 
     try {
-      const list = koffi.decode(listOut[0], WLAN_INTERFACE_INFO_LIST) as Record<
-        string,
-        unknown
-      >;
-      const count = list.dwNumberOfItems as number;
-      if (count === 0) return null;
+      const interfaces = decodeVariableLengthArray(
+        listOut[0],
+        WLAN_INTERFACE_INFO_LIST_HEADER,
+        "dwNumberOfItems",
+        WLAN_INTERFACE_INFO,
+      ) as Record<string, unknown>[];
 
-      // Get first interface
-      const interfaces = list.InterfaceInfo as Record<string, unknown>[];
+      if (interfaces.length === 0) return null;
+
       const firstIface = interfaces[0];
-
       return {
         guid: firstIface.InterfaceGuid,
         description: wcharToString(
@@ -397,6 +452,55 @@ async function getFirstInterface(): Promise<{
 }
 
 /**
+ * Poll WlanGetNetworkBssList until it returns a non-empty result or
+ * the timeout is reached. Not a substitute for a real scan-complete
+ * signal (WlanRegisterNotification) — see caveats below.
+ */
+async function waitForBssResults(
+  handle: unknown,
+  guid: unknown,
+  { intervalMs = 100, timeoutMs = 5000 } = {},
+): Promise<unknown> {
+  const deadline = Date.now() + timeoutMs;
+  let lastListOut: unknown[] = [null];
+
+  while (Date.now() < deadline) {
+    const listOut = [null];
+    const result = WlanGetNetworkBssList!(
+      handle,
+      guid,
+      null,
+      DOT11_BSS_TYPE.dot11_BSS_type_any,
+      0,
+      null,
+      listOut,
+    );
+
+    if (result === ERROR_SUCCESS && listOut[0]) {
+      const header = koffi!.decode(listOut[0], WLAN_BSS_LIST_HEADER) as Record<
+        string,
+        unknown
+      >;
+      const count = header.dwNumberOfItems as number;
+
+      if (count > 0) {
+        return listOut[0]; // Ready — hand back the raw buffer
+      }
+
+      // Empty this round — free it, we'll ask again
+      WlanFreeMemory!(listOut[0]);
+    }
+
+    lastListOut = listOut;
+    await new Promise((resolve) => setTimeout(resolve, intervalMs));
+  }
+
+  // Timed out — return whatever the last attempt gave us (may be null
+  // or an empty-but-valid buffer; caller decides what to do with that).
+  return lastListOut[0];
+}
+
+/**
  * Scan for available WiFi networks
  * @returns Array of WifiResults sorted by signal strength
  */
@@ -405,7 +509,7 @@ export async function scanNetworks(): Promise<WifiResults[]> {
     throw new Error("WLAN API is only available on Windows");
   }
 
-  if (!koffi || !(await initialize())) {
+  if (!(await initialize()) || !koffi) {
     throw new Error("Failed to initialize WLAN API");
   }
 
@@ -416,38 +520,34 @@ export async function scanNetworks(): Promise<WifiResults[]> {
 
   try {
     const iface = await getFirstInterface();
+
     if (!iface) {
+      console.error(`No wireless interface found`);
       throw new Error("No wireless interface found");
     }
 
-    const listOut = [null];
-    const result = WlanGetNetworkBssList!(
-      session.handle,
-      iface.guid,
-      null, // All SSIDs
-      DOT11_BSS_TYPE.dot11_BSS_type_any,
-      0, // Don't filter by security
-      null,
-      listOut,
-    );
+    const scanResult = WlanScan!(session.handle, iface.guid, null, null, null);
+    if (scanResult !== ERROR_SUCCESS) {
+      console.error(
+        `WlanScan failed with error ${scanResult}, using cached results`,
+      );
+    }
 
-    if (result !== ERROR_SUCCESS || !listOut[0]) {
-      throw new Error(`WlanGetNetworkBssList failed with error ${result}`);
+    const bssBuffer = await waitForBssResults(session.handle, iface.guid);
+    if (!bssBuffer) {
+      throw new Error("WlanGetNetworkBssList returned no data");
     }
 
     try {
-      const bssList = koffi.decode(listOut[0], WLAN_BSS_LIST) as Record<
-        string,
-        unknown
-      >;
-      const count = bssList.dwNumberOfItems as number;
+      const entries = decodeVariableLengthArray(
+        bssBuffer,
+        WLAN_BSS_LIST_HEADER,
+        "dwNumberOfItems",
+        WLAN_BSS_ENTRY,
+      ) as Record<string, unknown>[];
       const results: WifiResults[] = [];
 
-      // Get the array of BSS entries
-      const entries = bssList.wlanBssEntries as Record<string, unknown>[];
-
-      for (let i = 0; i < count; i++) {
-        const entry = entries[i];
+      for (const entry of entries) {
         const ssidData = entry.dot11Ssid as Record<string, unknown>;
         const ssid = ssidBytesToString(
           ssidData.ucSSID as number[],
@@ -478,7 +578,7 @@ export async function scanNetworks(): Promise<WifiResults[]> {
 
       return results.sort(bySignalStrength);
     } finally {
-      WlanFreeMemory!(listOut[0]);
+      WlanFreeMemory!(bssBuffer);
     }
   } finally {
     WlanCloseHandle!(session.handle, null);
@@ -494,7 +594,7 @@ export async function getCurrentConnection(): Promise<WifiResults | null> {
     throw new Error("WLAN API is only available on Windows");
   }
 
-  if (!koffi || !(await initialize())) {
+  if (!(await initialize()) || !koffi) {
     throw new Error("Failed to initialize WLAN API");
   }
 
@@ -560,7 +660,6 @@ export async function getCurrentConnection(): Promise<WifiResults | null> {
       const txRateKbps = assocAttrs.ulTxRate as number;
       const phyType = assocAttrs.dot11PhyType as number;
       const authAlgo = secAttrs.dot11AuthAlgorithm as number;
-
       const wifi = getDefaultWifiResults();
       wifi.ssid = ssid;
       wifi.bssid = macBytesToString(assocAttrs.dot11Bssid as number[]);

@@ -83,7 +83,7 @@ const SurveyPointsTable: React.FC<SurveyPointsTableProps> = ({
     tcpUploadMbps: true,
     timestamp: true,
     disable: true,
-    rssi: false,
+    rssi: true,
     ssid: false,
     security: false,
     txRate: false,
@@ -223,13 +223,15 @@ const SurveyPointsTable: React.FC<SurveyPointsTableProps> = ({
 
   const flattenedData: FlattenedSurveyPoint[] = useMemo(() => {
     return data.map((point) => {
-      let bssid = point.wifiData.bssid;
+      let bssid =
+        point.wifiData.bssid.match(/.{1,2}/g)?.join(":") ||
+        point.wifiData.bssid;
       if (apMapping.length > 0) {
         const mappedName = apMapping.find(
           (ap) => ap.macAddress === point.wifiData.bssid,
         )?.apName;
         if (mappedName) {
-          bssid = `${mappedName} (${point.wifiData.bssid})`;
+          bssid = `${mappedName} (${bssid})`;
         }
       }
       return {
