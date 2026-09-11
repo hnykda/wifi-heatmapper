@@ -132,6 +132,19 @@ export default function SettingsEditor() {
           />
         </FormRow>
 
+        {status && !needsSudo && (
+          <p
+            className="text-sm text-muted-foreground"
+            data-testid="sudo-not-needed"
+          >
+            No sudo password needed here:{" "}
+            {status.mockMode
+              ? "mock mode makes up the measurements. Run `npm run dev` for real ones."
+              : status.docker
+                ? "the container already runs as root."
+                : "Windows reads the signal without it."}
+          </p>
+        )}
         {needsSudo && (
           <FormRow
             id="sudoPassword"
