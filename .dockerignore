@@ -4,6 +4,7 @@ node_modules
 .e2e-data
 data/surveys
 data/media
+public/media
 datas
 playwright-report
 test-results

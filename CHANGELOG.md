@@ -38,7 +38,8 @@ floor plans uploaded to `public/media` are copied to `data/media` on first start
   Survey dots stay readable on small screens and touch screens.
 * Floor plan images live in `data/media/` and are served by
   `/api/media/<name>`. This makes `npm run build && npm start` work and lets
-  the Dockerfile build a real production image (multi-stage, `next start`).
+  the Dockerfile build a real production image (multi-stage, Next standalone
+  output, about 270 MB).
   Docker now needs a single volume: `-v ./datas:/app/data`.
 * Settings are saved a short moment after the last change instead of on
   every keystroke.
