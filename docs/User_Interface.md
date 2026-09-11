@@ -1,53 +1,69 @@
 # User Interface
 
-The **wifi-heatmapper** user interface has a number of tabs.
+wifi-heatmapper has four sections, shown as tabs in the header. The strip
+under the header always shows which floor plan you are working on, how many
+points it has, and whether throughput tests are on.
 
-## Settings Pane
+The header also has a light/dark switch and an "i" button that opens the
+About dialog with the version, OS and iperf3 details to include in bug reports.
 
-* **Floor Plan** is a dropdown showing the current floor plan image
-  and the images available.
-  Use _Upload an image..._ to add to the list.
-  The selected image is displayed as a background behind both
-  the Floor Plan pane and the heatmaps.
-* **iperfServer** - address or DNS name for the "iperf3 server".
-  To disable iperf3 tests, set this to "localhost"
-* **Test duration** - in seconds. Defaults to one second.
-* **sudo Password** - required for macOS and Linux
+The first time you open the app a short welcome message explains the
+workflow. "Got it" hides it for good; the About dialog can show it again.
 
-**Advanced Configuration** -
-these settings do not normally need to be modified
+## Settings
 
-* **Max Opacity** - _need more description_
-* **Min Opacity**  - _need more description_
-* **Blur** - _need more description_
-* **Gradient** - _need more description_
+![Settings](images/settings.png)
 
-![Settings Pane](images/SettingsPane.png)
+* **Floor plan** – the image you click on. Choose one of the bundled plans or
+  upload a PNG, JPEG or WebP. Each floor plan keeps its own survey in
+  `data/surveys/<name>.json`. The trash button deletes the image and its
+  survey.
+* **iperf3 server** – address (or `host:port`) of a computer running
+  `iperf3 -s`. Leave it at `localhost` to measure signal strength only.
+* **Test duration** – seconds per iperf3 test. One second is enough for a
+  survey.
+* **sudo password** – required on macOS and Linux to read the signal. Kept in
+  memory only; never written to disk. Not shown on Windows, in Docker, or in
+  mock mode.
+* **Access point names** – optional names for BSSIDs, shown instead of the
+  MAC address in point details and the table.
+* **Heat map colours** – the colour stops for signal strength (0% = -100 dBm,
+  100% = -40 dBm) and the opacity range of the overlay.
+* **iperf3 commands** – the exact commands run for each test.
+  `{server}`, `{port}` and `{duration}` are filled in from the settings above.
 
-## Floor Plan Pane
+## Floor plan
 
-Use this pane to collect the measurements.
-Click on a point on the floor plan to make a measurement.
-Move the laptop to other locations and make additional measurements.
-A good strategy is to make multiple measurements per room.
+![Floor plan](images/floorplan.png)
 
-This image shows the survey points collected to produce the heat map below.
+Stand where you want to measure and click that spot. A pulsing dot marks the
+spot while the measurement runs; the panel in the corner shows progress and
+has a Cancel button. When it finishes, the dot is coloured by signal strength
+and labelled with the percentage.
 
-![Floor Plan](images/FloorPlanPane.png)
+Click a dot to see its details, switch it off (it is then ignored by the heat
+maps) or delete it.
 
-## Heat Maps Pane
+In mock mode, "Add sample points" fills the plan with synthetic points.
 
-The Heat Maps tab displays the heat map.
-The Radius slider controls the "radius" of the individual
-measurements.
-Adjust the slider so that the points merge in the heatmap.
+## Heat maps
 
-![Heatmap Pane](images/HeatmapPane.png)
+![Heat maps](images/heatmaps.png)
 
-## Survey Points Pane
+Tick the measurements you want to see. Signal strength is always drawn on a
+0–100% scale; throughput maps run from 0 to the best value measured.
 
-The Survey Points pane displays information about
-all the points that have been collected.
-Enable or disable points, or delete one or many points at one time.
+**Radius** controls how far each point's influence reaches. It starts at an
+automatic value based on how spread out your points are; drag it until
+neighbouring spots merge into one surface.
 
-![Survey Points Pane](images/SurveyPointsPane.png)
+Hover a map to enlarge or download it. Downloaded PNGs include the legend and
+a caption with the floor plan name, point count and date.
+
+## Survey points
+
+![Survey points](images/points.png)
+
+Every measurement in the survey. Sort by any column, show more columns
+(RSSI, channel, PHY mode, coordinates, and more), filter, switch points off,
+delete a selection, or export everything as CSV.

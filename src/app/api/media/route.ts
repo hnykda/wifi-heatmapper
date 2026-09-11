@@ -1,29 +1,34 @@
-// app/api/media/route.ts
 /**
- * /media API
- * GET /media returns a list of the files in the /public/media directory
- * POST /media ... uploads a file
+ * /api/media - floor plan images, stored in <data dir>/media
+ *
+ * GET  /api/media           -> { files: string[] } (image files, sorted)
+ * POST /api/media           -> multipart upload (field "file")
+ *                              409 if a file with that name already exists
+ * GET  /api/media/<name>    -> the image bytes (see [name]/route.ts)
+ * DELETE /api/media/<name>  -> remove the image (see [name]/route.ts)
  */
 import { NextResponse } from "next/server";
-import { readdir, writeFile } from "fs/promises";
+import { mkdir, readdir, writeFile, access } from "fs/promises";
 import path from "path";
-// import { IncomingForm } from 'formidable';
+import {
+  getMediaDir,
+  isImageFileName,
+  normalizeUploadName,
+} from "@/lib/server-paths";
 
-// Ensure body parsing is disabled so we can handle file uploads
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
+export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const mediaDir = path.join(process.cwd(), "public", "media");
-    const files = await readdir(mediaDir);
+    const mediaDir = getMediaDir();
+    await mkdir(mediaDir, { recursive: true });
+    const files = (await readdir(mediaDir))
+      .filter(isImageFileName)
+      .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
     return NextResponse.json({ files });
   } catch (err) {
     return NextResponse.json(
-      { error: `Unable to list files ${err}` },
+      { error: `Unable to list floor plans: ${err}` },
       { status: 500 },
     );
   }
@@ -31,15 +36,34 @@ export async function GET() {
 
 export async function POST(req: Request) {
   const formData = await req.formData();
-  const file = formData.get("file") as File;
+  const file = formData.get("file");
 
-  if (!file || typeof file.name !== "string") {
+  if (!(file instanceof File) || typeof file.name !== "string") {
     return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
   }
 
-  const buffer = Buffer.from(await file.arrayBuffer());
-  const filePath = path.join(process.cwd(), "public", "media", file.name);
+  const name = normalizeUploadName(file.name);
+  if (!name || !isImageFileName(name)) {
+    return NextResponse.json(
+      { error: "Only PNG, JPEG or WebP images can be used as floor plans." },
+      { status: 400 },
+    );
+  }
 
-  await writeFile(filePath, buffer);
-  return NextResponse.json({ status: "success", name: file.name });
+  const mediaDir = getMediaDir();
+  await mkdir(mediaDir, { recursive: true });
+  const filePath = path.join(mediaDir, name);
+
+  try {
+    await access(filePath);
+    return NextResponse.json(
+      { error: `A floor plan named "${name}" already exists.`, name },
+      { status: 409 },
+    );
+  } catch {
+    // does not exist yet - good
+  }
+
+  await writeFile(filePath, Buffer.from(await file.arrayBuffer()));
+  return NextResponse.json({ status: "success", name });
 }

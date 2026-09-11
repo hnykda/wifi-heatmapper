@@ -3,6 +3,7 @@
 import { readdirSync, readFileSync } from "fs";
 import { join } from "path";
 import { LocalizerMap } from "./types";
+import { getLocalizationDir } from "./server-paths";
 
 /**
  * initLocalization() - reads the files from _data/localization_
@@ -13,9 +14,7 @@ import { LocalizerMap } from "./types";
  */
 
 export async function initLocalization(): Promise<LocalizerMap> {
-  const localizationDir = join("data", "localization");
-  // console.log(`__dirname: ${__dirname}`);
-  // console.log(`localization dir: ${localizationDir}`);
+  const localizationDir = getLocalizationDir();
 
   const files = readdirSync(localizationDir).filter((f) => f.endsWith(".json"));
 

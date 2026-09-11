@@ -12,9 +12,24 @@ import fs from "fs";
 import path from "path";
 import { parseNetshInterfaces } from "../../src/lib/wifiScanner-windows";
 
-test("parsing netsh output where no labels match", () => {
+test("parsing netsh output where only some labels match keeps defaults for the rest", () => {
+  // Some labels are deliberately mangled (X-SSID, X-Channel...). Since 0.4.1
+  // this no longer throws (issue #75): unmatched fields keep their defaults.
   const netsh_output = fs.readFileSync(
     path.join(__dirname, "../data/win-netsh-interfaces-no-match.txt"),
+    "utf-8",
+  );
+  const output = parseNetshInterfaces(netsh_output);
+  expect(output.signalStrength).toBe(42);
+  expect(output.bssid).toBe("fedcba098702");
+  expect(output.ssid).toBe(""); // "X-SSID" did not match
+  expect(output.channel).toBe(0); // "X-Channel" did not match
+  expect(output.txRate).toBe(0);
+});
+
+test("parsing netsh output where no labels match at all", () => {
+  const netsh_output = fs.readFileSync(
+    path.join(__dirname, "../data/win-netsh-interfaces-unlocalized.txt"),
     "utf-8",
   );
 

@@ -1,0 +1,13 @@
+node_modules
+.next
+.next-e2e
+.git
+.e2e-data
+data/surveys
+data/media
+public/media
+datas
+playwright-report
+test-results
+docs
+*.md

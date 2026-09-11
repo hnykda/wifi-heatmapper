@@ -2,6 +2,78 @@
 
 _This section follows the precepts of [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) so that future readers can understand the state and evolution of the project._
 
+## Version 0.5.0 - 2026-09-11
+
+A visual and structural overhaul. Surveys made with 0.4.x keep working;
+floor plans uploaded to `public/media` are copied to `data/media` on first start.
+
+### Added
+
+* **Mock mode** (`npm run dev:mock`, or `WIFI_HEATMAPPER_MOCK=1`): synthetic
+  Wi-Fi and iperf3 results so the app runs on any machine without sudo,
+  iperf3 or a Wi-Fi card. A "Mock data" badge shows in the header, and the
+  Floor plan tab gets an "Add sample points" button.
+* **End-to-end tests** with Playwright (`npm run e2e`) that run the real app
+  in mock mode. CI runs them on every pull request.
+* **Welcome message** for first-time users at the top of the page; dismiss
+  it with "Got it" and it stays dismissed (About can bring it back).
+* **Dark theme**, following the OS setting with a toggle in the header.
+* **About dialog** with version, OS, Node and iperf3 details for bug reports,
+  and `GET /api/status` behind it.
+* **Access point names** editor in Settings (the component existed but was
+  never shown). Named access points appear in point details and the table.
+* **Delete a floor plan** (and its survey) from Settings.
+* **Export survey points as CSV** from the Survey points tab.
+* **Heat map captions**: downloaded maps carry the metric, floor plan name,
+  point count and date.
+* Survey files now record `meta` (app version, OS, save time). Fixes #73.
+* `WIFI_HEATMAPPER_DATA_DIR` moves the whole data directory.
+* `CONTRIBUTING.md`, a pull request template, and `CLAUDE.md`.
+
+### Changed
+
+* **New interface.** Compact header with the four sections as tabs (the
+  active tab is kept in the URL), a summary strip showing the current floor
+  plan, point count and iperf3 server, a proper settings form with
+  explanations, a measurement progress panel instead of a toast, cleaner
+  point details, a controls column on the Heat maps tab, and a leaner table.
+  Survey dots stay readable on small screens and touch screens.
+* Floor plan images live in `data/media/` and are served by
+  `/api/media/<name>`. This makes `npm run build && npm start` work and lets
+  the Dockerfile build a real production image (multi-stage, Next standalone
+  output, about 270 MB).
+  Docker now needs a single volume: `-v ./datas:/app/data`.
+* Settings are saved a short moment after the last change instead of on
+  every keystroke.
+* Server start-up moved to `src/instrumentation.ts` (Next.js' official hook)
+  so it also runs under `next start`.
+* Measurement errors are shown with their real cause (for example a wrong sudo
+  password or a changed access point) instead of "wifi or iperf data is null".
+* The heat map legend for throughput runs from 0 to the best measured value,
+  which is how the colours are actually computed.
+* Removed the unused "Blur" setting and the debug "Add test points" button
+  from the production UI.
+* Bundled floor plans moved from `public/` to `assets/floorplans/`.
+* CI runs on Node 22 with `npm ci`.
+
+### Fixed
+
+* Custom iperf3 commands (for example a higher UDP `-b` rate) were never sent
+  to the server, so edits had no effect. Fixes #81.
+* Windows: a typo split `netsh` output on `"]n"` instead of newlines, and
+  `getWifi()` could wait forever when no localized "State" line matched.
+  Now it gives up after 5 seconds with a clear localization error. Fixes #83.
+* Windows: `netsh` output that matches no labels at all reports the
+  localization problem; partial matches keep working (issue #75).
+* Heat map scales showed "0 to 0" when no throughput had been measured;
+  such maps now show an explanation instead. Fixes #30.
+* Editing a gradient stop's position corrupted the gradient (`parseInt` on
+  "0.45").
+* Two survey points could get the same id when measurements were quick.
+* The settings provider was mounted twice (layout and page).
+
+---
+
 ## Version 0.4.0 - 2026-01-07
 
 ### Changed

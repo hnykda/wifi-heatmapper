@@ -1,495 +1,483 @@
-import React, { ReactNode, useRef, useState } from "react";
-import { useEffect } from "react";
+"use client";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { FlaskConical, MousePointerClick } from "lucide-react";
+
+import { useSettings } from "./GlobalSettings";
+import { useAppStatus } from "@/hooks/useAppStatus";
+import MeasurementPanel from "@/components/MeasurementPanel";
+import PopupDetails from "@/components/PopupDetails";
+import { Button } from "@/components/ui/button";
+import { getColorAt, objectToRGBAString } from "@/lib/utils-gradient";
 import {
   getDefaultWifiResults,
   getDefaultIperfResults,
   percentageToRssi,
-  rssiToPercentage,
   delay,
-} from "../lib/utils";
-import { getColorAt, objectToRGBAString } from "@/lib/utils-gradient";
-import { useSettings } from "./GlobalSettings";
-import { HeatmapSettings, SurveyResult, SurveyPoint } from "../lib/types";
-import NewToast from "@/components/NewToast";
-import PopupDetails from "@/components/PopupDetails";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { getLogger } from "../lib/logger";
+} from "@/lib/utils";
+import { SurveyPoint, SurveyResult } from "@/lib/types";
+import { getLogger } from "@/lib/logger";
+import { cn } from "@/lib/utils";
+
 const logger = getLogger("Floorplan");
 
-export default function ClickableFloorplan(): ReactNode {
-  const { settings, updateSettings, surveyPointActions } = useSettings();
+/** Give up waiting for a measurement after this long. */
+const MEASUREMENT_TIMEOUT_MS = 10 * 60 * 1000;
+const POLL_INTERVAL_MS = 700;
 
-  const [imageLoaded, setImageLoaded] = useState(false);
-  const imageRef = useRef<HTMLImageElement | null>(null);
+type XY = { x: number; y: number };
+
+/**
+ * Marker sizes in image pixels. They grow with the image so dots are never
+ * tiny on big plans, and never shrink below a readable size on screen
+ * (`scale` is CSS px per image px).
+ */
+function markerSizes(imageWidth: number, scale: number) {
+  const s = scale > 0 ? scale : 1;
+  const R = Math.max(7, 0.008 * imageWidth, 9 / s);
+  return {
+    R,
+    font: Math.max(11, 0.012 * imageWidth, 11 / s),
+    labelOffset: R * 1.9,
+    pad: Math.max(2, 0.004 * imageWidth, 2.5 / s),
+  };
+}
+
+export default function ClickableFloorplan() {
+  const { settings, updateSettings, surveyPointActions, loading } =
+    useSettings();
+  const status = useAppStatus();
+
+  const [image, setImage] = useState<HTMLImageElement | null>(null);
+  const [imageError, setImageError] = useState<string | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [selectedPoint, setSelectedPoint] = useState<SurveyPoint | null>(null);
-  const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 });
-  // const [dimensions, setDimensions] = useState(settings.dimensions);
   const [scale, setScale] = useState(1);
-  const [alertMessage, setAlertMessage] = useState("");
-  const [isToastOpen, setIsToastOpen] = useState(false);
-  const [surveyClick, setSurveyClick] = useState({ x: 0, y: 0 });
+  const [hoveringPoint, setHoveringPoint] = useState(false);
 
-  /**
-   * Adding test points
-   * if idx is null, the following useEffect() is idle
-   * else, idx is the current value of the signalStrength to use
-   * Clicking the "Add test points" button calls startTestPoints()
-   * that sets idx to zero, and kicks off the process
-   */
-  const [idx, setIdx] = useState<number | null>(null); // null = idle
-  const startTestPoints = () => setIdx(0);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const selectedPoint = useMemo(
+    () => settings.surveyPoints.find((p) => p.id === selectedId) ?? null,
+    [settings.surveyPoints, selectedId],
+  );
+
+  const [pending, setPending] = useState<XY | null>(null); // image coords
+  const [panelOpen, setPanelOpen] = useState(false);
+  const [measureError, setMeasureError] = useState<string | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
+  const measuring = pending !== null;
+
+  /* ---------- image ---------- */
 
   useEffect(() => {
-    if (idx === null) return; // back to idle
+    setImage(null);
+    setImageError(null);
+    setSelectedId(null);
+    if (!settings.floorplanImagePath) return;
+    const img = new Image();
+    img.onload = () => {
+      setImage(img);
+      if (
+        img.naturalWidth !== settings.dimensions.width ||
+        img.naturalHeight !== settings.dimensions.height
+      ) {
+        updateSettings({
+          dimensions: { width: img.naturalWidth, height: img.naturalHeight },
+        });
+      }
+    };
+    img.onerror = () =>
+      setImageError(
+        `The floor plan "${settings.floorplanImageName}" could not be loaded. Pick another one in Settings.`,
+      );
+    img.src = settings.floorplanImagePath;
+    // dimensions are written by this effect, not read from settings
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settings.floorplanImagePath]);
 
-    (async () => {
-      addTestPoint(idx);
-      // let React commit + run effects before next iteration
-      await new Promise(requestAnimationFrame);
-      setIdx((i) => (i! < 100 ? i! + 5 : null));
-    })();
-  }, [idx]);
+  /* ---------- scale to container ---------- */
 
-  /**
-   * Load the image (and the canvas) when the component is mounted
-   */
   useEffect(() => {
-    if (settings.floorplanImagePath != "") {
-      const img = new Image();
-      img.src = settings.floorplanImagePath; // load the image from the path
+    const el = containerRef.current;
+    if (!el || !image) return;
+    const update = () => setScale(el.clientWidth / image.naturalWidth);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [image]);
 
-      img.onload = () => {
-        const newDimensions = { width: img.width, height: img.height };
-        updateSettings({ dimensions: newDimensions });
-        setImageLoaded(true);
-        imageRef.current = img;
-      };
-      img.onerror = () => {
-        console.log(`image error`);
-      };
+  /* ---------- drawing ---------- */
+
+  const drawPoint = useCallback(
+    (ctx: CanvasRenderingContext2D, point: SurveyPoint, W: number) => {
+      const { R, font, labelOffset, pad } = markerSizes(W, scale);
+      const wifi = point.wifiData;
+      if (!wifi) return;
+      const selected = point.id === selectedId;
+
+      ctx.save();
+      // marker
+      ctx.beginPath();
+      ctx.arc(point.x, point.y, R, 0, Math.PI * 2);
+      ctx.fillStyle = point.isEnabled
+        ? objectToRGBAString({
+            ...getColorAt(wifi.signalStrength / 100, settings.gradient),
+            a: 1,
+          })
+        : "rgba(160, 165, 175, 0.9)";
+      ctx.fill();
+      ctx.lineWidth = Math.max(1, R * 0.18);
+      ctx.strokeStyle = "rgba(20, 24, 33, 0.65)";
+      if (!point.isEnabled) ctx.setLineDash([R * 0.6, R * 0.5]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      if (selected) {
+        ctx.beginPath();
+        ctx.arc(point.x, point.y, R + Math.max(3, R * 0.5), 0, Math.PI * 2);
+        ctx.lineWidth = Math.max(2, R * 0.25);
+        ctx.strokeStyle = "hsl(252 56% 57%)";
+        ctx.stroke();
+      }
+
+      // label
+      const text = `${wifi.signalStrength}%`;
+      ctx.font = `600 ${font}px ui-sans-serif, system-ui, sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "top";
+      const w = ctx.measureText(text).width + pad * 2;
+      const h = font * 1.25 + pad * 2;
+      const x = point.x - w / 2;
+      const y = point.y + labelOffset;
+      ctx.fillStyle = "rgba(255, 255, 255, 0.85)";
+      ctx.beginPath();
+      ctx.roundRect(x, y, w, h, pad);
+      ctx.fill();
+      ctx.fillStyle = point.isEnabled ? "#14181f" : "#6b7280";
+      ctx.fillText(text, point.x, y + pad);
+      ctx.restore();
+    },
+    [selectedId, settings.gradient, scale],
+  );
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || !image) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    canvas.width = image.naturalWidth;
+    canvas.height = image.naturalHeight;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(image, 0, 0);
+    for (const p of settings.surveyPoints) drawPoint(ctx, p, canvas.width);
+  }, [image, settings.surveyPoints, drawPoint]);
+
+  /* ---------- hit testing ---------- */
+
+  const toImageCoords = (e: React.MouseEvent<HTMLCanvasElement>): XY => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    return {
+      x: (e.clientX - rect.left) / scale,
+      y: (e.clientY - rect.top) / scale,
+    };
+  };
+
+  const hitTest = (pt: XY): SurveyPoint | undefined => {
+    const W = image?.naturalWidth ?? 0;
+    const { R } = markerSizes(W, scale);
+    // generous on touch screens: at least 14 CSS px
+    const tolerance = Math.max(R * 1.6, 14 / scale);
+    let best: SurveyPoint | undefined;
+    let bestD = Infinity;
+    for (const p of settings.surveyPoints) {
+      const d = Math.hypot(p.x - pt.x, p.y - pt.y);
+      if (d < tolerance && d < bestD) {
+        best = p;
+        bestD = d;
+      }
     }
+    return best;
+  };
+
+  /* ---------- measuring ---------- */
+
+  const startMeasurement = useCallback(async () => {
+    if (!pending) return;
+    const controller = new AbortController();
+    abortRef.current = controller;
+    const { signal } = controller;
+    const x = Math.round(pending.x);
+    const y = Math.round(pending.y);
+
+    try {
+      const res = await fetch("/api/start-task?action=start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          settings: {
+            iperfServerAdrs: settings.iperfServerAdrs,
+            testDuration: settings.testDuration,
+            sudoerPassword: settings.sudoerPassword,
+            iperfCommands: settings.iperfCommands,
+          },
+        }),
+        signal,
+      });
+      if (!res.ok) throw new Error(`The server answered ${res.status}.`);
+
+      const deadline = Date.now() + MEASUREMENT_TIMEOUT_MS;
+      let result: SurveyResult = { state: "pending" };
+      while (!signal.aborted && Date.now() < deadline) {
+        await delay(POLL_INTERVAL_MS);
+        try {
+          const r = await fetch("/api/start-task?action=results", { signal });
+          if (!r.ok) throw new Error(`HTTP ${r.status}`);
+          result = await r.json();
+        } catch (err) {
+          if (signal.aborted) return;
+          logger.debug(`results poll failed: ${err}`);
+          continue;
+        }
+        if (result.state !== "pending") break;
+      }
+      if (signal.aborted) return;
+
+      if (result.state === "pending") {
+        throw new Error("The measurement did not finish in time.");
+      }
+      if (result.state === "error") {
+        throw new Error(result.explanation ?? "The measurement failed.");
+      }
+      const data = result.results;
+      if (!data?.wifiData || !data?.iperfData) {
+        throw new Error("The measurement returned no data.");
+      }
+      surveyPointActions.add({
+        wifiData: data.wifiData,
+        iperfData: data.iperfData,
+        x,
+        y,
+        timestamp: Date.now(),
+        isEnabled: true,
+        id: "", // assigned by the store
+      });
+      setPending(null);
+    } catch (err) {
+      if (signal.aborted) return;
+      setPending(null);
+      setMeasureError(err instanceof Error ? err.message : String(err));
+    }
+  }, [pending, settings, surveyPointActions]);
+
+  const cancelMeasurement = () => {
+    abortRef.current?.abort();
+    setPending(null);
+  };
+
+  const closePanel = useCallback(() => {
+    setPanelOpen(false);
+    setMeasureError(null);
   }, []);
 
-  /**
-   * addTestPoint() - add a test point
-   * to the floor plan for signalStrength values 0 .. 100
-   * @param idx - the signal strength to use, also sets the X position and PointID
-   * @returns
-   */
-  function addTestPoint(idx: number): void {
-    const width = settings.dimensions.width;
-    const x = width / 10;
-    const y = 350;
-    const deltaX = (width * 0.8) / 100;
-    const wifiData = getDefaultWifiResults();
-    const iperfData = getDefaultIperfResults();
-    wifiData.signalStrength = idx;
-    wifiData.rssi = percentageToRssi(idx);
-    const newPoint = {
-      wifiData,
-      iperfData,
-      x: 0,
-      y,
-      timestamp: Date.now(),
-      id: "bad ID",
-      isEnabled: true,
-    };
-    logger.debug(`idx, x, y: ${idx} ${x + idx * deltaX} ${y}`);
-    addSurveyPoint(newPoint, x + idx * deltaX, y, settings);
-  }
+  /* ---------- interaction ---------- */
 
-  useEffect(() => {
-    if (imageLoaded && canvasRef.current) {
-      const canvas = canvasRef.current;
-      const containerWidth = containerRef.current?.clientWidth || canvas.width;
-      const scaleX = containerWidth / settings.dimensions.width;
-      setScale(scaleX);
-      canvas.style.width = "100%";
-      canvas.style.height = "auto";
-      drawCanvas();
-    }
-  }, [imageLoaded, settings.dimensions, settings.surveyPoints]);
-
-  const handleToastIsReady = (): void => {
-    measureSurveyPoint(surveyClick);
-  };
-
-  /**
-   * measureSurveyPoint - make measurements for point at x/y
-   * Triggered by a click on the canvas that _isn't_ an existing
-   *    surveypoint
-   * @param x
-   * @param y
-   * @returns null, but after having added the point to surveyPoints[]
-   *
-   * Error handling:
-   * If there are errors, this routine throws a string with an explanation
-   */
-  const measureSurveyPoint = async (surveyClick: { x: number; y: number }) => {
-    const x = Math.round(surveyClick.x);
-    const y = Math.round(surveyClick.y);
-    let result: SurveyResult = { state: "pending" };
-
-    // an object with a single property: settings
-    const partialSettings = {
-      settings: {
-        iperfServerAdrs: settings.iperfServerAdrs,
-        testDuration: settings.testDuration,
-        sudoerPassword: settings.sudoerPassword,
-        // ignoredSSIDs: settings.ignoredSSIDs,
-        // sameSSID: settings.sameSSID,
-      },
-    };
-    // Kick off the measurement process by calling "action=start"
-    // This returns immediately, then poll for data
-    const res = await fetch("/api/start-task?action=start", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(partialSettings),
-    });
-    if (!res.ok) {
-      throw new Error(`Server error: ${res.status}`);
-    }
-
-    const startTime = Date.now();
-    while (true) {
-      try {
-        const res = await fetch("/api/start-task?action=results");
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        result = await res.json();
-        logger.debug(`Status is: ${JSON.stringify(result)}`);
-        if (result.state != "pending") {
-          // got a result - status is "done" or "error"
-          break;
-        }
-      } catch (err) {
-        // Typical: handle network errors, aborts, etc.
-        console.error(`Measurement process gave error: ${err}`);
-      }
-      await delay(1000); // ask again in one second
-    }
-    console.log(`Measurement took ${Date.now() - startTime} ms`);
-
-    if (result.state === "error") {
-      cleanupFailedTest(`${result.explanation}`);
+  const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!image) return;
+    const pt = toImageCoords(e);
+    const hit = hitTest(pt);
+    if (hit) {
+      setSelectedId((cur) => (cur === hit.id ? null : hit.id));
       return;
     }
-    if (!result.results!.wifiData || !result.results!.iperfData) {
-      cleanupFailedTest("Measurement cancelled");
-      return;
-    }
-    const { wifiData, iperfData } = result.results!;
-    // Got measurements: add the x/y point, point number, and enabled
-    const newPoint = {
-      wifiData,
-      iperfData,
-      x,
-      y,
-      timestamp: Date.now(),
-      isEnabled: true,
-      id: `Point_${settings.nextPointNum}`,
-    };
-    addSurveyPoint(newPoint, x, y, settings);
-  };
-
-  /**
-   * cleanupFailedTest() - if something went wrong during the measurement,
-   *   close NewToast
-   *   remove the empty survey point by re-drawing the canvas
-   *     (without the prospective empty survey point)
-   *   set the proper alert message
-   * @param errorMessage Message to reuturn
-   * @returns void
-   */
-  function cleanupFailedTest(errorMessage: string): void {
-    setIsToastOpen(false);
-    drawCanvas(); // restore the points on the canvas (not the empty point)
-    setAlertMessage(errorMessage);
-    return;
-  }
-
-  function addSurveyPoint(
-    newPoint: SurveyPoint,
-    x: number,
-    y: number,
-    settings: HeatmapSettings,
-  ): void {
-    // otherwise, add the point, bumping the point number
-    const pointNum = settings.nextPointNum;
-    const addedPoint = {
-      ...newPoint,
-      x,
-      y,
-      isEnabled: true,
-      id: `Point_${pointNum}`,
-    };
-    updateSettings({ nextPointNum: pointNum + 1 });
-    surveyPointActions.add(addedPoint);
-  }
-
-  /**
-   * drawCanvas - make the entire drawing go...
-   */
-  const drawCanvas = () => {
-    const canvas = canvasRef.current;
-    if (canvas && imageRef.current) {
-      const ctx = canvas.getContext("2d");
-      if (ctx) {
-        // clear the canvas
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        // draw the image "behind" everything else
-        ctx.drawImage(imageRef.current, 0, 0);
-        // draw the points on top
-        drawPoints(settings.surveyPoints, ctx);
-      }
-    }
-  };
-
-  /**
-   * Close the popup window by setting selectedPoint to null
-   */
-  const closePopup = (): void => {
-    setSelectedPoint(null);
-  };
-  /**
-   * drawPoints - draw the list of points in the specified context
-   * @param ctx
-   * @param points
-   */
-  const drawPoints = (points: SurveyPoint[], ctx: CanvasRenderingContext2D) => {
-    const canvas = canvasRef.current;
-    points.forEach((point) => drawPoint(point, ctx, { bgW: canvas!.width }));
-  };
-
-  type ScaleOpts = {
-    bgW: number; // background width in CSS px
-    crisp1px?: boolean; // keep borders at ~1px regardless of scale
-    dpr?: number; // pass window.devicePixelRatio
-  };
-
-  function drawPoint(
-    point: SurveyPoint,
-    ctx: CanvasRenderingContext2D,
-    opts: ScaleOpts,
-  ) {
-    if (!point.wifiData) return;
-
-    const { bgW, crisp1px = true, dpr = window.devicePixelRatio || 1 } = opts;
-
-    // All sizes derived from bg width
-    const R = 0.008 * bgW; // marker radius = 0.8% of bg width
-    const BORDER = crisp1px ? 1 / dpr : 0.002 * bgW; // ~1px or 0.2% of bg width
-    const FONT = 0.012 * bgW; // 1.2% of bg width
-    const LINE_H = 1.2 * FONT;
-    const PAD = 0.004 * bgW;
-    const LABEL_OFFSET_Y = 0.015 * bgW;
-    const SHADOW_BLUR = 0.004 * bgW;
-    const SHADOW_OFF = 0.002 * bgW;
-
-    const wifiInfo = point.wifiData;
-
-    // Main point
-    ctx.beginPath();
-    ctx.arc(point.x, point.y, R, 0, 2 * Math.PI);
-    ctx.fillStyle = point.isEnabled
-      ? objectToRGBAString(
-          getColorAt(rssiToPercentage(wifiInfo.rssi) / 100, settings.gradient),
-        )
-      : "rgba(156, 163, 175, 0.9)";
-    ctx.fill();
-
-    // Border
-    ctx.strokeStyle = "grey";
-    ctx.lineWidth = BORDER;
-    ctx.closePath();
-    ctx.stroke();
-
-    // Annotation
-    const annotation = `${wifiInfo.signalStrength}%`;
-    ctx.font = `${FONT}px Arial`;
-    const lines = annotation.split("\n");
-    const boxWidth =
-      Math.max(...lines.map((line) => ctx.measureText(line).width)) + PAD * 2;
-    const boxHeight = lines.length * LINE_H + PAD * 2;
-
-    // Shadow
-    ctx.shadowColor = "rgba(0, 0, 0, 0.2)";
-    ctx.shadowBlur = SHADOW_BLUR;
-    ctx.shadowOffsetX = SHADOW_OFF;
-    ctx.shadowOffsetY = SHADOW_OFF;
-
-    // Label box
-    ctx.fillStyle = "rgba(255, 255, 255, 0.6)";
-    ctx.fillRect(
-      point.x - boxWidth / 2,
-      point.y + LABEL_OFFSET_Y,
-      boxWidth,
-      boxHeight,
-    );
-
-    // Reset shadow
-    ctx.shadowColor = "transparent";
-    ctx.shadowBlur = 0;
-    ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 0;
-
-    // Text
-    ctx.fillStyle = "#1F2937";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "top";
-    lines.forEach((line, i) => {
-      ctx.fillText(line, point.x, point.y + LABEL_OFFSET_Y + PAD + i * LINE_H);
-    });
-  }
-
-  /**
-   * drawEmptyPoint() - draw an empty point, grey boundary to be filled
-   *   in when the data returns.
-   * @param point
-   * @param ctx
-   * @param opts
-   */
-  function drawEmptyPoint(
-    point: SurveyPoint,
-    ctx: CanvasRenderingContext2D,
-    opts: ScaleOpts,
-  ) {
-    const { R, BORDER } = sizesFrom(opts);
-
-    // ensure no inherited shadows
-    ctx.shadowColor = "transparent";
-    ctx.shadowBlur = 0;
-    ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 0;
-
-    ctx.beginPath();
-    ctx.arc(point.x, point.y, R, 0, Math.PI * 2);
-    ctx.fillStyle = "#fff";
-    ctx.fill();
-    ctx.strokeStyle = "grey";
-    ctx.lineWidth = BORDER;
-    ctx.stroke();
-  }
-
-  function sizesFrom(opts: ScaleOpts) {
-    const dpr = opts.dpr ?? (window.devicePixelRatio || 1);
-    return {
-      R: 0.008 * opts.bgW,
-      BORDER: (opts.crisp1px ?? true) ? 1 / dpr : 0.002 * opts.bgW,
-    };
-  }
-
-  /**
-   * handleCanvasClick - a click anywhere in the canvas
-   * @param event click point
-   * @returns nothing
-   */
-
-  const handleCanvasClick = (event: React.MouseEvent<HTMLCanvasElement>) => {
-    // if a point was selected, they have "clicked away"
-    // also closes PopupDetails by clicking away
     if (selectedPoint) {
-      setSelectedPoint(null);
+      setSelectedId(null); // click away closes the details
       return;
     }
+    if (measuring) return; // one at a time
+    setMeasureError(null);
+    setPending(pt);
+    setPanelOpen(true);
+  };
 
-    //if the click was on a survey point,
-    // then display the popup window
-    // otherwise, measure the signal strength/speeds at that X/Y
-    const canvas = event.currentTarget;
-    const rect = canvas.getBoundingClientRect();
-    const x = (event.clientX - rect.left) / scale;
-    const y = (event.clientY - rect.top) / scale;
-    setSurveyClick({ x: x, y: y }); // retain the X/Y of the clicked point
+  const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!image) return;
+    setHoveringPoint(!!hitTest(toImageCoords(e)));
+  };
 
-    // Find closest surveyPoint (within 20 units?)
-    const clickedPoint = settings.surveyPoints.find(
-      (point) => Math.sqrt((point.x - x) ** 2 + (point.y - y) ** 2) < 20,
-    );
+  /* ---------- sample data (mock mode only) ---------- */
 
-    // if they clicked an existing point, set the selected point
-    // and display the PopupDetails
-    // (not sure what all this machinery does - why not just setSelectedPoint(clickedPoint)?)
-    if (clickedPoint) {
-      setSelectedPoint(selectedPoint == clickedPoint ? null : clickedPoint);
-      setPopupPosition({
-        x: clickedPoint.x * scale,
-        y: clickedPoint.y * scale,
-      });
-    } else {
-      // otherwise, start a measurement
-      drawEmptyPoint({ x, y } as SurveyPoint, canvas.getContext("2d")!, {
-        bgW: canvas!.width,
-      });
-      setSelectedPoint(null);
-      setAlertMessage("");
-      setIsToastOpen(true);
+  const addSamplePoints = () => {
+    const W = settings.dimensions.width;
+    const H = settings.dimensions.height;
+    const router = { x: W * 0.28, y: H * 0.32 };
+    const maxD = Math.hypot(W, H) * 0.7;
+    const cols = 6;
+    const rows = 4;
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const x = Math.round(W * (0.1 + (0.8 * c) / (cols - 1)));
+        const y = Math.round(H * (0.12 + (0.76 * r) / (rows - 1)));
+        const d = Math.hypot(x - router.x, y - router.y) / maxD;
+        const strength = Math.round(
+          Math.max(
+            12,
+            Math.min(100, 100 - d * 95 + ((r * 7 + c * 13) % 9) - 4),
+          ),
+        );
+        const wifiData = {
+          ...getDefaultWifiResults(),
+          ssid: "Demo Network",
+          bssid: "9e05d696e830",
+          signalStrength: strength,
+          rssi: percentageToRssi(strength),
+          channel: 44,
+          band: 5,
+        };
+        const iperfData = getDefaultIperfResults();
+        const q = strength / 100;
+        iperfData.tcpDownload = {
+          ...iperfData.tcpDownload,
+          bitsPerSecond: Math.round(900e6 * q * q),
+        };
+        iperfData.tcpUpload = {
+          ...iperfData.tcpUpload,
+          bitsPerSecond: Math.round(700e6 * q * q),
+        };
+        surveyPointActions.add({
+          wifiData,
+          iperfData,
+          x,
+          y,
+          timestamp: Date.now(),
+          isEnabled: true,
+          id: "",
+        });
+      }
     }
   };
+
+  /* ---------- popup placement ---------- */
+
+  const popupStyle = useMemo((): React.CSSProperties => {
+    if (!selectedPoint || !containerRef.current) return {};
+    const cw = containerRef.current.clientWidth;
+    const ch = containerRef.current.clientHeight;
+    const px = selectedPoint.x * scale;
+    const py = selectedPoint.y * scale;
+    const POPUP_W = 288; // w-72
+    const GAP = 14;
+    const flipX = px + GAP + POPUP_W > cw;
+    const top = Math.min(Math.max(8, py - 40), Math.max(8, ch - 260));
+    return {
+      left: flipX ? px - GAP - POPUP_W : px + GAP,
+      top,
+    };
+  }, [selectedPoint, scale]);
+
+  /* ---------- render ---------- */
+
+  const points = settings.surveyPoints;
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-md">
-      <h2 className="text-2xl font-semibold text-gray-800">
-        Interactive Floorplan
-      </h2>
-      <div className="p-2 rounded-md text-sm">
-        <p>Click on the floor plan to start a new measurement.</p>
-        <p>Click on existing points to see the measurement details.</p>
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-lg font-semibold">Floor plan</h1>
+          <p className="text-sm text-muted-foreground">
+            Stand where you want to measure, then click that spot on the plan.
+            Click a dot to see its details.
+          </p>
+        </div>
+        {status?.mockMode && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={addSamplePoints}
+            disabled={!image || measuring}
+            data-testid="add-sample-points"
+            title="Mock mode only: fills the plan with synthetic points"
+          >
+            <FlaskConical className="h-3.5 w-3.5" />
+            Add sample points
+          </Button>
+        )}
+      </div>
 
-        <div className="space-y-2 flex flex-col">
-          {settings.surveyPoints?.length > 0 && (
-            <div>Total Measurements: {settings.surveyPoints.length}</div>
+      {imageError && (
+        <div
+          role="alert"
+          className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+        >
+          {imageError}
+        </div>
+      )}
+
+      <div className="survey-plate relative rounded-lg border p-3 sm:p-5">
+        {points.length === 0 && image && !measuring && (
+          <div className="pointer-events-none absolute inset-x-0 top-6 z-10 flex justify-center">
+            <div className="flex items-center gap-2 rounded-full border bg-popover/95 px-3.5 py-1.5 text-sm shadow-float">
+              <MousePointerClick className="h-4 w-4 text-brand" />
+              Click where you are standing to take the first measurement
+            </div>
+          </div>
+        )}
+
+        <div ref={containerRef} className="relative">
+          {!image && !imageError && (
+            <div className="flex aspect-[2/1] items-center justify-center text-sm text-muted-foreground">
+              {loading ? "Loading survey" : "Loading floor plan"}
+            </div>
+          )}
+          <canvas
+            ref={canvasRef}
+            onClick={handleCanvasClick}
+            onMouseMove={handleMouseMove}
+            data-testid="floorplan-canvas"
+            className={cn(
+              "block w-full rounded-md bg-white shadow-sm",
+              !image && "hidden",
+              hoveringPoint
+                ? "cursor-pointer"
+                : measuring
+                  ? "cursor-progress"
+                  : "cursor-crosshair",
+            )}
+          />
+
+          {pending && (
+            <span
+              aria-hidden="true"
+              className="measuring-dot pointer-events-none absolute h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-brand"
+              style={{ left: pending.x * scale, top: pending.y * scale }}
+            />
+          )}
+
+          {selectedPoint && (
+            <div className="absolute z-20" style={popupStyle}>
+              <PopupDetails
+                point={selectedPoint}
+                settings={settings}
+                surveyPointActions={surveyPointActions}
+                onClose={() => setSelectedId(null)}
+              />
+            </div>
           )}
         </div>
       </div>
-      {alertMessage != "" && (
-        <Alert variant="destructive">
-          <AlertTitle>Error Summary</AlertTitle>
-          <AlertDescription>{alertMessage}</AlertDescription>
-        </Alert>
-      )}
-      <div className="relative" ref={containerRef}>
-        <canvas
-          ref={canvasRef}
-          width={settings.dimensions.width}
-          height={settings.dimensions.height}
-          onClick={handleCanvasClick}
-          className="border border-gray-300 rounded-lg cursor-pointer"
+
+      {panelOpen && (
+        <MeasurementPanel
+          onReady={startMeasurement}
+          onClose={closePanel}
+          onCancel={cancelMeasurement}
+          error={measureError}
         />
-
-        <div
-          style={{
-            position: "absolute",
-            left: `${popupPosition.x}px`,
-            top: `${popupPosition.y}px`,
-            transform: "translate(10px, -50%)",
-          }}
-        >
-          <PopupDetails
-            point={selectedPoint}
-            settings={settings}
-            surveyPointActions={surveyPointActions}
-            onClose={closePopup}
-          />
-        </div>
-
-        {isToastOpen && (
-          <NewToast
-            onClose={() => setIsToastOpen(false)}
-            toastIsReady={handleToastIsReady}
-          />
-        )}
-        {/* COMMENT THIS BUTTON OUT FOR PRODUCTION */}
-        <button
-          className="mt-2 px-2 py-1 bg-blue-500 text-white rounded"
-          onClick={startTestPoints}
-          disabled={idx !== null}
-        >
-          Add test points...
-        </button>
-      </div>
+      )}
     </div>
   );
 }

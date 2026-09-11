@@ -2,6 +2,7 @@ import reactPlugin from "eslint-plugin-react";
 import eslint from "@eslint/js";
 import tseslint from "typescript-eslint";
 import unusedImports from "eslint-plugin-unused-imports";
+import reactHooks from "eslint-plugin-react-hooks";
 import eslintPluginPrettierRecommended from "eslint-plugin-prettier/recommended";
 
 export default [
@@ -19,12 +20,15 @@ export default [
     },
   },
   {
-    files: ["src/**/*.{js,jsx,mjs,cjs,ts,tsx}"],
+    files: ["src/**/*.{js,jsx,mjs,cjs,ts,tsx}", "e2e/**/*.ts", "playwright.config.ts"],
     ignores: ["src/components/ui/**"],
     plugins: {
       "unused-imports": unusedImports,
+      "react-hooks": reactHooks,
     },
     rules: {
+      "react-hooks/rules-of-hooks": "error",
+      "react-hooks/exhaustive-deps": "warn",
       semi: "error",
       "prefer-const": "error",
       "react/react-in-jsx-scope": "off",
