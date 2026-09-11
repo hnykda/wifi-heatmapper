@@ -10,6 +10,8 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useAppStatus } from "@/hooks/useAppStatus";
+import { showWelcomeAgain } from "./WelcomePanel";
+import { DialogClose } from "@/components/ui/dialog";
 
 const REPO = "https://github.com/hnykda/wifi-heatmapper";
 
@@ -90,6 +92,17 @@ export function AboutDialog() {
           </a>
           .
         </p>
+        <DialogClose asChild>
+          <Button
+            variant="link"
+            size="sm"
+            className="h-auto justify-start p-0"
+            onClick={showWelcomeAgain}
+            data-testid="show-welcome-again"
+          >
+            Show the welcome message again
+          </Button>
+        </DialogClose>
       </DialogContent>
     </Dialog>
   );

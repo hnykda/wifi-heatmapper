@@ -5,8 +5,9 @@ import { defineConfig, devices } from "@playwright/test";
  * (WIFI_HEATMAPPER_MOCK=1): no sudo, no iperf3, synthetic measurements.
  * Survey files are written to .e2e-data/ so your own surveys are untouched.
  *
- * Locally:   npm run e2e          (starts `next dev` for you)
- * In CI:     npm run build && CI=1 npm run e2e   (uses `next start`)
+ * Locally:   npm run e2e          (starts `next dev` on :3100 for you)
+ * In CI:     npm run e2e:build && CI=1 npm run e2e   (uses `next start`)
+ * The e2e server builds into .next-e2e, so it can run next to `npm run dev`.
  */
 const PORT = 3100;
 const baseURL = `http://localhost:${PORT}`;

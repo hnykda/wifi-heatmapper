@@ -15,6 +15,8 @@ floor plans uploaded to `public/media` are copied to `data/media` on first start
   Floor plan tab gets an "Add sample points" button.
 * **End-to-end tests** with Playwright (`npm run e2e`) that run the real app
   in mock mode. CI runs them on every pull request.
+* **Welcome message** for first-time users at the top of the page; dismiss
+  it with "Got it" and it stays dismissed (About can bring it back).
 * **Dark theme**, following the OS setting with a toggle in the header.
 * **About dialog** with version, OS, Node and iperf3 details for bug reports,
   and `GET /api/status` behind it.

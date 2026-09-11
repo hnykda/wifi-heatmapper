@@ -7,6 +7,9 @@ points it has, and whether throughput tests are on.
 The header also has a light/dark switch and an "i" button that opens the
 About dialog with the version, OS and iperf3 details to include in bug reports.
 
+The first time you open the app a short welcome message explains the
+workflow. "Got it" hides it for good; the About dialog can show it again.
+
 ## Settings
 
 ![Settings](images/settings.png)

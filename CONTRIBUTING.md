@@ -35,6 +35,8 @@ Node 20 or newer is required (CI runs on 22).
 | `npm run build`      | Production build (`npm start` serves it)                  |
 
 The first `npm run e2e` needs a browser: `npx playwright install chromium`.
+The e2e server uses port 3100 and its own build directory, so it can run
+while `npm run dev` is up.
 
 Set `LOG_LEVEL=2` (debug) or `LOG_LEVEL=1` (trace) to see every command the
 server runs and its output. Bug reports should include that log.

@@ -81,7 +81,7 @@ test("a measurement can be cancelled", async ({ page }) => {
   await expect(panel).toHaveAttribute("data-phase", "running");
   await page.getByTestId("measurement-cancel").click();
   await expect(panel).toHaveAttribute("data-phase", "cancelled");
-  await page.getByRole("button", { name: "Dismiss" }).click();
+  await panel.getByRole("button", { name: "Dismiss" }).click();
   await expect(panel).toHaveCount(0);
   await page.waitForTimeout(500);
   const survey = await readSurvey(page, name);

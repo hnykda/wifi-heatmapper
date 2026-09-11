@@ -9,6 +9,7 @@ import { useAppStatus } from "@/hooks/useAppStatus";
 import { BrandMark } from "./BrandMark";
 import { AboutDialog } from "./AboutDialog";
 import { SurveySummary } from "./SurveySummary";
+import { WelcomePanel } from "./WelcomePanel";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import SettingsEditor from "@/components/SettingsEditor";
 import ClickableFloorplan from "@/components/Floorplan";
@@ -129,6 +130,7 @@ export default function AppShell() {
       <SurveySummary onNavigate={setTab} />
 
       <main className="mx-auto w-full max-w-[1440px] flex-1 px-4 py-6 sm:px-6">
+        <WelcomePanel />
         <Tabs.Content value="settings" className="outline-none">
           <SettingsEditor />
         </Tabs.Content>

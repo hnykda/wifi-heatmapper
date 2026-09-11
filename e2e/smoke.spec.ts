@@ -49,3 +49,22 @@ test("theme toggle switches to dark and is remembered", async ({ page }) => {
   await page.getByTestId("theme-toggle").click();
   await expect(html).not.toHaveClass(/dark/);
 });
+
+test("welcome message can be dismissed and brought back", async ({ page }) => {
+  await page.goto("/");
+  const welcome = page.getByTestId("welcome-panel");
+  await expect(welcome).toBeVisible();
+  await expect(welcome).toContainText("iperf3 -s");
+  await expect(page.getByTestId("welcome-mock-note")).toContainText(
+    "npm run dev",
+  );
+  await page.getByTestId("welcome-dismiss").click();
+  await expect(welcome).toHaveCount(0);
+  await page.reload();
+  await expect(page.getByTestId("tab-settings")).toBeVisible();
+  await expect(page.getByTestId("welcome-panel")).toHaveCount(0);
+
+  await page.getByRole("button", { name: "About Wi-Fi Heatmapper" }).click();
+  await page.getByTestId("show-welcome-again").click();
+  await expect(page.getByTestId("welcome-panel")).toBeVisible();
+});
