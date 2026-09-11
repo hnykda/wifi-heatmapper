@@ -1,28 +1,22 @@
-import React, { useState } from "react";
+import React from "react";
+import { X, Trash2 } from "lucide-react";
 import { SurveyPoint, HeatmapSettings, SurveyPointActions } from "@/lib/types";
-import { formatMacAddress, metricFormatter } from "@/lib/utils";
-import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
+import { formatMacAddress } from "@/lib/utils";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
-import { X, Trash2 } from "lucide-react";
 import { AlertDialogModal } from "@/components/AlertDialogModal";
+import { getColorAt, objectToRGBAString } from "@/lib/utils-gradient";
 
 interface PopupDetailsProps {
   point: SurveyPoint | null;
   settings: HeatmapSettings;
   surveyPointActions: SurveyPointActions;
-  onClose: () => void; // New prop to close the popup
+  onClose: () => void;
 }
 
 /**
- * PopupDetails is a "conditionally rendered <div>" that appears when its "point"
- * is non-null (otherwise it simply returns, not rendering anything)
- * (Original code had this test in Floorplan...)
- * @param point
- * @param settings
- * @param surveyPointActions
- * @param onClose - called when window should be closed
- * @returns
+ * Details of one survey point, shown next to it on the floor plan.
+ * Renders nothing when `point` is null.
  */
 const PopupDetails: React.FC<PopupDetailsProps> = ({
   point,
@@ -30,136 +24,115 @@ const PopupDetails: React.FC<PopupDetailsProps> = ({
   surveyPointActions,
   onClose,
 }) => {
-  // if no point passed in, just return
-  if (!point) return;
+  if (!point) return null;
 
-  //   | Stat | Value |
-  // | ---- | ----- |
-  // | ID | Point ###  |
-  // | SSID | abcdef |
-  // | Signal Strength | 50% |
-  // | RSSI | -70 dBm |
-  // | Channel | 6 |
-  // | Band | 2.4 GHz |
-  // | BSSID | ##:##:##:##:##:## |
-  // | AP Name | |
-  // |  |  |
-  // | Strongest SSID |<link to another PopupDetail?> |
-  // | TCP Download | 0.00 Mbps |
-  // | TCP Upload | 0.00 Mbps |
-  // | Position | X: 274, Y: 47 |
-  // | Created  | 9/16/2025, 9:39:44 PM |
-
-  // const { settings, updateSettings } = useSettings();
-  const [isEnabled, setIsEnabled] = useState(point.isEnabled);
-  const rows = [
-    { label: "ID", value: point.id },
-    { label: "SSID", value: point.wifiData?.ssid },
-    {
-      label: "Signal Strength",
-      value: `${point.wifiData.signalStrength}%`,
-      // value: `${point.wifiData?.signalStrength || rssiToPercentage(point.wifiData?.rssi)}%`,
-    },
-    { label: "RSSI", value: `${point.wifiData.rssi} dBm` },
-    { label: "Channel", value: point.wifiData?.channel },
-    { label: "Band", value: `${point.wifiData?.band} GHz` },
-    { label: "BSSID", value: formatMacAddress(point.wifiData?.bssid || "") },
-    {
-      label: "AP Name",
-      value: settings.apMapping.find(
-        (ap) => ap.macAddress === point.wifiData?.bssid,
-      )?.apName,
-    },
-  ];
-
-  if (point.iperfData) {
-    rows.push(
-      {
-        label: "TCP Download",
-        value: metricFormatter(
-          point.iperfData.tcpDownload.bitsPerSecond,
-          "tcpDownload",
-          "bitsPerSecond",
-        ),
-      },
-      {
-        label: "TCP Upload",
-        value: metricFormatter(
-          point.iperfData.tcpUpload.bitsPerSecond,
-          "tcpUpload",
-          "bitsPerSecond",
-        ),
-      },
-    );
-  }
-  rows.push({ label: "Position", value: `X: ${point.x}, Y: ${point.y}` });
-  rows.push({
-    label: "Created",
-    value: new Date(point.timestamp).toLocaleString(),
+  const wifi = point.wifiData;
+  const apName = settings.apMapping.find(
+    (ap) => ap.macAddress === wifi?.bssid,
+  )?.apName;
+  const color = objectToRGBAString({
+    ...getColorAt(wifi.signalStrength / 100, settings.gradient),
+    a: 1,
   });
 
-  /**
-   * User clicked the Enabled switch.
-   * Report back to the parent
-   */
-  const handleToggle = () => {
-    setIsEnabled((prev) => {
-      const newState = !prev;
-      surveyPointActions.update(point, { isEnabled: newState });
-      return newState;
-    });
-  };
+  const mbps = (bps: number) => (bps / 1_000_000).toFixed(1);
+  const hasIperf =
+    point.iperfData &&
+    (point.iperfData.tcpDownload.bitsPerSecond > 0 ||
+      point.iperfData.tcpUpload.bitsPerSecond > 0);
 
-  /**
-   * User clicked the Delete button
-   * Report back to the parent
-   */
-  const handleDelete = (point: SurveyPoint) => {
-    surveyPointActions.delete([point]); // single-element array containing the point
-    onClose();
-  };
+  const rows: [string, React.ReactNode][] = [
+    ["Signal", `${wifi.signalStrength}% (${wifi.rssi} dBm)`],
+    ["Network", wifi.ssid || "not available"],
+    [
+      "Access point",
+      apName
+        ? `${apName}`
+        : formatMacAddress(wifi.bssid || "") || "not available",
+    ],
+    [
+      "Channel",
+      wifi.channel ? `${wifi.channel} (${wifi.band} GHz)` : "not available",
+    ],
+  ];
+  if (hasIperf) {
+    rows.push(
+      [
+        "TCP down / up",
+        `${mbps(point.iperfData.tcpDownload.bitsPerSecond)} / ${mbps(point.iperfData.tcpUpload.bitsPerSecond)} Mbps`,
+      ],
+      [
+        "UDP down / up",
+        `${mbps(point.iperfData.udpDownload.bitsPerSecond)} / ${mbps(point.iperfData.udpUpload.bitsPerSecond)} Mbps`,
+      ],
+    );
+  } else {
+    rows.push(["Throughput", "not measured"]);
+  }
+  rows.push(["Measured", new Date(point.timestamp).toLocaleString()]);
 
   return (
-    <div className="bg-white border border-gray-200 rounded-md shadow-lg text-xs overflow-hidden">
-      <div className="flex justify-between items-center bg-gray-100 px-2 py-1">
-        <h3 className="font-semibold text-sm">Measurement Details</h3>
-        <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
-          <X size={16} />
+    <div
+      className="w-72 overflow-hidden rounded-lg border bg-popover text-popover-foreground shadow-float"
+      data-testid="point-details"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <div className="flex items-center gap-2 border-b px-3 py-2">
+        <span
+          className="h-3 w-3 shrink-0 rounded-full border border-black/20"
+          style={{ background: color }}
+          aria-hidden="true"
+        />
+        <h3 className="truncate text-sm font-semibold">{point.id}</h3>
+        <span className="tabular ml-auto text-xs text-muted-foreground">
+          x {point.x}, y {point.y}
+        </span>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close"
+          className="rounded p-0.5 text-muted-foreground hover:bg-accent hover:text-foreground"
+        >
+          <X className="h-4 w-4" />
         </button>
       </div>
-      <Table>
-        <TableBody>
-          {rows.map((row, index) => (
-            <TableRow
-              key={row.label}
-              className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}
-            >
-              <TableCell className="py-1 px-2 font-medium">
-                {row.label}
-              </TableCell>
-              <TableCell className="py-1 px-2">{row.value}</TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-      <div className="flex justify-between items-center px-2 py-2 bg-gray-100">
-        <div className="flex items-center space-x-2">
-          <Switch checked={isEnabled} onCheckedChange={handleToggle} />
-          <span>Enabled</span>
-        </div>
+      <dl className="tabular grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 px-3 py-2 text-xs">
+        {rows.map(([k, v]) => (
+          <div key={k} className="contents">
+            <dt className="text-muted-foreground">{k}</dt>
+            <dd className="truncate text-right">{v}</dd>
+          </div>
+        ))}
+      </dl>
+      <div className="flex items-center justify-between border-t bg-muted/40 px-3 py-2">
+        <label className="flex items-center gap-2 text-xs">
+          <Switch
+            checked={point.isEnabled}
+            onCheckedChange={(v) =>
+              surveyPointActions.update(point, { isEnabled: v })
+            }
+            aria-label="Use this point in heat maps"
+          />
+          {point.isEnabled ? "Used in heat maps" : "Ignored"}
+        </label>
         <AlertDialogModal
-          title="Delete Measurement?"
-          description="Are you sure you want to delete this measurement?"
+          title={`Delete ${point.id}?`}
+          description="The measurement is removed from this survey. This cannot be undone."
+          confirmLabel="Delete point"
+          destructive
           onCancel={() => {}}
-          onConfirm={() => handleDelete(point)}
+          onConfirm={() => {
+            surveyPointActions.delete([point]);
+            onClose();
+          }}
         >
           <Button
-            variant="destructive"
+            variant="ghost"
             size="sm"
-            className="flex items-center space-x-1"
+            className="text-destructive hover:text-destructive"
           >
-            <Trash2 size={14} />
-            <span>Delete</span>
+            <Trash2 className="h-3.5 w-3.5" />
+            Delete
           </Button>
         </AlertDialogModal>
       </div>

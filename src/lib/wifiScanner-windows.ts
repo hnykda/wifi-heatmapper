@@ -89,7 +89,7 @@ export class WindowsWifiActions implements WifiActions {
     // logger.info(`Called findWifi():`);
 
     const { stdout } = await execAsync("netsh wlan show interfaces");
-    const lines = stdout.split("]n");
+    const lines = stdout.split("\n");
     for (const line of lines) {
       const [, key, val] = splitLine(line);
       if (key == "name") {
@@ -173,14 +173,18 @@ export class WindowsWifiActions implements WifiActions {
       SSIDs: [],
       reason: "",
     };
-    let stdout: string;
+    let stdout: string = "";
     const command = "netsh wlan show interfaces";
-    while (true) {
+    // Wait (up to ~5 s) for the adapter to report a state line. If the
+    // output is in a language we have no localization table for, the
+    // line never matches: fall through and let parseNetshInterfaces()
+    // explain the problem instead of waiting forever.
+    for (let attempt = 0; attempt < 25; attempt++) {
       const execOutput = await execAsync(command);
       stdout = execOutput.stdout;
       const lines = stdout.split("\n");
       const state = lines.filter((line) => splitLine(line)[1] == "state");
-      if (state.length > 0) break; // 能找到状态行说明已连接
+      if (state.length > 0) break;
       await delay(200);
     }
     const parsed = parseNetshInterfaces(stdout);
@@ -326,6 +330,7 @@ export function splitLine(line: string): string[] {
 export function parseNetshInterfaces(output: string): WifiResults {
   const networkInfo = getDefaultWifiResults();
   const lines = output.split("\n");
+  let matchedLabels = 0;
   for (const line of lines) {
     // eslint-disable-next-line prefer-const
     let [, key, val] = splitLine(line);
@@ -336,22 +341,18 @@ export function parseNetshInterfaces(output: string): WifiResults {
       val = normalizeMacAddress(val); // remove ":" or "-" to produce "############"
     }
     if (key != "") {
+      matchedLabels++;
       assignWindowsNetworkInfoValue(networkInfo, key as keyof WifiResults, val);
     }
   }
-  /*
-  // Check to see if we didn't get any of the important info
-  // If not, ask if they could provide info...
-  if (
-    networkInfo.signalStrength == 0 ||
-    networkInfo.channel == 0 ||
-    networkInfo.txRate == 0
-  ) {
+  // Nothing at all matched: the output is in a language we have no
+  // localization table for. (Partial matches are tolerated: some fields
+  // are simply left at their defaults.)
+  if (matchedLabels === 0) {
     throw new Error(
       `Could not read Wi-Fi info. Perhaps wifi-heatmapper is not localized for your system. See https://github.com/hnykda/wifi-heatmapper/issues/26 for details.`,
     );
   }
-  */
   if (!isValidMacAddress(networkInfo.bssid)) {
     throw new Error(
       `Invalid BSSID when parsing netsh output: ${networkInfo.bssid}`,

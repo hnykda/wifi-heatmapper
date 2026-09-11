@@ -45,3 +45,12 @@ public/media/
 # Exclude data from container
 datas/data/*
 datas/media/*
+# user data (floor plans live next to the surveys since 0.5.0)
+/data/media/
+
+# e2e
+/.e2e-data/
+/playwright-report/
+/test-results/
+/blob-report/
+/playwright/.cache/

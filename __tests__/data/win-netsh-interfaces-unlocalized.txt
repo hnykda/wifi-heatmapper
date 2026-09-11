@@ -1,0 +1,23 @@
+# netsh wlan show interfaces - every label is in an unsupported language
+Xx-Interface name : Wi-Fi
+  There are 1 interfaces on the system:
+
+      Xx-Name                   : Wi-Fi
+      Xx-Description           : Intel(R) Wi-Fi 6 AX201 160MHz
+      Xx-GUID                  : 7825d47a-5d59-4c93-8d91-2b0e1b5f6c4b
+      Xx-Physical address      : fe:dc:ba:09:87:01
+      Xx-State                 : connected
+      Xx-SSID                  : SomeSSID-X
+      Xx-BSSID                 : fe:dc:ba:09:87:02
+      Xx-Network type         : Infrastructure
+      Xx-Radio type           : 802.11ax
+      Xx-Authentication       : WPA2-Personal-X
+      Xx-Cipher               : CCMP
+      Xx-Connection mode      : Profile
+      Xx-Channel              : 44
+      Xx-Receive rate (Mbps)  : 103
+      Xx-Transmit rate (Mbps) : 103
+      Xx-Signal             : 42%
+      Xx-Profile              : SomeProfile
+
+      Xx-Hosted network status : Not available

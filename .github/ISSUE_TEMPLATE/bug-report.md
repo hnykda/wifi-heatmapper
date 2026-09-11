@@ -1,34 +1,37 @@
 ---
 name: Bug Report
-about: Create a report to help us improve
+about: Something does not work as expected
 title: ''
 labels: bug
 assignees: ''
 
 ---
 
-## Describe the bug
+## What happened
 
-## To Reproduce
+<!-- What did you do, what did you expect, what happened instead? -->
 
 ## Screenshots
 
 ## Environment
 
-Please enter the following information.
-It's printed in the terminal after you start wifi-heatmapper:
+Open the About dialog (the "i" button in the header) and paste its contents
+here, or copy the "System Information" block the server prints at start-up:
 
-* wifi-heatmapper version: (x.x.x or commit hash)
+* wifi-heatmapper version:
+* Operating system:
 * Node version:
-* OS: [e.g. iOS, Windows, Linux]
-* OS version [e.g. macOS 15 Sequoia, Win 11, Ubuntu 22]
-* Docker container or not
-* Browser [e.g. chrome, safari]
-* iperf version (`iperf3 --version`):
+* iperf3 version:
+* Docker: yes / no
+* Browser:
 
-## Additional context
+## Log
 
-If relevant, please running minimal execution path that leads
-to the problem with `LOG_LEVEL=2 npm run dev | tee -a out.log`
-and share that `out.log` with us here or via
-[Github issue](https://gist.github.com/) and reference it in the issue.
+Run the app with debug logging and attach the log (or a
+[gist](https://gist.github.com/) link):
+
+```bash
+LOG_LEVEL=2 npm run dev | tee out.log
+```
+
+On Windows: `set LOG_LEVEL=2` then `npm run dev`.

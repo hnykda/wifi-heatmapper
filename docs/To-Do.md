@@ -1,6 +1,13 @@
 # To-Do
 
-Random observations and questions that arise at the start of the project
+Random observations and questions that arise at the start of the project.
+Version 0.5.0 (September 2026) delivered the new interface, dark mode,
+mock mode, Playwright tests, an About dialog, access point names, CSV
+export, floor plan deletion and captions on downloaded heat maps;
+those items were removed from the lists below.
+
+Open pull requests worth finishing: #64 (editable SSID/BSSID/point
+label), #85 (Win32 WLAN API on Windows instead of parsing `netsh`).
 
 ## Feature and Behavior Improvements
 
@@ -13,21 +20,10 @@ Ideas for making the program better - in no particular order:
   at an X/Y position on a floor plan.
   Saved as "notations" array (similar to SurveyPoints array)
   in the HeatmapSettings
-* Automatically add the floorplan/background image name and
-  date/time (of the latest survey point?) to the canvas
-  so that the information is preserved in a screen shot
 * Use the `scanWifi()` information to add a `strongestSSID` WifiResults
   to the SurveyPoint to indicate that there is a stronger SSID
   in the neighborhood than the SSID currently being used
 * If no TCP tests, set iperfData to null in the SurveyPoint
-* Add two new tabs:
-  * **AP Mapping** that revives the original March 2025 GUI that
-    allows the user to set names for each BSSID.
-    When BSSIDs are available, wifi-heatmapper could then automatically
-    insert the AP name into the PopupDetails for each survey point
-  * **About** To display information about
-    wifi-heatmapper, including the information logged by
-    _server-init.ts_ as well as other descriptive info.
 * Export `wifi-heatmapper-imagename` and the image itself to a saved file so it can be loaded later
 * (Maybe) During the FloorPlan measurement process, display the heatmap
   for wifi signal strength as a separate floating window.
@@ -42,20 +38,10 @@ Ideas for making the program better - in no particular order:
 
 * Normalize data rate scale for throughput (use range of 200..700mbps with 100's dividers instead of 245..673mbps)
 * Clicking a heat map (signal strength or data rate) and clicking Back should not give http error
-* If `Floorplan` cannot open the image, it should display
-  a sensible message like "Can't open map_name..."
-* An expanded (clicked) heat map should always fit fully within the browser window (or scroll)
-* The "distance" of 10 in detecting a click is not big enough when
-  using some kind of tablet. An errant finger makes it look like a request
-  to make a new measurement, not examine that point's statistics.
 * Setting browser view to 110% should not disarrange click points
   for survey data
-* Improve "fetch error" message when the web GUI has lost contact
-  with the server (perhaps because `npm run dev` has been stopped)
 * Fix display of BSSID; Windows parsing test code not updated;
   macOS shows `<R-ED-AC-TED>` or some such nonsense (should be "Not available")
-* If browser window is at 30%, the TabPanel looks too small, yet the FloorPlan is OK.
-  Do we need to give an indication of this?
 
 ## Questions
 

@@ -86,7 +86,7 @@ export interface IperfCommands {
 export interface HeatmapSettings {
   surveyPoints: SurveyPoint[];
   floorplanImageName: string; // name of the floorplan-filename
-  floorplanImagePath: string; // path to the /media/floorplan-filename
+  floorplanImagePath: string; // URL the browser loads the image from (derived from the name)
   iperfServerAdrs: string;
   testDuration: number;
   sudoerPassword: string; // kept in settings, removed before writing to file
@@ -99,25 +99,45 @@ export interface HeatmapSettings {
   blur: number;
   gradient: Gradient;
   iperfCommands: IperfCommands;
-  // these two props were used for the "scan-wifi" branch
-  // that has been (temporarily?) abandoned
-  // sameSSID: string; // "same", "best"
-  // ignoredSSIDs: string[];
+  meta?: SurveyFileMeta; // written by the server on every save
 }
 
-// part of "scan wifi" effort
-// export type SsidStrategy = "same" | "best";
+/**
+ * SurveyFileMeta - provenance recorded in each data/surveys/*.json file
+ * so bug reports and old files can be understood later.
+ */
+export interface SurveyFileMeta {
+  schemaVersion: number;
+  appVersion: string;
+  platform: string;
+  osName: string;
+  savedAt: string; // ISO timestamp
+}
 
 /**
- * Settings passed to iperfRunner.ts
+ * The subset of settings the measurement process needs.
+ * This is what the browser POSTs to /api/start-task.
  */
 export interface PartialHeatmapSettings {
   iperfServerAdrs: string;
   testDuration: number;
   sudoerPassword: string;
-  ignoredSSIDs: string[];
   iperfCommands: IperfCommands;
-  // sameSSID: SsidStrategy;
+}
+
+/**
+ * AppStatus - facts about the running server, from GET /api/status
+ */
+export interface AppStatus {
+  version: string;
+  nodeVersion: string;
+  platform: string; // darwin | win32 | linux
+  osRelease: string;
+  osName: string;
+  docker: boolean;
+  mockMode: boolean;
+  iperf3Version: string | null; // null when iperf3 is not installed
+  dataDir: string;
 }
 
 /**

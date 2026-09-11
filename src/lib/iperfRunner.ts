@@ -6,14 +6,20 @@ import {
   IperfCommands,
   WifiResults,
 } from "./types";
-// import { scanWifi, blinkWifi } from "./wifiScanner";
 import { execAsync, delay } from "./server-utils";
 import { getCancelFlag, sendSSEMessage } from "./server-globals";
-import { percentageToRssi, toMbps, getDefaultIperfResults } from "./utils";
+import {
+  percentageToRssi,
+  toMbps,
+  getDefaultIperfResults,
+  extractIperfResults,
+} from "./utils";
 import { SSEMessageType } from "@/app/api/events/route";
 import { createWifiActions } from "./wifiScanner";
 import { getLogger } from "./logger";
 import { defaultIperfCommands, buildIperfCommand } from "./iperfUtils";
+import { isMockMode } from "./app-info";
+import { mockIperfResult } from "./wifiScanner-mock";
 const logger = getLogger("iperfRunner");
 
 type TestType = "TCP" | "UDP";
@@ -21,20 +27,25 @@ type TestDirection = "Up" | "Down";
 
 const wifiActions = await createWifiActions();
 
-const validateWifiDataConsistency = (
-  wifiDataBefore: WifiResults,
-  wifiDataAfter: WifiResults,
-) => {
-  if (
-    wifiDataBefore.bssid === wifiDataAfter.bssid &&
-    wifiDataBefore.ssid === wifiDataAfter.ssid &&
-    wifiDataBefore.band === wifiDataAfter.band &&
-    wifiDataBefore.channel === wifiDataAfter.channel
-  ) {
-    return true;
+/**
+ * The Wi-Fi association must not change while we measure, otherwise the
+ * throughput numbers belong to a different access point than the signal.
+ */
+const wifiDataIsConsistent = (
+  before: WifiResults,
+  after: WifiResults,
+): boolean => {
+  const same =
+    before.bssid === after.bssid &&
+    before.ssid === after.ssid &&
+    before.band === after.band &&
+    before.channel === after.channel;
+  if (!same) {
+    logger.debug(
+      `Wi-Fi changed during measurement: ${JSON.stringify(before.bssid)} -> ${JSON.stringify(after.bssid)}`,
+    );
   }
-  const logString = `${JSON.stringify(wifiDataBefore.bssid)} ${JSON.stringify(wifiDataAfter.bssid)}`;
-  logger.debug(logString);
+  return same;
 };
 
 function arrayAverage(arr: number[]): number {
@@ -43,23 +54,23 @@ function arrayAverage(arr: number[]): number {
   return Math.round(sum / arr.length);
 }
 
-const initialStates = {
-  type: "update",
-  header: "Measurement beginning",
-  strength: "-",
-  tcp: "-/- Mbps",
-  udp: "-/- Mbps",
-};
-
-// The measurement process updates these variables
-// which then are converted into update events
-let displayStates = {
+// The measurement process updates these fields, which are
+// then combined into progress events for the browser.
+const displayStates = {
   type: "update",
   header: "In progress",
   strength: "-",
   tcp: "-/- Mbps",
   udp: "-/- Mbps",
 };
+
+function resetDisplayStates() {
+  displayStates.type = "update";
+  displayStates.header = "Measurement beginning";
+  displayStates.strength = "-";
+  displayStates.tcp = "-/- Mbps";
+  displayStates.udp = "-/- Mbps";
+}
 
 /**
  * getUpdatedMessage - combine all the displayState values
@@ -74,6 +85,7 @@ function getUpdatedMessage(): SSEMessageType {
     type: displayStates.type,
     header: displayStates.header,
     status: `Signal strength: ${strength}\nTCP: ${displayStates.tcp}\nUDP: ${displayStates.udp}`,
+    fields: { strength, tcp: displayStates.tcp, udp: displayStates.udp },
   };
 }
 
@@ -82,9 +94,10 @@ function checkForCancel() {
 }
 
 /**
- * runSurveyTests() - get the WiFi and iperf readings
+ * runSurveyTests() - get the Wi-Fi and iperf readings
  * @param settings
- * @returns the WiFi and iperf results for this location
+ * @returns the Wi-Fi and iperf results for this location, or a
+ *          human-readable `status` explaining why there are none
  */
 export async function runSurveyTests(
   settings: PartialHeatmapSettings,
@@ -93,187 +106,158 @@ export async function runSurveyTests(
   wifiData: WifiResults | null;
   status: string;
 }> {
-  // first check the settings and return cogent error if not good
+  // first check the settings and return a cogent error if not good
   const preResults = await wifiActions.preflightSettings(settings);
   if (preResults.reason != "") {
     logger.debug(`preflightSettings returned: ${JSON.stringify(preResults)}`);
     return { iperfData: null, wifiData: null, status: preResults.reason };
   }
-  // check if iperf3 server is available
-  // this is separate from the other preflight checks because it's reasonable
-  // to test the wifi even the iperf3 server is not accessible
-  // (say, you have moved to another subnet)
+
+  // Is the iperf3 server reachable? This is separate from the other
+  // preflight checks because measuring the Wi-Fi alone is still useful
+  // (say, you have moved to another subnet).
   let noIperfTestReason = "";
-  let performIperfTest = true; // assume we will run iperf3 test
+  let performIperfTest = true;
   if (settings.iperfServerAdrs == "localhost") {
     performIperfTest = false;
     noIperfTestReason = "Not performed";
-  }
-  // otherwise check if the server is available
-  else {
+  } else {
     const resp = await wifiActions.checkIperfServer(settings);
-    logger.debug(`checkIperfServer returned: ${resp}`);
-
+    logger.debug(`checkIperfServer returned: ${JSON.stringify(resp)}`);
     if (resp.reason != "") {
       performIperfTest = false;
       noIperfTestReason = resp.reason;
     }
   }
 
-  // begin the survey
+  const startTime = Date.now();
+  resetDisplayStates();
+  sendSSEMessage(getUpdatedMessage()); // immediately send initial values
+  displayStates.header = "Measurement in progress...";
+
   try {
-    const maxRetries = 1;
-    let attempts = 0;
-    const newIperfData = getDefaultIperfResults();
-    let newWifiData: WifiResults | null = null;
-
-    // set the initial states, then send an event to the client
-    const startTime = Date.now();
-    displayStates = { ...displayStates, ...initialStates };
-    sendSSEMessage(getUpdatedMessage()); // immediately send initial values
-    displayStates.header = "Measurement in progress...";
-
-    // This is where the "scan-wifi" branch (now abandoned)
-    // would scan the local wifi neighborhood to find the best
-    // SSID, then switch to it, then make the measurements.
-    // This is too hard on macOS (too many credential prompts)
-    // to be practical.
-
-    // Scan the wifi neighborhood, retrieve the ssidName from the current
+    // Which SSID are we on? (used for the progress header)
     const ssids = await wifiActions.scanWifi(settings);
     logger.debug(`scanWifi returned: ${JSON.stringify(ssids)}`);
+    const ssidName = ssids.SSIDs.find((item) => item.currentSSID)?.ssid ?? "";
 
-    const thisSSID = ssids.SSIDs.filter((item) => item.currentSSID);
-    const ssidName = thisSSID[0]?.ssid ?? "";
+    const server = settings.iperfServerAdrs;
+    const duration = settings.testDuration;
+    const cmds = settings.iperfCommands ?? defaultIperfCommands;
+    const newIperfData = getDefaultIperfResults();
+    const wifiStrengths: number[] = []; // percentages
 
-    while (attempts < maxRetries) {
-      attempts++;
-      try {
-        const server = settings.iperfServerAdrs;
-        const duration = settings.testDuration;
-        const wifiStrengths: number[] = []; // percentages
-        // add the SSID to the header if it's not <redacted>
-        let newHeader = "Measuring Wi-Fi";
-        if (!ssidName.includes("redacted")) {
-          newHeader += ` (${ssidName})`;
-        }
-        displayStates.header = newHeader;
+    displayStates.header = ssidName.includes("redacted")
+      ? "Measuring Wi-Fi"
+      : `Measuring Wi-Fi (${ssidName})`;
 
-        const wifiDataBefore = await wifiActions.getWifi(settings);
-        logger.debug(`getWifi() returned: ${JSON.stringify(wifiDataBefore)}`);
-        console.log(
-          `Elapsed time for scan and switch: ${Date.now() - startTime}`,
-        );
-        wifiStrengths.push(wifiDataBefore.SSIDs[0].signalStrength);
-        displayStates.strength = arrayAverage(wifiStrengths).toString();
-        checkForCancel();
-        sendSSEMessage(getUpdatedMessage());
-
-        // Run the TCP tests
-        const cmds = settings.iperfCommands ?? defaultIperfCommands;
-        if (performIperfTest) {
-          newIperfData.tcpDownload = await runSingleTest(
-            server,
-            duration,
-            "Down",
-            "TCP",
-            cmds,
-          );
-          newIperfData.tcpUpload = await runSingleTest(
-            server,
-            duration,
-            "Up",
-            "TCP",
-            cmds,
-          );
-          displayStates.tcp = `${toMbps(newIperfData.tcpDownload.bitsPerSecond)} / ${toMbps(newIperfData.tcpUpload.bitsPerSecond)} Mbps`;
-        } else {
-          await delay(500);
-          displayStates.tcp = noIperfTestReason;
-        }
-        checkForCancel();
-        sendSSEMessage(getUpdatedMessage());
-
-        const wifiDataMiddle = await wifiActions.getWifi(settings);
-        wifiStrengths.push(wifiDataMiddle.SSIDs[0].signalStrength);
-        displayStates.strength = arrayAverage(wifiStrengths).toString();
-        checkForCancel();
-        sendSSEMessage(getUpdatedMessage());
-
-        // Run the UDP tests
-        if (performIperfTest) {
-          newIperfData.udpDownload = await runSingleTest(
-            server,
-            duration,
-            "Down",
-            "UDP",
-            cmds,
-          );
-          newIperfData.udpUpload = await runSingleTest(
-            server,
-            duration,
-            "Up",
-            "UDP",
-            cmds,
-          );
-          displayStates.udp = `${toMbps(newIperfData.udpDownload.bitsPerSecond)} / ${toMbps(newIperfData.udpUpload.bitsPerSecond)} Mbps`;
-        } else {
-          await delay(500);
-          displayStates.udp = noIperfTestReason;
-        }
-        checkForCancel();
-        sendSSEMessage(getUpdatedMessage());
-
-        const wifiDataAfter = await wifiActions.getWifi(settings);
-        wifiStrengths.push(wifiDataAfter.SSIDs[0].signalStrength);
-        displayStates.strength = arrayAverage(wifiStrengths).toString();
-        checkForCancel();
-
-        // Send the final update - type is "done"
-        displayStates.type = "done";
-        displayStates.header = "Measurement complete";
-        sendSSEMessage(getUpdatedMessage());
-
-        if (
-          !validateWifiDataConsistency(
-            wifiDataBefore.SSIDs[0],
-            wifiDataAfter.SSIDs[0],
-          )
-        ) {
-          throw new Error(
-            "Wifi configuration changed between scans! Cancelling instead of giving wrong results.",
-          );
-        }
-
-        const strength = parseInt(displayStates.strength);
-        newWifiData = {
-          ...wifiDataBefore.SSIDs[0],
-          signalStrength: strength, // use the average signalStrength
-          rssi: percentageToRssi(strength), // set corresponding RSSI
-        };
-      } catch (error: any) {
-        logger.error(`Attempt ${attempts} failed:`, error);
-        if (error.message == "cancelled") {
-          return {
-            iperfData: null,
-            wifiData: null,
-            status: "test was cancelled",
-          };
-        }
+    const readWifi = async (): Promise<WifiResults> => {
+      const resp = await wifiActions.getWifi(settings);
+      if (resp.reason != "" || resp.SSIDs.length === 0) {
+        throw new Error(resp.reason || "No Wi-Fi information returned.");
       }
+      wifiStrengths.push(resp.SSIDs[0].signalStrength);
+      displayStates.strength = arrayAverage(wifiStrengths).toString();
+      checkForCancel();
+      sendSSEMessage(getUpdatedMessage());
+      return resp.SSIDs[0];
+    };
+
+    const wifiDataBefore = await readWifi();
+    logger.debug(`getWifi() returned: ${JSON.stringify(wifiDataBefore)}`);
+    logger.debug(`Elapsed time for scan: ${Date.now() - startTime} ms`);
+
+    // TCP tests
+    if (performIperfTest) {
+      newIperfData.tcpDownload = await runSingleTest(
+        server,
+        duration,
+        "Down",
+        "TCP",
+        cmds,
+      );
+      checkForCancel();
+      newIperfData.tcpUpload = await runSingleTest(
+        server,
+        duration,
+        "Up",
+        "TCP",
+        cmds,
+      );
+      displayStates.tcp = `${toMbps(newIperfData.tcpDownload.bitsPerSecond)} / ${toMbps(newIperfData.tcpUpload.bitsPerSecond)} Mbps`;
+    } else {
+      await delay(300);
+      displayStates.tcp = noIperfTestReason;
+    }
+    checkForCancel();
+    sendSSEMessage(getUpdatedMessage());
+
+    await readWifi();
+
+    // UDP tests
+    if (performIperfTest) {
+      newIperfData.udpDownload = await runSingleTest(
+        server,
+        duration,
+        "Down",
+        "UDP",
+        cmds,
+      );
+      checkForCancel();
+      newIperfData.udpUpload = await runSingleTest(
+        server,
+        duration,
+        "Up",
+        "UDP",
+        cmds,
+      );
+      displayStates.udp = `${toMbps(newIperfData.udpDownload.bitsPerSecond)} / ${toMbps(newIperfData.udpUpload.bitsPerSecond)} Mbps`;
+    } else {
+      await delay(300);
+      displayStates.udp = noIperfTestReason;
+    }
+    checkForCancel();
+    sendSSEMessage(getUpdatedMessage());
+
+    const wifiDataAfter = await readWifi();
+
+    if (!wifiDataIsConsistent(wifiDataBefore, wifiDataAfter)) {
+      throw new Error(
+        "Wi-Fi connection changed during the measurement (different access point, band or channel). Stay in one place and try again.",
+      );
     }
 
-    // return the values ("!" asserts that the values are non-null)
-    return { iperfData: newIperfData!, wifiData: newWifiData!, status: "" };
-  } catch (error) {
-    logger.error("Error running measurement tests:", error);
-    sendSSEMessage({
-      type: "done",
-      status: "Error taking measurements",
-      header: "Error",
-    });
+    // Final update - type is "done"
+    displayStates.type = "done";
+    displayStates.header = "Measurement complete";
+    sendSSEMessage(getUpdatedMessage());
 
-    throw error;
+    const strength = arrayAverage(wifiStrengths);
+    const newWifiData: WifiResults = {
+      ...wifiDataBefore,
+      signalStrength: strength, // use the average signalStrength
+      rssi: percentageToRssi(strength), // set corresponding RSSI
+    };
+    logger.debug(`Measurement took ${Date.now() - startTime} ms`);
+    return { iperfData: newIperfData, wifiData: newWifiData, status: "" };
+  } catch (error: any) {
+    if (error?.message == "cancelled") {
+      logger.info("Measurement cancelled");
+      sendSSEMessage({
+        type: "done",
+        header: "Cancelled",
+        status: "Measurement cancelled",
+      });
+      return {
+        iperfData: null,
+        wifiData: null,
+        status: "Measurement cancelled",
+      };
+    }
+    const message = error instanceof Error ? error.message : String(error);
+    logger.error("Error running measurement tests:", message);
+    sendSSEMessage({ type: "done", header: "Error", status: message });
+    return { iperfData: null, wifiData: null, status: message };
   }
 }
 
@@ -284,7 +268,12 @@ async function runSingleTest(
   testType: TestType,
   iperfCommands: IperfCommands,
 ): Promise<IperfTestProperty> {
-  const logger = getLogger("runSingleTest");
+  const isUdp = testType == "UDP";
+  const isDownload = testDir == "Down";
+
+  if (isMockMode()) {
+    return mockIperfResult(isUdp, isDownload, duration);
+  }
 
   let port = "";
   if (server.includes(":")) {
@@ -292,8 +281,6 @@ async function runSingleTest(
     server = host;
     port = serverPort;
   }
-  const isUdp = testType == "UDP";
-  const isDownload = testDir == "Down";
 
   // Select the appropriate command template
   let template: string;
@@ -308,81 +295,15 @@ async function runSingleTest(
   const { stdout } = await execAsync(command);
   const result = JSON.parse(stdout);
   logger.trace("Iperf JSON-parsed result:", result);
-  const extracted = extractIperfData(result, isUdp);
+  const extracted = extractIperfResults(result, isUdp);
   logger.trace("Iperf extracted results:", extracted);
   return extracted;
 }
 
+/** Kept for existing tests; the implementation lives in utils.ts */
 export async function extractIperfData(
-  result: {
-    end: {
-      sum_received?: { bits_per_second: number };
-      sum_sent?: { retransmits?: number };
-      sum?: {
-        bits_per_second?: number;
-        jitter_ms?: number;
-        lost_packets?: number;
-        packets?: number;
-        lost_percent?: number;
-        retransmits?: number;
-      };
-      streams?: Array<{
-        udp?: {
-          jitter_ms?: number;
-          lost_packets?: number;
-          packets?: number;
-        };
-      }>;
-    };
-    version?: string;
-  },
+  result: Parameters<typeof extractIperfResults>[0],
   isUdp: boolean,
 ): Promise<IperfTestProperty> {
-  const end = result.end;
-
-  // Check if we're dealing with newer iPerf (Mac - v3.17+) or older iPerf (Ubuntu - v3.9)
-  // Newer versions have sum_received and sum_sent, older versions only have sum
-  const isNewVersion = !!end.sum_received;
-
-  /**
-   * In newer versions (Mac):
-   * - TCP: sum_received contains download/upload bps, sum_sent contains retransmits
-   * - UDP: sum_received contains actual received data (~51 Mbps),
-   *        sum contains reported test bandwidth (~948 Mbps)
-   *
-   * In older versions (Ubuntu):
-   * - TCP: sum contains both bps and retransmits
-   * - UDP: sum contains all metrics (bps, jitter, packet loss)
-   */
-
-  // For UDP tests with newer iPerf (Mac), we want to use sum.bits_per_second
-  // For TCP tests with newer iPerf, we want to use sum_received.bits_per_second
-  // For all tests with older iPerf (Ubuntu), we want to use sum.bits_per_second
-  const bitsPerSecond = isNewVersion
-    ? isUdp
-      ? end.sum?.bits_per_second || 0
-      : end.sum_received!.bits_per_second
-    : end.sum?.bits_per_second || 0;
-
-  if (!bitsPerSecond) {
-    throw new Error(
-      "No bits per second found in iperf results. This is fatal.",
-    );
-  }
-
-  const retransmits = isNewVersion
-    ? end.sum_sent?.retransmits || 0
-    : end.sum?.retransmits || 0;
-
-  return {
-    bitsPerSecond,
-    retransmits,
-
-    // UDP metrics - only relevant for UDP tests
-    // These fields will be null for TCP tests
-    jitterMs: isUdp ? end.sum?.jitter_ms || null : null,
-    lostPackets: isUdp ? end.sum?.lost_packets || null : null,
-    packetsReceived: isUdp ? end.sum?.packets || null : null,
-    signalStrength: 0,
-  };
+  return extractIperfResults(result, isUdp);
 }

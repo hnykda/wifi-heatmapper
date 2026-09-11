@@ -14,9 +14,14 @@ import { getLogger } from "../../../lib/logger";
 const logger = getLogger("api-events");
 
 export type SSEMessageType = {
-  type: string;
+  type: string; // ready | update | done | heartbeat
   header: string;
-  status: string;
+  status: string; // human readable, multi-line
+  fields?: {
+    strength: string; // "78%" or "-"
+    tcp: string; // "312.10 / 280.55 Mbps", "Not performed", or an error
+    udp: string;
+  };
 };
 
 export async function GET(req: NextRequest) {

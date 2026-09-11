@@ -18,3 +18,13 @@
    It appears that a macOS application now needs Location Access
    permissions to obtain this information.
 
+## Where is my data?
+
+In `data/surveys/<floor plan name>.json` next to the app, one file per floor
+plan, plus the images in `data/media/`. Copy the `data` folder to back up or
+move a survey. Set `WIFI_HEATMAPPER_DATA_DIR` to keep it elsewhere.
+
+## Can I try it without a Wi-Fi card, sudo or iperf3?
+
+Yes: `npm run dev:mock` runs the app with synthetic measurements. Useful for
+looking around, taking screenshots, or developing the UI.

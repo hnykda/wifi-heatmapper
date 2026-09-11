@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
   if (action === "status") {
     return NextResponse.json(getGlobalStatus());
   } else if (action === "results") {
-    return NextResponse.json(getSurveyResults() ??  { state: "pending" });
+    return NextResponse.json(getSurveyResults() ?? { state: "pending" });
   }
   // invalid action
   return NextResponse.json(
@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
         if (!wifiData || !iperfData) {
           setSurveyResults({
             state: "error",
-            explanation: "wifi or iperf data is null",
+            explanation: "The measurement returned no data.",
           });
           return;
         }

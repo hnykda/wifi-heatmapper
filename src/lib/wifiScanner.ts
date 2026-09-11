@@ -6,14 +6,21 @@ import { getLogger } from "./logger";
 import { MacOSWifiActions } from "./wifiScanner-macos";
 import { WindowsWifiActions } from "./wifiScanner-windows";
 import { LinuxWifiActions } from "./wifiScanner-linux";
+import { MockWifiActions } from "./wifiScanner-mock";
+import { isMockMode } from "./app-info";
 /**
  * wifiScanner.ts is a factory module that returns the proper set of
- * functions for the underlying OS
+ * functions for the underlying OS (or the mock backend when
+ * WIFI_HEATMAPPER_MOCK is set).
  */
 
 const logger = getLogger("wifiScanner");
 
 export async function createWifiActions(): Promise<WifiActions> {
+  if (isMockMode()) {
+    logger.info("Mock mode: using synthetic Wi-Fi and iperf3 results");
+    return new MockWifiActions();
+  }
   const platform = os.platform();
   switch (platform) {
     case "darwin":
@@ -48,8 +55,6 @@ export async function loopUntilCondition(
   condition: number, // 0 = loop until no error; 1 = loop until error
   timeout: number, // seconds
 ) {
-  // logger.info(`loopUntilCondition: ${cmd} ${testcmd} ${condition} ${timeout}`);
-
   const interval = 200; // msec
   const count = (timeout * 1000) / interval;
   let i;
@@ -58,17 +63,11 @@ export async function loopUntilCondition(
 
   // Start to loop on testcmd until the desired condition
   for (i = 0; i < count; i++) {
-    // let exit = "";
     let outcome;
     try {
       await execAsync(`${testCmd}`); // run the testcmd
-      // const resp = await execAsync(`${testcmd}`); // run the testcmd
-      // exit = resp.stdout;
-      // console.log(`${testcmd} is OK: ${i} ${Date.now()} "${exit}"`);
       outcome = 0; // no error
     } catch {
-      // } catch (error) {
-      // console.log(`${testcmd} gives error: ${i} ${Date.now()} "${error}"`);
       outcome = 1; // some kind of error that caused the catch()
     }
     if (outcome == condition) break; // we got the result we were looking for
@@ -82,7 +81,6 @@ export async function loopUntilCondition(
 export async function logWifiResults(results: WifiScanResults): Promise<void> {
   logger.info(`===== WifiResults =====`);
   results.SSIDs.forEach(logWifiResult);
-  // logger.info(`==============`);
 }
 
 export async function logWifiResult(result: WifiResults) {

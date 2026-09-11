@@ -1,198 +1,118 @@
 # Wi-Fi Heatmapper
 
-**wifi-heatmapper** displays heat maps of both
-Wi-Fi signal strength and
-the results of network throughput (speed) tests.
-Use it to find out if your wi-fi signal is actually weak,
-or if there is something else wrong with your network.
-If there is a signal-strength problem, you can use the
-heat map to optimize access point placement,
-or to add new mesh devices or extenders.
-Your data never leaves your computer - everything is stored locally in simple JSON files (`data/surveys/`).
+**wifi-heatmapper** measures Wi-Fi signal strength and network throughput
+where you stand, and draws heat maps of the results on your floor plan.
+Walk around with a laptop, click where you are, and see which rooms have a
+weak signal, where a mesh node or extender would help, and whether a slow
+connection is really the Wi-Fi's fault.
 
-The heat maps show areas of strong signal
-(or high data transfer speeds) with green ("green is good").
-Signal levels fade to turquoise, then to blue
-(lowest acceptable).
-Yellow and red colors indicate poor signal levels.
+Runs on **macOS, Windows and Linux** (and in Docker on Linux).
+Everything stays on your computer: surveys are plain JSON files in `data/surveys/`.
 
-![heatmap example](docs/images/Heatmap.jpg)
+![Signal strength heat map](docs/images/heatmap.jpg)
 
-The screen shot above is a sample heat map.
-It was created by measuring about a dozen points around the house,
-especially locations where people actually use a computer.
-The heat map shows that the signal levels throughout the house
-are acceptable &mdash; mostly green, turquoise, and blue.
-The areas of yellow or red are at the edges.
-(Don't have a floor plan for your home?
-See the [FAQ](docs/FAQ.md).)
+Green is good. The scale runs green, turquoise, blue for acceptable signal,
+then yellow and red where it gets poor.
 
-**wifi-heatmapper** runs on Windows, macOS, and Linux.
-There are more details about the operation at:
+## Quick start
 
-* [User Interface](docs/User_Interface.md)
-* [Theory of Operation](docs/Theory_of_Operation.md)
-* [FAQ](docs/FAQ.md)
-* [To-Do](docs/To-Do.md)
+You need Node.js 20 or newer (`node --version`).
 
-## Overview of using wifi-heatmapper
+```bash
+git clone https://github.com/hnykda/wifi-heatmapper.git
+cd wifi-heatmapper
+npm install
+npm run dev
+```
 
-1. **Install wifi-heatmapper.**
-You'll want it installed on a laptop so you can move it around
-and measure signal strength at various locations.
-See [Installing and Running](#installing-and-running)
-below for details.
-Then browse to
-[http://localhost:3000](http://localhost:3000).
+Open [http://localhost:3000](http://localhost:3000) and:
 
-2. **Settings pane:** To get started, use the default floor plan
-(EmptyFloorPlan.png)
-and provide a sudo password for macOS or Linux.
-Leave the other settings at their default.
-No throughput tests are made when the iperf3 server is set
-to "localhost".
+1. **Settings.** Pick the built-in floor plan or upload your own (a photo of a
+   sketch is fine, see the [FAQ](docs/FAQ.md)). On macOS and Linux enter your
+   sudo password: the OS needs it to read the signal. It is never saved.
+2. **Floor plan.** Stand somewhere, click that spot. Signal strength (and
+   throughput, if you set up iperf3) is measured and a coloured dot appears.
+   Do this in every room, twice in big ones.
+3. **Heat maps.** Adjust the radius until the spots merge. Download the map.
+4. **Survey points.** Check, switch off or delete individual measurements,
+   or export everything as CSV.
 
-3. **Switch to the Floor Plan tab.**
-You'll see the built-in Empty Floor Plan or your uploaded image.
+Linux needs `iw` and `nmcli` installed and on `PATH`.
 
-4. **Start a measurement** by clicking the floor plan at a point
-that reflects your laptop's location.
-**wifi-heatmapper** measures the WiFi signal strength and
-(optionally) the throughput at that point.
-When the measurement is complete, the floor plan displays
-a dot colored by its signal strength.
-Click the dot to get more information.
+![Floor plan with survey points](docs/images/floorplan.png)
 
-5. **Move to other locations** and make further measurements.
-Make at least one measurement per room.
-Multiple measurements per room provide more fine-grained data.
+### Measuring throughput with iperf3 (optional)
 
-6. **Click the Heatmap tab** to see the resulting heat map.
-Areas with strong signal will be green,
-lower signal levels will follow the
-Green -> Turquoise -> Blue -> Yellow -> Red transition.
-Adjust the **Radius** slider until the spots grow together.
-Go back to the Floor Plan tab to make more measurements if needed.
+Signal strength alone tells you where the Wi-Fi is weak. Throughput tells
+you how fast it actually is.
 
-7. **Click the Survey Points tab** to see all the survey points,
-with details of the measurements taken.
-Remove errant points using this tab.
+1. Install `iperf3` on the laptop (`iperf3 --version` should work).
+   Note: tools called `iperf` or `iperf2` are different and incompatible.
+2. Install `iperf3` on another computer on your network, wired if possible
+   (a desktop, a Raspberry Pi, a NAS), and start it with `iperf3 -s`.
+3. In Settings, enter that computer's address as the iperf3 server.
 
-## Installing and Running
+Each measurement then also runs TCP and UDP tests in both directions.
+The commands can be changed under Settings if you need other options.
 
-**wifi-heatmapper** requires a recent Javascript environment
-(tested on Node 23), most specifically having `npm` available.
-Install it on a laptop device so you can move from place to place.
-To install the software:
+### Try it without any hardware
 
-1. Pull the repo, install the `npm` dependencies,
-   and run the project.
-   To do this, run these commands from a terminal:
+```bash
+npm run dev:mock
+```
 
-   ```bash
-   git clone https://github.com/hnykda/wifi-heatmapper.git
-   cd wifi-heatmapper
-   npm install
-   npm run dev
-   ```
+Mock mode fakes the measurements so you can explore the app, or work on it,
+on any machine without sudo, iperf3 or even a Wi-Fi card. The header shows
+a "Mock data" badge while it is on.
 
-2. Browse to [http://localhost:3000](http://localhost:3000)
-   and follow the steps at the top of this page
+## Docker (Linux hosts only)
 
-3. (Linux Only) You need to have `iw` installed and in `PATH`.
+The container has to reach the host's Wi-Fi adapter, which is only possible
+on Linux. On macOS and Windows run the app directly.
 
-### Installing iperf3
+```bash
+docker build -t wifi-heatmapper .
+docker run --net=host --privileged \
+  -v ./datas:/app/data \
+  -v /var/run/dbus:/var/run/dbus \
+  wifi-heatmapper
+```
 
-_Note: Installing the `iperf3` client and server are optional.
-This makes the initial installation straightforward:
-simply perform the two steps above.
-But you miss out on the ability to make throughput tests._
+Surveys and floor plans are kept in `./datas` on the host. NetworkManager
+inside the container talks to the host over D-Bus, hence the second mount.
+No sudo password is needed in Docker.
 
-To take advantage of `iperf3` throughput (speed) tests:
+## Documentation
 
-1. Install `iperf3` on your laptop.
-   Follow instructions on the internet for your OS.
-   _Note: there are other speed tests with a name like `iperf...`
-   They are similar, but incompatible.
-   Be sure to install `iperf3`_
-2. Install `iperf3` on another computer.
-   This will be the "iperf3 server".
-   This could be a desktop or another laptop,
-   or even a Raspberry Pi 4 or 5.
-3. Start the "iperf3 server" on the other computer with
-   `iperf3 -s`
-4. Optional checks: Run these tests on the laptop:
-   * Check the local iperf3 binary with `iperf3 --version`
-   * Check the connection to the iperf3 server
-      with `iperf3 -c address-of-iperf3-server`
+- [User interface](docs/User_Interface.md), tab by tab
+- [Theory of operation](docs/Theory_of_Operation.md): which commands run on
+  each OS, how the heat map is computed
+- [FAQ](docs/FAQ.md): floor plans, `<redacted>` SSIDs on macOS, and more
+- [Changelog](CHANGELOG.md)
 
-## Usage with Docker
+## Reporting a problem
 
-WiFi Heatmapper includes a Dockerfile that automates much of
-the installation process for Linux.
-_NB: The Dockerfile does not work on macOS or Windows.
-See the note in the Dockerfile for more information._
+Open an [issue](https://github.com/hnykda/wifi-heatmapper/issues/new/choose).
+Include the details from the About dialog (the "i" button in the header) and,
+if you can, a log:
 
-1. Build the Docker Image
-
-   ```bash
-   docker build -t wifi-heatmapper .
-   ```
-
-2. Run the Container
-
-   ```bash
-   docker run \
-   --net="host" \
-   --privileged \
-   -v ./datas/data:/app/data \
-   -v ./datas/media:/app/public/media \
-   -v /var/run/dbus:/var/run dbus \
-   wifi-heatmapper
-   ```
-
-### Docker Tips
-
-* Use `-v` options if you want to save db + floorplan picture
-  to the _datas_ folder
-* Ctl-C to abort the Docker container
-* If you want to "ssh into the Docker container", execute this:
-  `docker exec -it container-name /bin/bash`
-  where `container-name` is shown in the `docker ps` command
-* _Note: `networkmanager` needs to use `dbus` to communicate within
-  a Docker container.
-  The `/var/run/dbus...` line accomplishes this._
-
-## History
-
-This project is a WiFi heatmapper solution for macOS/Windows/Linux, inspired by [python-wifi-survey-heatmap](https://github.com/jantman/python-wifi-survey-heatmap).
-@hnykda wanted to create a heatmap of his WiFi coverage,
-but the original project didn't work because he is running on Mac.
-He also wanted something that might be slightly easier to use, i.e. using a browser.
-@richb-hanover refactored the GUI to its current four-tab appearance.
-
-## Screen Recording
-
-This is a video recording of an earlier version of `wifi-heatmapper`.
-The basic operation is the same, but looks different now.
-In this version, all the user interface was in one page,
-and it used a different color scheme:
-red indicates "hot" (strong signal),
-blue was "cool" (weak).
-
-[![showcase recording](https://img.youtube.com/vi/pXlm-eWaJCs/0.jpg)](https://www.youtube.com/watch?v=pXlm-eWaJCs)
-
-## Credits
-
-This project was inspired by
-[python-wifi-survey-heatmap](https://github.com/jantman/python-wifi-survey-heatmap).
-Special thanks to the original author for their work.
+```bash
+LOG_LEVEL=2 npm run dev | tee out.log
+```
 
 ## Contributing
 
-Feel free to contribute to this project by opening an issue
-or submitting a pull request. We are more than happy for that and review new PRs and issues regularly! 
+Pull requests are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) for the
+setup, the test suites and what a PR needs. Every PR needs evidence it was
+tested: automated tests, or a screenshot and a note on which OS you tried it.
 
-If you are a first time contributor, consider going after [good first issue](https://github.com/hnykda/wifi-heatmapper/issues?q=is%3Aissue%20state%3Aopen%20label%3A%22good%20first%20issue%22) label.
+## History and credits
 
-Note that every PR needs at least minimal testing, be it covered by automatic tests (that you can implement, prefered), or manually. In the case of the latter, a screenshot or a comment is necessary. Apart from just better understanding for reviewers, this also serves as a filter against automatic LLM slop PRs.
+Inspired by [python-wifi-survey-heatmap](https://github.com/jantman/python-wifi-survey-heatmap).
+@hnykda started this version to get heat maps on a Mac with a browser UI;
+@richb-hanover built the four-tab interface and much of the platform support.
+The heat map renderer uses WebGL inverse-distance weighting contributed in
+[#35](https://github.com/hnykda/wifi-heatmapper/pull/35).
+
+An early [screen recording](https://www.youtube.com/watch?v=pXlm-eWaJCs)
+shows the original single-page version (with the opposite colour scheme).

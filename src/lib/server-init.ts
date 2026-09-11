@@ -1,136 +1,106 @@
-// lib/initServer.ts
-import { copyToMediaFolder } from "../lib/actions";
-import { getLogger } from "./logger";
+/**
+ * server-init.ts - one-time server start-up.
+ * Called from src/instrumentation.ts when the Next.js server boots
+ * (both `next dev` and `next start`).
+ */
 import os from "os";
 import { promises as fs } from "fs";
-import isDocker from "is-docker";
-import { execAsync } from "./server-utils";
+import path from "path";
+import { getLogger } from "./logger";
 import { initLocalization } from "./localization";
-import { execFileSync } from "node:child_process";
-
-const loadJson = async (filePath: string) => {
-  const contents = await fs.readFile(filePath, "utf-8");
-  return JSON.parse(contents);
-};
+import { getAppStatus } from "./app-info";
+import {
+  getBundledFloorplansDir,
+  getLegacyMediaDir,
+  getMediaDir,
+  getSurveysDir,
+  isImageFileName,
+} from "./server-paths";
 
 const logger = getLogger("initServer");
 
 async function logSystemInfo(): Promise<void> {
-  try {
-    const platform = os.platform();
-    const release = os.release();
-    const version = os.version();
-    const data = await loadJson("./package.json");
-    const nodeVersion = process.version;
-
-    logger.info("=== System Information ===");
-    logger.info(`wifi-heatmapper: ${data.version}`);
-    logger.info(`Node version: ${nodeVersion}`);
-    if (platform == "darwin") {
-      logger.info(`OS: macOS ${getMacOSNameAndVersion()}`);
-    } else {
-      logger.info(`OS: ${platform} ${release}`);
-    }
-    logger.info(`OS Details: ${version}`);
-    if (isDocker()) {
-      logger.info(`Running in a Docker container`);
-    }
-
-    try {
-      const { stdout } = await execAsync("iperf3 --version");
-      logger.info(`iperf3 version: ${stdout.trim()}`);
-    } catch {
-      logger.info("Could not determine iperf3 version: is it installed?");
-    }
-    // logger.info("");
-    logger.info("=== End System Information ===");
-    // logger.info("");
-  } catch (error) {
-    logger.error("Error collecting system information:", error);
+  const status = await getAppStatus();
+  logger.info("=== System Information ===");
+  logger.info(`wifi-heatmapper: ${status.version}`);
+  logger.info(`Node version: ${status.nodeVersion}`);
+  logger.info(`OS: ${status.osName}`);
+  logger.info(
+    `OS Details: ${os.version()} (${status.platform} ${status.osRelease})`,
+  );
+  if (status.docker) logger.info("Running in a Docker container");
+  if (status.mockMode) {
+    logger.info("MOCK MODE: Wi-Fi and iperf3 results are synthetic");
   }
+  logger.info(
+    status.iperf3Version
+      ? `iperf3 version: ${status.iperf3Version}`
+      : "Could not determine iperf3 version: is it installed?",
+  );
+  logger.info(`Data directory: ${status.dataDir}`);
+  logger.info("=== End System Information ===");
 }
 
 /**
- * initServer() - a grab-bag of stuff to initialize on the server
- * - Logging system information
- * - Copying the default background image to /media/ folder
+ * copyMissing() - copy every image from `from` into `to` unless a file with
+ * the same name already exists there. Returns the number copied.
  */
-export async function initServer() {
-  // one-time setup (e.g., DB pool, metrics, cache)
-  // logger.info("Initializing server...");
-
-  let initialized = false;
-
-  if (!initialized) {
-    // Run system info logging at module load time
-    logSystemInfo().catch((error) => {
-      logger.error("Failed to log system information:", error);
-    });
-
-    copyToMediaFolder("EmptyFloorPlan.png"); // seed with empty floorplan
-    copyToMediaFolder("House & Garage.jpg"); // seed with generic Google map view
-
-    // only load the localization code if it's running on Windows
-    if (os.platform() == "win32") {
-      await initLocalization(); // load up the localization files
-    }
-    initialized = true;
-    // logger.info(`Server initialization complete.`);
-  }
-}
-
-/**
- * getMacOSNameAndVersion() - Return a string with OS name and version
- * example: // console.log(getMacOSNameAndVersion()); // "Sequoia 15.5"
- * @returns string
- */
-const NAME_FOR_MAJOR: Record<number, string> = {
-  11: "Big Sur",
-  12: "Monterey",
-  13: "Ventura",
-  14: "Sonoma",
-  15: "Sequoia",
-};
-
-const NAME_FOR_10: Record<number, string> = {
-  0: "Cheetah",
-  1: "Puma",
-  2: "Jaguar",
-  3: "Panther",
-  4: "Tiger",
-  5: "Leopard",
-  6: "Snow Leopard",
-  7: "Lion",
-  8: "Mountain Lion",
-  9: "Mavericks",
-  10: "Yosemite",
-  11: "El Capitan",
-  12: "Sierra",
-  13: "High Sierra",
-  14: "Mojave",
-  15: "Catalina",
-  16: "Big Sur", // some early 11.0 reported as 10.16
-};
-
-export function getMacOSNameAndVersion(): string | null {
-  if (process.platform !== "darwin") return null;
-
-  let version = "";
+async function copyMissing(from: string, to: string): Promise<number> {
+  let names: string[];
   try {
-    version = execFileSync("sw_vers", ["-productVersion"], {
-      encoding: "utf8",
-    }).trim();
+    names = await fs.readdir(from);
   } catch {
-    return null;
+    return 0; // source dir doesn't exist
   }
+  let copied = 0;
+  for (const name of names.filter(isImageFileName)) {
+    const dest = path.join(to, name);
+    try {
+      await fs.access(dest);
+    } catch {
+      await fs.copyFile(path.join(from, name), dest);
+      copied++;
+    }
+  }
+  return copied;
+}
 
-  const [majS, minS] = version.split(".");
-  const major = Number(majS);
-  const minor = Number(minS ?? "0");
+let initPromise: Promise<void> | null = null;
 
-  let name = "macOS";
-  if (major === 10) name = NAME_FOR_10[minor] ?? "Mac OS X";
-  else if (major >= 11) name = NAME_FOR_MAJOR[major] ?? "macOS";
+/**
+ * initServer() - idempotent start-up work:
+ * - log system information
+ * - create the data directories
+ * - seed the bundled floor plans
+ * - migrate floor plans uploaded by versions < 0.5.0 (public/media)
+ * - load Windows localization tables
+ */
+export function initServer(): Promise<void> {
+  if (!initPromise) initPromise = doInit();
+  return initPromise;
+}
 
-  return `${name} ${version}`;
+async function doInit(): Promise<void> {
+  try {
+    await logSystemInfo();
+
+    const mediaDir = getMediaDir();
+    await fs.mkdir(mediaDir, { recursive: true });
+    await fs.mkdir(getSurveysDir(), { recursive: true });
+
+    await copyMissing(getBundledFloorplansDir(), mediaDir);
+    const migrated = await copyMissing(getLegacyMediaDir(), mediaDir);
+    if (migrated > 0) {
+      logger.info(
+        `Migrated ${migrated} floor plan(s) from public/media to ${mediaDir}`,
+      );
+    }
+
+    // only load the localization tables when running on Windows
+    if (os.platform() == "win32") {
+      await initLocalization();
+    }
+  } catch (error) {
+    logger.error("Server initialization failed:", error);
+  }
 }

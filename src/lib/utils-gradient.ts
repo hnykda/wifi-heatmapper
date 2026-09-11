@@ -101,3 +101,19 @@ export const hexToRgba = (hex: string, alpha: number) => {
 
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 };
+
+/**
+ * gradientToCss() - a CSS linear-gradient string (left = 0, right = 1)
+ * for previewing a Gradient in the UI.
+ */
+export function gradientToCss(gradient: Gradient): string {
+  const stops = Object.entries(gradient)
+    .map(([k, v]) => [Number(k), v] as [number, string])
+    .filter(([k]) => Number.isFinite(k))
+    .sort((a, b) => a[0] - b[0])
+    .map(([k, v]) => {
+      const c = rgbaStringToObject(v);
+      return `rgb(${c.r} ${c.g} ${c.b}) ${Math.round(k * 100)}%`;
+    });
+  return `linear-gradient(to right, ${stops.join(", ")})`;
+}

@@ -15,16 +15,23 @@ a new **wifi-heatmapper** release.
 The entire code base should pass all tests with no warnings or errors.
 These include:
 
-* `npm run typecheck` - run the Typescript compiler on all files
-* `npm run lint` - run the linter on all files
-* `npm test` - run all the test cases
+* `npm run verify` - lint, type check and unit tests
+* `npm run build` - a production build
+* `npm run e2e` - Playwright end-to-end tests in mock mode
+
+See [CONTRIBUTING.md](../CONTRIBUTING.md) for details.
 
 ## How wifi-heatmapper works
 
 To get information about the Wi-Fi signal and other parameters,
 the server backend invokes the commands below and parses the output.
-The web GUI then just stores everything in simple JSON
-"database" file in localStorage().
+The results are stored as one JSON file per floor plan in `data/surveys/`
+(floor plan images are in `data/media/`).
+Set `WIFI_HEATMAPPER_DATA_DIR` to keep the data somewhere else.
+
+With `WIFI_HEATMAPPER_MOCK=1` (`npm run dev:mock`) none of the commands
+run: `wifiScanner-mock.ts` returns synthetic results instead.
+The Playwright end-to-end tests use this mode.
 
 ## Platform-Specific Commands
 
@@ -99,22 +106,23 @@ npm run dev
 
 This is a fairly standard Next.js project:
 
-* `page.tsx` defines the top level _App()_ component
-* `layout.tsx` buttresses it, and also provides a hook for
-  global initialization code
+* `layout.tsx` wraps everything in `SettingsProvider`
+* `page.tsx` renders `AppShell`
+* `instrumentation.ts` runs `initServer()` once when the server starts
 * `api` folder contains the routes
-* `global.css` uses TailwindCSS for styling the components
+* `globals.css` holds the design tokens (light and dark) and Tailwind
 
-The _App()_ in `page.tsx` returns two major GUI components:
+`AppShell` (in `components/layout/`) draws the header with the four tabs
+and the survey summary strip, and renders:
 
-* `SettingsProvider` that initializes and passes all the settings
-  to its children
-  * `TabPanel` that contains each of these four components
-    * `SettingsEditor` for updating the settings
-    * `Floorplan` that displays the plan, and uses clicks to start
-      the measurement process
-    * `Heatmaps` displays the computed heat maps
-    * `PointsTable` displays and edits the points collected
+* `SettingsEditor` for updating the settings
+* `Floorplan` that displays the plan, uses clicks to start the
+  measurement process, and shows `MeasurementPanel` while it runs
+* `Heatmaps` displays the computed heat maps
+* `PointsTable` displays and edits the points collected
+
+`SettingsProvider` (`GlobalSettings.tsx`) owns the current survey and
+writes it to `/api/settings` shortly after each change.
 
 WebGL-based heatmap rendering lives in:
 
@@ -127,11 +135,17 @@ WebGL-based heatmap rendering lives in:
 
 ## Routes in the Next app
 
-* The _api/media/route.ts_ file listens for a GET _api/media_ request
-  and returns the list of files in the _public/media_ directory.
-  The floorplan image itself returns from GET _/media/filename.png_
-  (or _.jpg_).
-  A POST _api/media/filename.png_ uploads a file to that directory.
+* _api/media/route.ts_: GET returns the list of floor plan images in
+  _data/media_; POST uploads one (409 if the name is taken).
+  _api/media/[name]/route.ts_: GET serves the image, DELETE removes it.
+  Images are served through the API (not from _public/_) so uploads work
+  with a production build.
+
+* _api/settings/route.ts_: reads, writes, lists and deletes the survey
+  files in _data/surveys_. The server stamps each saved file with
+  `meta` (app version, OS, time) and never writes the sudo password.
+
+* _api/status/route.ts_: version, OS, Node, iperf3 and mock-mode details.
   
 * The _api/events/route.ts_ file listens for a GET request,
   then keeps open a connection that sends
@@ -165,17 +179,14 @@ and displays the progress of the measurements.
   When the returned `state` is "done", the rest of the results
   contain the information about the measurement.
 
-* A click on the Floorplan also opens the `NewToast` component.
-  (This happens because the click sets `toastIsOpen` to true.
-  NewToast is "conditionally rendered" (`{toastIsOpen && <NewToast... />}`
-  in the JSX).
-  NewToast issues GET _/api/events_ that starts a stream of
+* A click on the Floorplan also opens the `MeasurementPanel` component.
+  It issues GET _/api/events_ that starts a stream of
   Server Sent Events with `sendToClient()`
-  that is registered in the global _sseGlobal.ts_ module.
-  Those events contain information used to update the information
-  shown in NewToast.
-  
-* NewToast also has a **Cancel** button that aborts the measurement
+  that is registered in the global _server-globals.ts_ module.
+  Those events contain the progress shown in the panel.
+  When the stream reports `ready`, the Floorplan starts the measurement.
+
+* The panel also has a **Cancel** button that aborts the measurement
   process by issuing POST _/api/start-task?action=stop_
   This calls global `setCancelFlag(true)`.
   The server's measurement process notices this and halts the process

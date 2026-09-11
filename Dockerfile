@@ -1,43 +1,41 @@
-# Dockerfile - only works on Linux
-
-# If you're on macOS or Windows, --privileged does not expose host hardware
-# (e.g., Wi-Fi interfaces) and network_mode: host is ignored.
-# You’d need to run the app directly on the host OS or in a Linux VM
-# (like WSL2 or a remote dev server).
-
-# To run this container:
+# wifi-heatmapper - production image (Linux hosts only)
 #
-#    docker build -t wifi-heatmapper .
+# The container needs the host's Wi-Fi interface, so it must run with
+# --net=host and --privileged. That only works on Linux: on macOS and
+# Windows, Docker runs in a VM that cannot see the Wi-Fi adapter, so run
+# the app directly on the host there (see README).
 #
-#    docker run \
-#    --net="host" \
-#    --privileged \
-#    -v ./datas/data:/app/data \
-#    -v ./datas/media:/app/public/media \
-#    -v /var/run/dbus:/var/run dbus \
-#    wifi-heatmapper
+#   docker build -t wifi-heatmapper .
+#   docker run --net=host --privileged \
+#     -v ./datas:/app/data \
+#     -v /var/run/dbus:/var/run/dbus \
+#     wifi-heatmapper
+#
+# All user data (surveys and floor plans) lives in /app/data.
 
-# Use Node.js base image
-FROM node:22-alpine
-
-# Set the working directory inside the container
+FROM node:22-alpine AS deps
 WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci
 
-# Copy package.json and package-lock.json first (to leverage Docker caching)
-COPY package*.json ./
-
-# Install needed packages
-RUN apk add --no-cache iw iperf3 networkmanager networkmanager-cli
-
-# Install dependencies
-RUN npm install
-
-# Copy the rest of the application files
+FROM node:22-alpine AS build
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+RUN npm run build
 
-# Expose the application port (if needed)
+FROM node:22-alpine AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+ENV PORT=3000
+# iw + nmcli read the Wi-Fi signal, iperf3 measures throughput
+RUN apk add --no-cache iw iperf3 networkmanager networkmanager-cli
+COPY --from=build /app/package.json ./
+COPY --from=build /app/next.config.mjs ./
+COPY --from=build /app/node_modules ./node_modules
+COPY --from=build /app/.next ./.next
+COPY --from=build /app/public ./public
+COPY --from=build /app/assets ./assets
+COPY --from=build /app/data/localization ./data/localization
 EXPOSE 3000
-
-# Default command to start the app
-CMD ["npm", "run", "dev"]
-
+CMD ["npm", "run", "start"]

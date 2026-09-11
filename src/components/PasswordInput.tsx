@@ -1,33 +1,41 @@
 import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
-import { Button } from "@/components/ui/button"; // shadcn or your own button component
+import { Input } from "@/components/ui/input";
 
 type PasswordInputProps = {
+  id?: string;
   value: string;
   onChange: (value: string) => void;
+  placeholder?: string;
 };
 
-export function PasswordInput({ value, onChange }: PasswordInputProps) {
+export function PasswordInput({
+  id,
+  value,
+  onChange,
+  placeholder = "Enter password",
+}: PasswordInputProps) {
   const [visible, setVisible] = useState(false);
 
   return (
-    <div className="relative w-full">
-      <input
+    <div className="relative">
+      <Input
+        id={id}
         type={visible ? "text" : "password"}
-        className="w-full p-2 pr-10 border rounded bg-white-800 text-black"
-        placeholder="Enter password"
+        className="pr-10"
+        placeholder={placeholder}
+        autoComplete="off"
         value={value}
         onChange={(e) => onChange(e.target.value)}
       />
-      <Button
+      <button
         type="button"
-        variant="ghost"
-        size="icon"
         onClick={() => setVisible(!visible)}
-        className="absolute right-2 top-1/2 -translate-y-1/2"
+        aria-label={visible ? "Hide password" : "Show password"}
+        className="absolute right-1 top-1/2 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
-        {visible ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-      </Button>
+        {visible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+      </button>
     </div>
   );
 }
