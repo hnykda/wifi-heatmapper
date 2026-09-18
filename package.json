@@ -38,6 +38,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "is-docker": "^4.0.0",
+    "is-podman": "^1.0.1",
     "lodash": "^4.17.21",
     "lucide-react": "^0.513.0",
     "nanoid": "^5.1.5",
