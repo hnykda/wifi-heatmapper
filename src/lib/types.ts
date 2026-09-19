@@ -134,6 +134,7 @@ export interface AppStatus {
   platform: string; // darwin | win32 | linux
   osRelease: string;
   osName: string;
+  podman: boolean;
   docker: boolean;
   mockMode: boolean;
   iperf3Version: string | null; // null when iperf3 is not installed

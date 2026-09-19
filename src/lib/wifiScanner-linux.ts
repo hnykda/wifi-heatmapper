@@ -14,6 +14,7 @@ import {
   rssiToPercentage,
 } from "./utils";
 import isDocker from "is-docker";
+import isPodman from "is-podman";
 import { getLogger } from "./logger";
 const logger = getLogger("wifi-Linux");
 
@@ -91,7 +92,7 @@ export class LinuxWifiActions implements WifiActions {
 
     // Linux requires a sudo password
     // but Docker doesn't
-    if (!reason && !isDocker()) {
+    if (!reason && !isDocker() && !isPodman()) {
       if (!settings.sudoerPassword || settings.sudoerPassword == "") {
         // don't require sudo password on a Docker container
         reason = "Please set sudo password. It is required on Linux.";
@@ -244,7 +245,7 @@ async function iwDevLink(interfaceId: string, pw: string): Promise<string> {
   // const command = `echo "${pw}" | sudo -S iw dev ${interfaceId} link`;
 
   let command = `iw dev ${interfaceId} link`;
-  if (!isDocker()) {
+  if (!isDocker() && !isPodman()) {
     command = `echo "${pw}" | sudo -S ` + command;
   }
 

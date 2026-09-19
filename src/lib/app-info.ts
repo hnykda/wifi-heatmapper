@@ -4,6 +4,7 @@
  */
 import os from "os";
 import isDocker from "is-docker";
+import isPodman from "is-podman";
 import pkg from "../../package.json";
 import { execAsync } from "./server-utils";
 import { getDataDir } from "./server-paths";
@@ -37,6 +38,7 @@ async function buildAppStatus(): Promise<AppStatus> {
     platform: os.platform(),
     osRelease: os.release(),
     osName: describeOS(),
+    podman: isPodman(),
     docker: isDocker(),
     mockMode: isMockMode(),
     iperf3Version,
