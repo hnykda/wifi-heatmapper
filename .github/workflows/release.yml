@@ -29,11 +29,7 @@ jobs:
         # runner: desktop/build-server.mjs ships the Node binary and Next's
         # traced native modules for the runner's OS/arch, so there is no
         # cross-compiling. A row may also need a "deps" step below (Linux:
-        # webkit2gtk etc.). Planned rows (docs/Desktop_App.md, parts 3 and 4):
-        #
-        #   - platform: windows-latest
-        #     target: x86_64-pc-windows-msvc
-        #     label: windows-x64
+        # webkit2gtk etc.).
         include:
           - platform: macos-latest
             target: aarch64-apple-darwin
@@ -52,6 +48,10 @@ jobs:
           - platform: ubuntu-22.04-arm
             target: aarch64-unknown-linux-gnu
             label: linux-arm64
+          # NSIS setup .exe (per-user, no admin) and .msi (per-machine)
+          - platform: windows-latest
+            target: x86_64-pc-windows-msvc
+            label: windows-x64
 
     runs-on: ${{ matrix.platform }}
     steps:
@@ -148,6 +148,23 @@ jobs:
             desktop/src-tauri/target/${{ matrix.target }}/release/bundle/deb/*.deb
           if-no-files-found: error
 
+      # Install both Windows installers the way users do, start the installed
+      # app in mock mode, and check it serves, and that quitting (window
+      # close) and killing it (taskkill /F) end node.exe and its children.
+      - name: Smoke-test the installed app (Windows)
+        if: github.event_name == 'pull_request' && runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $bundle = "desktop/src-tauri/target/${{ matrix.target }}/release/bundle"
+          $nsis = (Get-ChildItem "$bundle/nsis/*-setup.exe")[0].FullName
+          Start-Process $nsis -ArgumentList "/S" -Wait
+          node desktop/smoke-test-app.mjs "$env:LOCALAPPDATA\WiFi Heatmapper\wifi-heatmapper.exe"
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          $msi = (Get-ChildItem "$bundle/msi/*.msi")[0].FullName
+          Start-Process msiexec -ArgumentList "/i `"$msi`" /qn /norestart" -Wait
+          node desktop/smoke-test-app.mjs "$env:ProgramFiles\WiFi Heatmapper\wifi-heatmapper.exe"
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+
       - name: Build the app and attach it to the draft release
         if: github.event_name != 'pull_request'
         uses: tauri-apps/tauri-action@v0
@@ -173,6 +190,8 @@ jobs:
             |---|---|
             | Mac with Apple silicon (M1 and later) | `WiFi.Heatmapper_*_aarch64.dmg` |
             | Mac with an Intel processor | `WiFi.Heatmapper_*_x64.dmg` |
+            | Windows 10 or 11 (64-bit) | `WiFi.Heatmapper_*_x64-setup.exe` |
+            | Windows, installed for all users (needs admin) | `WiFi.Heatmapper_*_x64_en-US.msi` |
 
             **These builds are not signed.** Your computer will warn you the
             first time you open the app.
@@ -225,6 +244,22 @@ jobs:
             password, otherwise the app asks for your sudo password.
             Your surveys and floor plans are kept in
             `~/.local/share/com.github.hnykda.wifi-heatmapper/data`.
+
+            **Windows:** run the setup `.exe`. When Windows SmartScreen says
+            it protected your PC, click **More info**, then **Run anyway**.
+            The app installs for your user only and needs no admin rights
+            (the `.msi` installs for everyone on the computer instead).
+
+            On Windows 11 24H2 and later, Windows only shares Wi-Fi details
+            with apps allowed to use your location. Open Settings → Privacy
+            & security → Location and turn on **Location services** and
+            **Let desktop apps access your location**. iperf3 must be on your
+            PATH, for example via `scoop install iperf3` or
+            `choco install iperf3`.
+
+            Your surveys and floor plans are kept in
+            `%LOCALAPPDATA%\com.github.hnykda.wifi-heatmapper\data`, and the
+            log in `%LOCALAPPDATA%\com.github.hnykda.wifi-heatmapper\logs`.
 
       # The Wi-Fi helper must come out of Tauri's bundling with its own
       # signature intact: Tauri signs only the outer app, without --deep.
