@@ -1,0 +1,16 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "bundle": {
+    "targets": ["appimage", "deb"],
+    "publisher": "wifi-heatmapper contributors",
+    "homepage": "https://github.com/hnykda/wifi-heatmapper",
+    "longDescription": "Walk around with a laptop, click where you are on a floor plan, and WiFi Heatmapper measures Wi-Fi signal strength and iperf3 throughput there, then draws heat maps of the results.",
+    "linux": {
+      "deb": {
+        "section": "net",
+        "recommends": ["iw", "iperf3", "network-manager"],
+        "desktopTemplate": "linux/wifi-heatmapper.desktop"
+      }
+    }
+  }
+}

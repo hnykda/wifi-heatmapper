@@ -153,6 +153,14 @@ cpSync(
 );
 // Uploads from versions < 0.5.0; never part of a release.
 rmSync(join(outDir, "public", "media"), { recursive: true, force: true });
+// sharp is Next's optional image optimizer (next/image), which the app does
+// not use; Next only loads it for /_next/image requests. Its libvips builds
+// for every libc (glibc and musl) are ~30 MB, and the AppImage bundler
+// (linuxdeploy) fails on the musl ones because it tries to resolve their
+// libraries on the build machine.
+for (const name of ["sharp", "@img"]) {
+  rmSync(join(outDir, "node_modules", name), { recursive: true, force: true });
+}
 cpSync(join(here, "server-entry.mjs"), join(outDir, "server-entry.mjs"));
 console.log(`server            ${mib(outDir)}`);
 

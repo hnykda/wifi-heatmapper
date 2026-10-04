@@ -172,13 +172,13 @@ export default function SettingsEditor() {
           <FormRow
             id="sudoPassword"
             label="sudo password"
-            help="macOS (wdutil) and Linux (iw) need administrator rights to read the Wi-Fi signal. The password is kept in memory only and never written to disk."
+            help="macOS (wdutil) needs administrator rights to read the Wi-Fi signal. Linux (iw) usually doesn't; the survey asks for the password if it does. The password is kept in memory only and never written to disk."
             hint={
               status?.platform === "darwin"
                 ? macHelper.helper?.error
                   ? `Required: the Wi-Fi helper did not work (${macHelper.helper.error}). Not saved.`
                   : "Required, unless you build the Wi-Fi helper (npm run build:macos-helper). Not saved."
-                : "Required on macOS and Linux. Not saved."
+                : "On Linux, only if the survey asks for it. Not saved."
             }
           >
             <div className="max-w-sm">

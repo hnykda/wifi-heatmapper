@@ -16,7 +16,9 @@
 //! - `WIFI_HEATMAPPER_RESOURCES_DIR=<server>` (read-only; `helpers/` lives here);
 //! - `PATH` plus the usual package-manager dirs, because an app opened from
 //!   Finder gets a bare PATH and would not find a Homebrew `iperf3`;
-//! - everything else is inherited (so `WIFI_HEATMAPPER_MOCK=1` passes through).
+//! - everything else is inherited (so `WIFI_HEATMAPPER_MOCK=1` passes through),
+//!   except, inside an AppImage, the variables that point into the bundle
+//!   (`LD_LIBRARY_PATH`, `GIO_MODULE_DIR`, ...; see `appdir_env_fixes`).
 //!
 //! The server's stdout and stderr go to `<app log dir>/server.log`.
 
@@ -195,6 +197,34 @@ fn path_with_extras() -> std::ffi::OsString {
     std::env::join_paths(dirs).unwrap_or(current)
 }
 
+/// Inside an AppImage, the AppImage's AppRun hooks point GTK/GIO variables
+/// (GIO_MODULE_DIR, GSETTINGS_SCHEMA_DIR, XDG_DATA_DIRS, ...) and PATH at the
+/// bundled libraries under `$APPDIR`. The shell needs them; the server and the
+/// system tools it runs (`nmcli`, `iw`, `iperf3`) must not load the bundle's
+/// GIO modules. Returns the changes that undo that: `(name, None)` to unset,
+/// `(name, Some(value))` for a `:`-list with the `$APPDIR` entries removed.
+#[cfg_attr(not(target_os = "linux"), allow(dead_code))]
+fn appdir_env_fixes(
+    vars: impl IntoIterator<Item = (String, String)>,
+    appdir: &str,
+) -> Vec<(String, Option<String>)> {
+    let appdir = appdir.trim_end_matches('/');
+    if appdir.is_empty() {
+        return Vec::new();
+    }
+    let inside = |entry: &str| entry == appdir || entry.starts_with(&format!("{appdir}/"));
+    let mut fixes = Vec::new();
+    for (name, value) in vars {
+        // the AppImage's own variables are harmless and useful in logs
+        if matches!(name.as_str(), "APPDIR" | "APPIMAGE" | "ARGV0" | "OWD") || !value.contains(appdir) {
+            continue;
+        }
+        let kept: Vec<&str> = value.split(':').filter(|e| !e.is_empty() && !inside(e)).collect();
+        fixes.push((name, if kept.is_empty() { None } else { Some(kept.join(":")) }));
+    }
+    fixes
+}
+
 fn spawn_server(
     server_dir: &Path,
     data_dir: &Path,
@@ -212,13 +242,31 @@ fn spawn_server(
         .env("NODE_ENV", "production")
         .env("WIFI_HEATMAPPER_DATA_DIR", data_dir)
         .env("WIFI_HEATMAPPER_RESOURCES_DIR", server_dir)
-        .env("PATH", path_with_extras())
         .stdin(Stdio::piped())
         .stdout(match log.and_then(|f| f.try_clone().ok()) {
             Some(f) => Stdio::from(f),
             None => Stdio::inherit(),
         })
         .stderr(Stdio::piped());
+    #[allow(unused_mut)]
+    let mut path = path_with_extras();
+    #[cfg(target_os = "linux")]
+    if let (Some(appdir), Some(_)) = (std::env::var_os("APPDIR"), std::env::var_os("APPIMAGE")) {
+        let appdir = appdir.to_string_lossy().into_owned();
+        let vars = std::env::vars_os()
+            .filter_map(|(k, v)| Some((k.into_string().ok()?, v.into_string().ok()?)));
+        for (name, value) in appdir_env_fixes(vars, &appdir) {
+            match value {
+                Some(value) => command.env(name, value),
+                None => command.env_remove(name),
+            };
+        }
+        let current = ("PATH".to_string(), path.to_string_lossy().into_owned());
+        if let Some((_, Some(stripped))) = appdir_env_fixes([current], &appdir).pop() {
+            path = stripped.into();
+        }
+    }
+    command.env("PATH", path);
     // Own process group, so quitting can stop the server and whatever it is
     // running at the moment (iperf3, wdutil) in one go.
     #[cfg(unix)]
@@ -479,6 +527,32 @@ mod tests {
         for extra in EXTRA_PATH {
             assert!(dirs.contains(&PathBuf::from(extra)));
         }
+    }
+
+    #[test]
+    fn appimage_variables_are_not_passed_to_the_server() {
+        let vars = [
+            ("GIO_MODULE_DIR", "/tmp/.mount_x/usr/lib/x86_64-linux-gnu/gio/modules"),
+            ("XDG_DATA_DIRS", "/tmp/.mount_x/usr/share:/usr/share:/usr/local/share"),
+            ("PATH", "/tmp/.mount_x/usr/bin:/usr/bin:/bin"),
+            ("APPDIR", "/tmp/.mount_x"),
+            ("APPIMAGE", "/home/me/WiFi.AppImage"),
+            ("HOME", "/home/me"),
+            ("OTHER", "/tmp/.mount_xyz/not-ours"),
+        ]
+        .map(|(k, v)| (k.to_string(), v.to_string()));
+        let fixes = appdir_env_fixes(vars, "/tmp/.mount_x/");
+        let s = |v: &str| Some(v.to_string());
+        assert_eq!(
+            fixes,
+            vec![
+                ("GIO_MODULE_DIR".to_string(), None),
+                ("XDG_DATA_DIRS".to_string(), s("/usr/share:/usr/local/share")),
+                ("PATH".to_string(), s("/usr/bin:/bin")),
+                ("OTHER".to_string(), s("/tmp/.mount_xyz/not-ours")),
+            ]
+        );
+        assert!(appdir_env_fixes([("A".into(), "/x".into())], "").is_empty());
     }
 
     #[test]
