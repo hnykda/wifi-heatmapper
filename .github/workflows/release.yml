@@ -225,6 +225,7 @@ jobs:
             password, otherwise the app asks for your sudo password.
             Your surveys and floor plans are kept in
             `~/.local/share/com.github.hnykda.wifi-heatmapper/data`.
+
       # The Wi-Fi helper must come out of Tauri's bundling with its own
       # signature intact: Tauri signs only the outer app, without --deep.
       - name: Check the Wi-Fi helper's signature (macOS)
