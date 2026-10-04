@@ -148,6 +148,38 @@ What we learned:
 - Sizes for 0.5.0: `.AppImage` 122 MiB (x64) / 120 MiB (arm64), `.deb`
   53 MiB (both; 190 MiB installed).
 
+## Windows
+
+Done in part 3. Where it differs from the shape above:
+
+- **Installers:** NSIS setup `.exe` (per-user under `%LOCALAPPDATA%`, no
+  admin) and `.msi` (per-machine under Program Files). The bundle has about
+  2,000 files, no symlinks, and its longest relative path is ~110 characters;
+  `build-server.mjs` fails the build above 160 so installs stay under MAX_PATH.
+- **Data and logs** go to `%LOCALAPPDATA%\com.github.hnykda.wifi-heatmapper\`
+  (`data\`, `logs\server.log`), not the roaming `%APPDATA%`: floor plan images
+  don't belong in a roaming profile. Same folder as before on macOS and Linux.
+- **Process lifetime:** node.exe runs with `CREATE_NO_WINDOW` inside a Job
+  Object with `KILL_ON_JOB_CLOSE`. Quitting terminates the job; if the app is
+  killed, Windows closes the job handle and ends node.exe and anything it
+  started (iperf3, netsh, the `cmd.exe` around them). The stdin fallback still
+  applies. The server also starts its commands with `windowsHide`.
+- **Location permission:** Windows 11 24H2+ only lets apps with location
+  access read SSID/BSSID through the WLAN API, and netsh is such an app.
+  Windows shows its one-time location prompt only for programs outside
+  System32, so netsh never gets one: the user must turn on Location services
+  and "Let desktop apps access your location". It makes no difference that
+  the desktop app is a packaged GUI app: the check is on netsh.exe, an
+  unpackaged desktop app either way. The scanner recognizes netsh's refusal
+  (its output always contains `ms-settings:privacy-location`, in any language)
+  and shows those steps instead of the "not localized" error.
+- **iperf3** must be on PATH; the app adds the winget, Scoop and Chocolatey
+  folders in case Explorer has not picked up a fresh install yet.
+- **CI:** the server bundle smoke test runs on `windows-latest` as well, and
+  the release workflow installs both installers on the runner, starts the
+  app, and checks that a window close and a `taskkill /F` leave no node.exe
+  or child behind (`desktop/smoke-test-app.mjs`).
+
 ## Releases
 
 `.github/workflows/release.yml`, on a `v*` tag (and `workflow_dispatch` for
@@ -215,7 +247,7 @@ explores this); code signing once a certificate exists.
 
 - [x] 1 Foundation
 - [x] 2 macOS native Wi-Fi helper
-- [ ] 3 Windows
+- [x] 3 Windows (real Wi-Fi on Windows hardware not yet tested)
 - [x] 4 Linux (x64 and arm64; real Wi-Fi on Linux hardware not yet tested)
 - [x] 5 macOS helper in the app
 - [ ] 6 Docs and first release

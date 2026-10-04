@@ -179,6 +179,26 @@ maintainer's `.p12`, `native/macos-wifi-helper/signing-keychain.sh` sets up a
 throwaway keychain for it. Steps in `native/macos-wifi-helper/README.md`,
 "Signing". Fork PRs get no secrets and build an ad-hoc helper.
 
+On Windows you also need the Rust MSVC toolchain (rustup's default) and
+Visual Studio Build Tools with "Desktop development with C++"; WebView2
+ships with Windows 10 and 11. The commands are the same.
+`npm run desktop:build` makes `bundle/nsis/*-setup.exe` (per-user install)
+and `bundle/msi/*.msi` (per-machine). What differs from macOS:
+
+- Data: `%LOCALAPPDATA%\com.github.hnykda.wifi-heatmapper\data` (local,
+  not roaming); log: `%LOCALAPPDATA%\com.github.hnykda.wifi-heatmapper\logs\server.log`.
+- `node.exe` runs without a console window, inside a Job Object
+  (`desktop/src-tauri/src/windows_job.rs`): quitting the app, or the app
+  dying, ends node.exe and everything it started (iperf3, netsh).
+- `PATH` gets the winget, Scoop and Chocolatey tool folders added.
+- `node desktop/smoke-test-app.mjs <path to wifi-heatmapper.exe>` checks a
+  built or installed app: server up, and no node.exe or child left after a
+  window close or a `taskkill /F` (release.yml runs it on both installers).
+
+```powershell
+$env:WIFI_HEATMAPPER_MOCK=1; & "desktop\src-tauri\target\release\wifi-heatmapper.exe"
+```
+
 The icon comes from `desktop/app-icon.svg` (the header's mark):
 `npm --prefix desktop run icons` regenerates `desktop/src-tauri/icons/`.
 
