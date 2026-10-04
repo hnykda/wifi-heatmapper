@@ -17,7 +17,7 @@ WiFi Heatmapper.app / .exe / .AppImage
     ├── server.js, .next-desktop/, node_modules/
     │                         Next's `output: "standalone"` build
     ├── public/, assets/, data/localization/
-    └── helpers/              native helpers, e.g. the macOS Wi-Fi reader (part 5)
+    └── helpers/              macOS: WiFiHeatmapperHelper.app (the Wi-Fi reader)
 ```
 
 On launch the shell picks a free port on 127.0.0.1, starts
@@ -77,6 +77,28 @@ What we learned building it (details and log evidence in
   helper must check in as an app (`NSApplication.shared`) before reading.
 - An ad-hoc signed helper loses the permission on every rebuild (new cdhash).
   Part 5 signs it with a stable self-signed certificate so updates keep it.
+
+## The helper inside the app (part 5)
+
+`desktop/build-server.mjs` builds the helper into `<server>/helpers/` on
+macOS. In CI it is signed with the project's self-signed certificate
+(secrets `MACOS_HELPER_CERT_P12`, `MACOS_HELPER_CERT_PASSWORD`); the outer
+app stays ad-hoc, and Tauri signs it without `--deep`, so the helper keeps its
+signature. Details: `native/macos-wifi-helper/README.md`, "In the desktop
+app" and "Signing". Results on macOS 27 (October 2026):
+
+- The `.app` and the `.dmg` pass `codesign --verify --deep --strict`; the
+  helper inside reports `Authority=WiFi Heatmapper Helper Signing` and a
+  certificate-based designated requirement.
+- Gatekeeper treats the app as before: a quarantined copy gets the usual
+  "Apple could not verify..." dialog, "Open Anyway" opens it, and the
+  quarantined helper then runs with no further dialog. No "damaged".
+- In the packaged app, "Allow Location access" shows the prompt for "WiFi
+  Heatmapper Helper"; afterwards readings have the SSID, without sudo.
+- **The permission survives an update.** A second build with a different
+  helper binary, signed with the same certificate and installed over the
+  first, was `authorized` straight away and read the SSID, with no prompt.
+  Users are asked once, not on every release.
 
 ## Linux
 
@@ -167,6 +189,10 @@ downloads so Gatekeeper still checks them, and has dropped `--no-quarantine`.
 Its caveats show the same "Open Anyway" steps as the release notes. Because the
 app is ad-hoc signed, Homebrew can't carry the user's approval over to a new
 build, so macOS asks again after each upgrade until the app is signed.
+The Wi-Fi helper's Location permission is not affected: it follows the
+helper's own certificate (part 5), so upgrades keep it. The helper writes no
+files of its own; the permission record lives in locationd's root-only
+database, which a cask `zap` cannot (and need not) touch.
 
 ## Work breakdown
 
@@ -191,5 +217,5 @@ explores this); code signing once a certificate exists.
 - [x] 2 macOS native Wi-Fi helper
 - [ ] 3 Windows
 - [x] 4 Linux (x64 and arm64; real Wi-Fi on Linux hardware not yet tested)
-- [ ] 5 macOS helper in the app
+- [x] 5 macOS helper in the app
 - [ ] 6 Docs and first release

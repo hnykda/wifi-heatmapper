@@ -88,6 +88,36 @@ jobs:
       - run: npm ci
       - run: npm run desktop:install
 
+      # macOS: the Wi-Fi helper inside the app is signed with the project's
+      # self-signed certificate, so the Location permission users give it
+      # survives updates (native/macos-wifi-helper/README.md, "Signing").
+      # Fork PRs get no secrets and build with an ad-hoc helper instead.
+      - name: Import the Wi-Fi helper signing certificate (macOS)
+        if: runner.os == 'macOS'
+        env:
+          MACOS_HELPER_CERT_P12: ${{ secrets.MACOS_HELPER_CERT_P12 }}
+          MACOS_HELPER_CERT_PASSWORD: ${{ secrets.MACOS_HELPER_CERT_PASSWORD }}
+        run: |
+          if [ -z "$MACOS_HELPER_CERT_P12" ]; then
+            if [ "$GITHUB_EVENT_NAME" != pull_request ]; then
+              echo "::error::MACOS_HELPER_CERT_P12 is not set; a release must not ship an ad-hoc signed helper"
+              exit 1
+            fi
+            echo "::warning::No helper signing certificate (fork PR?): the Wi-Fi helper is ad-hoc signed"
+            exit 0
+          fi
+          KEYCHAIN="$RUNNER_TEMP/helper-signing.keychain-db"
+          P12="$RUNNER_TEMP/helper-signing.p12"
+          printf '%s' "$MACOS_HELPER_CERT_P12" | base64 --decode > "$P12"
+          IDENTITY=$(native/macos-wifi-helper/signing-keychain.sh create "$KEYCHAIN" "$P12")
+          rm -f "$P12"
+          if [ -z "$IDENTITY" ]; then
+            echo "::error::no code signing identity in MACOS_HELPER_CERT_P12"
+            exit 1
+          fi
+          echo "MACOS_HELPER_SIGN_IDENTITY=$IDENTITY" >> "$GITHUB_ENV"
+          echo "MACOS_HELPER_SIGN_KEYCHAIN=$KEYCHAIN" >> "$GITHUB_ENV"
+
       # tauri.conf.json's beforeBuildCommand runs desktop/build-server.mjs:
       # the Next standalone build plus this platform's Node binary.
       - name: Build the app (pull request, no release)
@@ -166,6 +196,14 @@ jobs:
             Or with Homebrew, within a day of this release:
             `brew install --cask hnykda/tap/wifi-heatmapper`
 
+            In the Settings tab, click **Allow Location access**: macOS asks
+            whether **"WiFi Heatmapper Helper"** may use your location. The
+            helper is the part of the app that
+            reads Wi-Fi signal, and macOS only tells apps with Location
+            access the name of your network. Your location itself is not
+            used. You are asked once; updates keep the answer. If you say
+            no, measurements still work, without the network name.
+
             Your surveys and floor plans are kept in
             `~/Library/Application Support/com.github.hnykda.wifi-heatmapper/data`.
 
@@ -194,3 +232,24 @@ jobs:
             password, otherwise the app asks for your sudo password.
             Your surveys and floor plans are kept in
             `~/.local/share/com.github.hnykda.wifi-heatmapper/data`.
+
+      # The Wi-Fi helper must come out of Tauri's bundling with its own
+      # signature intact: Tauri signs only the outer app, without --deep.
+      - name: Check the Wi-Fi helper's signature (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          APP="desktop/src-tauri/target/${{ matrix.target }}/release/bundle/macos/WiFi Heatmapper.app"
+          HELPER="$APP/Contents/Resources/server/helpers/WiFiHeatmapperHelper.app"
+          codesign --verify --deep --strict "$APP"
+          codesign --verify --strict "$HELPER"
+          codesign -dvv "$HELPER" 2>&1 | grep -E '^(Identifier|Authority|CDHash)='
+          codesign -d -r- "$HELPER" 2>&1 | tail -n 1
+          if [ -n "${MACOS_HELPER_SIGN_IDENTITY:-}" ] &&
+            ! codesign -d -r- "$HELPER" 2>&1 | grep -q 'certificate root = H"'; then
+            echo "::error::the Wi-Fi helper lost its certificate signature"
+            exit 1
+          fi
+
+      - name: Remove the signing keychain (macOS)
+        if: always() && runner.os == 'macOS' && env.MACOS_HELPER_SIGN_KEYCHAIN != ''
+        run: native/macos-wifi-helper/signing-keychain.sh delete "$MACOS_HELPER_SIGN_KEYCHAIN"

@@ -139,7 +139,8 @@ How the app runs the server, and what the server can rely on:
   Linux: `~/.local/share/com.github.hnykda.wifi-heatmapper/data`), unless you
   already set it.
 - `WIFI_HEATMAPPER_RESOURCES_DIR` = `<resources>/server`: shipped, read-only
-  files (`assets/`, `data/localization/`, later `helpers/`).
+  files (`assets/`, `data/localization/`, and on macOS
+  `helpers/WiFiHeatmapperHelper.app`).
 - `PATH` with `/opt/homebrew/bin` and `/usr/local/bin` added, so a Homebrew
   `iperf3` is found when the app is opened from Finder (Linux: `/usr/local/bin`,
   `/usr/sbin`, `/sbin`, for `iw`).
@@ -165,6 +166,18 @@ the built Linux app under Xvfb in mock mode and checks it (CI runs it on both
 Linux release rows). Without a Linux machine, an `ubuntu:22.04` container
 with the packages above, Node 22 and rustup builds both packages (set
 `APPIMAGE_EXTRACT_AND_RUN=1`: containers have no FUSE).
+
+On macOS the build also compiles the Wi-Fi helper
+(`native/macos-wifi-helper`, needs `xcode-select --install`) into
+`desktop/server/helpers/`. By default it is ad-hoc signed: that works, but
+macOS forgets the helper's Location permission whenever it is rebuilt, so
+expect the "WiFi Heatmapper Helper would like to use your location" prompt
+after each build. Release builds sign it with the project's certificate
+(GitHub secrets), so users are asked only once. To build like a release,
+set `MACOS_HELPER_SIGN_IDENTITY` (and `MACOS_HELPER_SIGN_KEYCHAIN`); with the
+maintainer's `.p12`, `native/macos-wifi-helper/signing-keychain.sh` sets up a
+throwaway keychain for it. Steps in `native/macos-wifi-helper/README.md`,
+"Signing". Fork PRs get no secrets and build an ad-hoc helper.
 
 The icon comes from `desktop/app-icon.svg` (the header's mark):
 `npm --prefix desktop run icons` regenerates `desktop/src-tauri/icons/`.

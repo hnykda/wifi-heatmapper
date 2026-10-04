@@ -32,6 +32,10 @@ The apps are not signed, so macOS and Windows warn you the first time you open
 them. [docs/Install.md](docs/Install.md) walks through that for each system,
 plus where your data is kept.
 
+On a Mac, click **Allow Location access** in Settings once: macOS then lets
+the app see your network's name. Your location itself is not used, and
+updates keep the answer.
+
 > **Early builds.** The desktop apps are new. They are built and started
 > automatically on every release, but so far only the macOS app has been used
 > on a real computer (one Mac). [Here is exactly what has been tested](docs/Install.md#what-has-been-tested).
