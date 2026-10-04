@@ -12,6 +12,7 @@
 # next.js
 /.next/
 /.next-e2e/
+/.next-desktop/
 /out/
 
 # production
@@ -55,3 +56,10 @@ datas/media/*
 /test-results/
 /blob-report/
 /playwright/.cache/
+
+# desktop app build outputs (desktop/build-server.mjs, tauri build)
+/desktop/node_modules/
+/desktop/server/
+/desktop/.cache/
+/desktop/src-tauri/target/
+/desktop/src-tauri/gen/

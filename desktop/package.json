@@ -1,0 +1,17 @@
+{
+  "name": "wifi-heatmapper-desktop",
+  "version": "0.5.0",
+  "private": true,
+  "type": "module",
+  "description": "Tauri shell that runs the wifi-heatmapper server as a desktop app. See CONTRIBUTING.md.",
+  "scripts": {
+    "server": "node build-server.mjs",
+    "dev": "tauri dev",
+    "build": "tauri build",
+    "icons": "tauri icon app-icon.svg --output src-tauri/icons && node -e \"for (const p of ['android','ios']) require('fs').rmSync('src-tauri/icons/'+p,{recursive:true,force:true})\"",
+    "tauri": "tauri"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.12.1"
+  }
+}
