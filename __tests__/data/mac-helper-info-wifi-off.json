@@ -1,0 +1,24 @@
+{
+  "bundleId" : "io.github.hnykda.wifi-heatmapper.helper",
+  "helperVersion" : 1,
+  "interface" : {
+    "associated" : false,
+    "band" : null,
+    "bssid" : null,
+    "channel" : null,
+    "channelWidth" : null,
+    "countryCode" : null,
+    "name" : "en0",
+    "noise" : null,
+    "phyMode" : null,
+    "powerOn" : false,
+    "rssi" : 0,
+    "security" : null,
+    "ssid" : null,
+    "txRate" : 0
+  },
+  "locationAuthorized" : false,
+  "locationServicesEnabled" : true,
+  "locationStatus" : "denied",
+  "responsibilityDisclaimed" : true
+}
