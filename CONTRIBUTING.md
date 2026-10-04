@@ -102,6 +102,56 @@ internal names. To add a language, copy `en-us-win11.json`, translate the
 keys (not the values), and add fixtures of your `netsh` output to
 `__tests__/data/` with a test in `__tests__/parsing/`. See issue #26.
 
+## Desktop app (development)
+
+The desktop app (see `docs/Desktop_App.md`) is the same server in a
+[Tauri](https://tauri.app) window. Everything for it lives in `desktop/`,
+which has its own `package.json` so the root `npm ci` stays lean. You need
+[Rust](https://rustup.rs) (stable) on top of Node.
+
+| Command                    | What it does                                                         |
+| -------------------------- | -------------------------------------------------------------------- |
+| `npm run desktop:dev`      | Assemble the server, open the app (debug build)                      |
+| `npm run desktop:dev:mock` | The same with `WIFI_HEATMAPPER_MOCK=1` (any env var is passed on)     |
+| `npm run desktop:build`    | Release build: `.app` + `.dmg` in `desktop/src-tauri/target/release/bundle/` |
+| `npm run desktop:server`   | Only assemble `desktop/server/` (Next standalone build + Node)        |
+| `npm run desktop:smoke`    | Start `desktop/server/` read-only in mock mode and check it (CI runs this) |
+
+`desktop/build-server.mjs` builds Next with `output: "standalone"` into
+`.next-desktop/` and copies it, plus an official Node binary (pinned in that
+file, cached in `desktop/.cache/`), into `desktop/server/`. Every Tauri build
+runs it first, so the app never ships a stale server.
+
+How the app runs the server, and what the server can rely on:
+
+- `<resources>/server/node server-entry.mjs`, cwd `<resources>/server`
+  (read-only). `server-entry.mjs` exits when its stdin closes, so the server
+  never outlives the app, even if the app crashes.
+- `PORT` (a free port), `HOSTNAME=127.0.0.1`, `NODE_ENV=production`.
+- `WIFI_HEATMAPPER_DATA_DIR` = the app-data folder + `/data` (macOS:
+  `~/Library/Application Support/com.github.hnykda.wifi-heatmapper/data`),
+  unless you already set it.
+- `WIFI_HEATMAPPER_RESOURCES_DIR` = `<resources>/server`: shipped, read-only
+  files (`assets/`, `data/localization/`, later `helpers/`).
+- `PATH` with `/opt/homebrew/bin` and `/usr/local/bin` added, so a Homebrew
+  `iperf3` is found when the app is opened from Finder.
+- Server output goes to `server.log` in the app's log folder (macOS:
+  `~/Library/Logs/com.github.hnykda.wifi-heatmapper/`). If the server stops,
+  the window shows its last lines.
+
+Set `WIFI_HEATMAPPER_PORT` to pin the port while debugging. To run a built
+app in mock mode from a terminal:
+
+```bash
+WIFI_HEATMAPPER_MOCK=1 "desktop/src-tauri/target/release/bundle/macos/WiFi Heatmapper.app/Contents/MacOS/wifi-heatmapper"
+```
+
+The icon comes from `desktop/app-icon.svg` (the header's mark):
+`npm --prefix desktop run icons` regenerates `desktop/src-tauri/icons/`.
+
+Pushing a `v*` tag (or running the Release workflow by hand) builds the app
+on GitHub and attaches it to a draft release; see `.github/workflows/release.yml`.
+
 ## Releasing
 
 1. Bump `version` in `package.json` and finish the `CHANGELOG.md` entry.
