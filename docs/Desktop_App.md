@@ -159,7 +159,8 @@ Done in part 3. Where it differs from the shape above:
   Tauri quirk: the MSI reuses the folder an earlier NSIS install recorded in
   the registry (it survives the NSIS uninstall), so switching from the setup
   `.exe` to the `.msi` installs into `%LOCALAPPDATA%`. Pick one; most people
-  want the setup `.exe`.
+  want the setup `.exe`. Sizes for 0.5.0: setup `.exe` 27.5 MiB, `.msi`
+  41.8 MiB (server folder 123 MiB installed, of which node.exe is most).
 - **Data and logs** go to `%LOCALAPPDATA%\com.github.hnykda.wifi-heatmapper\`
   (`data\`, `logs\server.log`), not the roaming `%APPDATA%`: floor plan images
   don't belong in a roaming profile. Same folder as before on macOS and Linux.
