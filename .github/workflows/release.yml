@@ -215,6 +215,13 @@ jobs:
             | Windows 10 or 11 (64-bit) | `WiFi.Heatmapper_*_x64-setup.exe` |
             | Windows, installed for all users (needs admin) | `WiFi.Heatmapper_*_x64_en-US.msi` |
 
+            **Early builds.** The desktop apps are new. They are built and
+            started automatically, but so far only the macOS app has been used
+            on a real computer.
+            [What has been tested](https://github.com/hnykda/wifi-heatmapper/blob/main/docs/Install.md#what-has-been-tested)
+            · [Tell us how it went](https://github.com/hnykda/wifi-heatmapper/issues/new?template=desktop-app-report.md)
+            · [Install guide](https://github.com/hnykda/wifi-heatmapper/blob/main/docs/Install.md)
+
             **These builds are not signed.** Your computer will warn you the
             first time you open the app.
 
@@ -230,9 +237,9 @@ jobs:
             Or with Homebrew, within a day of this release:
             `brew install --cask hnykda/tap/wifi-heatmapper`
 
-            The first time you measure, macOS asks whether **"WiFi
-            Heatmapper Helper"** may use your location (or use the button
-            in the Settings tab). The helper is the part of the app that
+            In the Settings tab, click **Allow Location access**: macOS asks
+            whether **"WiFi Heatmapper Helper"** may use your location. The
+            helper is the part of the app that
             reads Wi-Fi signal, and macOS only tells apps with Location
             access the name of your network. Your location itself is not
             used. You are asked once; updates keep the answer. If you say

@@ -80,10 +80,22 @@ export function WelcomePanel() {
             <span>
               Mock mode is on: every measurement is made up, so you can try
               everything without a Wi-Fi card, sudo or iperf3. To measure for
-              real, stop the server and start it with{" "}
-              <code className="rounded bg-background/70 px-1 py-0.5 font-mono text-xs">
-                npm run dev
-              </code>
+              real,{" "}
+              {status.desktopApp ? (
+                <>
+                  quit and start the app without{" "}
+                  <code className="rounded bg-background/70 px-1 py-0.5 font-mono text-xs">
+                    WIFI_HEATMAPPER_MOCK
+                  </code>
+                </>
+              ) : (
+                <>
+                  stop the server and start it with{" "}
+                  <code className="rounded bg-background/70 px-1 py-0.5 font-mono text-xs">
+                    npm run dev
+                  </code>
+                </>
+              )}
               . Sample points stay in the survey until you delete them on the
               Survey points tab.
             </span>

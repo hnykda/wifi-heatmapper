@@ -1,6 +1,6 @@
 {
   "name": "wifi-heatmapper-desktop",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "private": true,
   "type": "module",
   "description": "Tauri shell that runs the wifi-heatmapper server as a desktop app. See CONTRIBUTING.md.",

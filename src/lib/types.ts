@@ -139,6 +139,7 @@ export interface AppStatus {
   mockMode: boolean;
   iperf3Version: string | null; // null when iperf3 is not installed
   dataDir: string;
+  desktopApp: boolean; // started by the desktop app rather than npm/Docker
   // macOS only: path of the native Wi-Fi helper if it is built, else null.
   // Details (does it work, Location access) come from GET /api/macos-helper.
   macosHelper: string | null;

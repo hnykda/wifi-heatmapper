@@ -7,7 +7,7 @@ weak signal, where a mesh node or extender would help, and whether a slow
 connection is really the Wi-Fi's fault.
 
 Runs on **macOS, Windows and Linux** (and in Docker on Linux).
-Everything stays on your computer: surveys are plain JSON files in `data/surveys/`.
+Everything stays on your computer: surveys are plain JSON files.
 
 ![Signal strength heat map](docs/images/heatmap.jpg)
 
@@ -16,29 +16,34 @@ then yellow and red where it gets poor.
 
 ## Install the app
 
-Download the app for your computer from
-[Releases](https://github.com/hnykda/wifi-heatmapper/releases/latest).
+Download the app for your computer from the
+[latest release](https://github.com/hnykda/wifi-heatmapper/releases/latest):
+a `.dmg` for macOS, an installer for Windows, a `.deb` or AppImage for Linux.
+Nothing else to install, except iperf3 if you want to measure speed.
 
-On a Mac you can install it with [Homebrew](https://brew.sh) instead, which
-also installs iperf3 and keeps the app up to date with `brew upgrade`:
+On a Mac you can use [Homebrew](https://brew.sh) instead, which also installs
+iperf3:
 
 ```bash
 brew install --cask hnykda/tap/wifi-heatmapper
 ```
 
-The app isn't signed by Apple yet, so macOS blocks it the first time you open
-it: click Done, then go to System Settings → Privacy & Security and click
-**Open Anyway**. See [hnykda/homebrew-tap](https://github.com/hnykda/homebrew-tap)
-for upgrading and uninstalling.
+The apps are not signed, so macOS and Windows warn you the first time you open
+them. [docs/Install.md](docs/Install.md) walks through that for each system,
+plus where your data is kept.
 
-The first time you measure, macOS asks whether "WiFi Heatmapper Helper" may
-use your location. Allow it to see your network's name (macOS hides it from
-apps without Location access); your location itself is not used. You are
-asked once, and updates keep the answer.
+On a Mac, click **Allow Location access** in Settings once: macOS then lets
+the app see your network's name. Your location itself is not used, and
+updates keep the answer.
 
-To run it from source instead, follow the quick start below.
+> **Early builds.** The desktop apps are new. They are built and started
+> automatically on every release, but so far only the macOS app has been used
+> on a real computer (one Mac). [Here is exactly what has been tested](docs/Install.md#what-has-been-tested).
+> If you try one, please
+> [tell us how it went](https://github.com/hnykda/wifi-heatmapper/issues/new?template=desktop-app-report.md),
+> even if it just worked. Running from source, below, works as before.
 
-## Quick start
+## Run from source
 
 You need Node.js 20 or newer (`node --version`).
 
@@ -114,6 +119,7 @@ No sudo password is needed in Docker.
 
 ## Documentation
 
+- [Installing the app](docs/Install.md), per system, and what has been tested
 - [User interface](docs/User_Interface.md), tab by tab
 - [Theory of operation](docs/Theory_of_Operation.md): which commands run on
   each OS, how the heat map is computed
