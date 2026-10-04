@@ -139,6 +139,22 @@ export interface AppStatus {
   mockMode: boolean;
   iperf3Version: string | null; // null when iperf3 is not installed
   dataDir: string;
+  // macOS only: path of the native Wi-Fi helper if it is built, else null.
+  // Details (does it work, Location access) come from GET /api/macos-helper.
+  macosHelper: string | null;
+}
+
+/**
+ * MacosHelperStatus - GET /api/macos-helper (see src/lib/macos-helper.ts)
+ */
+export interface MacosHelperStatus {
+  available: boolean;
+  path: string | null;
+  locationAuthorized?: boolean;
+  locationStatus?: string; // notDetermined | denied | restricted | authorized
+  locationServicesEnabled?: boolean;
+  prompted?: boolean; // POST only: the macOS prompt was shown
+  error?: string;
 }
 
 /**

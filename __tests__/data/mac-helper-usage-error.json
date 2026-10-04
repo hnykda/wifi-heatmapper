@@ -1,0 +1,5 @@
+{
+  "bundleId" : "io.github.hnykda.wifi-heatmapper.helper",
+  "error" : "usage: info | scan | authorize | status",
+  "helperVersion" : 1
+}

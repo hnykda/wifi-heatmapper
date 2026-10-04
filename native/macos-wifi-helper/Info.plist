@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>en</string>
+	<key>CFBundleExecutable</key>
+	<string>WiFiHeatmapperHelper</string>
+	<key>CFBundleIdentifier</key>
+	<string>io.github.hnykda.wifi-heatmapper.helper</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>WiFi Heatmapper Helper</string>
+	<key>CFBundleDisplayName</key>
+	<string>WiFi Heatmapper Helper</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>1.0</string>
+	<key>CFBundleVersion</key>
+	<string>1</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>11.0</string>
+	<key>LSUIElement</key>
+	<true/>
+	<key>NSLocationUsageDescription</key>
+	<string>WiFi Heatmapper reads the name (SSID) and access point (BSSID) of your Wi-Fi network for the survey. macOS only shares them with apps that have Location access. Your location itself is not used.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>WiFi Heatmapper reads the name (SSID) and access point (BSSID) of your Wi-Fi network for the survey. macOS only shares them with apps that have Location access. Your location itself is not used.</string>
+</dict>
+</plist>

@@ -51,6 +51,38 @@ export function getLocalizationDir(): string {
   return path.join(getResourcesDir(), "data", "localization");
 }
 
+export const MACOS_HELPER_APP = "WiFiHeatmapperHelper.app";
+export const MACOS_HELPER_BINARY = "WiFiHeatmapperHelper";
+
+/**
+ * Where to look for the macOS Wi-Fi helper (native/macos-wifi-helper), in
+ * order of preference. Each entry is a .app bundle path, or the executable
+ * itself when WIFI_HEATMAPPER_MACOS_HELPER points at one.
+ *
+ *  1. WIFI_HEATMAPPER_MACOS_HELPER - explicit override
+ *  2. $WIFI_HEATMAPPER_RESOURCES_DIR/helpers/ - set by the desktop app
+ *  3. native/macos-wifi-helper/build/ - `npm run build:macos-helper`
+ */
+export function getMacosHelperCandidates(): string[] {
+  const out: string[] = [];
+  const explicit = process.env.WIFI_HEATMAPPER_MACOS_HELPER;
+  if (explicit) out.push(path.resolve(explicit));
+  const resources = process.env.WIFI_HEATMAPPER_RESOURCES_DIR;
+  if (resources) {
+    out.push(path.resolve(resources, "helpers", MACOS_HELPER_APP));
+  }
+  out.push(
+    path.join(
+      process.cwd(),
+      "native",
+      "macos-wifi-helper",
+      "build",
+      MACOS_HELPER_APP,
+    ),
+  );
+  return out;
+}
+
 /**
  * Only allow plain file names (no path separators, no traversal, no dotfiles).
  * Returns null when the name is not acceptable.

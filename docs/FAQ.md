@@ -17,6 +17,9 @@
    Even with sudo access, the SSID and BSSID are no longer available.
    It appears that a macOS application now needs Location Access
    permissions to obtain this information.
+   Build the Wi-Fi helper (`npm run build:macos-helper`), then click
+   "Allow Location access" in Settings and "Allow" in the macOS dialog.
+   The helper only uses Location permission to see the network name.
 
 ## Where is my data?
 

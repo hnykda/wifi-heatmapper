@@ -147,9 +147,10 @@ export async function runSurveyTests(
     const newIperfData = getDefaultIperfResults();
     const wifiStrengths: number[] = []; // percentages
 
-    displayStates.header = ssidName.includes("redacted")
-      ? "Measuring Wi-Fi"
-      : `Measuring Wi-Fi (${ssidName})`;
+    displayStates.header =
+      !ssidName || ssidName.includes("redacted")
+        ? "Measuring Wi-Fi"
+        : `Measuring Wi-Fi (${ssidName})`;
 
     const readWifi = async (): Promise<WifiResults> => {
       const resp = await wifiActions.getWifi(settings);

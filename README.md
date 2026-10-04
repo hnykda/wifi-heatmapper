@@ -39,6 +39,12 @@ Open [http://localhost:3000](http://localhost:3000) and:
 
 Linux needs `iw` and `nmcli` installed and on `PATH`.
 
+On macOS you can skip the sudo password: run `npm run build:macos-helper` once
+(needs the Xcode command line tools) and restart `npm run dev`. The Wi-Fi
+helper reads the signal without sudo; allow it Location access in Settings to
+also record the network name. See
+[native/macos-wifi-helper](native/macos-wifi-helper/README.md).
+
 ![Floor plan with survey points](docs/images/floorplan.png)
 
 ### Measuring throughput with iperf3 (optional)

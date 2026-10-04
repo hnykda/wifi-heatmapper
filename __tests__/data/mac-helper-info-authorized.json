@@ -1,0 +1,24 @@
+{
+  "bundleId" : "io.github.hnykda.wifi-heatmapper.helper",
+  "helperVersion" : 1,
+  "interface" : {
+    "associated" : true,
+    "band" : 5,
+    "bssid" : "9e:05:d6:96:e8:30",
+    "channel" : 44,
+    "channelWidth" : 80,
+    "countryCode" : "CZ",
+    "name" : "en0",
+    "noise" : -78,
+    "phyMode" : "802.11ax",
+    "powerOn" : true,
+    "rssi" : -59,
+    "security" : "WPA2 Personal",
+    "ssid" : "Demo Network",
+    "txRate" : 864
+  },
+  "locationAuthorized" : true,
+  "locationServicesEnabled" : true,
+  "locationStatus" : "authorized",
+  "responsibilityDisclaimed" : true
+}
