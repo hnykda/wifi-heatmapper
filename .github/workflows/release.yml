@@ -156,21 +156,34 @@ jobs:
       # so after NSIS it would land in %LOCALAPPDATA% instead of Program Files.
       - name: Smoke-test the installed app (Windows)
         if: github.event_name == 'pull_request' && runner.os == 'Windows'
+        timeout-minutes: 15
         shell: pwsh
         run: |
+          # Start-Process -Wait would also wait for any process an installer
+          # leaves behind; wait for the installer itself only, with a limit.
+          function Run($file, $arguments) {
+            $p = Start-Process $file -ArgumentList $arguments -PassThru
+            $null = $p.Handle  # without it, ExitCode can come back empty
+            if (-not $p.WaitForExit(180000)) { "timed out: $file $arguments"; exit 1 }
+            $p.ExitCode
+          }
           $bundle = "desktop/src-tauri/target/${{ matrix.target }}/release/bundle"
           $msi = (Get-ChildItem "$bundle/msi/*.msi")[0].FullName
-          $p = Start-Process msiexec -ArgumentList "/i `"$msi`" /qn /norestart /l*v msi.log" -Wait -PassThru
-          if ($p.ExitCode) { Get-Content msi.log -Tail 60; exit $p.ExitCode }
+          "installing $msi"
+          $code = Run msiexec "/i `"$msi`" /qn /norestart /l*v msi.log"
+          if ($code) { Get-Content msi.log -Tail 60; exit $code }
           $exe = "$env:ProgramFiles\WiFi Heatmapper\wifi-heatmapper.exe"
           if (-not (Test-Path $exe)) { Select-String msi.log -Pattern "INSTALLDIR"; exit 1 }
           node desktop/smoke-test-app.mjs $exe
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
-          $p = Start-Process msiexec -ArgumentList "/x `"$msi`" /qn /norestart" -Wait -PassThru
-          if ($p.ExitCode -or (Test-Path $exe)) { "MSI uninstall failed: $($p.ExitCode)"; exit 1 }
+          "uninstalling the MSI"
+          $code = Run msiexec "/x `"$msi`" /qn /norestart"
+          if ($code -or (Test-Path $exe)) { "MSI uninstall failed: $code"; exit 1 }
 
           $nsis = (Get-ChildItem "$bundle/nsis/*-setup.exe")[0].FullName
-          Start-Process $nsis -ArgumentList "/S" -Wait
+          "installing $nsis"
+          $code = Run $nsis "/S"
+          if ($code) { "NSIS install failed: $code"; exit 1 }
           node desktop/smoke-test-app.mjs "$env:LOCALAPPDATA\WiFi Heatmapper\wifi-heatmapper.exe"
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
 

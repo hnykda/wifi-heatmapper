@@ -45,6 +45,12 @@ for (const p of [
     throw new Error(`no ${p} next to ${exe}`);
 }
 
+// Never hang a CI job: every wait below has its own limit, this is the backstop.
+setTimeout(() => {
+  console.error("FAIL the whole test took over 4 minutes");
+  process.exit(1);
+}, 240_000).unref();
+
 const work = mkdtempSync(join(tmpdir(), "wifi-heatmapper-app-smoke-"));
 const preload = join(work, "preload.cjs");
 writeFileSync(
@@ -134,7 +140,9 @@ async function run(label, quit) {
       async () => {
         if (appExited) throw new Error("the app exited");
         try {
-          const res = await fetch(`http://127.0.0.1:${port}/api/status`);
+          const res = await fetch(`http://127.0.0.1:${port}/api/status`, {
+            signal: AbortSignal.timeout(5000),
+          });
           return res.ok && (await res.json());
         } catch {
           return null;
@@ -147,7 +155,9 @@ async function run(label, quit) {
     );
     if (status.mockMode !== true) fail(`mockMode is ${status.mockMode}`);
     if (status.dataDir !== dataDir) fail(`dataDir is ${status.dataDir}`);
-    const page = await fetch(`http://127.0.0.1:${port}/`);
+    const page = await fetch(`http://127.0.0.1:${port}/`, {
+      signal: AbortSignal.timeout(15_000),
+    });
     if (page.ok) ok("/ answers 200");
     else fail(`/ answers ${page.status}`);
 
@@ -188,14 +198,19 @@ async function run(label, quit) {
     fail(err.message);
   } finally {
     if (!appExited)
-      spawnSync("taskkill", ["/F", "/T", "/PID", String(app.pid)]);
+      spawnSync("taskkill", ["/F", "/T", "/PID", String(app.pid)], {
+        timeout: 15_000,
+      });
   }
 }
 
 const taskkill =
   (...args) =>
   (pid) =>
-    spawnSync("taskkill", [...args, "/PID", String(pid)], { encoding: "utf8" });
+    spawnSync("taskkill", [...args, "/PID", String(pid)], {
+      encoding: "utf8",
+      timeout: 15_000,
+    });
 
 await run("close-window", taskkill());
 await run("kill", taskkill("/F"));
@@ -212,3 +227,4 @@ else fail(`no server log at ${log}`);
 rmSync(work, { recursive: true, force: true });
 if (failed) process.exit(1);
 console.log("\napp smoke test passed");
+process.exit(0);
