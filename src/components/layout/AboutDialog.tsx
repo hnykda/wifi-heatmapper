@@ -30,6 +30,14 @@ export function AboutDialog() {
         ["Data folder", status.dataDir],
         ["Docker", status.docker ? "yes" : "no"],
         ["Measurements", status.mockMode ? "mock (synthetic)" : "real"],
+        ...(status.platform === "darwin" && !status.mockMode
+          ? ([
+              [
+                "Wi-Fi helper",
+                status.macosHelper ?? "not built (uses wdutil and sudo)",
+              ],
+            ] as [string, string][])
+          : []),
       ]
     : [];
 

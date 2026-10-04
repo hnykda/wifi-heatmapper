@@ -2,6 +2,8 @@
 import { RotateCcw } from "lucide-react";
 import { useSettings, DEFAULT_FLOORPLAN } from "@/components/GlobalSettings";
 import { useAppStatus } from "@/hooks/useAppStatus";
+import { useMacosHelper } from "@/hooks/useMacosHelper";
+import { MacosHelperNotice } from "./MacosHelperNotice";
 import { PasswordInput } from "./PasswordInput";
 import { FormRow, FormSection } from "./FormRow";
 import { NumberField } from "./NumberField";
@@ -24,10 +26,22 @@ export default function SettingsEditor() {
   const { settings, updateSettings, readNewSettingsFromFile } = useSettings();
   const status = useAppStatus();
 
+  // On macOS the native Wi-Fi helper, when built, replaces wdutil + sudo
+  const macHelper = useMacosHelper(
+    !!status && status.platform === "darwin" && !!status.macosHelper,
+  );
+  const helperWorks = !!macHelper.helper?.available;
+  const helperPending =
+    !!status?.macosHelper && status.platform === "darwin" && !macHelper.helper;
+
   // sudo is only needed where wdutil/iw require it
   const needsSudo =
     !status ||
-    (!status.mockMode && !status.docker && status.platform !== "win32");
+    (!status.mockMode &&
+      !status.docker &&
+      status.platform !== "win32" &&
+      !helperWorks &&
+      !helperPending);
 
   const iperfOff = settings.iperfServerAdrs === "localhost";
 
@@ -132,7 +146,16 @@ export default function SettingsEditor() {
           />
         </FormRow>
 
-        {status && !needsSudo && (
+        {helperWorks && macHelper.helper && (
+          <MacosHelperNotice
+            helper={macHelper.helper}
+            asking={macHelper.asking}
+            error={macHelper.error}
+            onAuthorize={macHelper.authorize}
+            onRefresh={macHelper.refresh}
+          />
+        )}
+        {status && !needsSudo && !helperWorks && !helperPending && (
           <p
             className="text-sm text-muted-foreground"
             data-testid="sudo-not-needed"
@@ -150,7 +173,13 @@ export default function SettingsEditor() {
             id="sudoPassword"
             label="sudo password"
             help="macOS (wdutil) and Linux (iw) need administrator rights to read the Wi-Fi signal. The password is kept in memory only and never written to disk."
-            hint="Required on macOS and Linux. Not saved."
+            hint={
+              status?.platform === "darwin"
+                ? macHelper.helper?.error
+                  ? `Required: the Wi-Fi helper did not work (${macHelper.helper.error}). Not saved.`
+                  : "Required, unless you build the Wi-Fi helper (npm run build:macos-helper). Not saved."
+                : "Required on macOS and Linux. Not saved."
+            }
           >
             <div className="max-w-sm">
               <PasswordInput
