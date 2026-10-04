@@ -14,6 +14,25 @@ Everything stays on your computer: surveys are plain JSON files in `data/surveys
 Green is good. The scale runs green, turquoise, blue for acceptable signal,
 then yellow and red where it gets poor.
 
+## Install the app
+
+Download the app for your computer from
+[Releases](https://github.com/hnykda/wifi-heatmapper/releases/latest).
+
+On a Mac you can install it with [Homebrew](https://brew.sh) instead, which
+also installs iperf3 and keeps the app up to date with `brew upgrade`:
+
+```bash
+brew install --cask hnykda/tap/wifi-heatmapper
+```
+
+The app isn't signed by Apple yet, so macOS blocks it the first time you open
+it: click Done, then go to System Settings → Privacy & Security and click
+**Open Anyway**. See [hnykda/homebrew-tap](https://github.com/hnykda/homebrew-tap)
+for upgrading and uninstalling.
+
+To run it from source instead, follow the quick start below.
+
 ## Quick start
 
 You need Node.js 20 or newer (`node --version`).
