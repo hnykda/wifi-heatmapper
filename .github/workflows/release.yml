@@ -131,5 +131,8 @@ jobs:
             xattr -dr com.apple.quarantine "/Applications/WiFi Heatmapper.app"
             ```
 
+            Or with Homebrew, within a day of this release:
+            `brew install --cask hnykda/tap/wifi-heatmapper`
+
             Your surveys and floor plans are kept in
             `~/Library/Application Support/com.github.hnykda.wifi-heatmapper/data`.

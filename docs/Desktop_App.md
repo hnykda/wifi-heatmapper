@@ -95,6 +95,29 @@ Privacy & Security → "Open Anyway" (or
 `xattr -dr com.apple.quarantine "/Applications/WiFi Heatmapper.app"`), and Windows
 needs SmartScreen → "More info" → "Run anyway".
 
+## Homebrew tap
+
+macOS users can install with `brew install --cask hnykda/tap/wifi-heatmapper`.
+The cask lives in [hnykda/homebrew-tap](https://github.com/hnykda/homebrew-tap)
+(`Casks/wifi-heatmapper.rb`, a generic tap so other projects can add casks).
+It downloads `WiFi.Heatmapper_<version>_<aarch64|x64>.dmg` from the release, so
+keep those asset names, and depends on the `iperf3` formula.
+
+Nothing here needs to change for a release. The tap's `update.yml` workflow runs
+daily (or by hand), reads the latest *published* release (drafts and
+prereleases are ignored), downloads both `.dmg`s, rewrites the version and
+checksums with `brew bump-cask-pr`, runs `brew style` and `brew audit`, and
+commits. It uses only the tap's own `GITHUB_TOKEN`. To update the tap the moment
+a release is published, see "Updating right after a release" in the tap's
+README (an optional `HOMEBREW_TAP_TOKEN` secret and a `release: published`
+job); it is not set up.
+
+The cask does not strip the quarantine flag: Homebrew quarantines cask
+downloads so Gatekeeper still checks them, and has dropped `--no-quarantine`.
+Its caveats show the same "Open Anyway" steps as the release notes. Because the
+app is ad-hoc signed, Homebrew can't carry the user's approval over to a new
+build, so macOS asks again after each upgrade until the app is signed.
+
 ## Work breakdown
 
 Each part is its own PR. The base is either the `desktop-app` tracking PR or
