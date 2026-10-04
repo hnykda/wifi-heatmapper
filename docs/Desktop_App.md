@@ -156,6 +156,10 @@ Done in part 3. Where it differs from the shape above:
   admin) and `.msi` (per-machine under Program Files). The bundle has about
   2,000 files, no symlinks, and its longest relative path is ~110 characters;
   `build-server.mjs` fails the build above 160 so installs stay under MAX_PATH.
+  Tauri quirk: the MSI reuses the folder an earlier NSIS install recorded in
+  the registry (it survives the NSIS uninstall), so switching from the setup
+  `.exe` to the `.msi` installs into `%LOCALAPPDATA%`. Pick one; most people
+  want the setup `.exe`.
 - **Data and logs** go to `%LOCALAPPDATA%\com.github.hnykda.wifi-heatmapper\`
   (`data\`, `logs\server.log`), not the roaming `%APPDATA%`: floor plan images
   don't belong in a roaming profile. Same folder as before on macOS and Linux.
