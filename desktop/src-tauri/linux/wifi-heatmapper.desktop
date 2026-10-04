@@ -1,0 +1,12 @@
+[Desktop Entry]
+Categories=Network;Utility;
+{{#if comment}}
+Comment={{comment}}
+{{/if}}
+Exec={{exec}}
+StartupWMClass={{exec}}
+Icon={{icon}}
+Name={{name}}
+Keywords=wifi;wi-fi;wireless;signal;survey;heatmap;iperf;
+Terminal=false
+Type=Application

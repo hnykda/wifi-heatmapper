@@ -34,9 +34,6 @@ jobs:
         #   - platform: windows-latest
         #     target: x86_64-pc-windows-msvc
         #     label: windows-x64
-        #   - platform: ubuntu-22.04
-        #     target: x86_64-unknown-linux-gnu
-        #     label: linux-x64
         include:
           - platform: macos-latest
             target: aarch64-apple-darwin
@@ -46,6 +43,15 @@ jobs:
           - platform: macos-15-intel
             target: x86_64-apple-darwin
             label: macos-x64
+          # ubuntu-22.04 for an older glibc, so the AppImage and .deb run on
+          # more distributions (Debian 12+, Ubuntu 22.04+, Fedora, Arch...).
+          - platform: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            label: linux-x64
+          # 64-bit Raspberry Pi OS and other ARM boards.
+          - platform: ubuntu-22.04-arm
+            target: aarch64-unknown-linux-gnu
+            label: linux-arm64
 
     runs-on: ${{ matrix.platform }}
     steps:
@@ -70,6 +76,15 @@ jobs:
           workspaces: desktop/src-tauri -> target
           key: ${{ matrix.target }}
 
+      # Tauri's Linux build dependencies (webkit2gtk 4.1 etc.); xvfb for the
+      # app smoke test below.
+      - name: Linux build dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev \
+            librsvg2-dev patchelf build-essential file libssl-dev xvfb
+
       - run: npm ci
       - run: npm run desktop:install
 
@@ -79,6 +94,16 @@ jobs:
         if: github.event_name == 'pull_request'
         working-directory: desktop
         run: npx tauri build --target ${{ matrix.target }}
+
+      # Start the real app (shell + bundled server) on a virtual display in
+      # mock mode, from the AppImage and from the installed .deb.
+      - name: Smoke-test the Linux app
+        if: github.event_name == 'pull_request' && runner.os == 'Linux'
+        run: |
+          bundle=desktop/src-tauri/target/${{ matrix.target }}/release/bundle
+          desktop/smoke-test-linux.sh "$(ls $bundle/appimage/*.AppImage)"
+          sudo apt-get install -y "$(realpath $bundle/deb/*.deb)"
+          desktop/smoke-test-linux.sh /usr/bin/wifi-heatmapper
 
       - name: Upload the installers
         if: github.event_name == 'pull_request'
@@ -133,3 +158,29 @@ jobs:
 
             Your surveys and floor plans are kept in
             `~/Library/Application Support/com.github.hnykda.wifi-heatmapper/data`.
+
+            **Linux** (x64 and 64-bit ARM such as a Raspberry Pi 4/5):
+
+            | Linux | File |
+            |---|---|
+            | Ubuntu, Debian, Linux Mint (x64) | `WiFi.Heatmapper_*_amd64.deb` |
+            | Raspberry Pi OS 64-bit, Ubuntu, Debian (ARM64) | `WiFi.Heatmapper_*_arm64.deb` |
+            | Any other distribution (x64) | `WiFi.Heatmapper_*_amd64.AppImage` |
+            | Any other distribution (ARM64) | `WiFi.Heatmapper_*_aarch64.AppImage` |
+
+            Install the `.deb` with `sudo apt install ./WiFi.Heatmapper_*.deb`
+            (it suggests `iw`, `iperf3` and `network-manager`) and start
+            WiFi Heatmapper from the app menu. Or make the `.AppImage`
+            executable and run it:
+
+            ```
+            chmod +x WiFi.Heatmapper_*.AppImage
+            ./WiFi.Heatmapper_*.AppImage
+            ```
+
+            AppImages need FUSE 2: on Ubuntu 24.04 and later run
+            `sudo apt install libfuse2t64` first (older Ubuntu: `libfuse2`).
+            Reading the Wi-Fi signal uses `iw`; on most systems it needs no
+            password, otherwise the app asks for your sudo password.
+            Your surveys and floor plans are kept in
+            `~/.local/share/com.github.hnykda.wifi-heatmapper/data`.
