@@ -49,6 +49,25 @@ back to `wdutil` + sudo when it isn't. The helper path comes from an env var, so
 - in browser mode, `npm run build:macos-helper` builds it into the repo and
   `npm run dev` picks it up.
 
+What we learned building it (details and log evidence in
+[`native/macos-wifi-helper/README.md`](../native/macos-wifi-helper/README.md)):
+
+- Running `WiFiHeatmapperHelper.app/Contents/MacOS/WiFiHeatmapperHelper`
+  directly from node is enough. locationd registers the client under the
+  helper's bundle id, not the terminal's or node's, and `open` is not needed.
+  The helper also re-executes itself with responsibility disclaimed, as a
+  precaution.
+- An ad-hoc signed bundle gets the real Location prompt, naming "WiFi
+  Heatmapper Helper" and showing our usage string. Someone has to click
+  "Allow" once; the Settings tab offers a button that triggers the prompt.
+- Without Location, readings (RSSI, noise, channel, band, width, tx rate, PHY
+  mode, security) still work; only SSID/BSSID are missing, and the UI says so.
+- `info` takes ~90 ms, so readings are faster than `sudo wdutil`. A fresh
+  `scan` takes 5-7 s, so the server only uses the cached scan.
+- Not verified yet: SSID actually unredacted after "Allow", and whether the
+  permission survives a rebuild (ad-hoc cdhash changes). The README has the
+  commands to check.
+
 ## Releases
 
 `.github/workflows/release.yml`, on a `v*` tag (and `workflow_dispatch` for
@@ -87,7 +106,7 @@ explores this); code signing once a certificate exists.
 ## Checklist
 
 - [ ] 1 Foundation
-- [ ] 2 macOS native Wi-Fi helper
+- [x] 2 macOS native Wi-Fi helper
 - [ ] 3 Windows
 - [ ] 4 Linux
 - [ ] 5 macOS helper in the app
