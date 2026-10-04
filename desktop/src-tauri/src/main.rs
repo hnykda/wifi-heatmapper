@@ -12,7 +12,8 @@
 //!   pipe this process holds (the server exits when it closes);
 //! - `PORT` (free port, or `WIFI_HEATMAPPER_PORT`), `HOSTNAME=127.0.0.1`,
 //!   `NODE_ENV=production`;
-//! - `WIFI_HEATMAPPER_DATA_DIR=<app data dir>/data` unless already set;
+//! - `WIFI_HEATMAPPER_DATA_DIR=<app local data dir>/data` unless already set
+//!   (Windows: `%LOCALAPPDATA%\<identifier>\data`);
 //! - `WIFI_HEATMAPPER_RESOURCES_DIR=<server>` (read-only; `helpers/` lives here);
 //! - `PATH` plus the usual package-manager dirs, because an app opened from
 //!   Finder gets a bare PATH and would not find a Homebrew `iperf3`;
@@ -21,8 +22,15 @@
 //!   (`LD_LIBRARY_PATH`, `GIO_MODULE_DIR`, ...; see `appdir_env_fixes`).
 //!
 //! The server's stdout and stderr go to `<app log dir>/server.log`.
+//!
+//! Windows: node.exe runs without a console window, inside a Job Object that
+//! ends it and everything it started when the app quits or dies
+//! (`windows_job.rs`).
 
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+
+#[cfg(windows)]
+mod windows_job;
 
 use std::collections::VecDeque;
 use std::fs::File;
@@ -44,6 +52,7 @@ const POLL: Duration = Duration::from_millis(150);
 /// A Node stack trace is about twenty lines; keep a little more.
 const STDERR_TAIL_LINES: usize = 40;
 /// How long a server gets to stop on SIGTERM before it is killed.
+#[cfg(unix)]
 const STOP_GRACE: Duration = Duration::from_secs(3);
 
 #[cfg(windows)]
@@ -188,8 +197,7 @@ fn answers(port: u16) -> bool {
 fn path_with_extras() -> std::ffi::OsString {
     let current = std::env::var_os("PATH").unwrap_or_default();
     let mut dirs: Vec<PathBuf> = std::env::split_paths(&current).collect();
-    for extra in EXTRA_PATH {
-        let extra = PathBuf::from(extra);
+    for extra in EXTRA_PATH.iter().map(PathBuf::from).chain(tool_dirs()) {
         if !dirs.contains(&extra) {
             dirs.push(extra);
         }
@@ -223,6 +231,27 @@ fn appdir_env_fixes(
         fixes.push((name, if kept.is_empty() { None } else { Some(kept.join(":")) }));
     }
     fixes
+}
+
+/// Windows: where winget, Scoop and Chocolatey put command-line tools such as
+/// iperf3. Their installers add these to PATH, but an app started from an
+/// Explorer that has not picked up the change yet would not see them.
+#[cfg(windows)]
+fn tool_dirs() -> Vec<PathBuf> {
+    let env = |name: &str| std::env::var_os(name).filter(|v| !v.is_empty()).map(PathBuf::from);
+    [
+        env("LOCALAPPDATA").map(|d| d.join("Microsoft").join("WinGet").join("Links")),
+        env("SCOOP").map(|d| d.join("shims")),
+        env("USERPROFILE").map(|d| d.join("scoop").join("shims")),
+        env("ProgramData").map(|d| d.join("chocolatey").join("bin")),
+    ]
+    .into_iter()
+    .flatten()
+    .collect()
+}
+#[cfg(not(windows))]
+fn tool_dirs() -> Vec<PathBuf> {
+    Vec::new()
 }
 
 fn spawn_server(
@@ -282,6 +311,8 @@ fn spawn_server(
         command.creation_flags(CREATE_NO_WINDOW);
     }
     let mut child = command.spawn()?;
+    #[cfg(windows)]
+    windows_job::contain(&child);
     if let Some(stderr) = child.stderr.take() {
         let log = log.and_then(|f| f.try_clone().ok());
         std::thread::spawn(move || pump_stderr(stderr, &tail, log));
@@ -350,6 +381,10 @@ fn stop(mut child: Child) {
         // the group may outlive its leader (an iperf3 still finishing)
         unsafe { libc::kill(group, libc::SIGKILL) };
     }
+    // node.exe and whatever it is running (iperf3, netsh); there is nothing
+    // like SIGTERM for a windowless console process, and nothing to flush.
+    #[cfg(windows)]
+    windows_job::kill_all();
     let _ = child.kill();
     let _ = child.wait();
 }
@@ -378,7 +413,12 @@ fn open_with_system(target: &str, select: bool) {
     };
     #[cfg(windows)]
     let spawned = if select {
-        Command::new("explorer").arg(format!("/select,{target}")).spawn()
+    {
+        // Explorer parses its own command line: it wants `/select,"C:\a b\c"`,
+        // not the whole argument quoted the way Rust would quote it.
+        use std::os::windows::process::CommandExt;
+        Command::new("explorer").raw_arg(format!("/select,\"{target}\"")).spawn()
+    }
     } else {
         Command::new("explorer").arg(target).spawn()
     };
@@ -395,7 +435,10 @@ fn open_with_system(target: &str, select: bool) {
 fn data_dir(app: &tauri::AppHandle) -> tauri::Result<PathBuf> {
     match std::env::var_os("WIFI_HEATMAPPER_DATA_DIR") {
         Some(dir) if !dir.is_empty() => Ok(PathBuf::from(dir)),
-        _ => Ok(app.path().app_data_dir()?.join("data")),
+        // Windows: %LOCALAPPDATA%, not the roaming %APPDATA%: floor plan
+        // images don't belong in a roaming profile, and the logs and WebView2
+        // data live there too. On macOS and Linux both are the same folder.
+        _ => Ok(app.path().app_local_data_dir()?.join("data")),
     }
 }
 
@@ -524,8 +567,8 @@ mod tests {
     fn extra_path_dirs_are_added() {
         let joined = path_with_extras();
         let dirs: Vec<PathBuf> = std::env::split_paths(&joined).collect();
-        for extra in EXTRA_PATH {
-            assert!(dirs.contains(&PathBuf::from(extra)));
+        for extra in EXTRA_PATH.iter().map(PathBuf::from).chain(tool_dirs()) {
+            assert!(dirs.contains(&extra));
         }
     }
 

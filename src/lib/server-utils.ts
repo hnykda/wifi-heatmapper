@@ -25,15 +25,22 @@ const logger = getLogger("server-utils");
 export const execAsync = async (
   command: string,
 ): Promise<{ stdout: string; stderr: string }> => {
-  // @ts-expect-error // "shell" is the name of the shell program, but prop must be boolean
-  const options: ExecOptions = { shell: true }; // Node.js finds the right binary for the OS
+  const options: ExecOptions = {
+    // @ts-expect-error // "shell" is the name of the shell program, but prop must be boolean
+    shell: true, // Node.js finds the right binary for the OS
+    // Windows: never open a console window for cmd.exe/netsh/iperf3 (the
+    // desktop app runs node without one). No effect elsewhere.
+    windowsHide: true,
+  };
 
   return new Promise((resolve, reject) => {
     logger.debug("Executing command:", command);
     exec(command, options, (error, stdout, stderr) => {
       if (error) {
         logger.debug(`execAsync(${command}) rejects with "${error}"`);
-        reject(error);
+        // Like util.promisify(exec): callers may need the output of a
+        // command that failed (netsh prints why it was denied on stdout).
+        reject(Object.assign(error, { stdout, stderr }));
       } else {
         logger.debug(`Command result: ${JSON.stringify(stdout)}`);
         resolve({ stdout: stdout.trimEnd(), stderr: stderr.trimEnd() });
@@ -58,6 +65,7 @@ export async function runDetached(command: string, args: string[] = []) {
     detached: true,
     stdio: "ignore", // Don't keep stdio open
     shell: true, // Needed if you're using shell syntax
+    windowsHide: true, // a detached process would otherwise get a console window
   });
 
   subprocess.unref(); // Allow parent to exit independently

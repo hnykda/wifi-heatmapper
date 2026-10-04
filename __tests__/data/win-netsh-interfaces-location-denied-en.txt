@@ -1,0 +1,18 @@
+
+There is 1 interface on the system:
+
+Network shell commands need location permission to access WLAN information. Turn on Location services on the Location page in Privacy & security settings.
+
+Here is the URI for the Location page in the Settings app:
+
+ms-settings:privacy-location
+
+To open the Location page in the Settings app, hold down the Ctrl key and select the link, or run the following command:
+
+start ms-settings:privacy-location
+
+Or, to open the Location page from the Run dialog box, press Windows logo key + R, and then copy and paste the URI above.
+
+Function WlanQueryInterface returns error 5:
+
+Access is denied.

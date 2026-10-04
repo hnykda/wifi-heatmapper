@@ -42,8 +42,14 @@ jobs:
           retention-days: 7
 
   desktop-server:
-    name: Desktop app server bundle (smoke test)
-    runs-on: ubuntu-latest
+    name: Desktop app server bundle (smoke test, ${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        # Windows: the bundle ships node.exe from the official .zip, and
+        # netsh/cmd paths differ; see also the installed-app test in release.yml
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
