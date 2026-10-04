@@ -105,8 +105,9 @@ export class MacOSWifiActions implements WifiActions {
 
     // without it, wdutil needs a sudo password
     else if (!settings.sudoerPassword || settings.sudoerPassword == "") {
-      reason =
-        "Please set sudo password. It is required on macOS unless you build the Wi-Fi helper (npm run build:macos-helper).";
+      reason = process.env.WIFI_HEATMAPPER_RESOURCES_DIR
+        ? "Please set sudo password. The app's Wi-Fi helper did not work, so macOS needs it."
+        : "Please set sudo password. It is required on macOS unless you build the Wi-Fi helper (npm run build:macos-helper).";
     }
 
     // check that the sudo password is actually correct

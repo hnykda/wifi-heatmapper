@@ -15,7 +15,7 @@ import { GradientEditor } from "./GradientEditor";
 import EditableApMapping from "./ApMapping";
 import { sanitizeFilename } from "@/lib/utils";
 import { defaultIperfCommands } from "@/lib/iperfUtils";
-import { IperfCommands } from "@/lib/types";
+import { AppStatus, IperfCommands } from "@/lib/types";
 
 const IPERF_HELP =
   "Placeholders: {server}, {port} and {duration} are filled in from the settings above. See https://iperf.fr/iperf-doc.php for the options.";
@@ -83,9 +83,8 @@ export default function SettingsEditor() {
             settings.floorplanImageName && (
               <>
                 Survey saved as{" "}
-                <code className="rounded bg-muted px-1 py-0.5 font-mono text-[11px]">
-                  data/surveys/{sanitizeFilename(settings.floorplanImageName)}
-                  .json
+                <code className="break-all rounded bg-muted px-1 py-0.5 font-mono text-[11px]">
+                  {surveyPath(status, settings.floorplanImageName)}
                 </code>
               </>
             )
@@ -162,7 +161,9 @@ export default function SettingsEditor() {
           >
             No sudo password needed here:{" "}
             {status.mockMode
-              ? "mock mode makes up the measurements. Run `npm run dev` for real ones."
+              ? status.desktopApp
+                ? "mock mode makes up the measurements. Start the app without WIFI_HEATMAPPER_MOCK for real ones."
+                : "mock mode makes up the measurements. Run `npm run dev` for real ones."
               : status.docker
                 ? "the container already runs as root."
                 : "Windows reads the signal without it."}
@@ -177,7 +178,9 @@ export default function SettingsEditor() {
               status?.platform === "darwin"
                 ? macHelper.helper?.error
                   ? `Required: the Wi-Fi helper did not work (${macHelper.helper.error}). Not saved.`
-                  : "Required, unless you build the Wi-Fi helper (npm run build:macos-helper). Not saved."
+                  : status.desktopApp
+                    ? "Required: the app's Wi-Fi helper is missing, so the signal is read with wdutil. Not saved."
+                    : "Required, unless you build the Wi-Fi helper (npm run build:macos-helper). Not saved."
                 : "On Linux, only if the survey asks for it. Not saved."
             }
           >
@@ -281,4 +284,12 @@ export default function SettingsEditor() {
       </FormSection>
     </div>
   );
+}
+
+/** Where the survey for this floor plan is saved, as the user's OS writes paths. */
+function surveyPath(status: AppStatus | null, floorplan: string): string {
+  const file = `${sanitizeFilename(floorplan)}.json`;
+  if (!status) return `data/surveys/${file}`;
+  const sep = status.platform === "win32" ? "\\" : "/";
+  return [status.dataDir, "surveys", file].join(sep);
 }

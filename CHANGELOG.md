@@ -17,6 +17,13 @@ _This section follows the precepts of [Keep a Changelog](https://keepachangelog.
 * **Linux**: the current link is read with `iw` without sudo when the system
   allows it; the sudo password is only needed as a fallback.
 
+### Fixed
+
+* The About dialog showed the wrong macOS version on macOS 27 ("28"); it now
+  asks `sw_vers`.
+* Settings shows where a survey is really saved (the app-data folder in the
+  desktop app), and no longer tells desktop users to run `npm` commands.
+
 ## Version 0.5.0 - 2026-09-11
 
 A visual and structural overhaul. Surveys made with 0.4.x keep working;
