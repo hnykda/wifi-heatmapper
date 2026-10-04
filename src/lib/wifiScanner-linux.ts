@@ -28,7 +28,8 @@ export class LinuxWifiActions implements WifiActions {
    * Tests:
    *   * iperfServerAdrs - non-empty
    *   * testDuration - greater than zero
-   *   * sudoerPassword - non-empty and correct
+   *   * sudoerPassword - correct if given; required only if iw refuses
+   *     to read the link as a normal user
    *
    * @param settings
    * @returns empty array of SSIDs, plus "" or error string
@@ -90,12 +91,14 @@ export class LinuxWifiActions implements WifiActions {
       reason = "Please set iperf3 server address";
     }
 
-    // Linux requires a sudo password
-    // but Docker doesn't
+    // Linux may need a sudo password for `iw dev <if> link`. Docker doesn't,
+    // and most desktop distributions let a normal user run it.
     if (!reason && !isDocker() && !isPodman()) {
       if (!settings.sudoerPassword || settings.sudoerPassword == "") {
-        // don't require sudo password on a Docker container
-        reason = "Please set sudo password. It is required on Linux.";
+        if (!(await iwLinkWorksWithoutSudo())) {
+          reason =
+            "Please set sudo password. This computer needs it to read the Wi-Fi signal (iw).";
+        }
       }
 
       // check that the sudo password is actually correct
@@ -241,16 +244,51 @@ async function inferWifiDeviceIdOnLinux(): Promise<string> {
   return stdout.trim();
 }
 
+/**
+ * iwLinkCommands() - the commands that read the current link, in the order to
+ * try them. `iw dev <if> link` only asks nl80211 for state (no scan), which
+ * the kernel allows for any user, so it is tried without sudo first. sudo is
+ * the fallback for systems that refuse it, and only with a password.
+ * @param interfaceId - e.g. "wlp1s0"
+ * @param pw - the sudo password ("" if none was given)
+ * @param isRoot - true in Docker/Podman, where sudo is neither needed nor present
+ * @returns one or two shell commands
+ */
+export function iwLinkCommands(
+  interfaceId: string,
+  pw: string,
+  isRoot: boolean,
+): string[] {
+  const command = `iw dev ${interfaceId} link`;
+  if (isRoot || !pw) return [command];
+  return [command, `echo "${pw}" | sudo -S ${command}`];
+}
+
 async function iwDevLink(interfaceId: string, pw: string): Promise<string> {
-  // const command = `echo "${pw}" | sudo -S iw dev ${interfaceId} link`;
-
-  let command = `iw dev ${interfaceId} link`;
-  if (!isDocker() && !isPodman()) {
-    command = `echo "${pw}" | sudo -S ` + command;
+  const commands = iwLinkCommands(interfaceId, pw, isDocker() || isPodman());
+  let lastError: unknown;
+  for (const command of commands) {
+    try {
+      const { stdout } = await execAsync(command);
+      return stdout;
+    } catch (err) {
+      lastError = err;
+    }
   }
+  throw lastError;
+}
 
-  const { stdout } = await execAsync(command);
-  return stdout;
+/** Can this user read the current link without sudo? */
+async function iwLinkWorksWithoutSudo(): Promise<boolean> {
+  try {
+    const wlanInterface = await inferWifiDeviceIdOnLinux();
+    if (!wlanInterface) return false;
+    await execAsync(iwLinkCommands(wlanInterface, "", false)[0]);
+    logger.info("  ✓ iw reads the link without sudo");
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 async function iwDevInfo(interfaceId: string): Promise<string> {

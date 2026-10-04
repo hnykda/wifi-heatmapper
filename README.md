@@ -7,14 +7,43 @@ weak signal, where a mesh node or extender would help, and whether a slow
 connection is really the Wi-Fi's fault.
 
 Runs on **macOS, Windows and Linux** (and in Docker on Linux).
-Everything stays on your computer: surveys are plain JSON files in `data/surveys/`.
+Everything stays on your computer: surveys are plain JSON files.
 
 ![Signal strength heat map](docs/images/heatmap.jpg)
 
 Green is good. The scale runs green, turquoise, blue for acceptable signal,
 then yellow and red where it gets poor.
 
-## Quick start
+## Install the app
+
+Download the app for your computer from the
+[latest release](https://github.com/hnykda/wifi-heatmapper/releases/latest):
+a `.dmg` for macOS, an installer for Windows, a `.deb` or AppImage for Linux.
+Nothing else to install, except iperf3 if you want to measure speed.
+
+On a Mac you can use [Homebrew](https://brew.sh) instead, which also installs
+iperf3:
+
+```bash
+brew install --cask hnykda/tap/wifi-heatmapper
+```
+
+The apps are not signed, so macOS and Windows warn you the first time you open
+them. [docs/Install.md](docs/Install.md) walks through that for each system,
+plus where your data is kept.
+
+On a Mac, click **Allow Location access** in Settings once: macOS then lets
+the app see your network's name. Your location itself is not used, and
+updates keep the answer.
+
+> **Early builds.** The desktop apps are new. They are built and started
+> automatically on every release, but so far only the macOS app has been used
+> on a real computer (one Mac). [Here is exactly what has been tested](docs/Install.md#what-has-been-tested).
+> If you try one, please
+> [tell us how it went](https://github.com/hnykda/wifi-heatmapper/issues/new?template=desktop-app-report.md),
+> even if it just worked. Running from source, below, works as before.
+
+## Run from source
 
 You need Node.js 20 or newer (`node --version`).
 
@@ -38,6 +67,12 @@ Open [http://localhost:3000](http://localhost:3000) and:
    or export everything as CSV.
 
 Linux needs `iw` and `nmcli` installed and on `PATH`.
+
+On macOS you can skip the sudo password: run `npm run build:macos-helper` once
+(needs the Xcode command line tools) and restart `npm run dev`. The Wi-Fi
+helper reads the signal without sudo; allow it Location access in Settings to
+also record the network name. See
+[native/macos-wifi-helper](native/macos-wifi-helper/README.md).
 
 ![Floor plan with survey points](docs/images/floorplan.png)
 
@@ -84,6 +119,7 @@ No sudo password is needed in Docker.
 
 ## Documentation
 
+- [Installing the app](docs/Install.md), per system, and what has been tested
 - [User interface](docs/User_Interface.md), tab by tab
 - [Theory of operation](docs/Theory_of_Operation.md): which commands run on
   each OS, how the heat map is computed

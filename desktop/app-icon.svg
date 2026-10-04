@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!-- Source for `npm run desktop:icons` (tauri icon). The glyph is BrandMark.tsx
+       (src/components/layout/BrandMark.tsx) on the dark theme's background, inside
+       macOS's 824px icon grid. -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#232837"/>
+      <stop offset="1" stop-color="#13151b"/>
+    </linearGradient>
+  </defs>
+  <rect x="100" y="100" width="824" height="824" rx="185" fill="url(#bg)"/>
+  <g transform="translate(200 122) scale(26)" fill="none">
+    <path d="M4.5 12.5a9 9 0 0 1 15 0" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round"/>
+    <path d="M8 16a4.5 4.5 0 0 1 8 0" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round"/>
+    <circle cx="12" cy="19.5" r="2" fill="#6d54cf"/>
+  </g>
+</svg>

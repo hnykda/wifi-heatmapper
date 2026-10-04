@@ -2,6 +2,28 @@
 
 _This section follows the precepts of [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) so that future readers can understand the state and evolution of the project._
 
+## Unreleased
+
+### Added
+
+* **Desktop apps** for macOS (Apple silicon and Intel), Windows and Linux
+  (x64 and ARM64), built by GitHub Actions for every release. No Node.js or
+  terminal needed; data lives in the system's app-data folder. Early builds:
+  see [docs/Install.md](docs/Install.md) for install steps and what has been
+  tested. Mac users can also `brew install --cask hnykda/tap/wifi-heatmapper`.
+* **macOS without sudo**: a small helper reads the Wi-Fi signal through
+  CoreWLAN, and with Location access also the network name that `wdutil` now
+  hides. Works from source too (`npm run build:macos-helper`).
+* **Linux**: the current link is read with `iw` without sudo when the system
+  allows it; the sudo password is only needed as a fallback.
+
+### Fixed
+
+* The About dialog showed the wrong macOS version on macOS 27 ("28"); it now
+  asks `sw_vers`.
+* Settings shows where a survey is really saved (the app-data folder in the
+  desktop app), and no longer tells desktop users to run `npm` commands.
+
 ## Version 0.5.0 - 2026-09-11
 
 A visual and structural overhaul. Surveys made with 0.4.x keep working;

@@ -1,0 +1,312 @@
+name: Release
+
+# Builds the desktop app (desktop/, see docs/Desktop_App.md) for every
+# platform in the matrix and attaches the installers to a DRAFT GitHub release.
+# Nothing is published until someone reviews the draft and clicks Publish.
+on:
+  push:
+    tags: ["v*"]
+  # Trial runs without a tag: the draft release is named after the branch.
+  workflow_dispatch:
+  # PRs that touch the desktop app build every platform without releasing;
+  # the installers are attached to the run as artifacts for testing.
+  pull_request:
+    paths:
+      - "desktop/**"
+      - "native/**"
+      - ".github/workflows/release.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Desktop app (${{ matrix.label }})
+    strategy:
+      fail-fast: false
+      matrix:
+        # To add a platform, add a row. Each row builds natively on its own
+        # runner: desktop/build-server.mjs ships the Node binary and Next's
+        # traced native modules for the runner's OS/arch, so there is no
+        # cross-compiling. A row may also need a "deps" step below (Linux:
+        # webkit2gtk etc.).
+        include:
+          - platform: macos-latest
+            target: aarch64-apple-darwin
+            label: macos-arm64
+          # Intel Macs. macos-13 was retired in December 2025; macos-15-intel
+          # is GitHub's x64 macOS image until August 2027.
+          - platform: macos-15-intel
+            target: x86_64-apple-darwin
+            label: macos-x64
+          # ubuntu-22.04 for an older glibc, so the AppImage and .deb run on
+          # more distributions (Debian 12+, Ubuntu 22.04+, Fedora, Arch...).
+          - platform: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            label: linux-x64
+          # 64-bit Raspberry Pi OS and other ARM boards.
+          - platform: ubuntu-22.04-arm
+            target: aarch64-unknown-linux-gnu
+            label: linux-arm64
+          # NSIS setup .exe (per-user, no admin) and .msi (per-machine)
+          - platform: windows-latest
+            target: x86_64-pc-windows-msvc
+            label: windows-x64
+
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # Only runs the build. The Node shipped inside the app is pinned in
+          # desktop/build-server.mjs.
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            desktop/package-lock.json
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: desktop/src-tauri -> target
+          key: ${{ matrix.target }}
+
+      # Tauri's Linux build dependencies (webkit2gtk 4.1 etc.); xvfb for the
+      # app smoke test below.
+      - name: Linux build dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev \
+            librsvg2-dev patchelf build-essential file libssl-dev xvfb
+
+      - run: npm ci
+      - run: npm run desktop:install
+
+      # macOS: the Wi-Fi helper inside the app is signed with the project's
+      # self-signed certificate, so the Location permission users give it
+      # survives updates (native/macos-wifi-helper/README.md, "Signing").
+      # Fork PRs get no secrets and build with an ad-hoc helper instead.
+      - name: Import the Wi-Fi helper signing certificate (macOS)
+        if: runner.os == 'macOS'
+        env:
+          MACOS_HELPER_CERT_P12: ${{ secrets.MACOS_HELPER_CERT_P12 }}
+          MACOS_HELPER_CERT_PASSWORD: ${{ secrets.MACOS_HELPER_CERT_PASSWORD }}
+        run: |
+          if [ -z "$MACOS_HELPER_CERT_P12" ]; then
+            if [ "$GITHUB_EVENT_NAME" != pull_request ]; then
+              echo "::error::MACOS_HELPER_CERT_P12 is not set; a release must not ship an ad-hoc signed helper"
+              exit 1
+            fi
+            echo "::warning::No helper signing certificate (fork PR?): the Wi-Fi helper is ad-hoc signed"
+            exit 0
+          fi
+          KEYCHAIN="$RUNNER_TEMP/helper-signing.keychain-db"
+          P12="$RUNNER_TEMP/helper-signing.p12"
+          printf '%s' "$MACOS_HELPER_CERT_P12" | base64 --decode > "$P12"
+          IDENTITY=$(native/macos-wifi-helper/signing-keychain.sh create "$KEYCHAIN" "$P12")
+          rm -f "$P12"
+          if [ -z "$IDENTITY" ]; then
+            echo "::error::no code signing identity in MACOS_HELPER_CERT_P12"
+            exit 1
+          fi
+          echo "MACOS_HELPER_SIGN_IDENTITY=$IDENTITY" >> "$GITHUB_ENV"
+          echo "MACOS_HELPER_SIGN_KEYCHAIN=$KEYCHAIN" >> "$GITHUB_ENV"
+
+      # tauri.conf.json's beforeBuildCommand runs desktop/build-server.mjs:
+      # the Next standalone build plus this platform's Node binary.
+      - name: Build the app (pull request, no release)
+        if: github.event_name == 'pull_request'
+        working-directory: desktop
+        run: npx tauri build --target ${{ matrix.target }}
+
+      # Start the real app (shell + bundled server) on a virtual display in
+      # mock mode, from the AppImage and from the installed .deb.
+      - name: Smoke-test the Linux app
+        if: github.event_name == 'pull_request' && runner.os == 'Linux'
+        run: |
+          bundle=desktop/src-tauri/target/${{ matrix.target }}/release/bundle
+          desktop/smoke-test-linux.sh "$(ls $bundle/appimage/*.AppImage)"
+          sudo apt-get install -y "$(realpath $bundle/deb/*.deb)"
+          desktop/smoke-test-linux.sh /usr/bin/wifi-heatmapper
+
+      - name: Upload the installers
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: wifi-heatmapper-${{ matrix.label }}
+          path: |
+            desktop/src-tauri/target/${{ matrix.target }}/release/bundle/dmg/*.dmg
+            desktop/src-tauri/target/${{ matrix.target }}/release/bundle/msi/*.msi
+            desktop/src-tauri/target/${{ matrix.target }}/release/bundle/nsis/*.exe
+            desktop/src-tauri/target/${{ matrix.target }}/release/bundle/appimage/*.AppImage
+            desktop/src-tauri/target/${{ matrix.target }}/release/bundle/deb/*.deb
+          if-no-files-found: error
+
+      # Install each Windows installer the way users do, start the installed
+      # app in mock mode, and check it serves, and that quitting (window
+      # close) and killing it (taskkill /F) end node.exe and its children.
+      # MSI first, on the clean runner: the MSI reuses the install folder an
+      # NSIS install recorded in the registry (even after NSIS uninstalls),
+      # so after NSIS it would land in %LOCALAPPDATA% instead of Program Files.
+      - name: Smoke-test the installed app (Windows)
+        if: github.event_name == 'pull_request' && runner.os == 'Windows'
+        timeout-minutes: 15
+        shell: pwsh
+        run: |
+          # Start-Process -Wait would also wait for any process an installer
+          # leaves behind; wait for the installer itself only, with a limit.
+          function Run($file, $arguments) {
+            $p = Start-Process $file -ArgumentList $arguments -PassThru
+            $null = $p.Handle  # without it, ExitCode can come back empty
+            if (-not $p.WaitForExit(180000)) { "timed out: $file $arguments"; exit 1 }
+            $p.ExitCode
+          }
+          $bundle = "desktop/src-tauri/target/${{ matrix.target }}/release/bundle"
+          $msi = (Get-ChildItem "$bundle/msi/*.msi")[0].FullName
+          "installing $msi"
+          $code = Run msiexec "/i `"$msi`" /qn /norestart /l*v msi.log"
+          if ($code) { Get-Content msi.log -Tail 60; exit $code }
+          $exe = "$env:ProgramFiles\WiFi Heatmapper\wifi-heatmapper.exe"
+          if (-not (Test-Path $exe)) { Select-String msi.log -Pattern "INSTALLDIR"; exit 1 }
+          node desktop/smoke-test-app.mjs $exe
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          "uninstalling the MSI"
+          $code = Run msiexec "/x `"$msi`" /qn /norestart"
+          if ($code -or (Test-Path $exe)) { "MSI uninstall failed: $code"; exit 1 }
+
+          $nsis = (Get-ChildItem "$bundle/nsis/*-setup.exe")[0].FullName
+          "installing $nsis"
+          $code = Run $nsis "/S"
+          if ($code) { "NSIS install failed: $code"; exit 1 }
+          node desktop/smoke-test-app.mjs "$env:LOCALAPPDATA\WiFi Heatmapper\wifi-heatmapper.exe"
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+
+      - name: Build the app and attach it to the draft release
+        if: github.event_name != 'pull_request'
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: desktop
+          tauriScript: npx tauri
+          args: --target ${{ matrix.target }}
+          # __VERSION__ is package.json's version (tauri.conf.json reads it).
+          # A dispatch run without a tag fills the same draft as the tag would.
+          tagName: v__VERSION__
+          releaseName: WiFi Heatmapper v__VERSION__
+          releaseDraft: true
+          prerelease: false
+          releaseBody: |
+            Download the file for your computer below. You still need
+            [iperf3](https://iperf.fr/iperf-download.php) on this computer
+            and another one on your network to measure throughput; signal
+            strength works without it.
+
+            | Computer | File |
+            |---|---|
+            | Mac with Apple silicon (M1 and later) | `WiFi.Heatmapper_*_aarch64.dmg` |
+            | Mac with an Intel processor | `WiFi.Heatmapper_*_x64.dmg` |
+            | Windows 10 or 11 (64-bit) | `WiFi.Heatmapper_*_x64-setup.exe` |
+            | Windows, installed for all users (needs admin) | `WiFi.Heatmapper_*_x64_en-US.msi` |
+
+            **Early builds.** The desktop apps are new. They are built and
+            started automatically, but so far only the macOS app has been used
+            on a real computer.
+            [What has been tested](https://github.com/hnykda/wifi-heatmapper/blob/main/docs/Install.md#what-has-been-tested)
+            · [Tell us how it went](https://github.com/hnykda/wifi-heatmapper/issues/new?template=desktop-app-report.md)
+            · [Install guide](https://github.com/hnykda/wifi-heatmapper/blob/main/docs/Install.md)
+
+            **These builds are not signed.** Your computer will warn you the
+            first time you open the app.
+
+            **macOS:** open the `.dmg` and drag WiFi Heatmapper to
+            Applications. Open it once; when macOS says it cannot verify the
+            app, click Done, then go to System Settings → Privacy & Security,
+            scroll down and click **Open Anyway**. Or, in Terminal:
+
+            ```
+            xattr -dr com.apple.quarantine "/Applications/WiFi Heatmapper.app"
+            ```
+
+            Or with Homebrew, within a day of this release:
+            `brew install --cask hnykda/tap/wifi-heatmapper`
+
+            In the Settings tab, click **Allow Location access**: macOS asks
+            whether **"WiFi Heatmapper Helper"** may use your location. The
+            helper is the part of the app that
+            reads Wi-Fi signal, and macOS only tells apps with Location
+            access the name of your network. Your location itself is not
+            used. You are asked once; updates keep the answer. If you say
+            no, measurements still work, without the network name.
+
+            Your surveys and floor plans are kept in
+            `~/Library/Application Support/com.github.hnykda.wifi-heatmapper/data`.
+
+            **Linux** (x64 and 64-bit ARM such as a Raspberry Pi 4/5):
+
+            | Linux | File |
+            |---|---|
+            | Ubuntu, Debian, Linux Mint (x64) | `WiFi.Heatmapper_*_amd64.deb` |
+            | Raspberry Pi OS 64-bit, Ubuntu, Debian (ARM64) | `WiFi.Heatmapper_*_arm64.deb` |
+            | Any other distribution (x64) | `WiFi.Heatmapper_*_amd64.AppImage` |
+            | Any other distribution (ARM64) | `WiFi.Heatmapper_*_aarch64.AppImage` |
+
+            Install the `.deb` with `sudo apt install ./WiFi.Heatmapper_*.deb`
+            (it suggests `iw`, `iperf3` and `network-manager`) and start
+            WiFi Heatmapper from the app menu. Or make the `.AppImage`
+            executable and run it:
+
+            ```
+            chmod +x WiFi.Heatmapper_*.AppImage
+            ./WiFi.Heatmapper_*.AppImage
+            ```
+
+            AppImages need FUSE 2: on Ubuntu 24.04 and later run
+            `sudo apt install libfuse2t64` first (older Ubuntu: `libfuse2`).
+            Reading the Wi-Fi signal uses `iw`; on most systems it needs no
+            password, otherwise the app asks for your sudo password.
+            Your surveys and floor plans are kept in
+            `~/.local/share/com.github.hnykda.wifi-heatmapper/data`.
+
+            **Windows:** run the setup `.exe`. When Windows SmartScreen says
+            it protected your PC, click **More info**, then **Run anyway**.
+            The app installs for your user only and needs no admin rights
+            (the `.msi` installs for everyone on the computer instead).
+
+            On Windows 11 24H2 and later, Windows only shares Wi-Fi details
+            with apps allowed to use your location. Open Settings → Privacy
+            & security → Location and turn on **Location services** and
+            **Let desktop apps access your location**. iperf3 must be on your
+            PATH, for example via `scoop install iperf3` or
+            `choco install iperf3`.
+
+            Your surveys and floor plans are kept in
+            `%LOCALAPPDATA%\com.github.hnykda.wifi-heatmapper\data`, and the
+            log in `%LOCALAPPDATA%\com.github.hnykda.wifi-heatmapper\logs`.
+
+      # The Wi-Fi helper must come out of Tauri's bundling with its own
+      # signature intact: Tauri signs only the outer app, without --deep.
+      - name: Check the Wi-Fi helper's signature (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          APP="desktop/src-tauri/target/${{ matrix.target }}/release/bundle/macos/WiFi Heatmapper.app"
+          HELPER="$APP/Contents/Resources/server/helpers/WiFiHeatmapperHelper.app"
+          codesign --verify --deep --strict "$APP"
+          codesign --verify --strict "$HELPER"
+          codesign -dvv "$HELPER" 2>&1 | grep -E '^(Identifier|Authority|CDHash)='
+          codesign -d -r- "$HELPER" 2>&1 | tail -n 1
+          if [ -n "${MACOS_HELPER_SIGN_IDENTITY:-}" ] &&
+            ! codesign -d -r- "$HELPER" 2>&1 | grep -q 'certificate root = H"'; then
+            echo "::error::the Wi-Fi helper lost its certificate signature"
+            exit 1
+          fi
+
+      - name: Remove the signing keychain (macOS)
+        if: always() && runner.os == 'macOS' && env.MACOS_HELPER_SIGN_KEYCHAIN != ''
+        run: native/macos-wifi-helper/signing-keychain.sh delete "$MACOS_HELPER_SIGN_KEYCHAIN"

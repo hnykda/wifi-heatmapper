@@ -15,7 +15,13 @@ import {
   getDefaultWifiResults,
 } from "./utils";
 import { getLogger } from "./logger";
+import { findMacosHelper, runMacosHelper } from "./macos-helper";
+import { parseHelperInfo, parseHelperScan } from "./macos-helper-parse";
 const logger = getLogger("wifi-macOS");
+
+/** Logged once per server run when SSID/BSSID are hidden. */
+const LOCATION_HINT =
+  'macOS hides the network name and access point until you allow Location for "WiFi Heatmapper Helper" (Settings tab, or System Settings > Privacy & Security > Location Services).';
 
 export type MergeResult = {
   added: boolean; // current SSID was added to the results
@@ -25,6 +31,33 @@ export class MacOSWifiActions implements WifiActions {
   nameOfWifi: string = ""; // OS-specific name of the current wifi interface
   currentSSIDName: string = ""; // name of the current SSID
   strongestSSID: WifiResults | null = null; // strongest SSID if not currentSSID
+  // true when the CoreWLAN helper answered the last preflight: no sudo needed
+  useHelper: boolean = false;
+  private warnedAboutLocation = false;
+
+  /**
+   * tryHelper() - is the native helper (native/macos-wifi-helper) built and
+   * working? It reads the signal without sudo. Falls back to wdutil if not.
+   */
+  private async tryHelper(): Promise<boolean> {
+    if (!findMacosHelper()) {
+      this.useHelper = false;
+      return false;
+    }
+    try {
+      const info = parseHelperInfo(await runMacosHelper("info"));
+      this.useHelper = true;
+      if (!info.locationAuthorized && !this.warnedAboutLocation) {
+        logger.warn(LOCATION_HINT);
+        this.warnedAboutLocation = true;
+      }
+      return true;
+    } catch (err) {
+      logger.warn(`Wi-Fi helper failed, falling back to wdutil + sudo: ${err}`);
+      this.useHelper = false;
+      return false;
+    }
+  }
 
   /**
    * preflightSettings - check whether the settings are "primed" to run a test
@@ -32,6 +65,7 @@ export class MacOSWifiActions implements WifiActions {
    *   * iperfServerAdrs - non-empty
    *   * testDuration - greater than zero
    *   * sudoerPassword - non-empty and correct
+   *     (skipped when the native Wi-Fi helper works: it needs no sudo)
    *
    * @param settings
    * @returns empty array of SSIDs, plus "" or error string
@@ -64,9 +98,16 @@ export class MacOSWifiActions implements WifiActions {
       reason = "Please set iperf3 server address";
     }
 
-    // macOS requires a sudo password
+    // the native helper reads Wi-Fi without sudo
+    else if (await this.tryHelper()) {
+      // nothing more to check
+    }
+
+    // without it, wdutil needs a sudo password
     else if (!settings.sudoerPassword || settings.sudoerPassword == "") {
-      reason = "Please set sudo password. It is required on macOS.";
+      reason = process.env.WIFI_HEATMAPPER_RESOURCES_DIR
+        ? "Please set sudo password. The app's Wi-Fi helper did not work, so macOS needs it."
+        : "Please set sudo password. It is required on macOS unless you build the Wi-Fi helper (npm run build:macos-helper).";
     }
 
     // check that the sudo password is actually correct
@@ -133,6 +174,22 @@ export class MacOSWifiActions implements WifiActions {
       SSIDs: [],
       reason: "",
     };
+
+    // The helper's last scan results are instant (a fresh scan takes ~5 s
+    // and would disturb the throughput test).
+    if (this.useHelper) {
+      try {
+        const scan = parseHelperScan(
+          await runMacosHelper("scan", ["--cached"]),
+        );
+        response.SSIDs = scan.networks;
+        const current = scan.networks.find((n) => n.currentSSID);
+        if (current?.ssid) this.currentSSIDName = current.ssid;
+        return response;
+      } catch (err) {
+        logger.warn(`Wi-Fi helper scan failed: ${err}`);
+      }
+    }
 
     // macOS 26 returns "<redacted>" both for SSID and BSSID
     // There is no longer a reason to call system_profiler
@@ -242,6 +299,24 @@ export class MacOSWifiActions implements WifiActions {
       SSIDs: [],
       reason: "",
     };
+    if (this.useHelper) {
+      try {
+        const info = parseHelperInfo(await runMacosHelper("info"));
+        if (!info.associated) {
+          response.reason = "Wi-Fi is off or not connected to a network.";
+          return response;
+        }
+        response.SSIDs.push(info.wifi);
+        return response;
+      } catch (err) {
+        logger.warn(`Wi-Fi helper failed: ${err}`);
+        if (!settings.sudoerPassword) {
+          response.reason = `Can't getWifi: ${err}`;
+          return response;
+        }
+        // fall through to wdutil, which works with the sudo password
+      }
+    }
     try {
       const netInfo: WifiResults = await getWdutilResults(settings);
       // if the returned SSID contains "redacted" use the "global SSID"

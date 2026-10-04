@@ -102,6 +102,109 @@ internal names. To add a language, copy `en-us-win11.json`, translate the
 keys (not the values), and add fixtures of your `netsh` output to
 `__tests__/data/` with a test in `__tests__/parsing/`. See issue #26.
 
+## Desktop app (development)
+
+The desktop app (see `docs/Desktop_App.md`) is the same server in a
+[Tauri](https://tauri.app) window. Everything for it lives in `desktop/`,
+which has its own `package.json` so the root `npm ci` stays lean. You need
+[Rust](https://rustup.rs) (stable) on top of Node. On Linux (Debian/Ubuntu)
+also Tauri's system libraries:
+
+```bash
+sudo apt install libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev \
+  patchelf build-essential file libssl-dev
+```
+
+| Command                    | What it does                                                         |
+| -------------------------- | -------------------------------------------------------------------- |
+| `npm run desktop:dev`      | Assemble the server, open the app (debug build)                      |
+| `npm run desktop:dev:mock` | The same with `WIFI_HEATMAPPER_MOCK=1` (any env var is passed on)     |
+| `npm run desktop:build`    | Release build: `.app` + `.dmg` (Linux: `.AppImage` + `.deb`) in `desktop/src-tauri/target/release/bundle/` |
+| `npm run desktop:server`   | Only assemble `desktop/server/` (Next standalone build + Node)        |
+| `npm run desktop:smoke`    | Start `desktop/server/` read-only in mock mode and check it (CI runs this) |
+
+`desktop/build-server.mjs` builds Next with `output: "standalone"` into
+`.next-desktop/` and copies it, plus an official Node binary (pinned in that
+file, cached in `desktop/.cache/`), into `desktop/server/`. Every Tauri build
+runs it first, so the app never ships a stale server.
+
+How the app runs the server, and what the server can rely on:
+
+- `<resources>/server/node server-entry.mjs`, cwd `<resources>/server`
+  (read-only). `server-entry.mjs` exits when its stdin closes, so the server
+  never outlives the app, even if the app crashes.
+- `PORT` (a free port), `HOSTNAME=127.0.0.1`, `NODE_ENV=production`.
+- `WIFI_HEATMAPPER_DATA_DIR` = the app-data folder + `/data` (macOS:
+  `~/Library/Application Support/com.github.hnykda.wifi-heatmapper/data`;
+  Linux: `~/.local/share/com.github.hnykda.wifi-heatmapper/data`), unless you
+  already set it.
+- `WIFI_HEATMAPPER_RESOURCES_DIR` = `<resources>/server`: shipped, read-only
+  files (`assets/`, `data/localization/`, and on macOS
+  `helpers/WiFiHeatmapperHelper.app`).
+- `PATH` with `/opt/homebrew/bin` and `/usr/local/bin` added, so a Homebrew
+  `iperf3` is found when the app is opened from Finder (Linux: `/usr/local/bin`,
+  `/usr/sbin`, `/sbin`, for `iw`).
+- Inside an AppImage, none of the AppImage's `$APPDIR` library paths
+  (`LD_LIBRARY_PATH`, `GIO_MODULE_DIR`, ...): the tools the server runs use the
+  system's libraries.
+- Server output goes to `server.log` in the app's log folder (macOS:
+  `~/Library/Logs/com.github.hnykda.wifi-heatmapper/`; Linux:
+  `~/.local/share/com.github.hnykda.wifi-heatmapper/logs/`). If the server
+  stops, the window shows its last lines.
+
+Set `WIFI_HEATMAPPER_PORT` to pin the port while debugging. To run a built
+app in mock mode from a terminal:
+
+```bash
+WIFI_HEATMAPPER_MOCK=1 "desktop/src-tauri/target/release/bundle/macos/WiFi Heatmapper.app/Contents/MacOS/wifi-heatmapper"
+# Linux
+WIFI_HEATMAPPER_MOCK=1 desktop/src-tauri/target/release/bundle/appimage/*.AppImage
+```
+
+`desktop/smoke-test-linux.sh <AppImage or /usr/bin/wifi-heatmapper>` starts
+the built Linux app under Xvfb in mock mode and checks it (CI runs it on both
+Linux release rows). Without a Linux machine, an `ubuntu:22.04` container
+with the packages above, Node 22 and rustup builds both packages (set
+`APPIMAGE_EXTRACT_AND_RUN=1`: containers have no FUSE).
+
+On macOS the build also compiles the Wi-Fi helper
+(`native/macos-wifi-helper`, needs `xcode-select --install`) into
+`desktop/server/helpers/`. By default it is ad-hoc signed: that works, but
+macOS forgets the helper's Location permission whenever it is rebuilt, so
+expect the "WiFi Heatmapper Helper would like to use your location" prompt
+after each build. Release builds sign it with the project's certificate
+(GitHub secrets), so users are asked only once. To build like a release,
+set `MACOS_HELPER_SIGN_IDENTITY` (and `MACOS_HELPER_SIGN_KEYCHAIN`); with the
+maintainer's `.p12`, `native/macos-wifi-helper/signing-keychain.sh` sets up a
+throwaway keychain for it. Steps in `native/macos-wifi-helper/README.md`,
+"Signing". Fork PRs get no secrets and build an ad-hoc helper.
+
+On Windows you also need the Rust MSVC toolchain (rustup's default) and
+Visual Studio Build Tools with "Desktop development with C++"; WebView2
+ships with Windows 10 and 11. The commands are the same.
+`npm run desktop:build` makes `bundle/nsis/*-setup.exe` (per-user install)
+and `bundle/msi/*.msi` (per-machine). What differs from macOS:
+
+- Data: `%LOCALAPPDATA%\com.github.hnykda.wifi-heatmapper\data` (local,
+  not roaming); log: `%LOCALAPPDATA%\com.github.hnykda.wifi-heatmapper\logs\server.log`.
+- `node.exe` runs without a console window, inside a Job Object
+  (`desktop/src-tauri/src/windows_job.rs`): quitting the app, or the app
+  dying, ends node.exe and everything it started (iperf3, netsh).
+- `PATH` gets the winget, Scoop and Chocolatey tool folders added.
+- `node desktop/smoke-test-app.mjs <path to wifi-heatmapper.exe>` checks a
+  built or installed app: server up, and no node.exe or child left after a
+  window close or a `taskkill /F` (release.yml runs it on both installers).
+
+```powershell
+$env:WIFI_HEATMAPPER_MOCK=1; & "desktop\src-tauri\target\release\wifi-heatmapper.exe"
+```
+
+The icon comes from `desktop/app-icon.svg` (the header's mark):
+`npm --prefix desktop run icons` regenerates `desktop/src-tauri/icons/`.
+
+Pushing a `v*` tag (or running the Release workflow by hand) builds the app
+on GitHub and attaches it to a draft release; see `.github/workflows/release.yml`.
+
 ## Releasing
 
 1. Bump `version` in `package.json` and finish the `CHANGELOG.md` entry.

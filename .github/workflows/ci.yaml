@@ -40,3 +40,25 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 7
+
+  desktop-server:
+    name: Desktop app server bundle (smoke test, ${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        # Windows: the bundle ships node.exe from the official .zip, and
+        # netsh/cmd paths differ; see also the installed-app test in release.yml
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # Next standalone build + the pinned Node binary, as the app ships them
+      - run: npm run desktop:server
+      # Starts the bundle read-only with a temp data dir in mock mode and
+      # checks pages, APIs, seeded floor plans, a write, and exit on stdin close
+      - run: npm run desktop:smoke
