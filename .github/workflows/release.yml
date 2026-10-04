@@ -148,32 +148,30 @@ jobs:
             desktop/src-tauri/target/${{ matrix.target }}/release/bundle/deb/*.deb
           if-no-files-found: error
 
-      # Install both Windows installers the way users do, start the installed
+      # Install each Windows installer the way users do, start the installed
       # app in mock mode, and check it serves, and that quitting (window
       # close) and killing it (taskkill /F) end node.exe and its children.
+      # MSI first, on the clean runner: the MSI reuses the install folder an
+      # NSIS install recorded in the registry (even after NSIS uninstalls),
+      # so after NSIS it would land in %LOCALAPPDATA% instead of Program Files.
       - name: Smoke-test the installed app (Windows)
         if: github.event_name == 'pull_request' && runner.os == 'Windows'
         shell: pwsh
         run: |
           $bundle = "desktop/src-tauri/target/${{ matrix.target }}/release/bundle"
-          $nsis = (Get-ChildItem "$bundle/nsis/*-setup.exe")[0].FullName
-          Start-Process $nsis -ArgumentList "/S" -Wait
-          node desktop/smoke-test-app.mjs "$env:LOCALAPPDATA\WiFi Heatmapper\wifi-heatmapper.exe"
-          if ($LASTEXITCODE) { exit $LASTEXITCODE }
-          # one or the other, as users would have it
-          Start-Process "$env:LOCALAPPDATA\WiFi Heatmapper\uninstall.exe" -ArgumentList "/S" -Wait
-          # (an NSIS uninstaller re-launches itself from %TEMP% and returns at once)
-          for ($i = 0; $i -lt 30 -and (Test-Path "$env:LOCALAPPDATA\WiFi Heatmapper\wifi-heatmapper.exe"); $i++) { Start-Sleep 1 }
           $msi = (Get-ChildItem "$bundle/msi/*.msi")[0].FullName
           $p = Start-Process msiexec -ArgumentList "/i `"$msi`" /qn /norestart /l*v msi.log" -Wait -PassThru
           if ($p.ExitCode) { Get-Content msi.log -Tail 60; exit $p.ExitCode }
-          $exe = Get-ChildItem "$env:ProgramFiles" -Filter wifi-heatmapper.exe -Recurse -Depth 2 | Select-Object -First 1 -ExpandProperty FullName
-          if (-not $exe) {
-            Select-String msi.log -Pattern "INSTALLDIR|Product:|Installation|Return value 3|Note: 1: |Skipping|FindRelatedProducts" | Select-Object -First 80
-            Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*, HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\* | Where-Object DisplayName -like "WiFi*" | Format-List DisplayName, InstallLocation, UninstallString
-            exit 1
-          }
+          $exe = "$env:ProgramFiles\WiFi Heatmapper\wifi-heatmapper.exe"
+          if (-not (Test-Path $exe)) { Select-String msi.log -Pattern "INSTALLDIR"; exit 1 }
           node desktop/smoke-test-app.mjs $exe
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          $p = Start-Process msiexec -ArgumentList "/x `"$msi`" /qn /norestart" -Wait -PassThru
+          if ($p.ExitCode -or (Test-Path $exe)) { "MSI uninstall failed: $($p.ExitCode)"; exit 1 }
+
+          $nsis = (Get-ChildItem "$bundle/nsis/*-setup.exe")[0].FullName
+          Start-Process $nsis -ArgumentList "/S" -Wait
+          node desktop/smoke-test-app.mjs "$env:LOCALAPPDATA\WiFi Heatmapper\wifi-heatmapper.exe"
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
 
       - name: Build the app and attach it to the draft release
