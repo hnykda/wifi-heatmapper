@@ -33,7 +33,7 @@ import {
   statSync,
   writeFileSync,
 } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -107,8 +107,15 @@ async function officialNodeBinary(version) {
   if (!res.ok) throw new Error(`could not download ${url}: ${res.status}`);
   const archive = join(cacheDir, file);
   writeFileSync(archive, Buffer.from(await res.arrayBuffer()));
-  // bsdtar (macOS, Windows 10+) and GNU tar all read these formats.
-  run("tar", ["-xf", archive, "-C", cacheDir]);
+  // bsdtar (macOS, Windows 10+) and GNU tar all read these formats. On
+  // Windows, name System32's bsdtar: a `tar` earlier on PATH may be Git's GNU
+  // tar, which cannot read .zip and takes `C:\...` for a remote host. No shell,
+  // so a checkout path with spaces is passed through intact.
+  const tar =
+    process.platform === "win32"
+      ? join(process.env.SystemRoot || "C:\\Windows", "System32", "tar.exe")
+      : "tar";
+  run(tar, ["-xf", archive, "-C", cacheDir], { shell: false });
   rmSync(archive);
   if (!existsSync(binary)) throw new Error(`no node binary at ${binary}`);
   return binary;
@@ -142,7 +149,10 @@ mkdirSync(outDir, { recursive: true });
 // exactly the shipped parts from the repo below.
 for (const name of readdirSync(standalone)) {
   if (name === "data" || name === "assets") continue;
-  cpSync(join(standalone, name), join(outDir, name), { recursive: true });
+  cpSync(join(standalone, name), join(outDir, name), {
+    recursive: true,
+    dereference: true,
+  });
 }
 // standalone/ keeps the dist dir name; server.js reads it from its embedded config
 cpSync(join(distDir, "static"), join(outDir, distDirName, "static"), {
@@ -173,9 +183,40 @@ const nodeBin = await officialNodeBinary(NODE_VERSION);
 const nodeOut = join(outDir, `node${NODE_DIST[process.platform].exe}`);
 cpSync(nodeBin, nodeOut);
 chmodSync(nodeOut, 0o755);
+const shipped = spawnSync(nodeOut, ["--version"], { encoding: "utf8" });
+if (shipped.stdout?.trim() !== `v${NODE_VERSION}`) {
+  throw new Error(`${nodeOut} --version: ${shipped.stdout}${shipped.stderr}`);
+}
 console.log(`node              ${mib(nodeOut)}  (v${NODE_VERSION})`);
 
-// 4. macOS: the Wi-Fi helper (native/macos-wifi-helper), a nested app bundle
+// 4. Check the tree is something every installer can carry (before the
+// macOS-only helper, which no Windows installer carries): no symlinks
+// (MSI and NSIS cannot represent them; the copies above dereference) and no
+// path that gets near Windows' 260-character MAX_PATH once installed under
+// "C:\Program Files\WiFi Heatmapper\server\" (~40 characters) or the per-user
+// "%LOCALAPPDATA%\WiFi Heatmapper\server\" (~60, depends on the user name).
+const MAX_RELATIVE_PATH = 160;
+let longest = "";
+let files = 0;
+const inspect = (dir) => {
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const p = join(dir, entry.name);
+    if (entry.isSymbolicLink()) throw new Error(`symlink in the bundle: ${p}`);
+    if (entry.isDirectory()) inspect(p);
+    else {
+      files++;
+      const rel = relative(outDir, p);
+      if (rel.length > longest.length) longest = rel;
+    }
+  }
+};
+inspect(outDir);
+if (longest.length > MAX_RELATIVE_PATH) {
+  throw new Error(`path too long for a Windows install: ${longest}`);
+}
+console.log(`files             ${files}, longest path ${longest.length} chars`);
+
+// 5. macOS: the Wi-Fi helper (native/macos-wifi-helper), a nested app bundle
 // with its own bundle id, because macOS grants Location (and so the SSID) per
 // bundle. The server finds it at $WIFI_HEATMAPPER_RESOURCES_DIR/helpers/.
 // build.sh signs it (MACOS_HELPER_SIGN_IDENTITY); Tauri copies it as is and
