@@ -2,6 +2,16 @@
 
 _This section follows the precepts of [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) so that future readers can understand the state and evolution of the project._
 
+## Unreleased
+
+### Added
+
+* **Desktop app (macOS, in progress)**: `npm run desktop:build` makes a
+  self-contained `.app`/`.dmg` that runs the server with its own Node; user
+  data goes to the app-data folder. `WIFI_HEATMAPPER_RESOURCES_DIR` points the
+  server at shipped files kept outside the working directory.
+  See `docs/Desktop_App.md`.
+
 ## Version 0.5.0 - 2026-09-11
 
 A visual and structural overhaul. Surveys made with 0.4.x keep working;

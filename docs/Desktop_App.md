@@ -9,20 +9,28 @@ as today. The desktop app is a second way to run the same server, not a fork of 
 ## Shape
 
 ```
-wifi-heatmapper.app / .exe / .AppImage
-├── Tauri shell (Rust)        window + process manager, ~5 MB
+WiFi Heatmapper.app / .exe / .AppImage
+├── Tauri shell (Rust)        window + process manager, ~3 MB
 └── resources/server/         assembled by desktop/build-server.mjs
-    ├── node(.exe)            the Node runtime the release was built with
-    ├── server.js, .next/     Next's `output: "standalone"` build
-    ├── assets/, data/localization/
-    └── helpers/              native helpers, e.g. the macOS Wi-Fi reader
+    ├── node(.exe)            official Node build, version pinned in build-server.mjs
+    ├── server-entry.mjs      exits when the shell goes away, then loads server.js
+    ├── server.js, .next-desktop/, node_modules/
+    │                         Next's `output: "standalone"` build
+    ├── public/, assets/, data/localization/
+    └── helpers/              native helpers, e.g. the macOS Wi-Fi reader (part 5)
 ```
 
 On launch the shell picks a free port on 127.0.0.1, starts
-`node server.js` with `cwd` set to the server directory and
+`node server-entry.mjs` with `cwd` set to the server directory,
 `WIFI_HEATMAPPER_DATA_DIR` set to the platform app-data folder (the bundle is
-read-only), shows a small "starting" page, then navigates the window to the
-server. Quitting the app stops the server.
+read-only) and `WIFI_HEATMAPPER_RESOURCES_DIR` set to the server directory,
+shows a small "starting" page, then navigates the window to the server.
+Quitting the app stops the server (and anything it is running); if the shell
+dies instead, the server sees its stdin close and exits. The full contract is
+in CONTRIBUTING.md ("Desktop app (development)").
+
+Sizes for 0.5.0 on Apple silicon: `.app` 167 MB, `.dmg` 52 MB. Most of it is
+the Node binary (108 MB uncompressed).
 
 This is the pattern from nooklet (`apps/desktop`), minus what nooklet needs
 and this app doesn't: no esbuild bundling (Next's standalone output is
@@ -58,13 +66,13 @@ draft GitHub release:
 | Platform | Runner | Artifacts |
 |---|---|---|
 | macOS Apple Silicon | `macos-latest` | `.dmg` |
-| macOS Intel | `macos-13` | `.dmg` |
+| macOS Intel | `macos-15-intel` (`macos-13` was retired in Dec 2025) | `.dmg` |
 | Windows x64 | `windows-latest` | `.msi`, NSIS `.exe` |
 | Linux x64 | `ubuntu-22.04` | `.AppImage`, `.deb` |
 
 Release notes explain the unsigned-app warnings: macOS needs System Settings →
 Privacy & Security → "Open Anyway" (or
-`xattr -dr com.apple.quarantine /Applications/wifi-heatmapper.app`), and Windows
+`xattr -dr com.apple.quarantine "/Applications/WiFi Heatmapper.app"`), and Windows
 needs SmartScreen → "More info" → "Run anyway".
 
 ## Work breakdown
@@ -86,7 +94,7 @@ explores this); code signing once a certificate exists.
 
 ## Checklist
 
-- [ ] 1 Foundation
+- [x] 1 Foundation
 - [ ] 2 macOS native Wi-Fi helper
 - [ ] 3 Windows
 - [ ] 4 Linux
