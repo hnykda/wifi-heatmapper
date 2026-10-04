@@ -8,6 +8,13 @@ on:
     tags: ["v*"]
   # Trial runs without a tag: the draft release is named after the branch.
   workflow_dispatch:
+  # PRs that touch the desktop app build every platform without releasing;
+  # the installers are attached to the run as artifacts for testing.
+  pull_request:
+    paths:
+      - "desktop/**"
+      - "native/**"
+      - ".github/workflows/release.yml"
 
 permissions:
   contents: write
@@ -68,7 +75,26 @@ jobs:
 
       # tauri.conf.json's beforeBuildCommand runs desktop/build-server.mjs:
       # the Next standalone build plus this platform's Node binary.
-      - name: Build the app
+      - name: Build the app (pull request, no release)
+        if: github.event_name == 'pull_request'
+        working-directory: desktop
+        run: npx tauri build --target ${{ matrix.target }}
+
+      - name: Upload the installers
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: wifi-heatmapper-${{ matrix.label }}
+          path: |
+            desktop/src-tauri/target/${{ matrix.target }}/release/bundle/dmg/*.dmg
+            desktop/src-tauri/target/${{ matrix.target }}/release/bundle/msi/*.msi
+            desktop/src-tauri/target/${{ matrix.target }}/release/bundle/nsis/*.exe
+            desktop/src-tauri/target/${{ matrix.target }}/release/bundle/appimage/*.AppImage
+            desktop/src-tauri/target/${{ matrix.target }}/release/bundle/deb/*.deb
+          if-no-files-found: error
+
+      - name: Build the app and attach it to the draft release
+        if: github.event_name != 'pull_request'
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
