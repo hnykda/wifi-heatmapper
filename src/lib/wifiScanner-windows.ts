@@ -88,7 +88,7 @@ export class WindowsWifiActions implements WifiActions {
   async findWifi(): Promise<string> {
     // logger.info(`Called findWifi():`);
 
-    const { stdout } = await execAsync("netsh wlan show interfaces");
+    const stdout = await netsh("wlan show interfaces");
     const lines = stdout.split("\n");
     for (const line of lines) {
       const [, key, val] = splitLine(line);
@@ -112,7 +112,7 @@ export class WindowsWifiActions implements WifiActions {
 
     // Get information about local SSIDs
     try {
-      const { stdout } = await execAsync(`netsh wlan show networks mode=bssid`);
+      const stdout = await netsh("wlan show networks mode=bssid");
       response.SSIDs = parseNetshNetworks(stdout);
       const currSSIDResults = await this.getWifi(_settings);
       const currSSID = response.SSIDs.filter(
@@ -174,14 +174,12 @@ export class WindowsWifiActions implements WifiActions {
       reason: "",
     };
     let stdout: string = "";
-    const command = "netsh wlan show interfaces";
     // Wait (up to ~5 s) for the adapter to report a state line. If the
     // output is in a language we have no localization table for, the
     // line never matches: fall through and let parseNetshInterfaces()
     // explain the problem instead of waiting forever.
     for (let attempt = 0; attempt < 25; attempt++) {
-      const execOutput = await execAsync(command);
-      stdout = execOutput.stdout;
+      stdout = await netsh("wlan show interfaces");
       const lines = stdout.split("\n");
       const state = lines.filter((line) => splitLine(line)[1] == "state");
       if (state.length > 0) break;
@@ -195,6 +193,45 @@ export class WindowsWifiActions implements WifiActions {
 /**
  * END OF WindowsOSWifiActions - the remainder is a set of helper functions
  */
+
+/**
+ * Windows 11 24H2 and later only give Wi-Fi details (SSID, BSSID, the scan
+ * list) to apps the user lets use their location. netsh.exe is a desktop app
+ * in System32, and Windows never shows its one-time location prompt for those,
+ * so the user has to switch it on in Settings. That is the same whether
+ * wifi-heatmapper runs in a terminal or as the desktop app: either way it is
+ * netsh asking.
+ *
+ * Without permission netsh prints a (localized) explanation that always
+ * contains this settings URI, then "Access is denied".
+ */
+const LOCATION_SETTINGS_URI = "ms-settings:privacy-location";
+
+export const LOCATION_PERMISSION_MESSAGE =
+  "Windows needs location access to share Wi-Fi details. Open Settings → Privacy & security → Location, turn on Location services and “Let desktop apps access your location”, then try again.";
+
+export function needsLocationPermission(netshOutput: string): boolean {
+  return netshOutput.includes(LOCATION_SETTINGS_URI);
+}
+
+/** Run `netsh <args>`; turn "needs location permission" into a clear error. */
+async function netsh(args: string): Promise<string> {
+  let stdout: string;
+  try {
+    ({ stdout } = await execAsync(`netsh ${args}`));
+  } catch (err) {
+    // execAsync attaches the output of a failed command
+    const output = (err as { stdout?: string }).stdout ?? "";
+    if (needsLocationPermission(output)) {
+      throw new Error(LOCATION_PERMISSION_MESSAGE);
+    }
+    throw err;
+  }
+  if (needsLocationPermission(stdout)) {
+    throw new Error(LOCATION_PERMISSION_MESSAGE);
+  }
+  return stdout;
+}
 
 function assignWindowsNetworkInfoValue<K extends keyof WifiResults>(
   networkInfo: WifiResults,
@@ -229,6 +266,9 @@ function assignWindowsNetworkInfoValue<K extends keyof WifiResults>(
  * @returns array of WifiResults, sorted by signalStrength
  */
 export function parseNetshNetworks(text: string): WifiResults[] {
+  if (needsLocationPermission(text)) {
+    throw new Error(LOCATION_PERMISSION_MESSAGE);
+  }
   const results: WifiResults[] = [];
 
   let currentSSID = "";
@@ -328,6 +368,9 @@ export function splitLine(line: string): string[] {
  * in a localization map that determines the proper label for the WifiNetwork
  */
 export function parseNetshInterfaces(output: string): WifiResults {
+  if (needsLocationPermission(output)) {
+    throw new Error(LOCATION_PERMISSION_MESSAGE);
+  }
   const networkInfo = getDefaultWifiResults();
   const lines = output.split("\n");
   let matchedLabels = 0;
