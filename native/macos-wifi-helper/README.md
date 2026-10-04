@@ -122,26 +122,23 @@ SDK, Swift 6.4), October 2026. Evidence is `log show --predicate 'process ==
    (fresh) ~5-7 s. The server uses `info` per reading and `scan --cached`
    for the network list, so it never triggers a fresh scan mid-measurement.
 
-### Still to verify (needs someone to click "Allow" once)
+### Verified after "Allow" (macOS 27, 2026-10-04)
 
-- That `info` returns the SSID/BSSID after "Allow" (expected, it is what
-  wifi-unredactor relies on), with and without `--no-disclaim`.
-- Whether the permission survives a rebuild. The ad-hoc signature's
-  designated requirement is the cdhash, which changes on every build, and
-  locationd stores a code requirement with each client. Expect a rebuild to
-  reset the permission to "not determined" (one more prompt), but it may also
-  just keep the bundle-id record. For the desktop app this only matters across
-  app updates.
-
-To check, with the helper built:
-
-```sh
-H=native/macos-wifi-helper/build/WiFiHeatmapperHelper.app/Contents/MacOS/WiFiHeatmapperHelper
-$H authorize            # click "Allow" in the dialog (look on every screen)
-$H info | grep -E '"(ssid|bssid|locationStatus)"'
-$H info --no-disclaim | grep -E '"(ssid|bssid)"'
-npm run build:macos-helper && $H status | grep locationStatus   # survives a rebuild?
-```
+- `info` returns the SSID and BSSID, and `scan --cached` names the networks,
+  once two things hold:
+  1. The process has checked in as an app (`NSApplication.shared`). Reads
+     before that call come back nil even with Location allowed; reads after it
+     are unredacted. A throwaway probe app showed this read by read.
+  2. The authorization callback has delivered the granted state. The first
+     callback can still say "not determined"; `settle()` waits for the
+     second.
+  Both hold with and without `--no-disclaim`, and with `open`.
+- The permission does **not** survive a rebuild. An ad-hoc signature is
+  identified by its cdhash, which changes with every build, so each new build
+  asks again. For the desktop app that means one prompt per update unless the
+  helper is signed with a stable identity (a self-signed certificate kept in
+  CI secrets is enough: the designated requirement then names the
+  certificate, not the hash). Part 5 should do that.
 
 To reset and try again: System Settings > Privacy & Security > Location
 Services, remove "WiFi Heatmapper Helper", or `tccutil` does *not* cover

@@ -161,10 +161,11 @@ final class LocationWatcher: NSObject, CLLocationManagerDelegate {
         }
     }
 
-    /// The first callback carries the real state; before it, the property
-    /// can read .notDetermined even when permission was given.
+    /// Wait for the real authorization state. On macOS 27 the first callback
+    /// can still say .notDetermined and a second one, a moment later, carries
+    /// the granted state; CoreWLAN only unredacts SSIDs after that.
     func settle() {
-        wait(seconds: 1.5) { callbacks > 0 }
+        wait(seconds: 2) { callbacks > 0 && status != .notDetermined }
     }
 }
 
@@ -329,6 +330,12 @@ DispatchQueue.global().asyncAfter(deadline: .now() + watchdogSeconds) {
     fail("Timed out after \(Int(watchdogSeconds)) seconds")
 }
 
+// CoreWLAN returns nil SSID/BSSID, even with Location allowed, until the
+// process has checked in as an app. Verified on macOS 27: reads before
+// NSApplication.shared are redacted, reads after it are not.
+let app = NSApplication.shared
+app.setActivationPolicy(.accessory)
+
 let location = LocationWatcher()
 location.settle()
 
@@ -361,9 +368,6 @@ case "scan":
     emit(doc)
 
 case "authorize":
-    // The prompt is shown for the app that asks, so behave like a (Dock-less) app.
-    let app = NSApplication.shared
-    app.setActivationPolicy(.accessory)
     var doc: [String: Any] = ["statusBefore": describe(location.status)]
     if location.status == .notDetermined {
         app.activate(ignoringOtherApps: true)

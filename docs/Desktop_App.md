@@ -64,9 +64,10 @@ What we learned building it (details and log evidence in
   mode, security) still work; only SSID/BSSID are missing, and the UI says so.
 - `info` takes ~90 ms, so readings are faster than `sudo wdutil`. A fresh
   `scan` takes 5-7 s, so the server only uses the cached scan.
-- Not verified yet: SSID actually unredacted after "Allow", and whether the
-  permission survives a rebuild (ad-hoc cdhash changes). The README has the
-  commands to check.
+- Verified on macOS 27: after "Allow", the SSID and BSSID come through. The
+  helper must check in as an app (`NSApplication.shared`) before reading.
+- An ad-hoc signed helper loses the permission on every rebuild (new cdhash).
+  Part 5 signs it with a stable self-signed certificate so updates keep it.
 
 ## Releases
 
