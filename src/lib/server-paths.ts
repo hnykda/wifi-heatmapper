@@ -9,7 +9,10 @@
  * Set WIFI_HEATMAPPER_DATA_DIR to move the whole directory (used by the
  * e2e tests so they never touch a developer's real surveys).
  *
- * Localization tables ship with the app and stay in the repo's data/localization.
+ * Files that ship with the app (bundled floor plans, localization tables) are
+ * read from the resources dir: the repo checkout (process.cwd()) normally, or
+ * WIFI_HEATMAPPER_RESOURCES_DIR, which the desktop app sets to its bundled,
+ * read-only server directory. Nothing is ever written there.
  */
 import path from "path";
 
@@ -28,9 +31,15 @@ export function getMediaDir(): string {
   return path.join(getDataDir(), "media");
 }
 
+/** Where the files that ship with the app live (read-only). */
+export function getResourcesDir(): string {
+  const configured = process.env.WIFI_HEATMAPPER_RESOURCES_DIR;
+  return configured ? path.resolve(configured) : process.cwd();
+}
+
 /** Floor plans bundled with the app, copied into the media dir on first start. */
 export function getBundledFloorplansDir(): string {
-  return path.join(process.cwd(), "assets", "floorplans");
+  return path.join(getResourcesDir(), "assets", "floorplans");
 }
 
 /** Versions before 0.5.0 stored uploads here; they are migrated on start. */
@@ -39,7 +48,7 @@ export function getLegacyMediaDir(): string {
 }
 
 export function getLocalizationDir(): string {
-  return path.join(process.cwd(), "data", "localization");
+  return path.join(getResourcesDir(), "data", "localization");
 }
 
 /**
