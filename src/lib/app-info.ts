@@ -9,6 +9,7 @@ import pkg from "../../package.json";
 import { execAsync } from "./server-utils";
 import { getDataDir } from "./server-paths";
 import { AppStatus } from "./types";
+import { findMacosHelper } from "./macos-helper";
 
 export const APP_VERSION: string = pkg.version;
 
@@ -17,14 +18,17 @@ export function isMockMode(): boolean {
   return !!v && v !== "0" && v.toLowerCase() !== "false";
 }
 
-let cached: Promise<AppStatus> | null = null;
+let cached: Promise<Omit<AppStatus, "macosHelper">> | null = null;
 
-export function getAppStatus(): Promise<AppStatus> {
+export async function getAppStatus(): Promise<AppStatus> {
   if (!cached) cached = buildAppStatus();
-  return cached;
+  const base = await cached;
+  // not cached: the helper may be built while the server runs
+  const helper = base.mockMode ? null : findMacosHelper();
+  return { ...base, macosHelper: helper?.display ?? null };
 }
 
-async function buildAppStatus(): Promise<AppStatus> {
+async function buildAppStatus(): Promise<Omit<AppStatus, "macosHelper">> {
   let iperf3Version: string | null = null;
   try {
     const { stdout } = await execAsync("iperf3 --version");

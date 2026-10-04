@@ -38,6 +38,13 @@ async function logSystemInfo(): Promise<void> {
       : "Could not determine iperf3 version: is it installed?",
   );
   logger.info(`Data directory: ${status.dataDir}`);
+  if (status.platform === "darwin" && !status.mockMode) {
+    logger.info(
+      status.macosHelper
+        ? `macOS Wi-Fi helper: ${status.macosHelper}`
+        : "macOS Wi-Fi helper: not built, using wdutil (needs the sudo password). Run `npm run build:macos-helper` to read Wi-Fi without sudo.",
+    );
+  }
   logger.info("=== End System Information ===");
 }
 
