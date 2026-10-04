@@ -144,6 +144,13 @@ jobs:
             | Mac with Apple silicon (M1 and later) | `WiFi.Heatmapper_*_aarch64.dmg` |
             | Mac with an Intel processor | `WiFi.Heatmapper_*_x64.dmg` |
 
+            **Early builds.** The desktop apps are new. They are built and
+            started automatically, but so far only the macOS app has been used
+            on a real computer.
+            [What has been tested](https://github.com/hnykda/wifi-heatmapper/blob/main/docs/Install.md#what-has-been-tested)
+            · [Tell us how it went](https://github.com/hnykda/wifi-heatmapper/issues/new?template=desktop-app-report.md)
+            · [Install guide](https://github.com/hnykda/wifi-heatmapper/blob/main/docs/Install.md)
+
             **These builds are not signed.** Your computer will warn you the
             first time you open the app.
 

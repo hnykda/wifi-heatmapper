@@ -6,11 +6,16 @@ _This section follows the precepts of [Keep a Changelog](https://keepachangelog.
 
 ### Added
 
-* **Desktop app (macOS, in progress)**: `npm run desktop:build` makes a
-  self-contained `.app`/`.dmg` that runs the server with its own Node; user
-  data goes to the app-data folder. `WIFI_HEATMAPPER_RESOURCES_DIR` points the
-  server at shipped files kept outside the working directory.
-  See `docs/Desktop_App.md`.
+* **Desktop apps** for macOS (Apple silicon and Intel), Windows and Linux
+  (x64 and ARM64), built by GitHub Actions for every release. No Node.js or
+  terminal needed; data lives in the system's app-data folder. Early builds:
+  see [docs/Install.md](docs/Install.md) for install steps and what has been
+  tested. Mac users can also `brew install --cask hnykda/tap/wifi-heatmapper`.
+* **macOS without sudo**: a small helper reads the Wi-Fi signal through
+  CoreWLAN, and with Location access also the network name that `wdutil` now
+  hides. Works from source too (`npm run build:macos-helper`).
+* **Linux**: the current link is read with `iw` without sudo when the system
+  allows it; the sudo password is only needed as a fallback.
 
 ## Version 0.5.0 - 2026-09-11
 
