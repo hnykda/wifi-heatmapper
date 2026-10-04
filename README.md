@@ -31,6 +31,11 @@ it: click Done, then go to System Settings → Privacy & Security and click
 **Open Anyway**. See [hnykda/homebrew-tap](https://github.com/hnykda/homebrew-tap)
 for upgrading and uninstalling.
 
+The first time you measure, macOS asks whether "WiFi Heatmapper Helper" may
+use your location. Allow it to see your network's name (macOS hides it from
+apps without Location access); your location itself is not used. You are
+asked once, and updates keep the answer.
+
 To run it from source instead, follow the quick start below.
 
 ## Quick start
