@@ -10,13 +10,17 @@
  *   ├── node_modules/         only what server.js needs (traced by Next)
  *   ├── .next/                server build + .next/static
  *   ├── public/, assets/      favicon, bundled floor plans
- *   └── data/localization/    netsh label tables (Windows)
+ *   ├── data/localization/    netsh label tables (Windows)
+ *   └── helpers/              macOS only: WiFiHeatmapperHelper.app
  *
  * Nothing in here is written at runtime: user data goes to
  * WIFI_HEATMAPPER_DATA_DIR, which the shell points at the app-data folder.
  *
  * Usage: node desktop/build-server.mjs   (from anywhere)
  * Env:   WIFI_HEATMAPPER_NODE_VERSION    Node version to ship (default below)
+ *        MACOS_HELPER_SIGN_IDENTITY      macOS: certificate for the Wi-Fi helper
+ *        MACOS_HELPER_SIGN_KEYCHAIN      (default ad-hoc; see
+ *                                        native/macos-wifi-helper/README.md)
  */
 import { spawnSync } from "node:child_process";
 import {
@@ -170,5 +174,19 @@ const nodeOut = join(outDir, `node${NODE_DIST[process.platform].exe}`);
 cpSync(nodeBin, nodeOut);
 chmodSync(nodeOut, 0o755);
 console.log(`node              ${mib(nodeOut)}  (v${NODE_VERSION})`);
+
+// 4. macOS: the Wi-Fi helper (native/macos-wifi-helper), a nested app bundle
+// with its own bundle id, because macOS grants Location (and so the SSID) per
+// bundle. The server finds it at $WIFI_HEATMAPPER_RESOURCES_DIR/helpers/.
+// build.sh signs it (MACOS_HELPER_SIGN_IDENTITY); Tauri copies it as is and
+// signs only the outer app, so that signature survives into the .dmg.
+if (process.platform === "darwin") {
+  const helpers = join(outDir, "helpers");
+  run(process.execPath, [
+    join(repoRoot, "native", "macos-wifi-helper", "build.mjs"),
+    helpers,
+  ]);
+  console.log(`helper            ${mib(helpers)}`);
+}
 
 console.log(`\nserver ready at ${outDir} (${mib(outDir)})`);
