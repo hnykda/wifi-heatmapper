@@ -15,9 +15,9 @@ $H authorize   # show the macOS Location prompt and wait for the answer (--timeo
 ```
 
 Needs the Xcode command line tools (`xcode-select --install`). The build is a
-universal binary (arm64 + x86_64, macOS 11+) with an ad-hoc signature
-(`codesign -s -`). On other platforms the npm script prints a message and
-exits 0.
+universal binary (arm64 + x86_64, macOS 11+), ad-hoc signed by default
+(`codesign -s -`); releases sign it with a certificate, see "Signing". On
+other platforms the npm script prints a message and exits 0.
 
 ## Why an app bundle
 
@@ -87,9 +87,8 @@ SDK, Swift 6.4), October 2026. Evidence is `log show --predicate 'process ==
    launched from Finder. stdout/stderr are inherited, signals are forwarded,
    the exit code is passed through. Cost: ~5 ms. Turn it off with
    `--no-disclaim` or `WIFI_HEATMAPPER_HELPER_NO_DISCLAIM=1`. Location
-   attribution was identical with and without it (point 1); whether the Wi-Fi
-   daemon's SSID check also follows the bundle without it is not verified yet
-   (needs a granted permission, see "Still to verify").
+   attribution was identical with and without it (point 1), and so are the
+   unredacted SSIDs once allowed (see "Verified after "Allow"").
 
 3. **`open -W -n -g --stdout <file> WiFiHeatmapperHelper.app --args info`
    also works** (same JSON, same attribution) but needs a temp file for stdout
@@ -138,7 +137,7 @@ SDK, Swift 6.4), October 2026. Evidence is `log show --predicate 'process ==
   asks again. For the desktop app that means one prompt per update unless the
   helper is signed with a stable identity (a self-signed certificate kept in
   CI secrets is enough: the designated requirement then names the
-  certificate, not the hash). Part 5 should do that.
+  certificate, not the hash). The desktop app does that, see "Signing".
 
 To reset and try again: System Settings > Privacy & Security > Location
 Services, remove "WiFi Heatmapper Helper", or `tccutil` does *not* cover
@@ -155,21 +154,92 @@ Location (it lives in `/var/db/locationd/clients.plist`, root only).
 If none is found, or it fails, the server falls back to `sudo wdutil info`
 and asks for the password as before.
 
-## Bundling it into the desktop app (Part 5)
+## In the desktop app
 
-- Build with `node native/macos-wifi-helper/build.mjs <server-dir>/helpers`
-  from `desktop/build-server.mjs`, so it lands at
-  `resources/server/helpers/WiFiHeatmapperHelper.app`.
-- Keep it a separate nested `.app` with its own bundle id, rather than moving
-  the usage string into the Tauri app's Info.plist: locationd charges the
-  bundle that contains the executable, and the helper is that executable.
-  The prompt then names "WiFi Heatmapper Helper"; to name the main app
-  instead, the CoreWLAN code would have to live in the main executable.
-- Sign inside-out: if the outer app is re-signed (even ad-hoc), sign the
-  helper first, then the outer app *without* `--deep` overriding the helper's
-  identifier. `codesign --verify --deep --strict` on the outer app must pass.
-- Quarantine: a downloaded, unsigned `.dmg` is quarantined. The outer app is
-  approved via "Open Anyway"; the nested helper is executed by node, not
-  Gatekeeper-launched, but test this on a clean machine.
-- Each new release has a new ad-hoc cdhash, so users may be asked for
-  Location again after an update (see "Still to verify").
+`desktop/build-server.mjs` runs `build.mjs <server>/helpers` on macOS, so the
+app ships `Contents/Resources/server/helpers/WiFiHeatmapperHelper.app` and
+the server finds it through `WIFI_HEATMAPPER_RESOURCES_DIR` (candidate 2
+above). It stays a separate nested `.app` with its own bundle id rather than
+moving the usage string into the Tauri app's Info.plist: locationd charges the
+bundle that contains the executable, and the helper is that executable. The
+prompt therefore names "WiFi Heatmapper Helper".
+
+Checked with Tauri 2.12 (`npm run desktop:build`, October 2026):
+
+- Tauri copies the bundle unchanged: exec bit, `_CodeSignature/`, same
+  cdhash. (It has no symlinks.)
+- Tauri signs `Contents/MacOS/wifi-heatmapper` and then the outer `.app`
+  (ad-hoc, `signingIdentity: "-"`), without `--deep`, so the helper keeps its
+  own signature. The outer signature seals the helper's files as resources.
+  `codesign --verify --deep --strict` passes on the `.app` and on the copy
+  inside the mounted `.dmg`. CI checks this after every macOS build
+  (`release.yml`, "Check the Wi-Fi helper's signature").
+- Gatekeeper is unchanged by the nested, self-signed helper. A quarantined
+  copy dragged out of the `.dmg`: `spctl --assess` says `rejected` for the
+  app, exactly like the build without a helper, and `rejected,
+  origin=WiFi Heatmapper Helper Signing` for the helper. Opening it shows the
+  usual "Apple could not verify "WiFi Heatmapper.app" is free of malware"
+  (Done / Move to Trash, no "damaged"); after "Open Anyway" the app runs
+  (from an App Translocation path) and the server runs the quarantined
+  helper with no further dialog.
+- In the packaged app, `POST /api/macos-helper {"action":"authorize"}` (the
+  Settings tab's "Allow Location access") showed the prompt for "WiFi
+  Heatmapper Helper"; after "Allow", readings had the SSID and BSSID and
+  `server.log` showed the helper path, no `wdutil`, no sudo.
+
+## Signing
+
+Location permission is stored against the bundle's *designated requirement*.
+For an ad-hoc signature that is `cdhash H"..."`, new on every build, so every
+rebuild (every app update) asks again. Signed with a certificate it is
+
+```
+designated => identifier "io.github.hnykda.wifi-heatmapper.helper" and certificate root = H"b7eaa8f6d4ac6199ccafbe3b813bbd7e030bfb13"
+```
+
+which stays the same as long as the certificate does. A self-signed
+certificate is enough: nothing here needs trust, only stability. Verified on
+macOS 27: build A signed with it, "Allow" once; build B with a different
+binary (new cdhash, CFBundleVersion 2) signed with the same certificate,
+installed over A: `status` said `authorized`, `info` returned the SSID, no
+prompt.
+
+The project's certificate: CN "WiFi Heatmapper Helper Signing", self-signed,
+code signing only, valid until 2036, SHA-1
+`B7EAA8F6D4AC6199CCAFBE3B813BBD7E030BFB13`. It lives in the repository's
+Actions secrets `MACOS_HELPER_CERT_P12` (base64 of the `.p12`) and
+`MACOS_HELPER_CERT_PASSWORD`, and with the maintainer. **Do not replace it
+lightly**: a new certificate means every user is asked once more. Before it
+expires (2036), make a new one well ahead and accept one prompt per user.
+
+`build.sh` reads:
+
+| Variable | Meaning |
+|---|---|
+| `MACOS_HELPER_SIGN_IDENTITY` | codesign identity (common name or SHA-1). Unset: `-`, ad-hoc. |
+| `MACOS_HELPER_SIGN_KEYCHAIN` | keychain that holds it (optional) |
+
+Without them (forks, contributors, fork PRs in CI) the helper is ad-hoc
+signed and works the same, only the Location permission does not survive
+rebuilds. A release run (`v*` tag or manual dispatch) refuses to build
+without the certificate; a pull request just warns.
+
+`signing-keychain.sh` puts the `.p12` in a throwaway keychain (random
+password, added to the search list, partition list set so codesign never
+shows a dialog) and prints the identity; CI uses it. Locally, with the
+maintainer's copy:
+
+```sh
+KC=$TMPDIR/helper-signing.keychain-db
+export MACOS_HELPER_CERT_PASSWORD=$(cat ~/.config/wifi-heatmapper/helper-signing/password.txt)
+export MACOS_HELPER_SIGN_IDENTITY=$(native/macos-wifi-helper/signing-keychain.sh \
+  create "$KC" ~/.config/wifi-heatmapper/helper-signing/helper-signing.p12)
+export MACOS_HELPER_SIGN_KEYCHAIN=$KC
+npm run desktop:build            # or npm run build:macos-helper
+native/macos-wifi-helper/signing-keychain.sh delete "$KC"
+```
+
+The outer app stays ad-hoc (Tauri). If it is ever signed for real (Developer
+ID), sign inside-out: the helper first (its own identity, or the same
+Developer ID), then the outer app without `--deep`, which would re-sign the
+helper with the outer identity and change its designated requirement.
