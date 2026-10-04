@@ -18,7 +18,8 @@
     "e2e:serve:dev": "cross-env WIFI_HEATMAPPER_MOCK=1 WIFI_HEATMAPPER_DATA_DIR=.e2e-data NEXT_DIST_DIR=.next-e2e next dev -p 3100",
     "e2e:serve:prod": "cross-env WIFI_HEATMAPPER_MOCK=1 WIFI_HEATMAPPER_DATA_DIR=.e2e-data NEXT_DIST_DIR=.next-e2e next start -p 3100",
     "verify": "npm run check && npm run typecheck && npm run test",
-    "e2e:build": "cross-env NEXT_DIST_DIR=.next-e2e next build"
+    "e2e:build": "cross-env NEXT_DIST_DIR=.next-e2e next build",
+    "build:macos-helper": "node native/macos-wifi-helper/build.mjs"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.11",
