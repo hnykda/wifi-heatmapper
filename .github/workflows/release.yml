@@ -1,0 +1,109 @@
+name: Release
+
+# Builds the desktop app (desktop/, see docs/Desktop_App.md) for every
+# platform in the matrix and attaches the installers to a DRAFT GitHub release.
+# Nothing is published until someone reviews the draft and clicks Publish.
+on:
+  push:
+    tags: ["v*"]
+  # Trial runs without a tag: the draft release is named after the branch.
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Desktop app (${{ matrix.label }})
+    strategy:
+      fail-fast: false
+      matrix:
+        # To add a platform, add a row. Each row builds natively on its own
+        # runner: desktop/build-server.mjs ships the Node binary and Next's
+        # traced native modules for the runner's OS/arch, so there is no
+        # cross-compiling. A row may also need a "deps" step below (Linux:
+        # webkit2gtk etc.). Planned rows (docs/Desktop_App.md, parts 3 and 4):
+        #
+        #   - platform: windows-latest
+        #     target: x86_64-pc-windows-msvc
+        #     label: windows-x64
+        #   - platform: ubuntu-22.04
+        #     target: x86_64-unknown-linux-gnu
+        #     label: linux-x64
+        include:
+          - platform: macos-latest
+            target: aarch64-apple-darwin
+            label: macos-arm64
+          # Intel Macs. macos-13 was retired in December 2025; macos-15-intel
+          # is GitHub's x64 macOS image until August 2027.
+          - platform: macos-15-intel
+            target: x86_64-apple-darwin
+            label: macos-x64
+
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # Only runs the build. The Node shipped inside the app is pinned in
+          # desktop/build-server.mjs.
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            desktop/package-lock.json
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: desktop/src-tauri -> target
+          key: ${{ matrix.target }}
+
+      - run: npm ci
+      - run: npm run desktop:install
+
+      # tauri.conf.json's beforeBuildCommand runs desktop/build-server.mjs:
+      # the Next standalone build plus this platform's Node binary.
+      - name: Build the app
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: desktop
+          tauriScript: npx tauri
+          args: --target ${{ matrix.target }}
+          # __VERSION__ is package.json's version (tauri.conf.json reads it).
+          # A dispatch run without a tag fills the same draft as the tag would.
+          tagName: v__VERSION__
+          releaseName: WiFi Heatmapper v__VERSION__
+          releaseDraft: true
+          prerelease: false
+          releaseBody: |
+            Download the file for your computer below. You still need
+            [iperf3](https://iperf.fr/iperf-download.php) on this computer
+            and another one on your network to measure throughput; signal
+            strength works without it.
+
+            | Computer | File |
+            |---|---|
+            | Mac with Apple silicon (M1 and later) | `WiFi.Heatmapper_*_aarch64.dmg` |
+            | Mac with an Intel processor | `WiFi.Heatmapper_*_x64.dmg` |
+
+            **These builds are not signed.** Your computer will warn you the
+            first time you open the app.
+
+            **macOS:** open the `.dmg` and drag WiFi Heatmapper to
+            Applications. Open it once; when macOS says it cannot verify the
+            app, click Done, then go to System Settings → Privacy & Security,
+            scroll down and click **Open Anyway**. Or, in Terminal:
+
+            ```
+            xattr -dr com.apple.quarantine "/Applications/WiFi Heatmapper.app"
+            ```
+
+            Your surveys and floor plans are kept in
+            `~/Library/Application Support/com.github.hnykda.wifi-heatmapper/data`.
