@@ -123,7 +123,8 @@ What we learned:
 - CI (`desktop/smoke-test-linux.sh`) starts the real app under Xvfb in mock
   mode from the AppImage and from the installed `.deb`, and checks the UI,
   APIs, the server's environment, and that no node is left after a SIGTERM.
-- Sizes for 0.5.0 on arm64: `.AppImage` 120 MiB, `.deb` 53 MiB.
+- Sizes for 0.5.0: `.AppImage` 122 MiB (x64) / 120 MiB (arm64), `.deb`
+  53 MiB (both; 190 MiB installed).
 
 ## Releases
 
