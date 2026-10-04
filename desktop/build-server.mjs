@@ -124,7 +124,9 @@ async function officialNodeBinary(version) {
 // 1. Next's standalone build, from this checkout, every time (never "if
 // missing": a stale build next to a newer shell is a confusing bug).
 console.log("building the Next.js standalone server");
-run("npx", ["next", "build"], {
+// --no-lint: linting is `npm run check`'s job (CI runs it). On a Windows
+// checkout with core.autocrlf, prettier would fail every line on its CRLF.
+run("npx", ["next", "build", "--no-lint"], {
   cwd: repoRoot,
   env: {
     ...process.env,
