@@ -32,4 +32,4 @@ assignees: ''
 <!-- If something failed, attach the log. Locations:
 macOS:  ~/Library/Logs/com.github.hnykda.wifi-heatmapper/server.log
 Linux:  ~/.local/share/com.github.hnykda.wifi-heatmapper/logs/server.log
-Windows: see docs/Install.md -->
+Windows: %LOCALAPPDATA%\com.github.hnykda.wifi-heatmapper\logs\server.log -->

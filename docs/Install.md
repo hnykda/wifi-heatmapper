@@ -76,16 +76,40 @@ removes them.
 
 ## Windows
 
-Download the `-setup.exe` or the `.msi` installer from the
-[latest release](https://github.com/hnykda/wifi-heatmapper/releases/latest).
+Windows 10 or 11, x64. Download from the
+[latest release](https://github.com/hnykda/wifi-heatmapper/releases/latest):
 
-The installer is not signed, so Windows SmartScreen warns you: click
-**More info**, then **Run anyway**.
+| Installer | Installs for | Admin rights |
+|---|---|---|
+| `WiFi.Heatmapper_<version>_x64-setup.exe` (recommended) | you only | not needed |
+| `WiFi.Heatmapper_<version>_x64_en-US.msi` | everyone on the computer | needed |
 
-On Windows 11, Windows only shows the network name to apps when Location is
-on: Settings → Privacy & security → Location → turn on "Location services"
-and "Let desktop apps access your location". Without it the app still
-measures, but records the network name as unknown.
+Pick one and stick with it: installing one after the other can put the app in
+an unexpected folder.
+
+The installers are not signed, so Windows SmartScreen says it protected your
+PC: click **More info**, then **Run anyway**.
+
+### Location access
+
+On Windows 11 24H2 and later, Windows only shares Wi-Fi details with apps that
+may use your location. Open Settings → Privacy & security → Location and turn
+on **Location services** and **Let desktop apps access your location**.
+Windows does not ask by itself here; if this is off, the app tells you when
+you measure.
+
+### iperf3
+
+Install it so it is on your `PATH`, for example `scoop install iperf3` or
+`choco install iperf3`. The app finds iperf3 installed by winget, Scoop or
+Chocolatey.
+
+### Where your data is
+
+Surveys and floor plans: `%LOCALAPPDATA%\com.github.hnykda.wifi-heatmapper\data`
+Log: `%LOCALAPPDATA%\com.github.hnykda.wifi-heatmapper\logs\server.log`
+
+Uninstalling leaves these in place.
 
 ## Linux
 
@@ -133,21 +157,23 @@ computer on your network, ideally wired, running `iperf3 -s`. Homebrew and the
 ## What has been tested
 
 Honest status for the first desktop release. "CI" means GitHub's build
-machines: the app is built there, and on Linux it is also started with fake
-measurements and checked automatically, but nobody has used it there.
+machines: the app is built there, and on Windows and Linux it is also
+installed, started with fake measurements and checked automatically. Nobody
+has used it there, and those machines have no Wi-Fi.
 
 | Build | Built in CI | Starts in CI | Used on a real computer |
 |---|---|---|---|
 | macOS, Apple silicon | yes | – | one Mac (macOS 27): installed, opened past the warning, Location allowed, real Wi-Fi readings without sudo |
 | macOS, Intel | yes | – | not yet |
-| Windows x64 | yes | in progress | not yet |
+| Windows x64 `.exe` / `.msi` | yes | yes, both installers | not yet |
 | Linux x64 `.deb` / AppImage | yes | yes, also in Ubuntu 22.04 and 24.04 containers | not yet |
 | Linux ARM64 `.deb` / AppImage | yes | yes | not yet, no Raspberry Pi tried |
 | Homebrew cask | – | – | installed and removed from a local build |
 
 Not tested anywhere yet: a full survey with a real iperf3 server in the
-desktop app, Windows with real Wi-Fi, Linux on real hardware (GNOME, KDE,
-Wayland), Intel Macs, and updating from one release to the next.
+desktop app, the Windows app on a real PC (its window, SmartScreen, Wi-Fi),
+Windows 10 and Windows on ARM, Linux on real hardware (GNOME, KDE, Wayland),
+Intel Macs, and updating from one release to the next.
 
 ## Tell us how it went
 
