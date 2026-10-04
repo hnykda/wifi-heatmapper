@@ -3,6 +3,7 @@ import { parseIwOutput } from "../../src/lib/wifiScanner-linux";
 import {
   splitColonDelimited,
   getCandidateSSIDs,
+  iwLinkCommands,
 } from "../../src/lib/wifiScanner-linux";
 
 import fs from "fs";
@@ -161,4 +162,18 @@ test("Handling 'nmcli dev wifi list'", () => {
     currentSSID: false,
     strongestSSID: null,
   });
+});
+
+test("iw link is tried without sudo first, with sudo only given a password", () => {
+  expect(iwLinkCommands("wlp1s0", "", false)).toStrictEqual([
+    "iw dev wlp1s0 link",
+  ]);
+  expect(iwLinkCommands("wlp1s0", "secret", false)).toStrictEqual([
+    "iw dev wlp1s0 link",
+    'echo "secret" | sudo -S iw dev wlp1s0 link',
+  ]);
+  // Docker and Podman already run as root
+  expect(iwLinkCommands("wlp1s0", "secret", true)).toStrictEqual([
+    "iw dev wlp1s0 link",
+  ]);
 });
