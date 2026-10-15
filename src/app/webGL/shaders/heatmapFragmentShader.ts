@@ -9,19 +9,24 @@
 const generateHeatmapFragmentShader = (pointCount: number): string => {
   const clampedPointCount = Math.max(1, pointCount);
   return `
+  #ifdef GL_FRAGMENT_PRECISION_HIGH
+  precision highp float;
+  #else
   precision mediump float;
+  #endif
 
   varying vec2 v_uv; // Normalized coordinates from vertex shader, in [0, 1]
 
   uniform float u_radius;       // Radius of influence for each point
   uniform float u_power;        // Weight falloff exponent (higher = faster decay)
-  uniform float u_maxSignal;    // Maximum expected signal value (used for normalization)
+  uniform float u_minSignal;    // Lower bound in the CPU affine-transformed domain
+  uniform float u_maxSignal;    // Upper bound in the same domain
   uniform float u_opacity;      // Final fragment opacity
   uniform float u_minOpacity;   // opacity when signal = 0
   uniform float u_maxOpacity;   // opacity when signal = max
   uniform vec2 u_resolution;    // Pixel dimensions of output framebuffer
   uniform int u_pointCount;     // Actual number of active points (may be < ${clampedPointCount})
-  uniform vec3 u_points[${clampedPointCount}]; // Each point = (x, y, value) in pixel-space
+  uniform vec3 u_points[${clampedPointCount}]; // Pixel (x, y), unclamped affine-transformed value
   uniform sampler2D u_lut;      // 1D LUT texture mapping signal to RGB color
 
   void main() {
@@ -63,10 +68,10 @@ const generateHeatmapFragmentShader = (pointCount: number): string => {
     if (weightTotal == 0.0) {
       discard;
     }
-    // Normalize signal to [0, 1] range
-    // Example: if weightedSum = 3, weightTotal = 5 → signal = 0.6
+    // Interpolate before normalization/clamping, preserving outlier influence.
+    // The CPU transform is affine, so this equals normalizing the raw IDW signal.
     float signal = weightedSum / weightTotal;
-    float normalized = clamp(signal / u_maxSignal, 0.0, 1.0);
+    float normalized = clamp((signal - u_minSignal) / (u_maxSignal - u_minSignal), 0.0, 1.0);
 
     // Lookup color from LUT texture using normalized signal
     // Example: normalized = 0.75 → texture2D(u_lut, vec2(0.75, 0.5))

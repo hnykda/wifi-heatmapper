@@ -4,6 +4,9 @@ import { createWebGLContext } from "../utils/webGLUtils";
 import { createBackgroundLayerRenderer } from "./layers/imageLayerRenderer";
 import { createHeatmapLayerRenderer } from "./layers/heatmapLayerRenderer";
 
+/** Finite colour-scale bounds, with max strictly greater than min. */
+export type HeatmapValueRange = { min: number; max: number };
+
 export type HeatmapPoint = {
   x: number;
   y: number;
@@ -30,6 +33,7 @@ const mainRenderer = (
     minOpacity?: number;
     maxOpacity?: number;
     influenceRadius?: number;
+    valueRange?: HeatmapValueRange;
   }) => {
     const {
       width,
@@ -38,6 +42,7 @@ const mainRenderer = (
       maxOpacity = 0.7,
       influenceRadius = 100,
       backgroundImageSrc,
+      valueRange,
     } = props;
 
     canvas.width = width;
@@ -55,6 +60,7 @@ const mainRenderer = (
       influenceRadius,
       minOpacity,
       maxOpacity,
+      valueRange,
     });
   };
 

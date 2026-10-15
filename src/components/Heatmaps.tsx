@@ -18,6 +18,8 @@ import createHeatmapWebGLRenderer from "@/app/webGL/renderers/mainRenderer";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { HeatmapSlider } from "./Slider";
+import { HeatmapScaleControl } from "./HeatmapScaleControl";
+import { resolveHeatmapRange } from "@/lib/heatmap-scale";
 import HeatmapImage from "./HeatmapImage";
 import HeatmapModal from "./HeatmapModal";
 
@@ -210,17 +212,15 @@ export function Heatmaps() {
       ctx.fillStyle = "#ffffff";
       ctx.fillRect(0, 0, out.width, out.height);
 
-      // Signal is always 0..100 % (people deserve to know when it is low);
-      // throughput and the rest run from 0 to the best value measured,
-      // which is how the shader normalizes colours.
-      let min = 0;
-      let max = 1;
-      if (metric === "signalStrength") {
-        min = asPercentage ? 0 : -100;
-        max = asPercentage ? 100 : -40;
-      } else {
-        max = Math.max(1e-9, ...data.map((d) => d.value));
-      }
+      const valueRange = resolveHeatmapRange(
+        property,
+        data.map((d) => d.value),
+        settings.heatmapRanges,
+      );
+      const toLegendValue = (value: number) =>
+        metric === "signalStrength" && !asPercentage
+          ? -100 + value * 0.6
+          : value;
 
       const glCanvas = document.createElement("canvas");
       glCanvas.width = W;
@@ -233,6 +233,7 @@ export function Heatmaps() {
         );
         await renderer.render({
           points: data,
+          valueRange,
           influenceRadius: radius,
           maxOpacity: settings.maxOpacity,
           minOpacity: settings.minOpacity,
@@ -254,8 +255,8 @@ export function Heatmaps() {
         margin,
         legendBar,
         H,
-        min,
-        max,
+        toLegendValue(valueRange.min),
+        toLegendValue(valueRange.max),
         metric,
         property,
         fontPx,
@@ -290,6 +291,7 @@ export function Heatmaps() {
     [
       settings.dimensions,
       settings.gradient,
+      settings.heatmapRanges,
       settings.maxOpacity,
       settings.minOpacity,
       settings.floorplanImagePath,
@@ -404,8 +406,8 @@ export function Heatmaps() {
       <div>
         <h1 className="text-lg font-semibold">Heat maps</h1>
         <p className="text-sm text-muted-foreground">
-          Green is good. Adjust the radius until the spots grow together, then
-          download the maps you need.
+          Adjust the radius until the spots grow together, then download the
+          maps you need.
         </p>
       </div>
 
@@ -439,6 +441,31 @@ export function Heatmaps() {
                 )}
             </div>
           )}
+
+          <section className="space-y-4" aria-label="Colour scale settings">
+            <h2 className="text-sm font-medium">Colour scales</h2>
+            {Object.keys(propertyTitles)
+              .map((p) => p as keyof IperfTestProperty)
+              .filter((property) => wanted.some((w) => w.property === property))
+              .map((property) => (
+                <HeatmapScaleControl
+                  key={`${settings.floorplanImageName}-${property}`}
+                  property={property}
+                  title={
+                    property === "signalStrength"
+                      ? "Signal strength (%)"
+                      : propertyTitles[property]
+                  }
+                  range={settings.heatmapRanges?.[property]}
+                  onChange={(range) => {
+                    const ranges = { ...settings.heatmapRanges };
+                    if (range) ranges[property] = range;
+                    else delete ranges[property];
+                    updateSettings({ heatmapRanges: ranges });
+                  }}
+                />
+              ))}
+          </section>
 
           <HeatmapSlider
             value={radius}

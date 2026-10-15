@@ -6,6 +6,9 @@ _This section follows the precepts of [Keep a Changelog](https://keepachangelog.
 
 ### Added
 
+* **Fixed heat map scales** with per-parameter lower and upper bounds, saved
+  with each survey, for comparing signal strength, throughput, jitter and
+  packet measurements across surveys. Downloaded maps use the same bounds.
 * **Desktop apps** for macOS (Apple silicon and Intel), Windows and Linux
   (x64 and ARM64), built by GitHub Actions for every release. No Node.js or
   terminal needed; data lives in the system's app-data folder. Early builds:
@@ -19,6 +22,8 @@ _This section follows the precepts of [Keep a Changelog](https://keepachangelog.
 
 ### Fixed
 
+* Signal heat map colours now use the same 0–100% range as the default legend
+  instead of scaling to the strongest measured point.
 * The About dialog showed the wrong macOS version on macOS 27 ("28"); it now
   asks `sw_vers`.
 * Settings shows where a survey is really saved (the app-data folder in the

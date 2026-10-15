@@ -90,6 +90,14 @@ you how fast it actually is.
 Each measurement then also runs TCP and UDP tests in both directions.
 The commands can be changed under Settings if you need other options.
 
+### Comparing heat maps across surveys
+
+Use **Colour scales** on the **Heat maps** tab to set fixed lower and upper
+values for each parameter. Apply the same ranges in your before and after
+surveys (for example, throughput 0–500 Mbps and jitter 0–20 ms). Ranges are
+saved with each survey and included in downloaded maps. See the
+[UI guide](docs/User_Interface.md#heat-maps) for units and scaling details.
+
 ### Try it without any hardware
 
 ```bash

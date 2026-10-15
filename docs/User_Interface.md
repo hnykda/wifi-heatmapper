@@ -50,8 +50,22 @@ In mock mode, "Add sample points" fills the plan with synthetic points.
 
 ![Heat maps](images/heatmaps.png)
 
-Tick the measurements you want to see. Signal strength is always drawn on a
-0–100% scale; throughput maps run from 0 to the best value measured.
+Tick the measurements you want to see. By default, signal strength uses a
+0–100% scale; other measurements run from 0 to each map's maximum.
+
+Under **Colour scales**, turn on a fixed scale for a parameter and edit its
+**Lower** and **Upper** values. Valid ranges apply automatically after a short
+pause; empty or invalid fields leave the last valid range active. Use
+identical ranges in your before and after surveys to compare them. Ranges
+are saved with each survey and shared across the applicable test directions.
+
+Throughput bounds use Mbps, jitter uses ms, packet values use counts, and
+signal bounds use percent even when its legend shows dBm. The map, legend
+and downloaded PNG all use the chosen range. Values outside it use the
+endpoint colours; measurements are unchanged. Green represents higher
+values, so lower jitter, packet loss and retransmits are better even though
+they appear toward the red end. Turn off the fixed scale to restore the
+default.
 
 **Radius** controls how far each point's influence reaches. It starts at an
 automatic value based on how spread out your points are; drag it until

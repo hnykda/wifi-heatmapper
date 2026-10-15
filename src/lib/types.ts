@@ -72,6 +72,16 @@ export interface ApMapping {
 
 export type Gradient = Record<number, string>; // Maps 0-1 values to colors
 
+export interface HeatmapRange {
+  min: number;
+  max: number;
+}
+
+/** Fixed ranges in display units: Mbps, ms, counts, or signal percent. */
+export type HeatmapRanges = Partial<
+  Record<keyof IperfTestProperty, HeatmapRange>
+>;
+
 export interface IperfCommands {
   tcpDownload: string;
   tcpUpload: string;
@@ -98,6 +108,7 @@ export interface HeatmapSettings {
   minOpacity: number;
   blur: number;
   gradient: Gradient;
+  heatmapRanges?: HeatmapRanges;
   iperfCommands: IperfCommands;
   meta?: SurveyFileMeta; // written by the server on every save
 }
