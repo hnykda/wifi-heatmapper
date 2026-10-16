@@ -1,4 +1,4 @@
-import { fullscreenQuadVertexShader } from "@/app/webGL/shaders/fullscreenQuadVertexShader";
+import { fullscreenQuadVertexShader } from "../../shaders/fullscreenQuadVertexShader";
 import {
   createShaderProgram,
   createFullScreenQuad,

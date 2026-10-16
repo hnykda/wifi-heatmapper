@@ -27,6 +27,8 @@ _This section follows the precepts of [Keep a Changelog](https://keepachangelog.
 
 * Signal heat map colours now use the same 0–100% range as the default legend
   instead of scaling to the strongest measured point.
+* Heat maps fall back to CPU interpolation when GPU precision cannot safely
+  represent the selected range, preserving outlier influence and colours.
 * The About dialog showed the wrong macOS version on macOS 27 ("28"); it now
   asks `sw_vers`.
 * Settings shows where a survey is really saved (the app-data folder in the

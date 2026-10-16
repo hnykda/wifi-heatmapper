@@ -1,11 +1,8 @@
-import { Gradient } from "@/lib/types";
+import { Gradient, HeatmapRange } from "@/lib/types";
 
 import { createWebGLContext } from "../utils/webGLUtils";
 import { createBackgroundLayerRenderer } from "./layers/imageLayerRenderer";
 import { createHeatmapLayerRenderer } from "./layers/heatmapLayerRenderer";
-
-/** Finite colour-scale bounds, with max strictly greater than min. */
-export type HeatmapValueRange = { min: number; max: number };
 
 export type HeatmapPoint = {
   x: number;
@@ -33,7 +30,7 @@ const mainRenderer = (
     minOpacity?: number;
     maxOpacity?: number;
     influenceRadius?: number;
-    valueRange?: HeatmapValueRange;
+    valueRange: HeatmapRange;
   }) => {
     const {
       width,
@@ -54,7 +51,7 @@ const mainRenderer = (
       await bgRenderer.draw(backgroundImageSrc);
     }
 
-    heatmapRenderer.draw({
+    await heatmapRenderer.draw({
       width,
       height,
       influenceRadius,

@@ -235,6 +235,43 @@ test.describe("with sample points", () => {
     expect(survey.heatmapRanges["tcpUpload-bitsPerSecond"].max).toBe(50);
   });
 
+  test("malformed saved ranges fall back without blanking maps", async ({
+    page,
+  }) => {
+    const survey = await readSurvey(
+      page,
+      name,
+      (s) => s.surveyPoints.length > 0,
+    );
+    survey.heatmapRanges = {
+      signalStrength: { min: 90, max: 10, enabled: true },
+      "tcpDownload-bitsPerSecond": { min: 10, max: 10, enabled: true },
+      "tcpUpload-bitsPerSecond": { min: "bad", max: 50, enabled: true },
+    };
+    const response = await page.request.post("/api/settings", { data: survey });
+    expect(response.ok()).toBe(true);
+    await page.reload();
+    await gotoTab(page, "settings");
+    await page.getByTestId("floorplan-picker").click();
+    await page.getByRole("menuitem", { name }).click();
+    await expect(page.getByTestId("summary-floorplan")).toContainText(name);
+    await gotoTab(page, "heatmaps");
+    await page.getByLabel("TCP download", { exact: true }).click();
+    await page.getByLabel("TCP upload", { exact: true }).click();
+    for (const key of [
+      "signalStrength",
+      "tcpDownload-bitsPerSecond",
+      "tcpUpload-bitsPerSecond",
+    ]) {
+      await expect(
+        page.getByTestId(`heatmap-${key}`).locator("img"),
+      ).toBeVisible({ timeout: 30_000 });
+      await expect(
+        page.getByTestId(`scale-${key}`).getByRole("switch"),
+      ).not.toBeChecked();
+    }
+  });
+
   test("points table lists, ignores, deletes and exports", async ({ page }) => {
     await gotoTab(page, "points");
     const rows = page.getByTestId("points-row");

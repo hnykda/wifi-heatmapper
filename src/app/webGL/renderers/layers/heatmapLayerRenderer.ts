@@ -1,5 +1,7 @@
-import { Gradient } from "@/lib/types";
-import { HeatmapPoint, HeatmapValueRange } from "../mainRenderer";
+import { Gradient, HeatmapRange } from "@/lib/types";
+import { HeatmapPoint } from "../mainRenderer";
+import { prepareHeatmapGPUData } from "../../../../lib/heatmap-interpolation";
+import { createCPUHeatmapLayerRenderer } from "./cpuHeatmapLayerRenderer";
 import generateFragmentShader from "../../shaders/heatmapFragmentShader";
 import {
   createShaderProgram,
@@ -7,7 +9,7 @@ import {
   getAttribLocations,
   getUniformLocations,
 } from "../../utils/webGLUtils";
-import { fullscreenQuadVertexShaderFlipY } from "@/app/webGL/shaders/fullscreenQuadVertexShader";
+import { fullscreenQuadVertexShaderFlipY } from "../../shaders/fullscreenQuadVertexShader";
 
 import { createGradientLUTTexture } from "../textures/createGradientLUTTexture";
 
@@ -16,20 +18,30 @@ export const createHeatmapLayerRenderer = (
   points: HeatmapPoint[],
   gradient: Gradient,
 ) => {
-  const program = createShaderProgram(
-    gl,
-    fullscreenQuadVertexShaderFlipY,
-    generateFragmentShader(points.length),
+  const precision = gl.getShaderPrecisionFormat(
+    gl.FRAGMENT_SHADER,
+    gl.HIGH_FLOAT,
   );
-  const positionBuffer = createFullScreenQuad(gl);
-  const attribs = getAttribLocations(gl, program);
-  const uniforms = getUniformLocations(gl, program);
+  const hasHighPrecision =
+    !!precision &&
+    precision.precision >= 23 &&
+    precision.rangeMin >= 126 &&
+    precision.rangeMax >= 127;
+  let gpu: ReturnType<typeof createGPUResources> | undefined;
+  let cpu: ReturnType<typeof createCPUHeatmapLayerRenderer> | undefined;
+  function createGPUResources() {
+    const program = createShaderProgram(
+      gl,
+      fullscreenQuadVertexShaderFlipY,
+      generateFragmentShader(points.length),
+    );
+    const positionBuffer = createFullScreenQuad(gl);
+    const attribs = getAttribLocations(gl, program);
+    const uniforms = getUniformLocations(gl, program);
 
-  const colorLUT = createGradientLUTTexture(gl, gradient);
-  const autoRange = {
-    min: 0,
-    max: points.reduce((max, { value }) => Math.max(max, value), 0) || 1e-6,
-  };
+    const colorLUT = createGradientLUTTexture(gl, gradient);
+    return { program, positionBuffer, attribs, uniforms, colorLUT };
+  }
 
   const draw = (options: {
     width: number;
@@ -37,7 +49,7 @@ export const createHeatmapLayerRenderer = (
     influenceRadius: number;
     minOpacity: number;
     maxOpacity: number;
-    valueRange?: HeatmapValueRange;
+    valueRange: HeatmapRange;
   }) => {
     const {
       width,
@@ -45,7 +57,7 @@ export const createHeatmapLayerRenderer = (
       influenceRadius,
       minOpacity,
       maxOpacity,
-      valueRange = autoRange,
+      valueRange,
     } = options;
     const { min, max } = valueRange;
     if (!Number.isFinite(min) || !Number.isFinite(max) || max <= min) {
@@ -53,18 +65,25 @@ export const createHeatmapLayerRenderer = (
     }
     if (!points.length) return;
 
-    // A shared affine transform commutes with IDW interpolation. Subtract on
-    // the CPU to preserve small spans at large offsets, then scale ALL values
-    // (including outliers) into [-1, 1] to avoid bits/sec overflow in mediump.
-    // Do not clamp samples: only the interpolated signal may be clamped.
-    const span = max - min;
-    const scale = points.reduce(
-      (scale, { value }) => Math.max(scale, Math.abs(value - min)),
-      span,
-    );
-    const flatData = Float32Array.from(
-      points.flatMap(({ x, y, value }) => [x, y, (value - min) / scale]),
-    );
+    // mediump cannot safely represent squared pixel distances, weights, or
+    // small affine spans. Even highp needs bounded geometry and value data.
+    const safeGeometry = [
+      width,
+      height,
+      influenceRadius,
+      ...points.flatMap(({ x, y }) => [x, y]),
+    ].every((value) => Number.isFinite(value) && Math.abs(value) <= 16384);
+    const prepared =
+      hasHighPrecision && safeGeometry && influenceRadius >= 0.001
+        ? prepareHeatmapGPUData(points, valueRange)
+        : null;
+    if (!prepared) {
+      cpu ??= createCPUHeatmapLayerRenderer(gl, points, gradient);
+      cpu.draw(options);
+      return;
+    }
+    gpu ??= createGPUResources();
+    const { program, positionBuffer, attribs, uniforms, colorLUT } = gpu;
 
     gl.useProgram(program);
     gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
@@ -75,11 +94,10 @@ export const createHeatmapLayerRenderer = (
     gl.uniform1f(uniforms.u_power, 3);
     gl.uniform1f(uniforms.u_minOpacity, minOpacity);
     gl.uniform1f(uniforms.u_maxOpacity, maxOpacity);
-    gl.uniform1f(uniforms.u_minSignal, 0);
-    gl.uniform1f(uniforms.u_maxSignal, span / scale);
+    gl.uniform1f(uniforms.u_maxSignal, prepared.span);
     gl.uniform2f(uniforms.u_resolution, width, height);
-    gl.uniform1i(uniforms.u_pointCount, Math.min(points.length, points.length));
-    gl.uniform3fv(uniforms.u_points, flatData);
+    gl.uniform1i(uniforms.u_pointCount, points.length);
+    gl.uniform3fv(uniforms.u_points, prepared.data);
 
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, colorLUT);

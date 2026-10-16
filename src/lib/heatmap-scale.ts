@@ -8,18 +8,6 @@ import {
   MeasurementTestType,
 } from "./types";
 
-export const defaultHeatmapRanges: Record<
-  keyof IperfTestProperty,
-  HeatmapRange
-> = {
-  signalStrength: { min: 0, max: 100 },
-  bitsPerSecond: { min: 0, max: 1000 },
-  jitterMs: { min: 0, max: 50 },
-  lostPackets: { min: 0, max: 100 },
-  retransmits: { min: 0, max: 100 },
-  packetsReceived: { min: 0, max: 1000 },
-};
-
 const mapProperties: Record<keyof IperfResults, (keyof IperfTestProperty)[]> = {
   tcpDownload: ["bitsPerSecond", "retransmits"],
   tcpUpload: ["bitsPerSecond"],

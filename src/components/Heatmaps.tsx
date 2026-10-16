@@ -20,7 +20,7 @@ import {
   HeatmapScale,
 } from "@/lib/types";
 import { getColorAt, objectToRGBAString } from "@/lib/utils-gradient";
-import { cn, metricFormatter } from "@/lib/utils";
+import { cn, metricFormatter, percentageToRssi } from "@/lib/utils";
 import { getLogger } from "@/lib/logger";
 import createHeatmapWebGLRenderer from "@/app/webGL/renderers/mainRenderer";
 
@@ -185,7 +185,14 @@ export function Heatmaps() {
         ctx.strokeStyle = "rgba(20,24,33,0.6)";
         ctx.stroke();
         ctx.fillText(
-          metricFormatter(value, metric, property, asPercentage),
+          metricFormatter(
+            metric === "signalStrength" && !asPercentage
+              ? percentageToRssi(value)
+              : value,
+            metric,
+            property,
+            asPercentage,
+          ),
           x + barWidth + fontPx * 0.8,
           ty,
         );
@@ -227,11 +234,6 @@ export function Heatmaps() {
       ctx.fillStyle = "#ffffff";
       ctx.fillRect(0, 0, out.width, out.height);
 
-      const toLegendValue = (value: number) =>
-        metric === "signalStrength" && !asPercentage
-          ? -100 + value * 0.6
-          : value;
-
       const glCanvas = document.createElement("canvas");
       glCanvas.width = W;
       glCanvas.height = H;
@@ -265,8 +267,8 @@ export function Heatmaps() {
         margin,
         legendBar,
         H,
-        toLegendValue(valueRange.min),
-        toLegendValue(valueRange.max),
+        valueRange.min,
+        valueRange.max,
         metric,
         property,
         fontPx,
