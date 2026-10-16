@@ -1,4 +1,12 @@
-import { HeatmapRange, HeatmapRanges, IperfTestProperty } from "./types";
+import {
+  HeatmapKey,
+  HeatmapRange,
+  HeatmapRanges,
+  HeatmapScale,
+  IperfResults,
+  IperfTestProperty,
+  MeasurementTestType,
+} from "./types";
 
 export const defaultHeatmapRanges: Record<
   keyof IperfTestProperty,
@@ -12,38 +20,107 @@ export const defaultHeatmapRanges: Record<
   packetsReceived: { min: 0, max: 1000 },
 };
 
+const mapProperties: Record<keyof IperfResults, (keyof IperfTestProperty)[]> = {
+  tcpDownload: ["bitsPerSecond", "retransmits"],
+  tcpUpload: ["bitsPerSecond"],
+  udpDownload: ["bitsPerSecond", "jitterMs", "lostPackets", "packetsReceived"],
+  udpUpload: ["bitsPerSecond", "jitterMs", "lostPackets", "packetsReceived"],
+};
+
+export function heatmapKey(
+  metric: MeasurementTestType,
+  property: keyof IperfTestProperty,
+): HeatmapKey {
+  return metric === "signalStrength"
+    ? "signalStrength"
+    : `${metric}-${property}`;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function rawFactor(property: keyof IperfTestProperty): number {
+  return property === "bitsPerSecond" ? 1e6 : 1;
+}
+
 export function isValidHeatmapRange(
-  range: HeatmapRange | undefined,
+  range: unknown,
   property: keyof IperfTestProperty,
 ): range is HeatmapRange {
-  return (
-    !!range &&
-    Number.isFinite(range.min) &&
-    Number.isFinite(range.max) &&
-    range.min >= 0 &&
-    range.max > range.min &&
-    (property !== "signalStrength" || range.max <= 100) &&
-    Number.isFinite(range.max * (property === "bitsPerSecond" ? 1e6 : 1))
-  );
+  if (!isRecord(range)) return false;
+  const { min, max } = range;
+  if (
+    typeof min !== "number" ||
+    typeof max !== "number" ||
+    !Number.isFinite(min) ||
+    !Number.isFinite(max) ||
+    min < 0 ||
+    max <= min ||
+    (property === "signalStrength" && max > 100)
+  ) {
+    return false;
+  }
+  const factor = rawFactor(property);
+  const rawMin = min * factor;
+  const rawMax = max * factor;
+  // Adjacent display values can round to the same float after conversion.
+  return Number.isFinite(rawMin) && Number.isFinite(rawMax) && rawMax > rawMin;
 }
 
 /** Return raw measurement units for both the renderer and legend. */
 export function resolveHeatmapRange(
   property: keyof IperfTestProperty,
   values: number[],
-  ranges?: HeatmapRanges,
+  scale?: HeatmapScale,
 ): HeatmapRange {
-  const fixed = ranges?.[property];
-  if (isValidHeatmapRange(fixed, property)) {
-    const factor = property === "bitsPerSecond" ? 1e6 : 1;
-    return { min: fixed.min * factor, max: fixed.max * factor };
+  if (scale?.enabled === true && isValidHeatmapRange(scale, property)) {
+    const factor = rawFactor(property);
+    return { min: scale.min * factor, max: scale.max * factor };
   }
   if (property === "signalStrength") return { min: 0, max: 100 };
-  return {
-    min: 0,
-    max: values.reduce(
-      (max, value) => (Number.isFinite(value) ? Math.max(max, value) : max),
-      1e-9,
-    ),
+  const max = values.reduce(
+    (max, value) => (Number.isFinite(value) ? Math.max(max, value) : max),
+    0,
+  );
+  return { min: 0, max: max > 0 ? max : 1 };
+}
+
+/** Convert an automatic raw range to the units used by scale controls. */
+export function toDisplayRange(
+  property: keyof IperfTestProperty,
+  rawRange: HeatmapRange,
+): HeatmapRange {
+  const factor = rawFactor(property);
+  return { min: rawRange.min / factor, max: rawRange.max / factor };
+}
+
+/** Accept only supported map keys and valid saved scales. */
+export function normalizeHeatmapRanges(input: unknown): HeatmapRanges {
+  if (!isRecord(input)) return {};
+  const ranges: HeatmapRanges = {};
+  const readScale = (
+    value: unknown,
+    property: keyof IperfTestProperty,
+  ): HeatmapScale | undefined => {
+    if (!isRecord(value) || !isValidHeatmapRange(value, property)) {
+      return undefined;
+    }
+    if (typeof value.enabled === "boolean") {
+      return { min: value.min, max: value.max, enabled: value.enabled };
+    }
+
+    return undefined;
   };
+
+  const signal = readScale(input.signalStrength, "signalStrength");
+  if (signal) ranges.signalStrength = signal;
+  for (const metric of Object.keys(mapProperties) as (keyof IperfResults)[]) {
+    for (const property of mapProperties[metric]) {
+      const key = heatmapKey(metric, property);
+      const scale = readScale(input[key], property);
+      if (scale) ranges[key] = scale;
+    }
+  }
+  return ranges;
 }

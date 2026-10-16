@@ -77,10 +77,15 @@ export interface HeatmapRange {
   max: number;
 }
 
-/** Fixed ranges in display units: Mbps, ms, counts, or signal percent. */
-export type HeatmapRanges = Partial<
-  Record<keyof IperfTestProperty, HeatmapRange>
->;
+export type HeatmapKey =
+  | "signalStrength"
+  | `${keyof IperfResults}-${keyof IperfTestProperty}`;
+
+/** Saved bounds in display units: Mbps, ms, counts, or signal percent. */
+export type HeatmapScale = HeatmapRange & { enabled: boolean };
+
+/** Independent per-map scales; disabled entries retain their saved bounds. */
+export type HeatmapRanges = Partial<Record<HeatmapKey, HeatmapScale>>;
 
 export interface IperfCommands {
   tcpDownload: string;

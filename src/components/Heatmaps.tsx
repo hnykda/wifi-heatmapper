@@ -1,5 +1,11 @@
 "use client";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import { useSettings } from "@/components/GlobalSettings";
 import { calculateRadiusByBoundingBox } from "@/lib/radiusCalculations";
@@ -9,6 +15,9 @@ import {
   MeasurementTestType,
   testTypes,
   IperfTestProperty,
+  HeatmapKey,
+  HeatmapRange,
+  HeatmapScale,
 } from "@/lib/types";
 import { getColorAt, objectToRGBAString } from "@/lib/utils-gradient";
 import { cn, metricFormatter } from "@/lib/utils";
@@ -19,7 +28,11 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { HeatmapSlider } from "./Slider";
 import { HeatmapScaleControl } from "./HeatmapScaleControl";
-import { resolveHeatmapRange } from "@/lib/heatmap-scale";
+import {
+  heatmapKey,
+  resolveHeatmapRange,
+  toDisplayRange,
+} from "@/lib/heatmap-scale";
 import HeatmapImage from "./HeatmapImage";
 import HeatmapModal from "./HeatmapModal";
 
@@ -65,7 +78,6 @@ const getAvailableProperties = (
   }
 };
 
-type HeatmapKey = string; // "signalStrength" or "<metric>-<property>"
 type Rendered = { src: string | null; count: number };
 
 /**
@@ -80,7 +92,9 @@ export function Heatmaps() {
     [points],
   );
 
-  const [heatmaps, setHeatmaps] = useState<Record<HeatmapKey, Rendered>>({});
+  const [heatmaps, setHeatmaps] = useState<
+    Partial<Record<HeatmapKey, Rendered>>
+  >({});
   const [rendering, setRendering] = useState(false);
   const [enlarged, setEnlarged] = useState<{ src: string; alt: string } | null>(
     null,
@@ -112,7 +126,7 @@ export function Heatmaps() {
       const test = point.iperfData?.[metric];
       if (!test || test.bitsPerSecond === 0) return null; // test not run
       const v = property ? test[property] : test.bitsPerSecond;
-      return typeof v === "number" ? v : null;
+      return typeof v === "number" && Number.isFinite(v) ? v : null;
     },
     [],
   );
@@ -184,6 +198,7 @@ export function Heatmaps() {
     async (
       metric: MeasurementTestType,
       property: keyof IperfTestProperty,
+      valueRange: HeatmapRange,
     ): Promise<Rendered> => {
       const W = settings.dimensions.width;
       const H = settings.dimensions.height;
@@ -212,11 +227,6 @@ export function Heatmaps() {
       ctx.fillStyle = "#ffffff";
       ctx.fillRect(0, 0, out.width, out.height);
 
-      const valueRange = resolveHeatmapRange(
-        property,
-        data.map((d) => d.value),
-        settings.heatmapRanges,
-      );
       const toLegendValue = (value: number) =>
         metric === "signalStrength" && !asPercentage
           ? -100 + value * 0.6
@@ -291,7 +301,7 @@ export function Heatmaps() {
     [
       settings.dimensions,
       settings.gradient,
-      settings.heatmapRanges,
+
       settings.maxOpacity,
       settings.minOpacity,
       settings.floorplanImagePath,
@@ -323,7 +333,7 @@ export function Heatmaps() {
         for (const property of selectedProperties) {
           if (getAvailableProperties(metric).includes(property)) {
             list.push({
-              key: `${metric}-${property}`,
+              key: heatmapKey(metric, property),
               metric,
               property,
               title: `${metricTitles[metric]}: ${propertyTitles[property]}`,
@@ -335,13 +345,42 @@ export function Heatmaps() {
     return list;
   }, [selectedMetrics, selectedProperties]);
 
+  // Keep in-flight results as well as completed maps, so editing one scale
+  // doesn't restart unchanged maps while their background images load.
+  const renderCache = useRef<{
+    renderer: typeof renderHeatmap;
+    maps: Partial<
+      Record<
+        HeatmapKey,
+        { min: number; max: number; result: Promise<Rendered> }
+      >
+    >;
+  }>({ renderer: renderHeatmap, maps: {} });
+
   useEffect(() => {
     let cancelled = false;
+    if (renderCache.current.renderer !== renderHeatmap) {
+      renderCache.current = { renderer: renderHeatmap, maps: {} };
+    }
+    const cache = renderCache.current.maps;
     (async () => {
       setRendering(true);
-      const next: Record<HeatmapKey, Rendered> = {};
+      const next: Record<string, Rendered> = {};
       for (const w of wanted) {
-        next[w.key] = await renderHeatmap(w.metric, w.property);
+        const range = resolveHeatmapRange(
+          w.property,
+          generateHeatmapData(w.metric, w.property).map((p) => p.value),
+          settings.heatmapRanges?.[w.key],
+        );
+        let entry = cache[w.key];
+        if (!entry || entry.min !== range.min || entry.max !== range.max) {
+          entry = {
+            ...range,
+            result: renderHeatmap(w.metric, w.property, range),
+          };
+          cache[w.key] = entry;
+        }
+        next[w.key] = await entry.result;
         if (cancelled) return;
       }
       setHeatmaps(next);
@@ -350,7 +389,16 @@ export function Heatmaps() {
     return () => {
       cancelled = true;
     };
-  }, [wanted, renderHeatmap]);
+  }, [wanted, renderHeatmap, generateHeatmapData, settings.heatmapRanges]);
+
+  const updateScale = useCallback(
+    (key: HeatmapKey, scale: HeatmapScale) => {
+      updateSettings((previous) => ({
+        heatmapRanges: { ...previous.heatmapRanges, [key]: scale },
+      }));
+    },
+    [updateSettings],
+  );
 
   /* ---------- controls ---------- */
 
@@ -444,27 +492,45 @@ export function Heatmaps() {
 
           <section className="space-y-4" aria-label="Colour scale settings">
             <h2 className="text-sm font-medium">Colour scales</h2>
-            {Object.keys(propertyTitles)
-              .map((p) => p as keyof IperfTestProperty)
-              .filter((property) => wanted.some((w) => w.property === property))
-              .map((property) => (
-                <HeatmapScaleControl
-                  key={`${settings.floorplanImageName}-${property}`}
-                  property={property}
-                  title={
-                    property === "signalStrength"
-                      ? "Signal strength (%)"
-                      : propertyTitles[property]
-                  }
-                  range={settings.heatmapRanges?.[property]}
-                  onChange={(range) => {
-                    const ranges = { ...settings.heatmapRanges };
-                    if (range) ranges[property] = range;
-                    else delete ranges[property];
-                    updateSettings({ heatmapRanges: ranges });
-                  }}
-                />
-              ))}
+            {selectedMetrics.map((metric) => {
+              const maps = wanted.filter((w) => w.metric === metric);
+              if (!maps.length) return null;
+              return (
+                <div key={metric} className="space-y-3">
+                  <h3 className="text-xs font-medium text-muted-foreground">
+                    {metricTitles[metric]}
+                  </h3>
+                  {maps.map((w) => (
+                    <HeatmapScaleControl
+                      key={`${settings.floorplanImageName}-${w.key}`}
+                      mapKey={w.key}
+                      property={w.property}
+                      title={
+                        w.property === "signalStrength"
+                          ? "Signal strength (%)"
+                          : propertyTitles[w.property]
+                      }
+                      label={
+                        w.property === "signalStrength"
+                          ? "Signal strength (%)"
+                          : `${metricTitles[metric]} ${propertyTitles[w.property]}`
+                      }
+                      scale={settings.heatmapRanges?.[w.key]}
+                      automaticRange={toDisplayRange(
+                        w.property,
+                        resolveHeatmapRange(
+                          w.property,
+                          generateHeatmapData(metric, w.property).map(
+                            (p) => p.value,
+                          ),
+                        ),
+                      )}
+                      onChange={updateScale}
+                    />
+                  ))}
+                </div>
+              );
+            })}
           </section>
 
           <HeatmapSlider

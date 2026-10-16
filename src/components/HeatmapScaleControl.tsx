@@ -1,22 +1,34 @@
 import { useEffect, useState } from "react";
-import { HeatmapRange, IperfTestProperty } from "@/lib/types";
-import { defaultHeatmapRanges, isValidHeatmapRange } from "@/lib/heatmap-scale";
+import {
+  HeatmapKey,
+  HeatmapRange,
+  HeatmapScale,
+  IperfTestProperty,
+} from "@/lib/types";
+import { isValidHeatmapRange } from "@/lib/heatmap-scale";
 import { Switch } from "./ui/switch";
 import { Input } from "./ui/input";
 
 export function HeatmapScaleControl({
+  mapKey,
   property,
   title,
-  range,
+  label,
+  scale,
+  automaticRange,
   onChange,
 }: {
+  mapKey: HeatmapKey;
   property: keyof IperfTestProperty;
   title: string;
-  range?: HeatmapRange;
-  onChange: (range: HeatmapRange | undefined) => void;
+  label: string;
+  scale?: HeatmapScale;
+  automaticRange: HeatmapRange;
+  onChange: (key: HeatmapKey, scale: HeatmapScale) => void;
 }) {
-  const fixed = isValidHeatmapRange(range, property);
-  const current = fixed ? range : defaultHeatmapRanges[property];
+  const remembered = isValidHeatmapRange(scale, property);
+  const fixed = remembered && scale.enabled;
+  const current = remembered ? scale : automaticRange;
   const [min, setMin] = useState(String(current.min));
   const [max, setMax] = useState(String(current.max));
   useEffect(() => {
@@ -29,18 +41,17 @@ export function HeatmapScaleControl({
     max.trim() !== "" &&
     isValidHeatmapRange(draft, property);
   useEffect(() => {
-    const next = { min: Number(min), max: Number(max) };
+    const next = { min: Number(min), max: Number(max), enabled: true };
     if (
       !fixed ||
       !valid ||
       (next.min === current.min && next.max === current.max)
     )
       return;
-
-    const timer = setTimeout(() => onChange(next), 30);
+    const timer = setTimeout(() => onChange(mapKey, next), 300);
     return () => clearTimeout(timer);
-  }, [min, max, fixed, valid, current.min, current.max, onChange]);
-  const id = `scale-${property}`;
+  }, [min, max, fixed, valid, current.min, current.max, mapKey, onChange]);
+  const id = `scale-${mapKey}`;
 
   return (
     <div className="space-y-2" data-testid={id}>
@@ -51,9 +62,14 @@ export function HeatmapScaleControl({
         <span>{title}</span>
         <Switch
           id={id}
-          aria-label={`Fixed scale for ${title}`}
+          aria-label={`Fixed scale for ${label}`}
           checked={fixed}
-          onCheckedChange={(checked) => onChange(checked ? current : undefined)}
+          onCheckedChange={(enabled) =>
+            onChange(mapKey, {
+              ...(fixed && valid ? draft : current),
+              enabled,
+            })
+          }
         />
       </label>
       {fixed ? (
@@ -62,7 +78,7 @@ export function HeatmapScaleControl({
             <label className="space-y-1 text-xs text-muted-foreground">
               Lower
               <Input
-                aria-label={`${title} lower value`}
+                aria-label={`${label} lower value`}
                 type="number"
                 min={0}
                 max={property === "signalStrength" ? 100 : undefined}
@@ -74,7 +90,7 @@ export function HeatmapScaleControl({
             <label className="space-y-1 text-xs text-muted-foreground">
               Upper
               <Input
-                aria-label={`${title} upper value`}
+                aria-label={`${label} upper value`}
                 type="number"
                 min={0}
                 max={property === "signalStrength" ? 100 : undefined}
@@ -86,8 +102,10 @@ export function HeatmapScaleControl({
           </div>
           {!valid && (
             <p role="alert" className="text-xs text-muted-foreground">
-              Enter finite values with 0 ≤ lower &lt; upper
-              {property === "signalStrength" ? " ≤ 100" : ""}.
+              Lower must be 0 or more and less than upper.
+              {property === "signalStrength"
+                ? " Upper must be 100 or less."
+                : ""}
             </p>
           )}
         </div>
@@ -95,7 +113,7 @@ export function HeatmapScaleControl({
         <p className="text-xs text-muted-foreground">
           {property === "signalStrength"
             ? "Default: 0–100%."
-            : "Automatic: 0 to each map’s maximum."}
+            : "Automatic: 0 to this map’s maximum."}
         </p>
       )}
     </div>

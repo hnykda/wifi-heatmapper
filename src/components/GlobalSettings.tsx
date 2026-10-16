@@ -20,6 +20,7 @@ import { toast } from "./ui/use-toast";
 import { HeatmapSettings, SurveyPoint, SurveyPointActions } from "../lib/types";
 import { defaultIperfCommands } from "../lib/iperfUtils";
 import { mediaUrlFor } from "../lib/media-url";
+import { normalizeHeatmapRanges } from "../lib/heatmap-scale";
 
 export const DEFAULT_FLOORPLAN = "EmptyFloorPlan.png";
 
@@ -79,17 +80,22 @@ export function normalizeLoadedSettings(
       ...defaults.iperfCommands,
       ...(loaded.iperfCommands ?? {}),
     },
+    heatmapRanges: normalizeHeatmapRanges(loaded.heatmapRanges),
     surveyPoints: loaded.surveyPoints ?? [],
     apMapping: loaded.apMapping ?? [],
     sudoerPassword: "",
   };
 }
 
+type SettingsUpdate =
+  | Partial<HeatmapSettings>
+  | ((previous: HeatmapSettings) => Partial<HeatmapSettings>);
+
 interface SettingsContextType {
   settings: HeatmapSettings;
   /** true until the first survey file has been read */
   loading: boolean;
-  updateSettings: (newSettings: Partial<HeatmapSettings>) => void;
+  updateSettings: (newSettings: SettingsUpdate) => void;
   surveyPointActions: SurveyPointActions;
   /** Switch to another floor plan (loads or creates its survey file) */
   readNewSettingsFromFile: (theFile: string) => void;
@@ -231,8 +237,13 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   );
 
   const updateSettings = useCallback(
-    (newSettings: Partial<HeatmapSettings>) => {
-      applyChange((prev) => ({ ...prev, ...newSettings }));
+    (newSettings: SettingsUpdate) => {
+      applyChange((prev) => ({
+        ...prev,
+        ...(typeof newSettings === "function"
+          ? newSettings(prev)
+          : newSettings),
+      }));
     },
     [applyChange],
   );

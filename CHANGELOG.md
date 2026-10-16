@@ -6,9 +6,12 @@ _This section follows the precepts of [Keep a Changelog](https://keepachangelog.
 
 ### Added
 
-* **Fixed heat map scales** with per-parameter lower and upper bounds, saved
-  with each survey, for comparing signal strength, throughput, jitter and
-  packet measurements across surveys. Downloaded maps use the same bounds.
+* **Fixed heat map scales** with independent per-map lower and upper bounds,
+  saved with each survey, for comparing signal strength, throughput, jitter
+  and packet measurements across surveys. First enabling freezes the current
+  automatic range; switching off and on remembers saved bounds across reloads.
+  Valid edits apply automatically after 300 ms. Downloaded maps use the same
+  bounds. Malformed saved ranges fall back to automatic scaling.
 * **Desktop apps** for macOS (Apple silicon and Intel), Windows and Linux
   (x64 and ARM64), built by GitHub Actions for every release. No Node.js or
   terminal needed; data lives in the system's app-data folder. Early builds:

@@ -71,39 +71,60 @@ test.describe("with sample points", () => {
         return canvas.toDataURL();
       });
     const original = await mapPixels();
-    const scale = page.getByTestId("scale-bitsPerSecond");
+    const scale = page.getByTestId("scale-tcpDownload-bitsPerSecond");
     await scale.getByRole("switch").click();
-    await scale.getByLabel("Throughput (Mbps) lower value").fill("1001");
-    await scale.getByRole("switch").click();
-    await scale.getByRole("switch").click();
-    await expect(scale.getByLabel("Throughput (Mbps) lower value")).toHaveValue(
-      "0",
+    const seeded = await readSurvey(
+      page,
+      name,
+      (s) => s.heatmapRanges?.["tcpDownload-bitsPerSecond"]?.enabled,
     );
-    await scale.getByLabel("Throughput (Mbps) lower value").fill("50");
-    await scale.getByLabel("Throughput (Mbps) upper value").fill("500");
+    const maximum = Math.max(
+      ...seeded.surveyPoints.map(
+        (p: any) => p.iperfData.tcpDownload.bitsPerSecond,
+      ),
+    );
+    expect(seeded.heatmapRanges["tcpDownload-bitsPerSecond"].max).toBe(
+      maximum / 1e6,
+    );
+    expect(await mapPixels()).toBe(original);
+    await scale
+      .getByLabel("TCP download Throughput (Mbps) lower value")
+      .fill("50");
+    await scale
+      .getByLabel("TCP download Throughput (Mbps) upper value")
+      .fill("500");
 
     await readSurvey(
       page,
       name,
       (s) =>
-        s.heatmapRanges?.bitsPerSecond?.min === 50 &&
-        s.heatmapRanges?.bitsPerSecond?.max === 500,
+        s.heatmapRanges?.["tcpDownload-bitsPerSecond"]?.min === 50 &&
+        s.heatmapRanges?.["tcpDownload-bitsPerSecond"]?.max === 500,
     );
     await expect.poll(mapPixels).not.toBe(original);
 
-    await scale.getByLabel("Throughput (Mbps) upper value").fill("10");
+    await scale
+      .getByLabel("TCP download Throughput (Mbps) upper value")
+      .fill("10");
     await expect(scale.getByRole("alert")).toBeVisible();
     // Wait beyond both the input debounce and settings-save debounce.
     await page.waitForTimeout(800);
     const saved = await readSurvey(page, name);
-    expect(saved.heatmapRanges.bitsPerSecond).toEqual({ min: 50, max: 500 });
-    await scale.getByLabel("Throughput (Mbps) upper value").fill("");
+    expect(saved.heatmapRanges["tcpDownload-bitsPerSecond"]).toEqual({
+      min: 50,
+      max: 500,
+      enabled: true,
+    });
+    await scale
+      .getByLabel("TCP download Throughput (Mbps) upper value")
+      .fill("");
     await expect(scale.getByRole("alert")).toBeVisible();
     await page.waitForTimeout(800);
     const afterEmpty = await readSurvey(page, name);
-    expect(afterEmpty.heatmapRanges.bitsPerSecond).toEqual({
+    expect(afterEmpty.heatmapRanges["tcpDownload-bitsPerSecond"]).toEqual({
       min: 50,
       max: 500,
+      enabled: true,
     });
     await page.reload();
     // Reload opens the default survey; explicitly reopen the saved one.
@@ -114,14 +135,104 @@ test.describe("with sample points", () => {
     await gotoTab(page, "heatmaps");
     await page.getByLabel("TCP download", { exact: true }).click();
     await expect(scale.getByRole("switch")).toBeChecked();
-    await expect(scale.getByLabel("Throughput (Mbps) lower value")).toHaveValue(
-      "50",
-    );
-    await expect(scale.getByLabel("Throughput (Mbps) upper value")).toHaveValue(
-      "500",
-    );
+    await expect(
+      scale.getByLabel("TCP download Throughput (Mbps) lower value"),
+    ).toHaveValue("50");
+    await expect(
+      scale.getByLabel("TCP download Throughput (Mbps) upper value"),
+    ).toHaveValue("500");
     await scale.getByRole("switch").click();
-    await readSurvey(page, name, (s) => !s.heatmapRanges?.bitsPerSecond);
+    await readSurvey(
+      page,
+      name,
+      (s) => s.heatmapRanges?.["tcpDownload-bitsPerSecond"]?.enabled === false,
+    );
+    await page.reload();
+    await gotoTab(page, "settings");
+    await page.getByTestId("floorplan-picker").click();
+    await page.getByRole("menuitem", { name }).click();
+    await expect(page.getByTestId("summary-floorplan")).toContainText(name);
+    await gotoTab(page, "heatmaps");
+    await page.getByLabel("TCP download", { exact: true }).click();
+    await expect(scale.getByRole("switch")).not.toBeChecked();
+    await scale.getByRole("switch").click();
+    await expect(
+      scale.getByLabel("TCP download Throughput (Mbps) lower value"),
+    ).toHaveValue("50");
+    await expect(
+      scale.getByLabel("TCP download Throughput (Mbps) upper value"),
+    ).toHaveValue("500");
+  });
+
+  test("ranges are independent and only changed maps redraw", async ({
+    page,
+  }) => {
+    await gotoTab(page, "heatmaps");
+    await page.getByLabel("TCP download", { exact: true }).click();
+    await page.getByLabel("TCP upload", { exact: true }).click();
+    for (const key of [
+      "signalStrength",
+      "tcpDownload-bitsPerSecond",
+      "tcpUpload-bitsPerSecond",
+    ]) {
+      await expect(
+        page.getByTestId(`heatmap-${key}`).locator("img"),
+      ).toBeVisible({ timeout: 30_000 });
+    }
+    const tcp = page.getByTestId("scale-tcpDownload-bitsPerSecond");
+    const udp = page.getByTestId("scale-tcpUpload-bitsPerSecond");
+    await tcp.getByRole("switch").click();
+    await udp.getByRole("switch").click();
+    // Both controls commit before the debounced survey save.
+    await tcp
+      .getByLabel("TCP download Throughput (Mbps) upper value")
+      .fill("900");
+    await udp.getByLabel("TCP upload Throughput (Mbps) upper value").fill("50");
+    await readSurvey(
+      page,
+      name,
+      (s) =>
+        s.heatmapRanges?.["tcpDownload-bitsPerSecond"]?.max === 900 &&
+        s.heatmapRanges?.["tcpUpload-bitsPerSecond"]?.max === 50,
+    );
+    await expect(page.getByText(/of 24 points used/)).not.toContainText(
+      "rendering",
+    );
+
+    await page.evaluate(() => {
+      let count = 0;
+      Object.defineProperty(window, "heatmapRenderCount", { get: () => count });
+      const original = HTMLCanvasElement.prototype.getContext;
+      Object.defineProperty(HTMLCanvasElement.prototype, "getContext", {
+        value: function (
+          this: HTMLCanvasElement,
+          type: string,
+          ...args: unknown[]
+        ) {
+          if (type === "webgl") count++;
+          return Reflect.apply(original, this, [type, ...args]);
+        },
+      });
+    });
+    const upper = tcp.getByLabel("TCP download Throughput (Mbps) upper value");
+    await upper.fill("");
+    await upper.pressSequentially("500", { delay: 70 });
+    expect(
+      await page.evaluate(() => Reflect.get(window, "heatmapRenderCount")),
+    ).toBe(0);
+    await readSurvey(
+      page,
+      name,
+      (s) => s.heatmapRanges?.["tcpDownload-bitsPerSecond"]?.max === 500,
+    );
+    await expect(page.getByText(/of 24 points used/)).not.toContainText(
+      "rendering",
+    );
+    expect(
+      await page.evaluate(() => Reflect.get(window, "heatmapRenderCount")),
+    ).toBe(1);
+    const survey = await readSurvey(page, name);
+    expect(survey.heatmapRanges["tcpUpload-bitsPerSecond"].max).toBe(50);
   });
 
   test("points table lists, ignores, deletes and exports", async ({ page }) => {
