@@ -1,0 +1,9 @@
+Interface wlp0s20f3
+	ifindex 3
+	wdev 0x1
+	addr 02:11:22:33:44:03
+	ssid Example Network
+	type managed
+	wiphy 0
+	channel 149 (5745 MHz), width: 80 MHz, center1: 5775 MHz
+	txpower 22.00 dBm

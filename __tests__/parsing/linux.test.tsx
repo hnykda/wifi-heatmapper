@@ -1,5 +1,8 @@
-import { expect, test } from "vitest";
-import { parseIwOutput } from "../../src/lib/wifiScanner-linux";
+import { describe, expect, test } from "vitest";
+import {
+  parseIwInterfaces,
+  parseIwOutput,
+} from "../../src/lib/wifiScanner-linux";
 import {
   splitColonDelimited,
   getCandidateSSIDs,
@@ -161,6 +164,91 @@ test("Handling 'nmcli dev wifi list'", () => {
     security: "WPA2 WPA3",
     currentSSID: false,
     strongestSSID: null,
+  });
+});
+
+const iwFixture = (name: string) =>
+  fs.readFileSync(path.join(__dirname, `../data/${name}`), "utf-8");
+
+describe("parseIwInterfaces", () => {
+  test("ignores mon0 and unnamed P2P devices before and after the managed interface", () => {
+    expect(
+      parseIwInterfaces(iwFixture("linux-iw-dev-monitor-first.txt")),
+    ).toStrictEqual(["wlp0s20f3"]);
+  });
+
+  test("preserves managed interface order across physical devices", () => {
+    expect(
+      parseIwInterfaces(iwFixture("linux-iw-dev-multiple-managed.txt")),
+    ).toStrictEqual(["wlan0", "wlp0s20f3"]);
+  });
+
+  test.each([
+    "linux-iw-dev-monitor-only.txt",
+    "linux-iw-dev-non-client.txt",
+    "linux-iw-dev-no-interfaces.txt",
+  ])("returns no candidates for %s", (name) => {
+    expect(parseIwInterfaces(iwFixture(name))).toStrictEqual([]);
+  });
+
+  test("returns no candidates for empty output", () => {
+    expect(parseIwInterfaces("")).toStrictEqual([]);
+  });
+});
+
+describe("parseIwOutput connected-link validation", () => {
+  test("parses sanitized channel 149 host output with decimal frequency", () => {
+    expect(
+      parseIwOutput(
+        iwFixture("linux-iw-connected-link.txt"),
+        iwFixture("linux-iw-connected-info.txt"),
+      ),
+    ).toMatchObject({
+      ssid: "Example Network",
+      bssid: "021122334455",
+      rssi: -59,
+      signalStrength: 68,
+      channel: 149,
+      band: 5,
+      channelWidth: 80,
+      txRate: 432.3,
+    });
+  });
+
+  test.each([
+    "linux-iw-disconnected-link.txt",
+    "linux-iw-malformed-link.txt",
+    "linux-iw-missing-signal-link.txt",
+    "linux-iw-missing-bssid-link.txt",
+  ])("rejects %s even when info contains a valid channel", (name) => {
+    expect(() =>
+      parseIwOutput(iwFixture(name), iwFixture("linux-iw-connected-info.txt")),
+    ).toThrow();
+  });
+
+  test("rejects empty output rather than returning default metadata", () => {
+    expect(() => parseIwOutput("", "")).toThrow();
+    expect(() =>
+      parseIwOutput("", iwFixture("linux-iw-connected-info.txt")),
+    ).toThrow();
+  });
+
+  test("rejects a link with no channel available from either output", () => {
+    expect(() =>
+      parseIwOutput(iwFixture("linux-iw-missing-channel-link.txt"), ""),
+    ).toThrow();
+  });
+
+  test("allows an empty SSID when BSSID, signal and frequency are valid", () => {
+    expect(
+      parseIwOutput(iwFixture("linux-iw-empty-ssid-link.txt"), ""),
+    ).toMatchObject({
+      ssid: "",
+      bssid: "021122334455",
+      rssi: -59,
+      channel: 149,
+      band: 5,
+    });
   });
 });
 

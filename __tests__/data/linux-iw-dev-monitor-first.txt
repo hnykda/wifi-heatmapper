@@ -1,0 +1,21 @@
+phy#0
+	Interface mon0
+		ifindex 8
+		wdev 0x3
+		addr 02:11:22:33:44:01
+		type monitor
+	Unnamed/non-netdev interface
+		wdev 0x2
+		addr 02:11:22:33:44:02
+		type P2P-device
+	Interface wlp0s20f3
+		ifindex 3
+		wdev 0x1
+		addr 02:11:22:33:44:03
+		ssid Example Network
+		type managed
+		channel 149 (5745 MHz), width: 80 MHz, center1: 5775 MHz
+	Unnamed/non-netdev interface
+		wdev 0x4
+		addr 02:11:22:33:44:04
+		type P2P-device

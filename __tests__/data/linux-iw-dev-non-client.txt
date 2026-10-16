@@ -1,0 +1,19 @@
+phy#0
+	Interface mon0
+		ifindex 8
+		type monitor
+	Interface ap0
+		ifindex 9
+		type AP
+	Interface p2p-dev-wlan0
+		ifindex 10
+		type P2P-device
+	Interface p2p-wlan0-0
+		ifindex 11
+		type P2P-client
+	Interface p2p-wlan0-1
+		ifindex 12
+		type P2P-GO
+	Unnamed/non-netdev interface
+		wdev 0x6
+		type managed
