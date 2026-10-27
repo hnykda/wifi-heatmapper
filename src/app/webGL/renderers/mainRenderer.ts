@@ -1,4 +1,4 @@
-import { Gradient } from "@/lib/types";
+import { Gradient, HeatmapRange } from "@/lib/types";
 
 import { createWebGLContext } from "../utils/webGLUtils";
 import { createBackgroundLayerRenderer } from "./layers/imageLayerRenderer";
@@ -30,6 +30,7 @@ const mainRenderer = (
     minOpacity?: number;
     maxOpacity?: number;
     influenceRadius?: number;
+    valueRange: HeatmapRange;
   }) => {
     const {
       width,
@@ -38,6 +39,7 @@ const mainRenderer = (
       maxOpacity = 0.7,
       influenceRadius = 100,
       backgroundImageSrc,
+      valueRange,
     } = props;
 
     canvas.width = width;
@@ -55,6 +57,7 @@ const mainRenderer = (
       influenceRadius,
       minOpacity,
       maxOpacity,
+      valueRange,
     });
   };
 

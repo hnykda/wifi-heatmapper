@@ -207,7 +207,7 @@ export default function SettingsEditor() {
 
       <FormSection
         title="Heat map colours"
-        description="Green is good. The scale runs from 0% (no signal, -100 dBm) to 100% (-40 dBm). Throughput maps reuse the same colours across their own range."
+        description="Green is good. The scale runs from 0% (no signal, -100 dBm) to 100% (-40 dBm). Throughput maps reuse the same colours across their own range, or a fixed one set on the Heat maps tab."
       >
         <FormRow label="Colour stops">
           <GradientEditor

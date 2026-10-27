@@ -360,6 +360,10 @@ Closer points have more influence, while farther ones contribute less.
 This creates a smooth, continuous surface representing signal
 strength or throughput across the floorplan.
 
+Values are scaled to the colour range (0..1) in JavaScript before they go
+to the GPU, and clamped only after interpolation, so measurements outside a
+fixed range still pull on their neighbours.
+
 ## Radius slider in Heatmaps
 
 The heatmap takes a `radius` parameter that

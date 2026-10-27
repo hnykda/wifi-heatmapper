@@ -1,4 +1,4 @@
-import { Gradient } from "@/lib/types";
+import { Gradient, HeatmapRange } from "@/lib/types";
 import { HeatmapPoint } from "../mainRenderer";
 import generateFragmentShader from "../../shaders/heatmapFragmentShader";
 import {
@@ -8,7 +8,6 @@ import {
   getUniformLocations,
 } from "../../utils/webGLUtils";
 import { fullscreenQuadVertexShaderFlipY } from "@/app/webGL/shaders/fullscreenQuadVertexShader";
-import _ from "lodash";
 import { createGradientLUTTexture } from "../textures/createGradientLUTTexture";
 
 export const createHeatmapLayerRenderer = (
@@ -26,21 +25,27 @@ export const createHeatmapLayerRenderer = (
   const uniforms = getUniformLocations(gl, program);
 
   const colorLUT = createGradientLUTTexture(gl, gradient);
-  const maxSignal = _.maxBy(points, "value")?.value ?? 0;
-  const flatData = Float32Array.from(
-    points.flatMap(({ x, y, value }) => [x, y, value]),
-  );
-
   const draw = (options: {
     width: number;
     height: number;
     influenceRadius: number;
     minOpacity: number;
     maxOpacity: number;
+    valueRange: HeatmapRange;
   }) => {
     if (!points.length) return;
 
     const { width, height, influenceRadius, minOpacity, maxOpacity } = options;
+    // Scale to 0..1 here, in double precision, so float32 on the GPU never
+    // sees raw bits/second. Values outside the range are kept unclamped.
+    const { min, max } = options.valueRange;
+    const span = max - min;
+    if (!(span > 0) || !Number.isFinite(span)) {
+      throw new RangeError("Heatmap valueRange must have finite min < max");
+    }
+    const flatData = Float32Array.from(
+      points.flatMap(({ x, y, value }) => [x, y, (value - min) / span]),
+    );
 
     gl.useProgram(program);
     gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
@@ -51,9 +56,8 @@ export const createHeatmapLayerRenderer = (
     gl.uniform1f(uniforms.u_power, 3);
     gl.uniform1f(uniforms.u_minOpacity, minOpacity);
     gl.uniform1f(uniforms.u_maxOpacity, maxOpacity);
-    gl.uniform1f(uniforms.u_maxSignal, maxSignal);
     gl.uniform2f(uniforms.u_resolution, width, height);
-    gl.uniform1i(uniforms.u_pointCount, Math.min(points.length, points.length));
+    gl.uniform1i(uniforms.u_pointCount, points.length);
     gl.uniform3fv(uniforms.u_points, flatData);
 
     gl.activeTexture(gl.TEXTURE0);
