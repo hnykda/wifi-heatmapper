@@ -4,6 +4,18 @@ _This section follows the precepts of [Keep a Changelog](https://keepachangelog.
 
 ## Unreleased
 
+### Changed
+
+* **Windows reads Wi-Fi details from the Native Wifi API** (`wlanapi.dll`,
+  through koffi) instead of parsing `netsh` output, so it works in any
+  display language and stores the real RSSI in dBm. 6 GHz networks are
+  labelled 6 GHz, nearby networks show their security, and the connected
+  adapter is used when there are several. `netsh` remains as a fallback.
+  Based on work by @WayneUON (#85, #79).
+* The stored RSSI of a measurement is now the average of the dBm readings
+  taken during it (on every platform), not a conversion of the average
+  signal percentage.
+
 ### Fixed
 
 * Windows: each Wi-Fi reading no longer waits about 5 seconds before it is

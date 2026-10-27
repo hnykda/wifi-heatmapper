@@ -177,6 +177,22 @@ rmSync(join(outDir, "public", "media"), { recursive: true, force: true });
 for (const name of ["sharp", "@img"]) {
   rmSync(join(outDir, "node_modules", name), { recursive: true, force: true });
 }
+// koffi (src/lib/wlan-api.ts) is only loaded on Windows, but the tracer
+// copies its prebuilt binary for every OS (~25 MB). Keep the one this build
+// runs on; elsewhere drop the package (the app never requires it there).
+const koffiDir = join(outDir, "node_modules", "koffi");
+if (process.platform === "win32") {
+  const builds = join(koffiDir, "build", "koffi");
+  const keep = `win32_${process.arch}`;
+  if (!existsSync(join(builds, keep, "koffi.node"))) {
+    throw new Error(`koffi has no ${keep} binary in ${builds}`);
+  }
+  for (const name of readdirSync(builds)) {
+    if (name !== keep) rmSync(join(builds, name), { recursive: true });
+  }
+} else {
+  rmSync(koffiDir, { recursive: true, force: true });
+}
 cpSync(join(here, "server-entry.mjs"), join(outDir, "server-entry.mjs"));
 console.log(`server            ${mib(outDir)}`);
 

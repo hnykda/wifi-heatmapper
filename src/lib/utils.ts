@@ -42,6 +42,21 @@ export const percentageToRssi = (percentage: number): number => {
  * @param the value (in bits/second) to convert
  * @returns String in format "123.45" (no units)
  */
+/**
+ * averageRssi - the RSSI to store for a measurement: the average of the dBm
+ * readings taken during it. Every backend reports an RSSI (netsh only a
+ * percentage, which it converts). Falls back to converting the average
+ * percentage if any reading has no RSSI (0).
+ * @param rssis - dBm readings
+ * @param strength - the average signal strength (%)
+ */
+export const averageRssi = (rssis: number[], strength: number): number => {
+  if (rssis.length === 0 || rssis.some((r) => !r)) {
+    return percentageToRssi(strength);
+  }
+  return Math.round(rssis.reduce((a, b) => a + b, 0) / rssis.length);
+};
+
 export const toMbps = (value: number): string => {
   return `${(value / 1000000).toFixed(2)}`;
 };

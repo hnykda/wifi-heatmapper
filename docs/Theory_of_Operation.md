@@ -42,7 +42,7 @@ to make the measurements of Wi-Fi strength and throughput.
 | Platform | Commands          | Notes |
 | -------- | ----------------- | ----- |
 | macOS    | `wdutil`, `ioreg`, `system_profiler` | sudo password required for `wdutil` |
-| Windows  | `netsh`           | Part of the system  |
+| Windows  | `wlanapi.dll` (via koffi), `netsh` as a fallback | Part of the system  |
 | Linux    | `iw`, `nmcli` (optional) | `iw` might need to be installed. |
 | All | `iperf3` | See **iperf3** note below |
 
@@ -304,6 +304,10 @@ There does not appear to be a way that a Javascript/Typescript
 program can return the actual values.
 
 ## Localization
+
+Windows reads Wi-Fi details from the Native Wifi API (`wlanapi.dll`, see
+`src/lib/wlan-api.ts`), which does not depend on the display language. The
+`netsh` parsing below is only used if that API cannot be loaded or fails.
 
 The Windows `netsh wlan ...` code is localized for the
 system's language setting.

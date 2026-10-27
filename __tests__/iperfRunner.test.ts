@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { extractIperfResults } from "../src/lib/utils";
+import {
+  averageRssi,
+  extractIperfResults,
+  percentageToRssi,
+} from "../src/lib/utils";
 import { buildIperfCommand, defaultIperfCommands } from "../src/lib/iperfUtils";
 import fs from "fs";
 import path from "path";
@@ -165,5 +169,16 @@ describe("buildIperfCommand", () => {
       5,
     );
     expect(result).toBe("iperf3 -c 10.0.0.5 -t 5 -u -b 100M -J");
+  });
+});
+
+describe("averageRssi", () => {
+  it("averages the real dBm readings", () => {
+    expect(averageRssi([-50, -55, -61], 70)).toBe(-55);
+  });
+
+  it("converts the average percentage if a reading has no RSSI", () => {
+    expect(averageRssi([-50, 0, -60], 50)).toBe(percentageToRssi(50));
+    expect(averageRssi([], 50)).toBe(percentageToRssi(50));
   });
 });
