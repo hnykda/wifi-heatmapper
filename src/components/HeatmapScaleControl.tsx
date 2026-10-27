@@ -113,7 +113,7 @@ export function HeatmapScaleControl({
         <p className="text-xs text-muted-foreground">
           {property === "signalStrength"
             ? "Default: 0–100%."
-            : "Automatic: 0 to this map’s maximum."}
+            : "Automatic: 0 to this map's maximum."}
         </p>
       )}
     </div>

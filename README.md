@@ -95,10 +95,7 @@ The commands can be changed under Settings if you need other options.
 Use **Colour scales** on the **Heat maps** tab to set fixed lower and upper
 values independently for each map (for example, TCP download 0–500 Mbps and
 UDP upload jitter 0–20 ms). Apply the same ranges in your before and after
-surveys. First enabling a fixed scale freezes that map's current automatic
-range; switching it off and on remembers your saved bounds, even after a
-reload. Valid edits apply automatically after 300 ms. Ranges are saved with
-each survey and included in downloaded maps. See the
+surveys. Ranges are saved with each survey and used in downloaded maps. See the
 [UI guide](docs/User_Interface.md#heat-maps) for units and scaling details.
 
 ### Try it without any hardware

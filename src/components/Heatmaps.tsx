@@ -303,7 +303,6 @@ export function Heatmaps() {
     [
       settings.dimensions,
       settings.gradient,
-
       settings.maxOpacity,
       settings.minOpacity,
       settings.floorplanImagePath,

@@ -360,13 +360,9 @@ Closer points have more influence, while farther ones contribute less.
 This creates a smooth, continuous surface representing signal
 strength or throughput across the floorplan.
 
-Colour-scale bounds are applied after interpolation, so measurements outside
-those bounds still contribute to the surface. The renderer checks fragment
-precision and the representability of the selected range before using the
-GPU. When those checks fail, it calculates IDW on the CPU and composites the
-result as a WebGL texture with the same gradient and opacity. This fallback
-can be slower on large floor plans, but avoids silently flattening colours
-on lower-precision hardware or with extreme outliers.
+Values are scaled to the colour range (0..1) in JavaScript before they go
+to the GPU, and clamped only after interpolation, so measurements outside a
+fixed range still pull on their neighbours.
 
 ## Radius slider in Heatmaps
 

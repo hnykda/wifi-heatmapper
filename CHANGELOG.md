@@ -6,12 +6,9 @@ _This section follows the precepts of [Keep a Changelog](https://keepachangelog.
 
 ### Added
 
-* **Fixed heat map scales** with independent per-map lower and upper bounds,
-  saved with each survey, for comparing signal strength, throughput, jitter
-  and packet measurements across surveys. First enabling freezes the current
-  automatic range; switching off and on remembers saved bounds across reloads.
-  Valid edits apply automatically after 300 ms. Downloaded maps use the same
-  bounds. Malformed saved ranges fall back to automatic scaling.
+* **Fixed heat map scales**: set lower and upper bounds per map, saved with
+  the survey, to compare signal, throughput, jitter and packet maps across
+  surveys. Downloaded maps use the same bounds.
 * **Desktop apps** for macOS (Apple silicon and Intel), Windows and Linux
   (x64 and ARM64), built by GitHub Actions for every release. No Node.js or
   terminal needed; data lives in the system's app-data folder. Early builds:
@@ -25,10 +22,9 @@ _This section follows the precepts of [Keep a Changelog](https://keepachangelog.
 
 ### Fixed
 
-* Signal heat map colours now use the same 0–100% range as the default legend
-  instead of scaling to the strongest measured point.
-* Heat maps fall back to CPU interpolation when GPU precision cannot safely
-  represent the selected range, preserving outlier influence and colours.
+* Signal heat maps now always colour 0–100%, matching the legend, instead
+  of stretching to the strongest point measured. Surveys with a weak best
+  point look less green than before.
 * The About dialog showed the wrong macOS version on macOS 27 ("28"); it now
   asks `sw_vers`.
 * Settings shows where a survey is really saved (the app-data folder in the

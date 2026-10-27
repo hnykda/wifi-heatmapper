@@ -51,7 +51,7 @@ const mainRenderer = (
       await bgRenderer.draw(backgroundImageSrc);
     }
 
-    await heatmapRenderer.draw({
+    heatmapRenderer.draw({
       width,
       height,
       influenceRadius,
