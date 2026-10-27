@@ -43,7 +43,7 @@ to make the measurements of Wi-Fi strength and throughput.
 | -------- | ----------------- | ----- |
 | macOS    | `wdutil`, `ioreg`, `system_profiler` | sudo password required for `wdutil` |
 | Windows  | `netsh`           | Part of the system  |
-| Linux    | `nmcli`, `iw`     | `iw` or `nmcli` might need to be installed. |
+| Linux    | `iw`, `nmcli` (optional) | `iw` might need to be installed. |
 | All | `iperf3` | See **iperf3** note below |
 
 **iperf3** must be installed locally to make TCP or UDP measurements.

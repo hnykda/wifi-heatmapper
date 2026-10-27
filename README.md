@@ -66,7 +66,8 @@ Open [http://localhost:3000](http://localhost:3000) and:
 4. **Survey points.** Check, switch off or delete individual measurements,
    or export everything as CSV.
 
-Linux needs `iw` and `nmcli` installed and on `PATH`.
+Linux needs `iw` installed and on `PATH`; `nmcli` (NetworkManager) is optional
+and only lists nearby networks.
 
 On macOS you can skip the sudo password: run `npm run build:macos-helper` once
 (needs the Xcode command line tools) and restart `npm run dev`. The Wi-Fi

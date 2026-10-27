@@ -9,6 +9,12 @@ _This section follows the precepts of [Keep a Changelog](https://keepachangelog.
 * Windows: each Wi-Fi reading no longer waits about 5 seconds before it is
   read on English, German, French, Spanish and Italian systems. The app was
   waiting for a "State" line that only the Chinese table recognised.
+* The iperf3 server check no longer needs `nc` (Linux and macOS) or
+  PowerShell (Windows), so a missing `nc` no longer shows up as "Cannot
+  connect to iperf3 server" (#82).
+* Linux no longer requires NetworkManager: `nmcli` is optional and only
+  lists nearby networks, so systems using iwd or systemd-networkd can
+  measure (#82).
 
 ## Version 0.7.0 - 2026-10-27
 
