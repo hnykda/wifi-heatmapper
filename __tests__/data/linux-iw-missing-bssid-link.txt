@@ -1,0 +1,4 @@
+	SSID: Example Network
+	freq: 5745.0
+	signal: -59 dBm
+	tx bitrate: 432.3 MBit/s

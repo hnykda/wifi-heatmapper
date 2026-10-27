@@ -44,6 +44,11 @@ and labelled with the percentage.
 Click a dot to see its details, switch it off (it is then ignored by the heat
 maps) or delete it.
 
+On Linux, measurements use the first connected managed Wi-Fi interface,
+ignoring monitor, AP and P2P devices. If the link is disconnected or its
+signal information is incomplete, the measurement reports an error instead
+of saving an empty reading.
+
 In mock mode, "Add sample points" fills the plan with synthetic points.
 
 ## Heat maps

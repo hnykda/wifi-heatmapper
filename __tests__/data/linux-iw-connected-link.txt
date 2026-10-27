@@ -1,0 +1,7 @@
+Connected to 02:11:22:33:44:55 (on wlp0s20f3)
+	SSID: Example Network
+	freq: 5745.0
+	RX: 123456 bytes (789 packets)
+	TX: 654321 bytes (987 packets)
+	signal: -59 dBm
+	tx bitrate: 432.3 MBit/s VHT-MCS 9 80MHz short GI VHT-NSS 1

@@ -1,0 +1,6 @@
+phy#0
+	Interface mon0
+		ifindex 8
+		wdev 0x3
+		addr 02:11:22:33:44:01
+		type monitor

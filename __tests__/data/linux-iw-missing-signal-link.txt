@@ -1,0 +1,4 @@
+Connected to 02:11:22:33:44:55 (on wlp0s20f3)
+	SSID: Example Network
+	freq: 5745.0
+	tx bitrate: 432.3 MBit/s
