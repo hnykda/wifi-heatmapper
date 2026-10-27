@@ -2,13 +2,28 @@
 
 _This section follows the precepts of [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) so that future readers can understand the state and evolution of the project._
 
-## Unreleased
+## Version 0.7.0 - 2026-10-27
 
 ### Added
 
 * **Fixed heat map scales**: set lower and upper bounds per map, saved with
   the survey, to compare signal, throughput, jitter and packet maps across
-  surveys. Downloaded maps use the same bounds.
+  surveys. Downloaded maps use the same bounds. Thanks @richardbarlow (#97).
+
+### Fixed
+
+* Signal heat maps now always colour 0–100%, matching the legend, instead
+  of stretching to the strongest point measured. Surveys with a weak best
+  point look less green than before.
+* Linux measurements now select a connected managed Wi-Fi interface instead
+  of the first interface, ignoring monitor, AP and P2P devices. Disconnected
+  or incomplete link readings report an error instead of saving empty AP
+  details and a false zero-strength reading. Thanks @richardbarlow (#98).
+
+## Version 0.6.0 - 2026-10-04
+
+### Added
+
 * **Desktop apps** for macOS (Apple silicon and Intel), Windows and Linux
   (x64 and ARM64), built by GitHub Actions for every release. No Node.js or
   terminal needed; data lives in the system's app-data folder. Early builds:
@@ -22,13 +37,6 @@ _This section follows the precepts of [Keep a Changelog](https://keepachangelog.
 
 ### Fixed
 
-* Signal heat maps now always colour 0–100%, matching the legend, instead
-  of stretching to the strongest point measured. Surveys with a weak best
-  point look less green than before.
-* Linux measurements now select a connected managed Wi-Fi interface instead
-  of the first interface, ignoring monitor, AP and P2P devices. Disconnected
-  or incomplete link readings report an error instead of saving empty AP
-  details and a false zero-strength reading.
 * The About dialog showed the wrong macOS version on macOS 27 ("28"); it now
   asks `sw_vers`.
 * Settings shows where a survey is really saved (the app-data folder in the
