@@ -11,6 +11,7 @@ import {
   percentageToRssi,
   bySignalStrength,
   normalizeMacAddress,
+  isValidMacAddress,
   rssiToPercentage,
 } from "./utils";
 import isDocker from "is-docker";
@@ -19,7 +20,6 @@ import { getLogger } from "./logger";
 const logger = getLogger("wifi-Linux");
 
 export class LinuxWifiActions implements WifiActions {
-  nameOfWifi: string = ""; // OS-specific name of the current wifi interface
   currentSSIDName: string = ""; // name of the current SSID
   strongestSSID: WifiResults | null = null; // strongest SSID if not currentSSID
 
@@ -144,15 +144,6 @@ export class LinuxWifiActions implements WifiActions {
   }
 
   /**
-   * Find a connected managed interface, ignoring monitor/AP/P2P devices.
-   */
-  async findWifiInterface(password = ""): Promise<string> {
-    const { interfaceId } = await readConnectedWifiLink(password);
-    this.nameOfWifi = interfaceId;
-    return this.nameOfWifi;
-  }
-
-  /**
    * scanWifi() - return an array of available wifi SSIDs plus a reason string
    * These are sorted by the strongest RSSI
    */
@@ -213,7 +204,6 @@ export class LinuxWifiActions implements WifiActions {
         settings.sudoerPassword,
       );
       const infoOutput = await iwDevInfo(interfaceId);
-      this.nameOfWifi = interfaceId;
 
       logger.trace("IW output:", linkOutput);
       logger.trace("IW info:", infoOutput);
@@ -221,7 +211,7 @@ export class LinuxWifiActions implements WifiActions {
       logger.trace("Final WiFi data:", parsed);
       response.SSIDs.push(parsed);
     } catch (err) {
-      response.reason = String(err);
+      response.reason = err instanceof Error ? err.message : String(err);
     }
     return response;
   }
@@ -394,7 +384,7 @@ export function parseIwOutput(
     }
   });
   if (
-    !/^[\da-f]{12}$/i.test(networkInfo.bssid) ||
+    !isValidMacAddress(networkInfo.bssid) ||
     !hasSignal ||
     networkInfo.channel <= 0
   ) {
