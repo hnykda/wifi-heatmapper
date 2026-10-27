@@ -11,6 +11,7 @@ import {
   percentageToRssi,
   bySignalStrength,
   normalizeMacAddress,
+  isValidMacAddress,
   rssiToPercentage,
 } from "./utils";
 import isDocker from "is-docker";
@@ -19,7 +20,6 @@ import { getLogger } from "./logger";
 const logger = getLogger("wifi-Linux");
 
 export class LinuxWifiActions implements WifiActions {
-  nameOfWifi: string = ""; // OS-specific name of the current wifi interface
   currentSSIDName: string = ""; // name of the current SSID
   strongestSSID: WifiResults | null = null; // strongest SSID if not currentSSID
 
@@ -95,9 +95,11 @@ export class LinuxWifiActions implements WifiActions {
     // and most desktop distributions let a normal user run it.
     if (!reason && !isDocker() && !isPodman()) {
       if (!settings.sudoerPassword || settings.sudoerPassword == "") {
-        if (!(await iwLinkWorksWithoutSudo())) {
-          reason =
-            "Please set sudo password. This computer needs it to read the Wi-Fi signal (iw).";
+        try {
+          await readConnectedWifiLink("");
+          logger.info("  ✓ iw reads the connected link without sudo");
+        } catch (error) {
+          reason = error instanceof Error ? error.message : String(error);
         }
       }
 
@@ -139,21 +141,6 @@ export class LinuxWifiActions implements WifiActions {
     }
     response.reason = reason;
     return response;
-  }
-
-  /**
-   * findWifiInterface() - find the name of the wifi interface
-   * save in a class variable
-   * @returns name of (the first) wifi interface (string)
-   */
-  async findWifiInterface(): Promise<string> {
-    logger.debug("Inferring WLAN interface ID on Linux");
-
-    const { stdout } = await execAsync(
-      "iw dev | awk '$1==\"Interface\"{print $2}' | head -n1",
-    );
-    this.nameOfWifi = stdout.trim();
-    return this.nameOfWifi;
   }
 
   /**
@@ -213,13 +200,10 @@ export class LinuxWifiActions implements WifiActions {
       reason: "",
     };
     try {
-      let wlanInterface: string = "";
-      wlanInterface = await inferWifiDeviceIdOnLinux();
-
-      const [linkOutput, infoOutput] = await Promise.all([
-        iwDevLink(wlanInterface, settings.sudoerPassword),
-        iwDevInfo(wlanInterface),
-      ]);
+      const { interfaceId, linkOutput } = await readConnectedWifiLink(
+        settings.sudoerPassword,
+      );
+      const infoOutput = await iwDevInfo(interfaceId);
 
       logger.trace("IW output:", linkOutput);
       logger.trace("IW info:", infoOutput);
@@ -227,7 +211,7 @@ export class LinuxWifiActions implements WifiActions {
       logger.trace("Final WiFi data:", parsed);
       response.SSIDs.push(parsed);
     } catch (err) {
-      response.reason = String(err);
+      response.reason = err instanceof Error ? err.message : String(err);
     }
     return response;
   }
@@ -236,12 +220,53 @@ export class LinuxWifiActions implements WifiActions {
  * END OF LinuxOSWifiActions - the remainder is a set of helper functions
  */
 
-async function inferWifiDeviceIdOnLinux(): Promise<string> {
-  logger.debug("Inferring WLAN interface ID on Linux");
-  const { stdout } = await execAsync(
-    "iw dev | awk '$1==\"Interface\"{print $2}' | head -n1",
+/** Parse iw's interface blocks, not their enumeration order or SSID fields. */
+export function parseIwInterfaces(output: string): string[] {
+  const interfaces: string[] = [];
+  let name = "";
+  for (const line of output.split("\n")) {
+    const trimmed = line.trim();
+    const match = trimmed.match(/^Interface\s+(\S+)$/);
+    if (match) name = match[1];
+    else if (trimmed === "type managed" && name) interfaces.push(name);
+    else if (trimmed.startsWith("phy#") || trimmed.startsWith("Unnamed/"))
+      name = "";
+  }
+  return interfaces;
+}
+
+function hasIwConnection(output: string): boolean {
+  return /^\s*Connected to\s+(?:[\da-f]{2}:){5}[\da-f]{2}\b/im.test(output);
+}
+
+async function readConnectedWifiLink(
+  password: string,
+): Promise<{ interfaceId: string; linkOutput: string }> {
+  const { stdout } = await execAsync("iw dev");
+  const interfaces = parseIwInterfaces(stdout);
+  if (!interfaces.length)
+    throw new Error(
+      "No managed Wi-Fi interface found. Connect a Wi-Fi adapter and try again.",
+    );
+  let unreadable = false;
+  for (const interfaceId of interfaces) {
+    let linkOutput: string;
+    try {
+      linkOutput = await iwDevLink(interfaceId, password);
+    } catch {
+      unreadable = true;
+      continue;
+    }
+    if (hasIwConnection(linkOutput)) return { interfaceId, linkOutput };
+  }
+  if (unreadable) {
+    throw new Error(
+      "Cannot read Wi-Fi link information. Check Wi-Fi permissions or set the sudo password, then try again.",
+    );
+  }
+  throw new Error(
+    "No connected Wi-Fi interface found. Connect to a Wi-Fi network and try again.",
   );
-  return stdout.trim();
 }
 
 /**
@@ -278,19 +303,6 @@ async function iwDevLink(interfaceId: string, pw: string): Promise<string> {
   throw lastError;
 }
 
-/** Can this user read the current link without sudo? */
-async function iwLinkWorksWithoutSudo(): Promise<boolean> {
-  try {
-    const wlanInterface = await inferWifiDeviceIdOnLinux();
-    if (!wlanInterface) return false;
-    await execAsync(iwLinkCommands(wlanInterface, "", false)[0]);
-    logger.info("  ✓ iw reads the link without sudo");
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 async function iwDevInfo(interfaceId: string): Promise<string> {
   const command = `iw dev ${interfaceId} info`;
   const { stdout } = await execAsync(command);
@@ -307,7 +319,13 @@ export function parseIwOutput(
   linkOutput: string,
   infoOutput: string,
 ): WifiResults {
+  if (!hasIwConnection(linkOutput)) {
+    throw new Error(
+      "Wi-Fi is not connected. Connect to a Wi-Fi network and try again.",
+    );
+  }
   const networkInfo = getDefaultWifiResults();
+  let hasSignal = false;
   const linkLines = linkOutput.split("\n");
   linkLines.forEach((line) => {
     const trimmedLine = line.trim();
@@ -321,6 +339,7 @@ export function parseIwOutput(
       const signalMatch = trimmedLine.match(/signal:\s*(-?\d+)\s*dBm/);
       if (signalMatch) {
         networkInfo.rssi = parseInt(signalMatch[1]);
+        hasSignal = true;
       }
     } else if (trimmedLine.startsWith("freq:")) {
       const freqMatch = trimmedLine.match(/freq:\s*(\d+)/);
@@ -364,6 +383,13 @@ export function parseIwOutput(
       }
     }
   });
+  if (
+    !isValidMacAddress(networkInfo.bssid) ||
+    !hasSignal ||
+    networkInfo.channel <= 0
+  ) {
+    throw new Error("Incomplete Wi-Fi link information. Try measuring again.");
+  }
   // Always set signalStrength, too
   networkInfo.signalStrength = rssiToPercentage(networkInfo.rssi);
 

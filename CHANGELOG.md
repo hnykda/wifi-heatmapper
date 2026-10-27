@@ -19,6 +19,10 @@ _This section follows the precepts of [Keep a Changelog](https://keepachangelog.
 
 ### Fixed
 
+* Linux measurements now select a connected managed Wi-Fi interface instead
+  of the first interface, ignoring monitor, AP and P2P devices. Disconnected
+  or incomplete link readings report an error instead of saving empty AP
+  details and a false zero-strength reading.
 * The About dialog showed the wrong macOS version on macOS 27 ("28"); it now
   asks `sw_vers`.
 * Settings shows where a survey is really saved (the app-data folder in the
