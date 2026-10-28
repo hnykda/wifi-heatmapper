@@ -9,7 +9,7 @@ import {
 import { execAsync, delay } from "./server-utils";
 import { getCancelFlag, sendSSEMessage } from "./server-globals";
 import {
-  percentageToRssi,
+  averageRssi,
   toMbps,
   getDefaultIperfResults,
   extractIperfResults,
@@ -146,6 +146,7 @@ export async function runSurveyTests(
     const cmds = settings.iperfCommands ?? defaultIperfCommands;
     const newIperfData = getDefaultIperfResults();
     const wifiStrengths: number[] = []; // percentages
+    const wifiRssis: number[] = []; // dBm, as the OS reports it
 
     displayStates.header =
       !ssidName || ssidName.includes("redacted")
@@ -158,6 +159,7 @@ export async function runSurveyTests(
         throw new Error(resp.reason || "No Wi-Fi information returned.");
       }
       wifiStrengths.push(resp.SSIDs[0].signalStrength);
+      wifiRssis.push(resp.SSIDs[0].rssi);
       displayStates.strength = arrayAverage(wifiStrengths).toString();
       checkForCancel();
       sendSSEMessage(getUpdatedMessage());
@@ -237,7 +239,7 @@ export async function runSurveyTests(
     const newWifiData: WifiResults = {
       ...wifiDataBefore,
       signalStrength: strength, // use the average signalStrength
-      rssi: percentageToRssi(strength), // set corresponding RSSI
+      rssi: averageRssi(wifiRssis, strength),
     };
     logger.debug(`Measurement took ${Date.now() - startTime} ms`);
     return { iperfData: newIperfData, wifiData: newWifiData, status: "" };

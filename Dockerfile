@@ -23,7 +23,8 @@ WORKDIR /app
 ENV NEXT_OUTPUT_STANDALONE=1
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-RUN npm run build
+# koffi is for the Windows WLAN API only; drop its native builds (~25 MB)
+RUN npm run build && rm -rf .next/standalone/node_modules/koffi
 
 FROM node:22-alpine AS runner
 WORKDIR /app

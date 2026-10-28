@@ -11,6 +11,10 @@ const nextConfig = {
   // lockfile (git worktrees, monorepo checkouts). Otherwise the standalone
   // server.js lands in a nested folder instead of .next/standalone/server.js.
   outputFileTracingRoot: dirname(fileURLToPath(import.meta.url)),
+  // koffi (Windows WLAN API, src/lib/wlan-api.ts) is a native module: load it
+  // from node_modules at runtime instead of bundling it, so the standalone
+  // tracer copies it (and its prebuilt .node binaries) into the output.
+  serverExternalPackages: ["koffi"],
   // The e2e scripts build into .next-e2e so they can run next to `npm run dev`.
   distDir: process.env.NEXT_DIST_DIR || ".next",
 };

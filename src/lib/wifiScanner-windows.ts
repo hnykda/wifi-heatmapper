@@ -15,11 +15,20 @@ import {
   bySignalStrength,
 } from "./utils";
 import { initLocalization } from "./localization";
+import * as wlanApi from "./wlan-api";
+import { ERROR_ACCESS_DENIED } from "./wlan-api-parse";
+import { getLogger } from "./logger";
 // import { getLogger } from "./logger";
 // const logger = getLogger("wifi-Windows");
 
 const localizer = await initLocalization();
-export class WindowsWifiActions implements WifiActions {
+
+/**
+ * Reads Wi-Fi details by parsing (localized) `netsh` output. This is now
+ * the fallback: WindowsWifiActions (end of this file) uses the WLAN API
+ * and only calls these methods when that fails.
+ */
+export class NetshWifiActions implements WifiActions {
   nameOfWifi: string = ""; // OS-specific name of the current wifi interface
   currentSSIDName: string = ""; // name of the current SSID
   strongestSSID: WifiResults | null = null; // strongest SSID if not currentSSID
@@ -505,4 +514,71 @@ export function findProfileFromSSID(
     }
   }
   return null;
+}
+
+/**
+ * wlanApiFailureMessage - what to tell the user when a WLAN API call fails,
+ * or null if the error should send us to the netsh fallback instead.
+ *
+ * Windows 11 24H2+ answers ERROR_ACCESS_DENIED for the connection and the
+ * network lists until the user lets desktop apps use their location, the
+ * same rule that makes netsh print its location notice. netsh would fail
+ * too, so say what to do instead of falling back.
+ */
+export function wlanApiFailureMessage(err: unknown): string | null {
+  if (err instanceof wlanApi.WlanApiError && err.code === ERROR_ACCESS_DENIED) {
+    return LOCATION_PERMISSION_MESSAGE;
+  }
+  return null;
+}
+
+const NOT_CONNECTED_MESSAGE =
+  "Wi-Fi is not connected. Connect to a Wi-Fi network and try again.";
+
+/**
+ * WindowsWifiActions - reads Wi-Fi details from wlanapi.dll (see wlan-api.ts),
+ * so nothing depends on the display language. If koffi cannot be loaded or
+ * the API fails for another reason, it falls back to the netsh methods.
+ */
+export class WindowsWifiActions extends NetshWifiActions {
+  private logger = getLogger("wifi-Windows");
+  private warned = new Set<string>();
+
+  /** Log the first failure of each kind, not one per measurement */
+  private fallback(what: string, err: unknown) {
+    const key = `${what}: ${err}`;
+    if (this.warned.has(key)) return;
+    this.warned.add(key);
+    this.logger.warn(`WLAN API ${what} failed, using netsh instead:`, err);
+  }
+
+  async scanWifi(settings: PartialHeatmapSettings): Promise<WifiScanResults> {
+    try {
+      const SSIDs = await wlanApi.scanNetworks();
+      return { SSIDs, reason: "" };
+    } catch (err) {
+      const message = wlanApiFailureMessage(err);
+      if (message) return { SSIDs: [], reason: message };
+      this.fallback("scan", err);
+      return super.scanWifi(settings);
+    }
+  }
+
+  async getWifi(settings: PartialHeatmapSettings): Promise<WifiScanResults> {
+    try {
+      // Right after (re)association the connection can briefly be missing:
+      // give it a few seconds, as the netsh path does
+      for (let attempt = 0; attempt < 10; attempt++) {
+        const current = await wlanApi.getCurrentConnection();
+        if (current) return { SSIDs: [current], reason: "" };
+        await delay(300);
+      }
+      return { SSIDs: [], reason: NOT_CONNECTED_MESSAGE };
+    } catch (err) {
+      const message = wlanApiFailureMessage(err);
+      if (message) return { SSIDs: [], reason: message };
+      this.fallback("connection query", err);
+      return super.getWifi(settings);
+    }
+  }
 }
