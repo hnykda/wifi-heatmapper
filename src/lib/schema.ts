@@ -32,6 +32,7 @@ import { defaultIperfCommands } from "./iperfUtils";
 import { defaultGradient, emptyWifiResults } from "./survey-defaults";
 import { mediaUrlFor } from "./media-url";
 import { migrateMeasurementMode } from "./measurement-mode";
+import { COPY_PART_NAMES, type CopyPart } from "./survey-ops";
 import type { Gradient, HeatmapKey, HeatmapRanges } from "./types";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -282,6 +283,9 @@ export const surveyFileMetaSchema = z.object({
   platform: z.string(),
   osName: z.string(),
   savedAt: z.string(), // ISO timestamp
+  // Only on the save that created the survey: the survey whose speed
+  // settings it started from (survey-store.ts)
+  speedSettingsFrom: z.string().optional().catch(undefined),
 });
 
 /* ---------- the survey file ---------- */
@@ -422,6 +426,35 @@ export const deletePointsSchema = z.strictObject({
  */
 export const surveyImportSchema = z.looseObject({
   floorplanImageName: z.string().min(1),
+});
+
+/**
+ * POST /api/settings/copy?from=&to=&parts= (the query string, as an object).
+ * parts is a comma-separated list of COPY_PARTS names.
+ */
+export const copySettingsQuerySchema = z.strictObject({
+  from: z.string().trim().min(1),
+  to: z.string().trim().min(1),
+  parts: z
+    .string()
+    .transform((s) => [
+      ...new Set(
+        s
+          .split(",")
+          .map((p) => p.trim())
+          .filter(Boolean),
+      ),
+    ])
+    .pipe(
+      z
+        .array(
+          z.enum(COPY_PART_NAMES as [CopyPart, ...CopyPart[]], {
+            error: (issue) =>
+              `"${String(issue.input)}" is not one of ${COPY_PART_NAMES.join(", ")}`,
+          }),
+        )
+        .min(1, `name at least one of ${COPY_PART_NAMES.join(", ")}`),
+    ),
 });
 
 /** POST /api/start-task?action=start */

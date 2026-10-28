@@ -2,6 +2,7 @@ import { test, expect, Page } from "@playwright/test";
 import {
   uploadFloorplan,
   gotoTab,
+  measureAt,
   readSurvey,
   useSpeedServer,
 } from "./helpers";
@@ -116,4 +117,20 @@ test("a point saved without speed can be reported from the panel", async ({
   expect(new URL(href).searchParams.get("title")).toMatch(
     /^Problem: Saved without speed:/,
   );
+});
+
+test("the help button steps aside while the measurement panel is open", async ({
+  page,
+}) => {
+  await uploadFloorplan(page);
+  await expect(page.getByTestId("help-button")).toBeVisible();
+  await gotoTab(page, "floorplan");
+  await measureAt(page, 0.4, 0.4);
+  // the panel sits in the same corner and would cover it
+  const panel = page.getByTestId("measurement-panel");
+  await expect(panel).toBeVisible();
+  await expect(page.getByTestId("help-button")).toBeHidden();
+  await panel.getByRole("button", { name: "Dismiss" }).click();
+  await expect(panel).toHaveCount(0);
+  await expect(page.getByTestId("help-button")).toBeVisible();
 });

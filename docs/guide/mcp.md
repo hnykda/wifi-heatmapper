@@ -36,6 +36,9 @@ AI agent  --stdio-->  MCP server  --HTTP, this computer only-->  wifi-heatmapper
 - change a short list of settings: iperf3 server, test duration, iperf3
   commands, access point names, heat spot radius, opacity and fixed colour
   scales;
+- copy settings from one survey to another (speed settings, access point
+  names, heat map look), for example to set up a second floor plan like the
+  first;
 - prepare a bug report when something looks like a bug in the app rather
   than weak Wi-Fi: it gives you a summary and a prefilled GitHub issue link
   to open yourself. It never posts anything.
@@ -52,7 +55,8 @@ AI agent  --stdio-->  MCP server  --HTTP, this computer only-->  wifi-heatmapper
   set by it. Type it in the app's Settings tab as usual.
 - **Work when the app isn't running.** Start the app first.
 - **Change anything else**, such as survey points, floor plans or the
-  colour gradient, or delete anything.
+  colour gradient (other than copying one from another survey), or delete
+  anything.
 
 ## Setup
 
@@ -190,6 +194,7 @@ pixels, with the origin at the top left. Throughput is in Mbps.
 | `get_survey(name)` | All points and a summary. Optional thresholds: `weakSignalPercent` (default 50, about -70 dBm), `deadSignalPercent` (25, about -85 dBm), `slowDownloadMbps` (25). `includePoints: false` returns the summary only. |
 | `get_settings(name)` | The settings `update_settings` can change. |
 | `update_settings(name, ...)` | Change some of them and save the survey. |
+| `copy_settings(from, to, parts?)` | Copy settings from one survey to another and save it. |
 | `check_setup(name?)` | What the app can tell without measuring, plus problems and notes. |
 | `get_heatmap_grid(name, metric, cells)` | A numeric heat map. |
 | `report_problem(name?, problem?, includeNetwork?)` | A bug report for the developers and a prefilled GitHub issue link. Posts nothing. |
@@ -293,6 +298,31 @@ the app's Settings tab yourself.
 The app saves each change on its own (one setting, one point), so a change
 the agent makes while the app is open on that floor plan is kept. The page
 shows it after its next save, or when you reload it.
+
+### copy_settings
+
+Copies settings from the survey `from` into the survey `to`, as
+**Copy settings from…** does in the app. `parts` is a list of:
+
+| Part | What is copied |
+| --- | --- |
+| `speed` (the default) | signal only or signal and speed, the iperf3 server, test duration and iperf3 commands |
+| `apNames` | access point names |
+| `heatmapLook` | heat spot radius, opacity, blur, colour gradient and fixed colour scales |
+
+Points, the floor plan, its size and the sudo password are never copied. If
+`to` has no survey yet, it is created. The answer says which settings
+changed.
+
+```
+> copy_settings {"from":"Ground floor.png","to":"First floor.png","parts":["speed","apNames"]}
+{"copied":["speed","apNames"],"created":false,"changed":["iperfServerAdrs","apMapping"], ...}
+```
+
+The same rule as for `update_settings` applies to the speed settings: if the
+source's server or iperf3 commands are not plain values (typed in the app),
+the agent can't copy them and nothing is saved. Copy them in the app
+instead, or leave out `speed`.
 
 ### check_setup
 

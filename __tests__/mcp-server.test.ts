@@ -14,8 +14,13 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { getDefaultIperfResults, getDefaultWifiResults } from "@/lib/utils";
 import { defaultIperfCommands } from "@/lib/iperfUtils";
 import type { IperfResults, SettingsPatch } from "@/lib/types";
-import { parseSurveyFile, settingsPatchSchema } from "@/lib/schema";
-import { applySettingsPatch } from "@/lib/survey-ops";
+import {
+  copySettingsQuerySchema,
+  parseSurveyFile,
+  settingsPatchSchema,
+} from "@/lib/schema";
+import { applySettingsPatch, copySettings } from "@/lib/survey-ops";
+import { defaultSurvey } from "@/lib/survey-defaults";
 
 const work = mkdtempSync(join(tmpdir(), "wifi-heatmapper-mcp-test-"));
 const bundle = join(work, "mcp-server.mjs");
@@ -52,6 +57,7 @@ function surveyPoint(
 
 let files: Record<string, Record<string, unknown>>;
 const patches: SettingsPatch[] = [];
+const copies: URLSearchParams[] = [];
 const diagnosticsQueries: URLSearchParams[] = [];
 let diagnosticsLog = "[2026-10-28T09:00:00.000Z] [root:INFO] started";
 
@@ -166,6 +172,26 @@ beforeAll(async () => {
       files[name] = saved;
       return send(200, saved);
     }
+    if (u.pathname === "/api/settings/copy" && req.method === "POST") {
+      // what the real route does: strict query, source read, target saved
+      copies.push(u.searchParams);
+      const q = copySettingsQuerySchema.safeParse(
+        Object.fromEntries(u.searchParams),
+      );
+      if (!q.success) return send(400, { error: "Invalid request" });
+      const { from, to, parts } = q.data;
+      if (!files[from]) return send(404, { error: "There is no survey" });
+      const target = files[to]
+        ? parseSurveyFile(files[to], to)
+        : defaultSurvey(to);
+      const saved = copySettings(
+        target,
+        parseSurveyFile(files[from], from),
+        parts,
+      );
+      files[to] = saved;
+      return send(200, saved);
+    }
     send(404, { error: "not here" });
   });
   await new Promise<void>((ok) => app.listen(0, "127.0.0.1", ok));
@@ -209,6 +235,7 @@ describe("MCP server over stdio against a fake app", () => {
     const tools = (await client.listTools()).tools.map((t) => t.name).sort();
     expect(tools).toEqual([
       "check_setup",
+      "copy_settings",
       "get_heatmap_grid",
       "get_settings",
       "get_survey",
@@ -415,6 +442,87 @@ describe("MCP server over stdio against a fake app", () => {
     expect(refused.isError).toBe(true);
     expect(JSON.stringify(refused.content)).toMatch(/Nothing was changed/);
     expect(patches.length).toBe(count);
+  });
+
+  it("copy_settings copies speed settings by default, and other parts when asked", async () => {
+    const r = json(
+      await client.callTool({
+        name: "copy_settings",
+        arguments: { from: "Home.png", to: "Empty.png" },
+      }),
+    );
+    expect(copies.at(-1)?.get("parts")).toBe("speed");
+    expect(r).toMatchObject({ copied: ["speed"], created: true });
+    expect(r.settings).toMatchObject({
+      measureSpeed: true,
+      iperfServerAdrs: "192.168.1.10",
+      apMapping: [],
+      radiusDivider: null,
+    });
+    const saved = files["Empty.png"] as Record<string, unknown>;
+    expect(saved.surveyPoints).toEqual([]);
+    expect(saved).not.toHaveProperty("sudoerPassword");
+
+    const again = json(
+      await client.callTool({
+        name: "copy_settings",
+        arguments: {
+          from: "Home.png",
+          to: "Empty.png",
+          parts: ["apNames", "heatmapLook"],
+        },
+      }),
+    );
+    expect(again.created).toBe(false);
+    expect(again.changed.sort()).toEqual([
+      "apMapping",
+      "heatmapRanges", // set by the update_settings test
+      "radiusDivider",
+    ]);
+    expect(files["Empty.png"]).toMatchObject({
+      apMapping: [{ apName: "Hall", macAddress: "aabbccddee*" }],
+      radiusDivider: 150,
+      gradient: { 0: "red", 1: "green" },
+      dimensions: { width: 100, height: 100 },
+    });
+  });
+
+  it("copy_settings refuses a missing source and speed settings with shell syntax", async () => {
+    const count = copies.length;
+    const missing = (await client.callTool({
+      name: "copy_settings",
+      arguments: { from: "Nope.png", to: "Empty.png" },
+    })) as CallToolResult;
+    expect(missing.isError).toBe(true);
+    expect(JSON.stringify(missing.content)).toMatch(/No survey for/);
+
+    files["Odd.png"] = {
+      ...files["Home.png"],
+      floorplanImageName: "Odd.png",
+      iperfCommands: {
+        ...defaultIperfCommands,
+        tcpDownload: "iperf3 -c {server} -J; rm -rf ~",
+      },
+    };
+    const refused = (await client.callTool({
+      name: "copy_settings",
+      arguments: { from: "Odd.png", to: "Empty.png" },
+    })) as CallToolResult;
+    expect(refused.isError).toBe(true);
+    expect(JSON.stringify(refused.content)).toMatch(
+      /Nothing was changed.*tcpDownload/,
+    );
+    expect(copies.length).toBe(count);
+
+    // without the speed settings it may copy the rest
+    json(
+      await client.callTool({
+        name: "copy_settings",
+        arguments: { from: "Odd.png", to: "Empty.png", parts: ["apNames"] },
+      }),
+    );
+    expect(copies.length).toBe(count + 1);
+    delete files["Odd.png"];
   });
 });
 

@@ -6,6 +6,7 @@
  *
  *   GET    /api/settings?name=            read (null if there is none)
  *   PATCH  /api/settings?name=            change settings
+ *   POST   /api/settings/copy?from=&to=   copy settings from another survey
  *   POST   /api/surveys/<name>/points     add a point
  *   PATCH  /api/surveys/<name>/points/<id> change a point
  *   DELETE /api/surveys/<name>/points     delete points
@@ -19,6 +20,7 @@ import type {
   SurveyDocument,
   SurveyPointPatch,
 } from "./types";
+import type { CopyPart } from "./survey-ops";
 
 export class SurveyApiError extends Error {
   constructor(
@@ -71,6 +73,28 @@ export function patchSettings(
     body: JSON.stringify(patch),
     keepalive,
   });
+}
+
+/** Copy parts of another survey's settings into this one. */
+export function copySettings(
+  from: string,
+  to: string,
+  parts: readonly CopyPart[],
+): Promise<SurveyDocument> {
+  const query = new URLSearchParams({ from, to, parts: parts.join(",") });
+  return call(`/api/settings/copy?${query}`, { method: "POST" });
+}
+
+/** Names of the stored surveys (floor plans that have one). */
+export async function listSurveys(): Promise<string[]> {
+  const response = await fetch("/api/settings?list=true");
+  if (!response.ok) {
+    throw new SurveyApiError(
+      `${response.status} ${response.statusText}`,
+      response.status,
+    );
+  }
+  return ((await response.json()).surveys as string[]) ?? [];
 }
 
 export function addPoint(

@@ -11,11 +11,17 @@ import { toast } from "@/components/ui/use-toast";
 import FloorplanPicker from "./MediaDropdown";
 import { GradientEditor } from "./GradientEditor";
 import EditableApMapping from "./ApMapping";
+import { CopySettingsDialog } from "./CopySettingsDialog";
 import { sanitizeFilename } from "@/lib/utils";
 import { AppStatus } from "@/lib/types";
 
 export default function SettingsEditor() {
-  const { settings, updateSettings, readNewSettingsFromFile } = useSettings();
+  const {
+    settings,
+    updateSettings,
+    readNewSettingsFromFile,
+    speedSettingsFrom,
+  } = useSettings();
   const status = useAppStatus();
 
   // On macOS the native Wi-Fi helper, when built, replaces wdutil + sudo
@@ -82,12 +88,28 @@ export default function SettingsEditor() {
             onDelete={deleteFloorplan}
           />
         </FormRow>
+        <FormRow
+          label="Settings from another survey"
+          help="Copy the speed settings, access point names or heat map look of another floor plan's survey into this one. Points and the floor plan stay as they are."
+        >
+          <div>
+            <CopySettingsDialog />
+          </div>
+        </FormRow>
       </FormSection>
 
       <FormSection
         title="Measurement"
         description="What happens when you click the floor plan. The signal is always measured; speed is optional and needs a second computer. Each survey keeps its own choice."
       >
+        {speedSettingsFrom && (
+          <p
+            className="text-sm text-muted-foreground"
+            data-testid="speed-settings-copied"
+          >
+            Speed settings copied from {speedSettingsFrom}.
+          </p>
+        )}
         <SpeedSettings status={status} />
 
         {helperWorks && macHelper.helper && (

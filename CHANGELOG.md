@@ -17,8 +17,15 @@ _This section follows the precepts of [Keep a Changelog](https://keepachangelog.
 
 ### Added
 
+* **Set up a second floor plan in fewer steps.** A new survey starts with
+  the speed settings (what to measure, speed test server, test duration,
+  iperf3 commands) of the survey saved last, instead of the defaults, and
+  Settings says where they came from. **Copy settings from…** in Settings
+  copies speed settings, access point names or the heat map look from
+  another survey (`POST /api/settings/copy`), and the MCP server has a
+  matching `copy_settings` tool. Points and floor plans are never copied.
 * **Report a problem from the app.** A small help button in the bottom-right
-  corner opens **Report a problem**, **Docs** (the guide for the current tab)
+  corner (hidden while the measurement panel is open there) opens **Report a problem**, **Docs** (the guide for the current tab)
   and **What's new**. The report shows exactly what would be shared (app
   version, OS, how the app runs and reads Wi-Fi, iperf3, signal only or
   signal and speed, the last measurement and the recent log, kept in memory

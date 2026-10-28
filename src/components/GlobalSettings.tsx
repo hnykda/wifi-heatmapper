@@ -30,6 +30,7 @@ import { defaultSurvey } from "../lib/survey-defaults";
 import {
   addPoint,
   applySettingsPatch,
+  CopyPart,
   deletePoints,
   keepUnchanged,
   SETTINGS_PATCH_KEYS,
@@ -65,6 +66,16 @@ interface SettingsContextType {
   readNewSettingsFromFile: (theFile: string) => void;
   /** Re-read the current floor plan's survey from disk */
   reloadSettings: () => void;
+  /**
+   * Copy parts of another survey's settings into the current one (on the
+   * server); resolves true once saved, false if it failed (a toast says why)
+   */
+  copySettingsFrom: (from: string, parts: CopyPart[]) => Promise<boolean>;
+  /**
+   * The survey whose speed settings the current one started from, when it
+   * was created in this session; null otherwise
+   */
+  speedSettingsFrom: string | null;
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(
@@ -85,6 +96,7 @@ type Op = { name: string } & (
   | { kind: "add"; point: NewSurveyPoint }
   | { kind: "update"; id: string; patch: SurveyPointPatch }
   | { kind: "delete"; ids: string[] }
+  | { kind: "copy"; from: string; parts: CopyPart[] }
 );
 
 /** The change applied locally, so it shows before the server answers. */
@@ -99,18 +111,32 @@ function applyLocally(survey: SurveyDocument, op: Op): SurveyDocument {
     case "delete":
       return deletePoints(survey, op.ids);
     case "load":
+    case "copy": // the source is on the server: shows once it answers
       return survey;
   }
 }
 
-async function send(op: Op): Promise<SurveyDocument> {
+/** Send one operation; `created` is true if a load created the survey. */
+async function send(
+  op: Op,
+): Promise<{ survey: SurveyDocument; created?: boolean }> {
   switch (op.kind) {
-    case "load":
-      return (
-        (await api.getSurvey(op.name)) ??
-        // none yet: an empty patch creates it with the defaults
-        (await api.patchSettings(op.name, {}))
-      );
+    case "load": {
+      const survey = await api.getSurvey(op.name);
+      if (survey) return { survey };
+      // none yet: an empty patch creates it (the server copies the speed
+      // settings of the last saved survey)
+      return { survey: await api.patchSettings(op.name, {}), created: true };
+    }
+    default:
+      return { survey: await sendChange(op) };
+  }
+}
+
+async function sendChange(
+  op: Exclude<Op, { kind: "load" }>,
+): Promise<SurveyDocument> {
+  switch (op.kind) {
     case "patch":
       return api.patchSettings(op.name, op.patch, { keepalive: op.keepalive });
     case "add":
@@ -119,6 +145,8 @@ async function send(op: Op): Promise<SurveyDocument> {
       return api.updatePoint(op.name, op.id, op.patch);
     case "delete":
       return api.deletePoints(op.name, op.ids);
+    case "copy":
+      return api.copySettings(op.from, op.name, op.parts);
   }
 }
 
@@ -149,7 +177,8 @@ function toPatch(changes: Partial<HeatmapSettings>): {
  * the changes it hasn't answered yet.
  *
  * The server owns the file. Each change goes to the API as an operation
- * (patch settings, add/update/delete points) and the server answers with
+ * (patch settings, copy settings from another survey, add/update/delete
+ * points) and the server answers with
  * the whole updated survey, which replaces the local copy. Operations are
  * sent one after another, so they reach the server in the order they were
  * made; settings changes are debounced (sliders, typing) and merged into
@@ -160,6 +189,11 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const [floorplanImage, setFloorplanImage] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [reloadCounter, setReloadCounter] = useState(0);
+  // { survey created in this session: where its speed settings came from }
+  const [inherited, setInherited] = useState<{
+    name: string;
+    from: string;
+  } | null>(null);
   const migrationDone = useRef(false);
 
   // The survey being shown, as the server last returned it
@@ -194,13 +228,17 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     [current],
   );
 
+  /** Queue an operation; resolves true once the server has saved it. */
   const enqueue = useCallback(
-    (op: Op) => {
+    (op: Op): Promise<boolean> => {
       pendingRef.current.push(op);
-      queue.current = queue.current.then(async () => {
+      const done = queue.current.then(async () => {
         try {
-          const survey = await send(op);
+          const { survey, created } = await send(op);
           if (op.name === nameRef.current) serverRef.current = survey;
+          const from = survey.meta?.speedSettingsFrom;
+          if (created && from) setInherited({ name: op.name, from });
+          return true;
         } catch (err) {
           const message = err instanceof Error ? err.message : String(err);
           console.error(`[wifi-heatmapper] ${op.kind} on "${op.name}":`, err);
@@ -214,6 +252,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
               description: message,
             });
           }
+          return false;
         } finally {
           pendingRef.current = pendingRef.current.filter((o) => o !== op);
           if (op.kind === "load" && op.name === nameRef.current) {
@@ -222,6 +261,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
           refresh();
         }
       });
+      queue.current = done.then(() => undefined);
+      return done;
     },
     [refresh],
   );
@@ -288,6 +329,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   }, [floorplanImage, reloadCounter, flushDraft, enqueue]);
 
   const readNewSettingsFromFile = useCallback((fileName: string) => {
+    setInherited(null); // "copied from" is only shown right after creation
     setFloorplanImage(fileName); // let useEffect() do the work
   }, []);
 
@@ -322,14 +364,26 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
   /** Point changes are sent at once, after any settings change before them. */
   const sendNow = useCallback(
-    (op: Op) => {
-      if (!op.name) return; // no survey loaded yet
+    (op: Op): Promise<boolean> => {
+      if (!op.name) return Promise.resolve(false); // no survey loaded yet
       flushDraft();
-      enqueue(op);
+      const done = enqueue(op);
       refresh();
+      return done;
     },
     [flushDraft, enqueue, refresh],
   );
+
+  const copySettingsFrom = useCallback(
+    (from: string, parts: CopyPart[]) =>
+      sendNow({ kind: "copy", name: nameRef.current, from, parts }),
+    [sendNow],
+  );
+
+  const speedSettingsFrom =
+    inherited && inherited.name === settings.floorplanImageName
+      ? inherited.from
+      : null;
 
   const surveyPointActions: SurveyPointActions = useMemo(
     () => ({
@@ -367,6 +421,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       surveyPointActions,
       readNewSettingsFromFile,
       reloadSettings,
+      copySettingsFrom,
+      speedSettingsFrom,
     }),
     [
       settings,
@@ -375,6 +431,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       surveyPointActions,
       readNewSettingsFromFile,
       reloadSettings,
+      copySettingsFrom,
+      speedSettingsFrom,
     ],
   );
 

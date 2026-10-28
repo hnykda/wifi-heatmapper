@@ -11,7 +11,10 @@
  *                                          kept for older clients and imports
  * DELETE /api/settings?name=<floorplan> -> remove the survey file
  *
- * Points have their own routes: /api/surveys/[name]/points.
+ * Points have their own routes: /api/surveys/[name]/points. Copying
+ * settings from another survey is POST /api/settings/copy (copy/route.ts).
+ * A survey created here starts with the speed settings of the last saved
+ * one (survey-store.ts newSurvey()).
  * All writes go through survey-store.ts (one at a time per file, meta
  * stamped, the sudo password never written).
  */

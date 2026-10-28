@@ -220,3 +220,25 @@ export function toSettingsPatch(patch: unknown): SettingsPatch {
   }
   return body;
 }
+
+/**
+ * Why copy_settings may not copy a survey's speed settings ([] if it may):
+ * the same checks update_settings makes on the server and the iperf3
+ * commands, since they end up in a shell command. An empty server (signal
+ * only) is fine.
+ */
+export function unsafeSpeedSettings(survey: {
+  iperfServerAdrs?: string;
+  iperfCommands?: Record<string, string>;
+}): string[] {
+  const problems: string[] = [];
+  const server = (survey.iperfServerAdrs ?? "").trim();
+  if (server && !isSafeIperfServer(server)) {
+    problems.push("have a server that is not a plain host name or address");
+  }
+  for (const [test, command] of Object.entries(survey.iperfCommands ?? {})) {
+    const problem = iperfCommandProblem(command);
+    if (problem) problems.push(`have a ${test} command that ${problem}`);
+  }
+  return problems;
+}

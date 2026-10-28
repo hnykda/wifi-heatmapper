@@ -14,6 +14,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { NextRequest } from "next/server";
 import * as settingsRoute from "@/app/api/settings/route";
+import * as copyRoute from "@/app/api/settings/copy/route";
 import * as pointsRoute from "@/app/api/surveys/[name]/points/route";
 import * as pointRoute from "@/app/api/surveys/[name]/points/[id]/route";
 import * as startTaskRoute from "@/app/api/start-task/route";
@@ -175,6 +176,96 @@ describe("/api/settings", () => {
     expect((await settingsRoute.GET(req(`/api/settings${q}`))).status).toBe(
       404,
     );
+  });
+
+  it("a new survey starts from the last saved survey's speed settings", async () => {
+    await settingsRoute.PATCH(
+      req(`/api/settings${q}`, "PATCH", {
+        measureSpeed: true,
+        iperfServerAdrs: "10.0.0.3",
+        testDuration: 4,
+        apMapping: [{ apName: "Hall", macAddress: "aabbccddeeff" }],
+      }),
+    );
+    const res = await settingsRoute.PATCH(
+      req(`/api/settings?name=second.png`, "PATCH", {}),
+    );
+    const survey = await res.json();
+    expect(survey).toMatchObject({
+      measureSpeed: true,
+      iperfServerAdrs: "10.0.0.3",
+      testDuration: 4,
+      apMapping: [],
+    });
+    expect(survey.meta.speedSettingsFrom).toBe(NAME);
+  });
+});
+
+describe("/api/settings/copy", () => {
+  const copy = (query: string) =>
+    copyRoute.POST(req(`/api/settings/copy?${query}`, "POST"));
+
+  async function twoSurveys() {
+    await settingsRoute.PATCH(
+      req(`/api/settings${q}`, "PATCH", {
+        measureSpeed: true,
+        iperfServerAdrs: "10.0.0.4",
+        apMapping: [{ apName: "Hall", macAddress: "aabbccddeeff" }],
+        maxOpacity: 0.4,
+        dimensions: { width: 900, height: 600 },
+      }),
+    );
+    await add(1);
+    await settingsRoute.POST(
+      req(`/api/settings`, "POST", { floorplanImageName: "b.png" }),
+    );
+  }
+
+  it("copies the parts asked for and returns the target", async () => {
+    await twoSurveys();
+    const from = encodeURIComponent(NAME);
+    let res = await copy(`from=${from}&to=b.png&parts=speed`);
+    expect(res.status).toBe(200);
+    let survey = await res.json();
+    expect(survey).toMatchObject({
+      floorplanImageName: "b.png",
+      measureSpeed: true,
+      iperfServerAdrs: "10.0.0.4",
+      apMapping: [],
+      maxOpacity: 0.7,
+      surveyPoints: [],
+      dimensions: { width: 100, height: 100 },
+    });
+    res = await copy(`from=${from}&to=b.png&parts=apNames,heatmapLook`);
+    survey = await res.json();
+    expect(survey.apMapping).toHaveLength(1);
+    expect(survey.maxOpacity).toBe(0.4);
+    expect(survey.surveyPoints).toEqual([]);
+    expect(survey).not.toHaveProperty("sudoerPassword");
+    const onDisk = JSON.parse(
+      readFileSync(join(surveysDir, "b.png.json"), "utf-8"),
+    );
+    expect(onDisk.maxOpacity).toBe(0.4);
+  });
+
+  it("refuses bad queries and writes nothing", async () => {
+    await twoSurveys();
+    const before = readFileSync(join(surveysDir, "b.png.json"), "utf-8");
+    const from = encodeURIComponent(NAME);
+    for (const [query, status] of [
+      [`from=${from}&to=b.png&parts=points`, 400],
+      [`from=${from}&to=b.png&parts=`, 400],
+      [`from=${from}&to=b.png`, 400],
+      [`to=b.png&parts=speed`, 400],
+      [`from=${from}&to=b.png&parts=speed&sudoerPassword=x`, 400],
+      [`from=b.png&to=b.png&parts=speed`, 400],
+      [`from=nope.png&to=b.png&parts=speed`, 404],
+    ] as const) {
+      const res = await copy(query);
+      expect(res.status, query).toBe(status);
+      expect((await res.json()).error).toEqual(expect.any(String));
+    }
+    expect(readFileSync(join(surveysDir, "b.png.json"), "utf-8")).toBe(before);
   });
 });
 

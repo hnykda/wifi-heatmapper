@@ -29,10 +29,25 @@ workflow. "Got it" hides it for good; the About dialog can show it again.
   upload a PNG, JPEG or WebP. Each floor plan keeps its own survey in
   `data/surveys/<name>.json`. The trash button deletes the image and its
   survey.
+* **Settings from another survey** – **Copy settings from…** copies settings
+  of another floor plan's survey into this one. Pick the survey, then tick
+  what to copy:
+  * **Speed settings** (ticked to start with) – what to measure, the speed
+    test server, the test duration and the iperf3 commands;
+  * **Access point names**;
+  * **Heat map look** – spot size, opacity, colours and the fixed colour
+    scales set on the Heat maps tab. The spot size is in floor-plan pixels,
+    so it fits best between images of a similar size.
+
+  The points, the floor plan image and its size are never copied, and
+  neither is the sudo password.
 * **What to measure** – **Signal only** (nothing to set up, about 2 seconds
   per spot) or **Signal and speed** (needs iperf3 on this computer and on a
   second one, about 6 to 10 seconds per spot). Each survey keeps its own
-  choice; new surveys start with signal only. See
+  choice. A new survey starts with the speed settings (what to measure,
+  server, duration and commands) of the survey you saved last, and says so
+  under **Measurement**: "Speed settings copied from …". The very first
+  survey starts with signal only. See
   [signal only or with speed?](getting-started.md#signal-only-or-with-speed)
   The settings below appear only for speed:
   * **Speed test server (uses iperf3)** – the address of the second computer,

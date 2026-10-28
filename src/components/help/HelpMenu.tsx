@@ -14,6 +14,11 @@ import { ReportProblemDialog } from "./ReportProblemDialog";
  * The small help button in the bottom-right corner: report a problem, the
  * guide for the current tab, what's new. Links open in the system browser
  * (the desktop app sends target="_blank" links there).
+ *
+ * The measurement panel opens in the same corner and would cover it (and
+ * leave it in the tab order, unseen), so the button hides while the panel
+ * is on screen; the panel has its own "Report this" link when something
+ * goes wrong.
  */
 export function HelpMenu({ tab }: { tab: string }) {
   return (
@@ -25,7 +30,7 @@ export function HelpMenu({ tab }: { tab: string }) {
             aria-label="Help"
             title="Help"
             data-testid="help-button"
-            className="fixed bottom-4 right-4 z-30 inline-flex h-9 w-9 items-center justify-center rounded-full border bg-popover text-muted-foreground shadow-float transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="fixed bottom-4 right-4 z-30 inline-flex [body:has([data-testid=measurement-panel])_&]:hidden h-9 w-9 items-center justify-center rounded-full border bg-popover text-muted-foreground shadow-float transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <CircleHelp className="h-4 w-4" />
           </button>

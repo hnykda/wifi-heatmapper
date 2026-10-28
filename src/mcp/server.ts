@@ -28,6 +28,7 @@ import {
 import { resolveHeatmapRange, toDisplayRange } from "../lib/heatmap-scale";
 import type { MeasurementTestType, SurveyPoint } from "../lib/types";
 import { sanitizeFilename } from "../lib/utils";
+import { COPY_PART_NAMES, type CopyPart } from "../lib/survey-ops";
 import { measuresSpeed } from "../lib/measurement-mode";
 import { buildIssueUrl, PASTE_HINT } from "../lib/diagnostics";
 import {
@@ -42,6 +43,7 @@ import {
   SAFE_SETTING_KEYS,
   SettingsPatchError,
   toSettingsPatch,
+  unsafeSpeedSettings,
 } from "./settings-allowlist";
 import { DEFAULT_THRESHOLDS, describePoint, summarizeSurvey } from "./survey";
 import { registerPrompts } from "./prompts";
@@ -423,6 +425,69 @@ export function createMcpServer(client: AppClient, version: string): McpServer {
           name,
           saved: true,
           changed,
+          settings: after,
+          note: "If the app is open on this floor plan, it shows the change after its next save or a reload.",
+        });
+      }),
+  );
+
+  server.registerTool(
+    "copy_settings",
+    {
+      title: "Copy settings",
+      description:
+        "Copy settings from one survey to another and save the target survey, e.g. to set up a second floor plan like the first. " +
+        "parts: speed (measure signal only or signal and speed, iperf3 server, test duration, iperf3 commands), " +
+        "apNames (access point names), heatmapLook (heat spot radius, opacity, blur, colours, fixed colour scales). " +
+        "Points, the floor plan, its size and the sudo password are never copied. Changes are real.",
+      inputSchema: {
+        from: nameArg.describe("Survey to copy from, as list_surveys names it"),
+        to: nameArg.describe(
+          "Survey to copy into, as list_surveys names it (created if the floor plan has none)",
+        ),
+        parts: z
+          .array(z.enum(COPY_PART_NAMES as [CopyPart, ...CopyPart[]]))
+          .min(1)
+          .optional()
+          .describe(
+            `What to copy: ${COPY_PART_NAMES.join(", ")} (default ["speed"])`,
+          ),
+      },
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
+    },
+    (args) =>
+      guarded(async () => {
+        const parts = [...new Set(args.parts ?? (["speed"] as CopyPart[]))];
+        const source = await loadSurvey(client, args.from);
+        if (parts.includes("speed")) {
+          // the same rule as update_settings: what ends up in a shell
+          // command must be plain, or a person copies it in the app
+          const problems = unsafeSpeedSettings(source);
+          if (problems.length) {
+            return fail(
+              `Nothing was changed: the speed settings of "${args.from}" ${problems.join("; ")}. ` +
+                `Copy them in the app (Settings, Copy settings from…), or leave out "speed".`,
+            );
+          }
+        }
+        const before = await client.survey(args.to);
+        const saved = await client.copySettings(args.from, args.to, parts);
+        const was = before ? pickSafeSettings(before) : null;
+        const after = pickSafeSettings(saved);
+        const changed = (Object.keys(after) as (keyof typeof after)[]).filter(
+          (k) => !was || JSON.stringify(was[k]) !== JSON.stringify(after[k]),
+        );
+        return ok({
+          from: args.from,
+          to: args.to,
+          copied: parts,
+          created: !before,
+          changed: was ? changed : undefined,
           settings: after,
           note: "If the app is open on this floor plan, it shows the change after its next save or a reload.",
         });

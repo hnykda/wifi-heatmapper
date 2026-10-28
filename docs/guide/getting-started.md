@@ -67,6 +67,11 @@ setup.
 4. **Survey points.** Check, switch off or delete individual measurements,
    or export everything as CSV.
 
+**A second floor (or house)?** Upload its floor plan in Settings. The new
+survey starts with the speed settings of the one you used last, so the
+speed test server is already filled in. To bring over access point names or
+the heat map look too, use **Copy settings from…** under **Floor plan**.
+
 ![Signal strength heat map](../images/heatmap.jpg)
 
 Green is good. The scale runs green, turquoise, blue for acceptable signal,
