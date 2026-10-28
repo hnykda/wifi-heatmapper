@@ -25,6 +25,17 @@ _This section follows the precepts of [Keep a Changelog](https://keepachangelog.
   older are read the same way: their zeros become "not measured", real
   results are kept.
 
+### Removed
+
+* **The Windows `netsh` fallback and its language tables.** Since 0.8.0
+  Windows reads Wi-Fi through the Native Wifi API (`wlanapi.dll`), which
+  works in any display language; now it is the only way. The `netsh`
+  parsers, `data/localization/` and its README, and their fixtures and
+  tests are gone. If the API can't be loaded or fails, measuring stops with
+  one error that says what failed and asks you to send it with **Report a
+  problem**; the report lists the Wi-Fi reading as `Windows WLAN API` with
+  that error. The Windows 11 24H2 location-permission message is unchanged.
+
 ## Version 0.8.0 - 2026-10-28
 
 **Before you update:** the macOS desktop app now needs **macOS 13.5
