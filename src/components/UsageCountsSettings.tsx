@@ -1,8 +1,13 @@
 "use client";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "@/components/ui/use-toast";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { FormSection } from "./FormRow";
-import { USAGE_COUNTS_SECTION_ID } from "./UsageCountsNotice";
 import { useUsageCounts } from "@/hooks/useUsageCounts";
 import { useAppStatus } from "@/hooks/useAppStatus";
 import { SITE_URL } from "@/lib/diagnostics";
@@ -23,8 +28,9 @@ function formatTime(iso: string): string {
 }
 
 /**
- * Settings > Usage counts: the toggle, why it is off, when the last event
- * went out, and the exact event (built by the server's own event builder).
+ * Settings > Usage counts: the toggle, why it is off and when the last
+ * event went out, then two collapsed parts: why the app counts, and the
+ * exact event (built by the server's own event builder).
  */
 export function UsageCountsSettings() {
   const { info, setEnabled } = useUsageCounts();
@@ -43,15 +49,9 @@ export function UsageCountsSettings() {
 
   return (
     <FormSection
-      id={USAGE_COUNTS_SECTION_ID}
-      className="scroll-mt-24"
       title="Usage counts"
       description="Anonymous counts of installs, app starts and measurements. Never network names, addresses or results."
     >
-      <p className="max-w-[70ch] text-sm leading-relaxed">
-        {USAGE_COUNTS_WHY} {USAGE_COUNTS_PROMISE}
-      </p>
-
       <div className="flex items-start gap-3">
         <Switch
           id="usageCounts"
@@ -92,46 +92,68 @@ export function UsageCountsSettings() {
         </p>
       )}
 
-      {info && (
-        <div className="grid gap-2">
-          <h3 className="text-sm font-medium">What&apos;s sent</h3>
-          <p className="max-w-[70ch] text-sm text-muted-foreground">
-            A measurement sends exactly this. Install (once) and App start (at
-            most once a day) send the same without{" "}
-            <code className={code}>speed_test</code>, which only says whether
-            this survey runs speed tests, never what they measured. The install
-            id is a random id made on this computer; it is only in the
-            User-Agent header, which the server uses to count each install once
-            a day and does not store.
-          </p>
-          <pre
-            className="max-h-80 overflow-auto whitespace-pre-wrap break-all rounded-md border bg-muted/40 p-3 font-mono text-xs"
-            data-testid="usage-sample"
+      <Accordion type="multiple" className="max-w-[70ch]">
+        <AccordionItem value="why">
+          <AccordionTrigger
+            className="py-2 text-sm font-medium"
+            data-testid="usage-why-toggle"
           >
-            {`POST ${info.sample.endpoint}\n`}
-            {Object.entries(info.sample.headers)
-              .map(([k, v]) => `${k}: ${v}`)
-              .join("\n")}
-            {`\n\n${JSON.stringify(info.sample.body, null, 2)}`}
-          </pre>
-        </div>
-      )}
+            Why
+          </AccordionTrigger>
+          <AccordionContent className="leading-relaxed" data-testid="usage-why">
+            {USAGE_COUNTS_WHY} {USAGE_COUNTS_PROMISE}
+          </AccordionContent>
+        </AccordionItem>
+        <AccordionItem value="sent" className="border-b-0">
+          <AccordionTrigger
+            className="py-2 text-sm font-medium"
+            data-testid="usage-sent-toggle"
+          >
+            What&apos;s sent
+          </AccordionTrigger>
+          <AccordionContent className="grid gap-3">
+            {info && (
+              <div className="grid gap-2">
+                <p className="max-w-[70ch] text-sm text-muted-foreground">
+                  A measurement sends exactly this. Install (once) and App start
+                  (at most once a day) send the same without{" "}
+                  <code className={code}>speed_test</code>, which only says
+                  whether this survey runs speed tests, never what they
+                  measured. The install id is a random id made on this computer;
+                  it is only in the User-Agent header, which the server uses to
+                  count each install once a day and does not store.
+                </p>
+                <pre
+                  className="max-h-80 overflow-auto whitespace-pre-wrap break-all rounded-md border bg-muted/40 p-3 font-mono text-xs"
+                  data-testid="usage-sample"
+                >
+                  {`POST ${info.sample.endpoint}\n`}
+                  {Object.entries(info.sample.headers)
+                    .map(([k, v]) => `${k}: ${v}`)
+                    .join("\n")}
+                  {`\n\n${JSON.stringify(info.sample.body, null, 2)}`}
+                </pre>
+              </div>
+            )}
 
-      <p className="max-w-[70ch] text-sm text-muted-foreground">
-        To turn it off without opening the app, start it with{" "}
-        <code className={code}>{TELEMETRY_ENV}=0</code> or{" "}
-        <code className={code}>DO_NOT_TRACK=1</code>.{" "}
-        <a
-          href={`${SITE_URL}/${PRIVACY_DOC_PATH}`}
-          target="_blank"
-          rel="noreferrer"
-          className="text-brand underline-offset-4 hover:underline"
-          data-testid="usage-privacy-link"
-        >
-          Privacy and usage counts
-        </a>{" "}
-        lists everything in detail.
-      </p>
+            <p className="max-w-[70ch] text-sm text-muted-foreground">
+              To turn it off without opening the app, start it with{" "}
+              <code className={code}>{TELEMETRY_ENV}=0</code> or{" "}
+              <code className={code}>DO_NOT_TRACK=1</code>.{" "}
+              <a
+                href={`${SITE_URL}/${PRIVACY_DOC_PATH}`}
+                target="_blank"
+                rel="noreferrer"
+                className="text-brand underline-offset-4 hover:underline"
+                data-testid="usage-privacy-link"
+              >
+                Privacy and usage counts
+              </a>{" "}
+              lists everything in detail.
+            </p>
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
     </FormSection>
   );
 }

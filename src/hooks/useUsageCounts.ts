@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useSyncExternalStore } from "react";
 import type { UsageCountsInfo } from "@/lib/usage-counts";
 
-// One shared copy, so the first-run notice and Settings always agree.
+// One shared copy for every component that shows usage counts.
 let current: UsageCountsInfo | null = null;
 let loading: Promise<void> | null = null;
 const listeners = new Set<() => void>();
@@ -22,10 +22,7 @@ function load(): Promise<void> {
   return loading;
 }
 
-async function patch(body: {
-  enabled?: boolean;
-  noticeDismissed?: true;
-}): Promise<boolean> {
+async function patch(body: { enabled: boolean }): Promise<boolean> {
   try {
     const res = await fetch("/api/telemetry", {
       method: "PATCH",
@@ -58,10 +55,5 @@ export function useUsageCounts() {
     if (!current) void load();
   }, []);
   const setEnabled = useCallback((enabled: boolean) => patch({ enabled }), []);
-  const dismissNotice = useCallback(() => patch({ noticeDismissed: true }), []);
-  const turnOff = useCallback(
-    () => patch({ enabled: false, noticeDismissed: true }),
-    [],
-  );
-  return { info, setEnabled, dismissNotice, turnOff, reload: load };
+  return { info, setEnabled, reload: load };
 }

@@ -198,7 +198,7 @@ and gives it to the server's memory (see [The sudo password](#the-sudo-password)
   the sudo password the server holds in memory; GET says only whether
   one is held.
 * _api/telemetry/route.ts_: GET and PATCH the anonymous usage counts
-  (on/off and why, last sent, a sample event, the first-run notice).
+  (on/off and why, last sent, a sample event).
   _lib/telemetry.ts_ builds and sends the events from the server, in the
   background; the install id and setting live in
   `data/usage-counts.json`. What is sent is listed in

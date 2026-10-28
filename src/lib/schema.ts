@@ -611,8 +611,6 @@ export const usageCountsFileSchema = z.object({
     .regex(/^\d{4}-\d{2}-\d{2}$/)
     .optional()
     .catch(undefined),
-  /** the first-run notice was dismissed */
-  noticeDismissedAt: z.string().optional().catch(undefined),
   lastSent: z
     .object({ event: z.string(), at: z.string() })
     .optional()
@@ -623,8 +621,7 @@ export type UsageCountsFile = z.output<typeof usageCountsFileSchema>;
 
 /** PATCH /api/telemetry */
 export const usageCountsPatchSchema = z.strictObject({
-  enabled: z.boolean().optional(),
-  noticeDismissed: z.literal(true).optional(),
+  enabled: z.boolean(),
 });
 
 /* ---------- e2e test scenarios (mock-scenario.ts) ---------- */

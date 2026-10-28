@@ -44,7 +44,6 @@ import { getLogger } from "./logger";
 import { getUsageCountsPath } from "./server-paths";
 import { UsageCountsFile, usageCountsFileSchema } from "./schema";
 import {
-  shouldShowNotice,
   TELEMETRY_ENV,
   UsageCountsInfo,
   UsageCountsOffReason,
@@ -341,7 +340,7 @@ export function reportMeasurement(
   );
 }
 
-/* ---------- Settings and the notice ---------- */
+/* ---------- Settings ---------- */
 
 /** Turn usage counts on or off here. Off deletes the install id. */
 export async function setEnabled(enabled: boolean): Promise<void> {
@@ -350,13 +349,6 @@ export async function setEnabled(enabled: boolean): Promise<void> {
     if (!enabled) delete next.installId;
     return next;
   });
-}
-
-export async function dismissNotice(): Promise<void> {
-  await update((s) => ({
-    ...s,
-    noticeDismissedAt: s.noticeDismissedAt ?? new Date().toISOString(),
-  }));
 }
 
 /** What GET /api/telemetry answers. Never contains the install id. */
@@ -371,10 +363,6 @@ export async function usageCountsInfo(
     enabled,
     setting: state.enabled !== false,
     offReason: reason,
-    showNotice: shouldShowNotice({
-      enabled,
-      noticeDismissedAt: state.noticeDismissedAt,
-    }),
     lastSent: state.lastSent ?? null,
     sample: {
       endpoint: eventEndpoint(env),

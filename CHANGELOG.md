@@ -6,6 +6,10 @@ _This section follows the precepts of [Keep a Changelog](https://keepachangelog.
 
 ### Changed
 
+* **No more usage counts notice.** The banner at the top of the app the
+  first time it runs is gone. **Settings > Usage counts** has the switch at
+  the top, with **Why** and **What's sent** folded underneath.
+
 * **Usage counts send less.** A `Measurement` event now carries only
   `speed_test` (`on` or `off`: whether the survey runs iperf3 speed tests)
   instead of `mode` and `speed_ok`, so it no longer says whether a speed

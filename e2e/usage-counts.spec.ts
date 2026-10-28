@@ -15,7 +15,6 @@ test("usage counts are off in mock mode and Settings says why", async ({
   expect(info).toMatchObject({
     enabled: false,
     offReason: "mock",
-    showNotice: false,
     lastSent: null,
   });
   // the install id never appears, and none was made
@@ -23,9 +22,7 @@ test("usage counts are off in mock mode and Settings says why", async ({
   expect(hasInstallId()).toBe(false);
 
   await page.goto("/#settings");
-  // no first-run notice while it is off
   await expect(page.getByTestId("tab-settings")).toBeVisible();
-  await expect(page.getByTestId("usage-notice")).toHaveCount(0);
 
   const toggle = page.getByTestId("usage-toggle");
   await toggle.scrollIntoViewIfNeeded();
@@ -37,6 +34,12 @@ test("usage counts are off in mock mode and Settings says why", async ({
   await expect(page.getByTestId("usage-last-sent")).toContainText(
     "Nothing sent from this computer yet.",
   );
+  // why and what's sent are collapsed until opened
+  await expect(page.getByTestId("usage-why")).toBeHidden();
+  await expect(page.getByTestId("usage-sample")).toBeHidden();
+  await page.getByTestId("usage-why-toggle").click();
+  await expect(page.getByTestId("usage-why")).toContainText("motivated");
+  await page.getByTestId("usage-sent-toggle").click();
   // the exact event, from the server's own builder
   const sample = page.getByTestId("usage-sample");
   await expect(sample).toContainText('"name": "Measurement"');
@@ -53,9 +56,9 @@ test("usage counts are off in mock mode and Settings says why", async ({
   const report = await (await page.request.get("/api/diagnostics")).json();
   expect(report.summary).toContain("Usage counts: off (mock)");
 
-  // dismissing the notice is allowed but makes no install id either
+  // turning it on is refused by mock mode and makes no install id either
   const res = await page.request.patch("/api/telemetry", {
-    data: { noticeDismissed: true },
+    data: { enabled: true },
   });
   expect(res.ok()).toBeTruthy();
   expect((await res.json()).enabled).toBe(false);

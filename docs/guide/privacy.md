@@ -13,8 +13,8 @@ you can turn it off any time.
 
 Your surveys, floor plans and results stay on your computer. The only
 thing the app sends on its own is the small usage counts described here.
-They are on by default, and the app tells you so the first time it runs,
-with **Turn off** right next to it.
+They are on by default. **Settings > Usage counts** has the switch, why
+the app counts, and the exact event it sends.
 
 ## What is sent
 
@@ -109,7 +109,7 @@ the same with or without it.
 Any one of these:
 
 - **In the app:** Settings > Usage counts > turn off **Send anonymous usage
-  counts**, or **Turn off** on the first-run notice. It is saved for this
+  counts**. It is saved for this
   computer (not in your surveys), and the install id is deleted.
 - **With an environment variable:** start the app with
   `WIFI_HEATMAPPER_TELEMETRY=0` (`false`, `off` or `no` work too). For example
