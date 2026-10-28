@@ -57,6 +57,13 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      # The Node binary the bundle ships (desktop/.cache), so a slow
+      # nodejs.org doesn't hold up every run. The key changes with the
+      # version pinned in build-server.mjs.
+      - uses: actions/cache@v4
+        with:
+          path: desktop/.cache
+          key: node-dist-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('desktop/build-server.mjs') }}
       # Next standalone build + the pinned Node binary, as the app ships them
       - run: npm run desktop:server
       # Starts the bundle read-only with a temp data dir in mock mode and

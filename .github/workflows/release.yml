@@ -88,6 +88,14 @@ jobs:
       - run: npm ci
       - run: npm run desktop:install
 
+      # The Node binary the bundle ships (desktop/.cache), so a slow
+      # nodejs.org doesn't hold up every run. The key changes with the
+      # version pinned in build-server.mjs.
+      - uses: actions/cache@v4
+        with:
+          path: desktop/.cache
+          key: node-dist-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('desktop/build-server.mjs') }}
+
       # macOS: the Wi-Fi helper inside the app is signed with the project's
       # self-signed certificate, so the Location permission users give it
       # survives updates (native/macos-wifi-helper/README.md, "Signing").
