@@ -112,3 +112,51 @@ test("a change made elsewhere survives the page's next save", async ({
   // and now shows the other change too
   await expect(page.getByLabel("Test duration (seconds)")).toHaveValue("7");
 });
+
+test("an open page follows a measurement an agent started (MCP)", async ({
+  page,
+}) => {
+  const name = await uploadFloorplan(page);
+  await useSpeedServer(page, "10.0.0.2");
+  await page.getByLabel("Test duration (seconds)").fill("3");
+  const survey = await readSurvey(page, name, (s) => s.testDuration === 3);
+  await gotoTab(page, "floorplan");
+  await expect(page.getByTestId("floorplan-canvas")).toBeVisible();
+
+  // what the MCP server sends: the survey's speed settings, no password
+  const res = await page.request.post("/api/start-task?action=start", {
+    data: {
+      survey: name,
+      x: 600,
+      y: 100,
+      settings: {
+        measureSpeed: survey.measureSpeed,
+        iperfServerAdrs: survey.iperfServerAdrs,
+        testDuration: survey.testDuration,
+        iperfCommands: survey.iperfCommands,
+      },
+    },
+  });
+  expect(res.ok()).toBe(true);
+  const { jobId } = await res.json();
+
+  // the page shows it live, then the new point
+  const panel = page.getByTestId("measurement-panel");
+  await expect(panel).toHaveAttribute("data-phase", "running");
+  await expect(panel).toContainText(/Testing (download|upload) speed/);
+  await expect(panel).toHaveAttribute("data-phase", "done", {
+    timeout: 30_000,
+  });
+  await expect(page.getByTestId("summary-points")).toContainText("1");
+  const status = await (
+    await page.request.get(`/api/start-task?action=status&id=${jobId}`)
+  ).json();
+  expect(status.state).toBe("done");
+  const saved = await readSurvey(
+    page,
+    name,
+    (s) => s.surveyPoints.length === 1,
+  );
+  expect(saved.surveyPoints[0].id).toBe(status.pointId);
+  expect(saved.surveyPoints[0].x).toBe(600);
+});

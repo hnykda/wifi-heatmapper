@@ -140,7 +140,7 @@ export default function SettingsEditor() {
           <FormRow
             id="sudoPassword"
             label="sudo password"
-            help="macOS (wdutil) needs administrator rights to read the Wi-Fi signal. Linux (iw) usually doesn't; the survey asks for the password if it does. The password is kept in memory only and never written to disk."
+            help="macOS (wdutil) needs administrator rights to read the Wi-Fi signal. Linux (iw) usually doesn't; the survey asks for the password if it does. The password is kept in memory only, until the app quits, and never written to disk. Measurements an AI agent starts use it too."
             hint={
               status?.platform === "darwin"
                 ? macHelper.helper?.error

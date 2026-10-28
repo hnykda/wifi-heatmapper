@@ -26,6 +26,18 @@ _This section follows the precepts of [Keep a Changelog](https://keepachangelog.
 
 ### Added
 
+* **Measure with an AI agent while you carry the laptop.** The MCP server
+  has `start_measurement`, `wait_for_measurement` and `cancel_measurement`
+  tools and a `survey_walkthrough` prompt: the agent tells you where to go,
+  waits until you confirm you're there, measures at that spot, saves the
+  point and tells you the result in plain words, then moves on. Clients ask
+  before each measurement, one runs at a time, and an open app tab shows
+  each one live. Where reading Wi-Fi needs the sudo password, you type it
+  in Settings as before; the app's server now keeps it in memory (never on
+  disk, never returned, gone on restart) so measurements the agent starts
+  can use it. `update_settings` and `copy_settings` now accept the same
+  speed settings as the app, and a speed test server must be a valid host
+  name, IP address or `host:port`. See [the MCP guide](docs/guide/mcp.md).
 * **Set up a second floor plan in fewer steps.** A new survey starts with
   the speed settings (what to measure, speed test server, test duration,
   iperf3 commands) of the survey saved last, instead of the defaults, and

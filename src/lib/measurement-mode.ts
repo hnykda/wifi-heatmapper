@@ -55,11 +55,64 @@ export interface ServerAddress {
   port: number | null;
 }
 
+/** A dotted IPv4 address, each part 0 to 255 without leading zeros. */
+export function isIPv4(text: string): boolean {
+  const parts = text.split(".");
+  return (
+    parts.length === 4 &&
+    parts.every((p) => /^(0|[1-9]\d{0,2})$/.test(p) && Number(p) <= 255)
+  );
+}
+
+/**
+ * An IPv6 address ("fe80::1", "2001:db8::42", "::ffff:192.0.2.1"),
+ * optionally with a zone ("fe80::1%en0"). No brackets.
+ */
+export function isIPv6(text: string): boolean {
+  const [address, zone, ...rest] = text.split("%");
+  if (rest.length || (zone !== undefined && !/^[A-Za-z0-9._-]+$/.test(zone))) {
+    return false;
+  }
+  const halves = address.split("::");
+  if (halves.length > 2) return false;
+  const groups = (half: string) => (half === "" ? [] : half.split(":"));
+  const all = halves.flatMap(groups);
+  // an IPv4 tail counts as two groups
+  let count = all.length;
+  const last = all[all.length - 1];
+  if (last !== undefined && last.includes(".")) {
+    if (!isIPv4(last)) return false;
+    all.pop();
+    count++;
+  }
+  if (!all.every((g) => /^[0-9A-Fa-f]{1,4}$/.test(g))) return false;
+  return halves.length === 2 ? count <= 7 : count === 8;
+}
+
+/**
+ * A host name (RFC 1123: labels of letters, digits and inner hyphens, up to
+ * 63 characters each and 253 in all, an optional final dot) that isn't
+ * all digits and dots (those must be an IPv4 address).
+ */
+export function isHostName(text: string): boolean {
+  const name = text.endsWith(".") ? text.slice(0, -1) : text;
+  if (!name || name.length > 253 || /^[\d.]+$/.test(name)) return false;
+  return name
+    .split(".")
+    .every((label) =>
+      /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?$/.test(label),
+    );
+}
+
+const isHost = (host: string) =>
+  isIPv4(host) || isHostName(host) || isIPv6(host);
+
 /**
  * parseServerAddress() - split "host", "host:port", "1.2.3.4:5201",
  * "[fe80::1]:5201", "[::1]" or a bare IPv6 address ("fe80::1",
  * "fe80::1%en0") into host and port.
- * @returns null for an empty address, a bad port or unbalanced brackets
+ * @returns null for anything else: an empty address, a host that isn't a
+ *   valid host name, IPv4 or IPv6 address, a bad port, unbalanced brackets
  */
 export function parseServerAddress(address: string): ServerAddress | null {
   const a = (address ?? "").trim();
@@ -74,23 +127,22 @@ export function parseServerAddress(address: string): ServerAddress | null {
   // [IPv6] or [IPv6]:port
   if (a.startsWith("[")) {
     const m = /^\[([^\]]+)\](?::(.*))?$/.exec(a);
-    if (!m) return null;
+    if (!m || !isIPv6(m[1])) return null;
     if (m[2] === undefined) return { host: m[1], port: null };
     const port = parsePort(m[2]);
     return port === undefined ? null : { host: m[1], port };
   }
-  if (a.includes("[") || a.includes("]")) return null;
 
   const colons = a.split(":").length - 1;
   // two or more colons: a bare IPv6 address, which can't carry a port
-  if (colons >= 2) return { host: a, port: null };
+  if (colons >= 2) return isIPv6(a) ? { host: a, port: null } : null;
   if (colons === 1) {
     const [host, p] = a.split(":");
     const port = parsePort(p);
-    if (!host || port === undefined) return null;
+    if (!isHost(host) || port === undefined) return null;
     return { host, port };
   }
-  return { host: a, port: null };
+  return isHost(a) ? { host: a, port: null } : null;
 }
 
 /** "host:port" for messages, with brackets around IPv6 hosts. */

@@ -502,7 +502,9 @@ export const startTaskSchema = z.strictObject({
     measureSpeed: z.boolean().optional(),
     iperfServerAdrs: z.string(),
     testDuration: finite,
-    sudoerPassword: z.string(),
+    // left out or "": the server uses the password it holds, if any
+    // (sudo-session.ts; how MCP-started measurements get one)
+    sudoerPassword: z.string().default(""),
     iperfCommands: iperfCommandsSchema,
   }),
 });

@@ -7,7 +7,8 @@
  * - GET  action=status&id=<jobId> -> the job (404 if unknown);
  *        without id: { job } for the running job, or { job: null }
  * When a job finishes, the server has saved the point; the "done" event
- * and the status carry its id.
+ * and the status carry its id. A start with an empty sudoerPassword (the
+ * MCP server's) uses the password the Settings tab gave the server.
  */
 import { NextRequest, NextResponse } from "next/server";
 import {
@@ -18,7 +19,8 @@ import {
 } from "@/lib/measurement-job";
 import { jsonError, readBody } from "@/lib/api-helpers";
 import { startTaskSchema } from "@/lib/schema";
-import { getLogger, rememberSecret } from "@/lib/logger";
+import { getLogger } from "@/lib/logger";
+import { sudoPasswordFor } from "@/lib/sudo-session";
 const logger = getLogger("start-task");
 
 export const dynamic = "force-dynamic";
@@ -44,8 +46,13 @@ export async function POST(req: NextRequest) {
   if (action === "start") {
     const body = await readBody(req, startTaskSchema);
     if (!body.ok) return body.response;
-    const { settings, survey, x, y } = body.data;
-    rememberSecret(settings.sudoerPassword);
+    const { survey, x, y } = body.data;
+    // a start without a password (an MCP agent's) uses the one the
+    // Settings tab gave the server, if any (lib/sudo-session.ts)
+    const settings = {
+      ...body.data.settings,
+      sudoerPassword: sudoPasswordFor(body.data.settings.sudoerPassword),
+    };
     const { sudoerPassword: _pw, ...loggable } = settings;
     logger.debug(
       `action=start: ${survey} (${x}, ${y}) ${JSON.stringify(loggable)}`,

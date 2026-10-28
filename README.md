@@ -40,9 +40,11 @@ npm run dev        # or npm run dev:mock for made-up measurements
 
 An optional [MCP](https://modelcontextprotocol.io) server lets an AI agent
 such as Claude Code or Claude Desktop read your surveys, help you plan one,
-and explain the results: dead zones, which access point covers which rooms,
+guide you through measuring it while you carry the laptop (it asks before
+each measurement, and an open app tab shows the map filling in), and
+explain the results: dead zones, which access point covers which rooms,
 and why throughput is slow. It talks to the running app on this computer
-only; it can't take measurements (yet) or see your sudo password.
+only and never sees your sudo password.
 
 ```bash
 npm run mcp:build

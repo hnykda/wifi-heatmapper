@@ -148,8 +148,9 @@ the server answers with the whole survey, which replaces the local copy
 (unchanged parts keep their identity, so maps don't redraw). Settings
 changes are debounced and merged into one patch; point changes go at once.
 So two tabs, or the browser and the MCP server, can change one survey
-without losing each other's changes. The sudo password stays in the
-browser's memory and is only sent with a measurement.
+without losing each other's changes. The sudo password is never part of a
+survey: the browser keeps it in memory, sends it with each measurement,
+and gives it to the server's memory (see [The sudo password](#the-sudo-password)).
 
 ## Routes in the Next app
 
@@ -170,6 +171,10 @@ browser's memory and is only sent with a measurement.
   [Survey files](#survey-files).
 
 * _api/status/route.ts_: version, OS, Node, iperf3 and mock-mode details.
+
+* _api/sudo-password/route.ts_: PUT (from the Settings tab) and DELETE
+  the sudo password the server holds in memory; GET says only whether
+  one is held.
 
 * _api/start-task/route.ts_ starts and stops measurements and answers for
   them; _api/events/route.ts_ streams their progress. See
@@ -211,8 +216,33 @@ In the browser, `useMeasurement` (_hooks/useMeasurement.ts_) does the
 talking for `Floorplan`: a click starts a job; it follows that job's
 events (and a status poll keyed by the job id, in case the stream drops)
 and, on `done`, reloads the survey to show the point the server saved.
-It also follows a job for the same survey that another tab started, or one
-still running after a reload. `MeasurementPanel` only draws the progress.
+It also follows a job for the same survey that another tab started, the
+MCP server started, or one still running after a reload. `MeasurementPanel`
+only draws the progress.
+
+### The sudo password
+
+Where reading Wi-Fi needs sudo (macOS without the Wi-Fi helper, Linux when
+`iw` is refused), the password comes from the Settings tab. It is never
+written anywhere:
+
+* The browser keeps it in memory (`GlobalSettings`), sends it in the
+  `settings` of each start request, and, when the field changes, gives it
+  to the server with `PUT /api/sudo-password` (debounced; `""` forgets it).
+* The server holds the last one in memory (_lib/sudo-session.ts_, on
+  `globalThis`) for the lifetime of the process: never written, never
+  returned (`GET` says only `{ held }`), masked in logs
+  (`rememberSecret`), gone on restart.
+* A start request without a password, which is what the MCP server sends
+  (it never handles the password), uses the held one. A start with one
+  makes it the held one.
+* It is only ever written to `sudo -S` on stdin for the app's fixed Wi-Fi
+  commands; no request chooses what runs with it.
+
+If no password is held where one is needed, the job fails in its first step
+(`preflightSettings()`), and the MCP server turns that reason into "This
+computer needs the sudo password to read Wi-Fi. Enter it once in the app's
+Settings (it stays in memory), then try again".
 
 ### Measurement events
 

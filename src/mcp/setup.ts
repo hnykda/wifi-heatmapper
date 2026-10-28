@@ -4,11 +4,13 @@
  *
  * The app's real preflight (can it read Wi-Fi, is a sudo password needed,
  * does the iperf3 server answer) only runs as the first step of a
- * measurement (POST /api/start-task), so it is not called here.
+ * measurement (POST /api/start-task), so it is not called here;
+ * start_measurement reports what it finds.
  */
 import type { AppStatus, MacosHelperStatus } from "../lib/types";
 import type { AppClient } from "./app-client";
 import { measuresSpeed } from "../lib/measurement-mode";
+import { SUDO_NEEDED } from "./measure";
 
 export interface SetupReport {
   app: {
@@ -23,6 +25,8 @@ export interface SetupReport {
   };
   iperf3: { installed: boolean; version: string | null };
   macosHelper?: MacosHelperStatus;
+  /** whether the app holds a sudo password typed in its Settings; null if it can't say */
+  sudoPasswordHeld: boolean | null;
   survey?: {
     name: string;
     found: boolean;
@@ -40,6 +44,7 @@ export function assessSetup(
   status: AppStatus,
   helper: MacosHelperStatus | undefined,
   survey: SetupReport["survey"] | undefined,
+  sudoHeld: boolean | null = null,
 ): { problems: string[]; notes: string[] } {
   const problems: string[] = [];
   const notes: string[] = [];
@@ -59,12 +64,19 @@ export function assessSetup(
 
   if (status.platform === "darwin" && !status.mockMode) {
     if (!helper?.available) {
-      notes.push(
-        "The macOS Wi-Fi helper is not available, so readings use wdutil: the app needs the sudo password (typed in the Settings tab) and SSID/BSSID may show as redacted." +
-          (status.desktopApp
-            ? ""
-            : " Build the helper with `npm run build:macos-helper`."),
-      );
+      const build = status.desktopApp
+        ? ""
+        : " Or build the Wi-Fi helper (`npm run build:macos-helper`), which needs no password.";
+      if (sudoHeld) {
+        notes.push(
+          "The macOS Wi-Fi helper is not available, so readings use wdutil with the sudo password the app holds (typed in Settings; memory only). SSID/BSSID may show as redacted." +
+            build,
+        );
+      } else {
+        problems.push(
+          `The macOS Wi-Fi helper is not available, so readings use wdutil, which needs the sudo password. ${SUDO_NEEDED}${build}`,
+        );
+      }
     } else if (!helper.locationAuthorized) {
       problems.push(
         'Location access for the Wi-Fi helper is not granted, so SSID and BSSID are missing. Click "Allow Location access" in the Settings tab.',
@@ -78,7 +90,9 @@ export function assessSetup(
   }
   if (status.platform === "linux" && !status.mockMode) {
     notes.push(
-      "On Linux the app reads Wi-Fi with iw; if that is refused it needs the sudo password, typed in the Settings tab.",
+      status.docker || status.podman
+        ? "In Docker the app reads Wi-Fi with iw and needs no sudo password."
+        : `On Linux the app reads Wi-Fi with iw, usually without a password; if iw is refused, the first measurement says so. The app ${sudoHeld ? "holds" : "does not hold"} a sudo password (typed in Settings; memory only).`,
     );
   }
 
@@ -96,7 +110,7 @@ export function assessSetup(
   }
 
   notes.push(
-    "Not checked here: whether the iperf3 server answers, whether Wi-Fi can be read, and whether a sudo password is needed. The app checks these when a measurement starts; take one measurement in the app to find out.",
+    "Not checked here: whether the iperf3 server answers, whether Wi-Fi can be read, and (on Linux) whether a sudo password is needed. The app checks these when a measurement starts; start_measurement reports what it finds within a few seconds.",
   );
   return { problems, notes };
 }
@@ -130,7 +144,8 @@ export async function checkSetup(
       : { name, found: false };
   }
 
-  const { problems, notes } = assessSetup(status, helper, survey);
+  const sudoHeld = await client.sudoPasswordHeld().catch(() => null);
+  const { problems, notes } = assessSetup(status, helper, survey, sudoHeld);
   return {
     app: {
       url: client.baseUrl.origin,
@@ -147,6 +162,7 @@ export async function checkSetup(
       version: status.iperf3Version,
     },
     ...(helper ? { macosHelper: helper } : {}),
+    sudoPasswordHeld: sudoHeld,
     ...(survey ? { survey } : {}),
     problems,
     notes,
