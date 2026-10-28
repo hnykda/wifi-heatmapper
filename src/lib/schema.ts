@@ -39,6 +39,7 @@ import { getLogger } from "./logger";
 import { defaultGradient, emptyWifiResults } from "./survey-defaults";
 import { mediaUrlFor } from "./media-url";
 import { migrateMeasurementMode } from "./measurement-mode";
+import { cleanPointLabel, POINT_LABEL_MAX } from "./point-label";
 import { COPY_PART_NAMES, type CopyPart } from "./survey-ops";
 import type { Gradient, HeatmapKey, HeatmapRanges } from "./types";
 
@@ -156,6 +157,22 @@ export const wifiResultsSchema: z.ZodType<WifiResults> = z.lazy(() =>
 
 /* ---------- survey points ---------- */
 
+/**
+ * A point's name in a request: trimmed, at most POINT_LABEL_MAX
+ * characters; "" removes it.
+ */
+const pointLabelStrict = z
+  .string()
+  .trim()
+  .max(POINT_LABEL_MAX, `a label is at most ${POINT_LABEL_MAX} characters`);
+
+/** A stored name: trimmed and cut to POINT_LABEL_MAX; empty or bad: none. */
+const pointLabelLenient = z
+  .string()
+  .transform(cleanPointLabel)
+  .optional()
+  .catch(undefined);
+
 const pointFields = {
   x: finite,
   y: finite,
@@ -163,6 +180,8 @@ const pointFields = {
   iperfData: iperfResultsSchema,
   timestamp: finite,
   isEnabled: z.boolean(),
+  /** optional name shown instead of the id ("Kitchen"); display only */
+  label: pointLabelStrict.optional(),
 };
 
 /**
@@ -183,6 +202,7 @@ export const surveyPointSchema = z.preprocess(
     iperfData: pointFields.iperfData.catch(() => iperfResultsSchema.parse({})), // all null
     timestamp: pointFields.timestamp.catch(0),
     isEnabled: pointFields.isEnabled.catch(true),
+    label: pointLabelLenient,
   }),
 );
 
@@ -504,7 +524,10 @@ export const addPointSchema = z.strictObject({
 
 export type NewSurveyPoint = z.output<typeof addPointSchema>;
 
-/** PATCH /api/surveys/[name]/points/[id]. The id cannot change. */
+/**
+ * PATCH /api/surveys/[name]/points/[id]. The id cannot change; a label
+ * of "" removes the point's name.
+ */
 export const pointPatchSchema = z.strictObject(pointFields).partial();
 
 export type SurveyPointPatch = z.output<typeof pointPatchSchema>;

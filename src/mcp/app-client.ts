@@ -14,6 +14,7 @@ import type {
   MacosHelperStatus,
   MeasurementJobStatus,
   SettingsPatch,
+  SurveyPointPatch,
 } from "../lib/types";
 import type { DiagnosticsReport } from "../lib/diagnostics";
 import type { CopyPart } from "../lib/survey-ops";
@@ -222,6 +223,26 @@ export class AppClient {
   ): Promise<StoredSurvey> {
     const saved = await this.json<StoredSurvey>(
       `api/settings?name=${encodeURIComponent(name)}`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(patch),
+      },
+    );
+    return stripSecrets(saved);
+  }
+
+  /**
+   * Change one point (PATCH /api/surveys/[name]/points/[id]), e.g. its
+   * label; returns the saved survey. 404 if there is no such point.
+   */
+  async updatePoint(
+    survey: string,
+    id: string,
+    patch: SurveyPointPatch,
+  ): Promise<StoredSurvey> {
+    const saved = await this.json<StoredSurvey>(
+      `api/surveys/${encodeURIComponent(survey)}/points/${encodeURIComponent(id)}`,
       {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },

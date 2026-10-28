@@ -74,12 +74,13 @@ export function nearbyPoint(
   x: number,
   y: number,
   within = 15,
-): { id: string; distancePixels: number } | null {
-  let best: { id: string; distancePixels: number } | null = null;
+): { id: string; name: string; distancePixels: number } | null {
+  let best: { id: string; name: string; distancePixels: number } | null = null;
   for (const p of survey.surveyPoints ?? []) {
     const d = Math.hypot(p.x - x, p.y - y);
     if (d <= within && (!best || d < best.distancePixels)) {
-      best = { id: p.id, distancePixels: Math.round(d) };
+      const name = p.label ? `${p.id} ("${p.label}")` : p.id;
+      best = { id: p.id, name, distancePixels: Math.round(d) };
     }
   }
   return best;

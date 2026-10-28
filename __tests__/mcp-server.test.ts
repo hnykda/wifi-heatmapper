@@ -25,10 +25,15 @@ import type {
 import {
   copySettingsQuerySchema,
   parseSurveyFile,
+  pointPatchSchema,
   settingsPatchSchema,
   startTaskSchema,
 } from "@/lib/schema";
-import { applySettingsPatch, copySettings } from "@/lib/survey-ops";
+import {
+  applySettingsPatch,
+  copySettings,
+  updatePoint,
+} from "@/lib/survey-ops";
 import { defaultSurvey } from "@/lib/survey-defaults";
 
 const work = mkdtempSync(join(tmpdir(), "wifi-heatmapper-mcp-test-"));
@@ -275,6 +280,27 @@ beforeAll(async () => {
       files[name] = saved;
       return send(200, saved);
     }
+    const pointPath = u.pathname.match(
+      /^\/api\/surveys\/([^/]+)\/points\/([^/]+)$/,
+    );
+    if (pointPath && req.method === "PATCH") {
+      // what the real route does: strict body, 404 for an unknown point
+      const [name, id] = pointPath.slice(1).map(decodeURIComponent);
+      const parsed = pointPatchSchema.safeParse(JSON.parse(await body(req)));
+      if (!parsed.success) return send(400, { error: "Invalid request" });
+      if (!files[name]) return send(404, { error: "No survey" });
+      const saved = updatePoint(
+        parseSurveyFile(files[name], name),
+        id,
+        parsed.data,
+      );
+      if (!saved) return send(404, { error: `No point "${id}"` });
+      files[name] = parseSurveyFile(
+        saved as unknown as Record<string, unknown>,
+        name,
+      );
+      return send(200, files[name]);
+    }
     if (u.pathname === "/api/settings/copy" && req.method === "POST") {
       // what the real route does: strict query, source read, target saved
       copies.push(u.searchParams);
@@ -347,6 +373,7 @@ describe("MCP server over stdio against a fake app", () => {
       "list_surveys",
       "report_problem",
       "start_measurement",
+      "update_point",
       "update_settings",
       "wait_for_measurement",
     ]);
@@ -486,6 +513,59 @@ describe("MCP server over stdio against a fake app", () => {
       arguments: { name: "Nope.png" },
     })) as CallToolResult;
     expect(missing.isError).toBe(true);
+  });
+
+  it("update_point names a point, get_survey shows it, '' removes it", async () => {
+    const named = json(
+      await client.callTool({
+        name: "update_point",
+        arguments: {
+          survey: "Home.png",
+          pointId: "Point_2",
+          label: "  Garden shed ",
+        },
+      }),
+    );
+    expect(named).toMatchObject({ pointId: "Point_2", label: "Garden shed" });
+    const survey = json(
+      await client.callTool({
+        name: "get_survey",
+        arguments: { name: "Home.png" },
+      }),
+    );
+    expect(survey.points.map((p: { label: string | null }) => p.label)).toEqual(
+      [null, "Garden shed"],
+    );
+    // the measurement itself is untouched
+    expect(survey.points[1]).toMatchObject({
+      id: "Point_2",
+      signalPercent: 20,
+    });
+
+    const cleared = json(
+      await client.callTool({
+        name: "update_point",
+        arguments: { survey: "Home.png", pointId: "Point_2", label: "" },
+      }),
+    );
+    expect(cleared.label).toBeNull();
+
+    const unknown = (await client.callTool({
+      name: "update_point",
+      arguments: { survey: "Home.png", pointId: "Point_9", label: "x" },
+    })) as CallToolResult;
+    expect(unknown.isError).toBe(true);
+    expect(JSON.stringify(unknown.content)).toMatch(/No point .*Point_9/);
+
+    const tooLong = (await client.callTool({
+      name: "update_point",
+      arguments: {
+        survey: "Home.png",
+        pointId: "Point_2",
+        label: "x".repeat(61),
+      },
+    })) as CallToolResult;
+    expect(tooLong.isError).toBe(true);
   });
 
   it("get_heatmap_grid computes a grid in display units", async () => {

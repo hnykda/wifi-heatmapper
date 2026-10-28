@@ -6,9 +6,10 @@ mock mode, Playwright tests, an About dialog, access point names, CSV
 export, floor plan deletion and captions on downloaded heat maps;
 those items were removed from the lists below.
 
-Open pull requests worth finishing: #64 (editable SSID/BSSID/point
-label). #85 (the Windows WLAN API instead of parsing `netsh`) landed in
-0.8.0.
+Point labels from #64 landed after 0.8.0 (#43). Its editable SSID/BSSID
+part is left out on purpose: a point keeps what was measured, and access
+point names already make BSSIDs readable. #85 (the Windows WLAN API
+instead of parsing `netsh`) landed in 0.8.0.
 
 ## Feature and Behavior Improvements
 

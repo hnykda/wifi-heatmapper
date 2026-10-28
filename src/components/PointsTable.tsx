@@ -67,6 +67,7 @@ import { apNameFor } from "@/lib/apName";
 import { hasSpeedData } from "@/lib/measurement-mode";
 import { surveyPointsToCsv, downloadText } from "@/lib/exportCsv";
 import { AlertDialogModal } from "./AlertDialogModal";
+import { PointLabel } from "./PointLabel";
 import { useSettings } from "./GlobalSettings";
 import { cn } from "@/lib/utils";
 
@@ -94,6 +95,7 @@ const features = tableFeatures({
 
 type Row = {
   id: string;
+  label: string; // "" when the point has no name
   x: number;
   y: number;
   ssid: string;
@@ -167,6 +169,7 @@ const SurveyPointsTable: React.FC<SurveyPointsTableProps> = ({
   const rows: Row[] = data.map((point) => ({
     origPoint: point,
     id: point.id,
+    label: point.label ?? "",
     x: point.x,
     y: point.y,
     ssid: point.wifiData.ssid,
@@ -219,6 +222,18 @@ const SurveyPointsTable: React.FC<SurveyPointsTableProps> = ({
       enableHiding: false,
     },
     { accessorKey: "id", header: "Point", meta: { align: "left" } },
+    {
+      accessorKey: "label",
+      header: "Name",
+      meta: { align: "left" },
+      cell: ({ row }) => (
+        <PointLabel
+          point={row.original.origPoint}
+          onSave={(label) => update(row.original.origPoint, { label })}
+          className="max-w-48"
+        />
+      ),
+    },
     {
       id: "enabled",
       accessorKey: "isEnabled",

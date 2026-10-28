@@ -31,6 +31,8 @@ export interface PointTest {
 
 export interface PointRecord {
   id: string;
+  /** the name the person gave the point ("Kitchen"), or null; use it when talking about the point */
+  label: string | null;
   x: number;
   y: number;
   enabled: boolean;
@@ -88,6 +90,7 @@ export function describePoint(
   const iperf = point.iperfData ?? ({} as IperfResults);
   return {
     id: point.id,
+    label: point.label?.trim() || null,
     x: round(point.x),
     y: round(point.y),
     enabled: point.isEnabled !== false,

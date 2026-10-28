@@ -26,6 +26,8 @@ measuring it while you carry the laptop.
   heat map look;
 - **copy settings** from one survey to another, for example to set up the
   second floor like the first;
+- **name points** ("Kitchen", "Desk upstairs"), so it and you can talk
+  about rooms instead of point ids;
 - **measure with you carrying the laptop**: it tells you where to go, waits
   until you say you're there, measures, and tells you the result in plain
   words (see [Taking measurements](#taking-measurements));
@@ -43,8 +45,9 @@ measuring it while you carry the laptop.
   [The sudo password](#the-sudo-password)); never paste it into the chat.
 - **work when the app isn't running.** It talks to the running app; start
   the app first.
-- **delete anything** or change existing points or floor plans. A
-  measurement only adds a point.
+- **delete anything** or change floor plans or measured values. A
+  measurement only adds a point, and `update_point` only changes a point's
+  name.
 
 ## How it fits together
 
@@ -272,7 +275,8 @@ the measurement the server is running.
   iperf3 at once and saves nothing. A measurement that is already being
   saved can't be stopped.
 - A measurement only adds a point. It never changes or deletes others; you
-  can switch a point off or delete it in the app.
+  can switch a point off or delete it in the app. The agent can name a
+  point (`update_point`), nothing else.
 
 ### The measurement tools
 
@@ -310,6 +314,20 @@ call after 60 seconds, hence the default of 45.
 
 `cancel_measurement(jobId)` stops that job. If it had already finished,
 the answer says so (and which point was saved).
+
+`update_point(survey, pointId, label)` names a point, for example right
+after a measurement, with the name you use for the spot:
+
+```
+> update_point {"survey":"Home.png","pointId":"Point_1","label":"Kitchen"}
+{"survey":"Home.png","pointId":"Point_1","label":"Kitchen",
+ "note":"Saved. An open app tab shows the new name."}
+```
+
+The label is trimmed and at most 60 characters; `""` removes it. Only the
+name changes: the id (`Point_1`) and the measured values stay as they
+were. The app shows the label instead of the id, `get_survey` returns it
+as `label`, and the agent uses it when it talks about the point.
 
 ### The sudo password
 
@@ -364,6 +382,7 @@ pixels, with the origin at the top left. Throughput is in Mbps.
 | `start_measurement(survey, x, y)` | Measure at that spot (you are holding the laptop there) and save a point. Returns a job id. |
 | `wait_for_measurement(jobId, timeoutSeconds?)` | Wait for it and return the saved point, or why it failed. |
 | `cancel_measurement(jobId)` | Stop it at once. Nothing is saved. |
+| `update_point(survey, pointId, label)` | Name a point (`""` removes the name). Changes nothing else. |
 
 ### get_survey
 
@@ -371,7 +390,7 @@ Each point looks like this (shortened):
 
 ```json
 {
-  "id": "Point_7", "x": 922, "y": 92, "enabled": true,
+  "id": "Point_7", "label": "Office", "x": 922, "y": 92, "enabled": true,
   "measuredAt": "2026-10-28T08:20:26.571Z",
   "ssid": "Demo Network", "bssid": "9e05d696e830", "apName": null,
   "signalPercent": 29, "rssiDbm": -83, "noiseDbm": -92, "snrDb": 9,
@@ -382,7 +401,8 @@ Each point looks like this (shortened):
 }
 ```
 
-`noiseDbm` and `snrDb` are `null` where the system reports no noise
+`label` is the name given to the point in the app or with `update_point`,
+or `null`. `noiseDbm` and `snrDb` are `null` where the system reports no noise
 (Windows, some Linux drivers). A test is `null` when it did not run (signal
 only, no iperf3 server, or it failed); a test that ran and got nothing
 through is `{ "mbps": 0 }`, a dead spot. `channel`, `bandGHz`,
@@ -547,8 +567,8 @@ Prompts are ready-made requests your MCP client offers (in Claude Code, type
   [The sudo password](#the-sudo-password)).
 - **Changes are real.** `update_settings` saves the survey file, and the next
   measurement uses the new settings. `start_measurement` runs the Wi-Fi
-  tools and iperf3 on this computer and adds a point. Nothing can delete
-  anything or change existing points. Most clients ask before calling a
+  tools and iperf3 on this computer and adds a point; `update_point`
+  renames one. Nothing can delete anything or change measured values. Most clients ask before calling a
   tool that changes something; keep that on.
 - **Sends nothing.** The MCP server talks only to the app on this computer.
   It has no [usage counts](privacy.md) of its own and no tool that reads or
