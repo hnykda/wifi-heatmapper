@@ -53,6 +53,26 @@ const metricTitles: Record<MeasurementTestType, string> = {
   udpUpload: "UDP upload",
 };
 
+/** Promise.all over items, running at most `limit` of fn at once. */
+async function mapWithLimit<T, R>(
+  items: T[],
+  limit: number,
+  fn: (item: T) => Promise<R>,
+): Promise<R[]> {
+  const results: R[] = new Array(items.length);
+  let next = 0;
+  const worker = async () => {
+    while (next < items.length) {
+      const i = next++;
+      results[i] = await fn(items[i]);
+    }
+  };
+  await Promise.all(
+    Array.from({ length: Math.min(limit, items.length) }, worker),
+  );
+  return results;
+}
+
 function ok(value: unknown): CallToolResult {
   return { content: [{ type: "text", text: JSON.stringify(value) }] };
 }
@@ -124,8 +144,17 @@ export function createMcpServer(client: AppClient, version: string): McpServer {
           client.surveyNames(),
         ]);
         const surveyed = new Set(surveyNames);
-        const surveys = await Promise.all(
-          surveyNames.map(async (n) => [n, await client.survey(n)] as const),
+        // A few at a time: hundreds of parallel requests make a dev
+        // server drop connections ("fetch failed").
+        const surveys = await mapWithLimit(
+          surveyNames,
+          4,
+          // One damaged file must not hide the rest
+          async (n) =>
+            [
+              n,
+              await client.survey(n).catch(() => "unreadable" as const),
+            ] as const,
         );
         const byName = new Map(surveys);
         type Entry = {
@@ -136,10 +165,12 @@ export function createMcpServer(client: AppClient, version: string): McpServer {
           enabledPoints?: number;
           throughputTests?: boolean;
           savedAt?: string | null;
+          unreadable?: boolean;
         };
         const describe = (
-          survey: StoredSurvey | null | undefined,
+          survey: StoredSurvey | "unreadable" | null | undefined,
         ): Partial<Entry> => {
+          if (survey === "unreadable") return { unreadable: true };
           if (!survey) return {};
           const pts = survey.surveyPoints ?? [];
           return {
