@@ -89,6 +89,47 @@ function run(cmd, args, opts = {}) {
  * Homebrew's is a shim linked against Homebrew dylibs and dies inside an app
  * bundle; nodejs.org builds are self-contained.
  */
+/**
+ * Download a file. Downloads from nodejs.org on CI runners are sometimes
+ * very slow and sometimes stall (a release job once hung for 20 minutes),
+ * so an attempt that receives nothing for a minute is dropped and retried,
+ * up to 3 attempts. A slow download that keeps receiving data is let be.
+ */
+async function download(url) {
+  const STALL_MS = 60_000;
+  for (let attempt = 1; ; attempt++) {
+    console.log(`downloading ${url}`);
+    const controller = new AbortController();
+    let timer = setTimeout(() => controller.abort(), STALL_MS);
+    try {
+      const res = await fetch(url, { signal: controller.signal });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const chunks = [];
+      let bytes = 0;
+      let reported = 0;
+      for await (const chunk of res.body) {
+        clearTimeout(timer);
+        timer = setTimeout(() => controller.abort(), STALL_MS);
+        chunks.push(chunk);
+        bytes += chunk.length;
+        if (bytes - reported >= 10 * 1024 * 1024) {
+          reported = bytes;
+          console.log(`  ${(bytes / 1024 / 1024).toFixed(0)} MiB`);
+        }
+      }
+      return Buffer.concat(chunks);
+    } catch (err) {
+      const reason = controller.signal.aborted
+        ? `no data for ${STALL_MS / 1000} s`
+        : err.message;
+      if (attempt === 3) throw new Error(`could not download ${url}: ${reason}`);
+      console.log(`download failed (${reason}), trying again`);
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+}
+
 async function officialNodeBinary(version) {
   const dist = NODE_DIST[process.platform];
   const arch = NODE_ARCH[process.arch];
@@ -102,11 +143,8 @@ async function officialNodeBinary(version) {
   mkdirSync(cacheDir, { recursive: true });
   const file = `${name}.${dist.archive}`;
   const url = `https://nodejs.org/dist/v${version}/${file}`;
-  console.log(`downloading ${url}`);
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`could not download ${url}: ${res.status}`);
   const archive = join(cacheDir, file);
-  writeFileSync(archive, Buffer.from(await res.arrayBuffer()));
+  writeFileSync(archive, await download(url));
   // bsdtar (macOS, Windows 10+) and GNU tar all read these formats. On
   // Windows, name System32's bsdtar: a `tar` earlier on PATH may be Git's GNU
   // tar, which cannot read .zip and takes `C:\...` for a remote host. No shell,
