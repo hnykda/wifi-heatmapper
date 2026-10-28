@@ -43,9 +43,8 @@ export const percentageToRssi = (percentage: number): number => {
  */
 /**
  * averageRssi - the RSSI to store for a measurement: the average of the dBm
- * readings taken during it. Every backend reports an RSSI (netsh only a
- * percentage, which it converts). Falls back to converting the average
- * percentage if any reading has no RSSI (0).
+ * readings taken during it. Every backend reports an RSSI. Falls back to
+ * converting the average percentage if any reading has no RSSI (0).
  * @param rssis - dBm readings
  * @param strength - the average signal strength (%)
  */

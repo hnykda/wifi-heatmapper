@@ -62,7 +62,7 @@ body:
     id: wifi-method
     attributes:
       label: How the app reads Wi-Fi
-      description: "Filled in by the app: for example the macOS Wi-Fi helper, wdutil, iw, the Windows WLAN API or netsh."
+      description: "Filled in by the app: for example the macOS Wi-Fi helper, wdutil, iw or the Windows WLAN API."
     validations:
       required: false
   - type: textarea
