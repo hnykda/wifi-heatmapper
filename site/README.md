@@ -51,7 +51,8 @@ npm --prefix site run serve      # builds into _site/, serves http://127.0.0.1:8
 
 ## Hosting
 
-GitHub Pages, source "GitHub Actions", custom domain
-`wifi-heatmapper.danielalder.cz` (the `CNAME` file). DNS: a `CNAME` record
+GitHub Pages with source "GitHub Actions". The custom domain
+`wifi-heatmapper.danielalder.cz` is set in the repository's Settings → Pages:
+with Actions deployments GitHub ignores a `CNAME` file. DNS: a `CNAME` record
 `wifi-heatmapper` → `hnykda.github.io` in Cloudflare, DNS only (not proxied),
 so GitHub can issue the certificate.
