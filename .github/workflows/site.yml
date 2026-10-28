@@ -15,7 +15,9 @@ on:
       - "site/**"
       - "docs/**"
       - ".github/workflows/site.yml"
-  # A new release changes the version and download links on the page.
+  # A new release changes the version and download links on the page. The
+  # github-pages environment only deploys from main, and a release run is on
+  # the tag, so the release job below re-runs this workflow on main.
   release:
     types: [published]
   workflow_dispatch:
@@ -28,8 +30,20 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  rebuild-on-release:
+    name: Rebuild on main for the new release
+    if: github.event_name == 'release'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - run: gh workflow run site.yml --repo "$GITHUB_REPOSITORY" --ref main
+        env:
+          GH_TOKEN: ${{ github.token }}
+
   build:
     name: Build
+    if: github.event_name != 'release'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -49,7 +63,7 @@ jobs:
 
   deploy:
     name: Deploy
-    if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || github.event_name == 'release')
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     needs: build
     runs-on: ubuntu-latest
     permissions:
