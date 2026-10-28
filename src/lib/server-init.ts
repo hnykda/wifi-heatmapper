@@ -9,6 +9,7 @@ import path from "path";
 import { getLogger } from "./logger";
 import { initLocalization } from "./localization";
 import { getAppStatus } from "./app-info";
+import { reportAppStart } from "./telemetry";
 import {
   getBundledFloorplansDir,
   getLegacyMediaDir,
@@ -81,6 +82,7 @@ let initPromise: Promise<void> | null = null;
  * - seed the bundled floor plans
  * - migrate floor plans uploaded by versions < 0.5.0 (public/media)
  * - load Windows localization tables
+ * - send the anonymous usage counts, if on (telemetry.ts, in the background)
  */
 export function initServer(): Promise<void> {
   if (!initPromise) initPromise = doInit();
@@ -94,6 +96,7 @@ async function doInit(): Promise<void> {
     const mediaDir = getMediaDir();
     await fs.mkdir(mediaDir, { recursive: true });
     await fs.mkdir(getSurveysDir(), { recursive: true });
+    void reportAppStart(); // never waited for, never throws
 
     await copyMissing(getBundledFloorplansDir(), mediaDir);
     const migrated = await copyMissing(getLegacyMediaDir(), mediaDir);

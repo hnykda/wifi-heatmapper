@@ -70,7 +70,7 @@ export function WelcomePanel() {
             iperf3 -s
           </code>{" "}
           on a second computer, wired to your router. After a dozen points or
-          so, the Heat maps tab draws the picture. Everything stays on this
+          so, the Heat maps tab draws the picture. Your surveys stay on this
           computer.
         </p>
         {status?.mockMode && (

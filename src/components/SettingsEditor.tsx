@@ -12,6 +12,7 @@ import FloorplanPicker from "./MediaDropdown";
 import { GradientEditor } from "./GradientEditor";
 import EditableApMapping from "./ApMapping";
 import { CopySettingsDialog } from "./CopySettingsDialog";
+import { UsageCountsSettings } from "./UsageCountsSettings";
 import { sanitizeFilename } from "@/lib/utils";
 import { AppStatus } from "@/lib/types";
 
@@ -213,6 +214,8 @@ export default function SettingsEditor() {
           </FormRow>
         </div>
       </FormSection>
+
+      <UsageCountsSettings />
     </div>
   );
 }

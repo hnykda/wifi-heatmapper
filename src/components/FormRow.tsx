@@ -8,11 +8,13 @@ import { cn } from "@/lib/utils";
  * Sections are separated by rules rather than boxed in cards.
  */
 export function FormSection({
+  id,
   title,
   description,
   children,
   className,
 }: {
+  id?: string;
   title: string;
   description?: ReactNode;
   children: ReactNode;
@@ -20,6 +22,7 @@ export function FormSection({
 }) {
   return (
     <section
+      id={id}
       className={cn(
         "grid gap-6 border-b py-8 first:pt-0 last:border-b-0 md:grid-cols-[minmax(0,17rem)_minmax(0,1fr)] md:gap-10",
         className,

@@ -26,6 +26,7 @@ import * as store from "./survey-store";
 import { addPoint } from "./survey-ops";
 import { recordMeasurement } from "./diagnostics-state";
 import { measuresSpeed } from "./measurement-mode";
+import { reportMeasurement } from "./telemetry";
 import { getLogger } from "./logger";
 
 const logger = getLogger("measurement-job");
@@ -337,6 +338,7 @@ async function run(job: Job, settings: PartialHeatmapSettings, runner: Runner) {
     speedTests,
     ...(warning ? { note: `Saved without speed: ${warning}` } : {}),
   });
+  reportMeasurement({ speedTests, speedSaved: !warning }); // if on; background
   finish(job, "done", { pointId, ...(warning ? { warning } : {}) }, fields);
 }
 

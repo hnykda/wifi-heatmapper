@@ -529,6 +529,9 @@ Home.png survey, and where should I put a second access point?"
   tools and iperf3 on this computer and adds a point. Nothing can delete
   anything or change existing points. Most clients ask before calling a
   tool that changes something; keep that on.
+- **Sends nothing.** The MCP server talks only to the app on this computer.
+  It has no [usage counts](privacy.md) of its own and no tool that reads or
+  changes the app's.
 - The app's HTTP API has no login, like the rest of the app. Anything on
   this computer that can reach the port can use it, with or without MCP.
 

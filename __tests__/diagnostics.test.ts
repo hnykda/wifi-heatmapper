@@ -25,6 +25,7 @@ function input(overrides: Partial<DiagnosticsInput> = {}): DiagnosticsInput {
       runMode: "from source (next start)",
       mockMode: false,
       dataDir: "/home/alice/wifi-heatmapper/data",
+      usageCounts: "on",
     },
     wifi: {
       method: "iw with sudo",
@@ -70,6 +71,7 @@ describe("buildDiagnostics", () => {
   test("collects the facts in a readable summary", () => {
     const r = buildDiagnostics(input(), context, { hideNetwork: true });
     expect(r.summary).toContain("App version: 0.7.0");
+    expect(r.summary).toContain("Usage counts: on");
     expect(r.summary).toContain(
       "Operating system: linux 6.8.0 (linux 6.8.0, x64)",
     );

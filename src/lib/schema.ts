@@ -509,6 +509,41 @@ export const startTaskSchema = z.strictObject({
   }),
 });
 
+/* ---------- usage counts (telemetry.ts) ---------- */
+
+/**
+ * data/usage-counts.json, read leniently: a broken field is dropped, so a
+ * hand-edited file never stops the app. Not part of any survey.
+ */
+export const usageCountsFileSchema = z.object({
+  /** false: turned off in Settings */
+  enabled: z.boolean().optional().catch(undefined),
+  /** random, made when usage counts are first on; removed when turned off */
+  installId: z.uuid().optional().catch(undefined),
+  /** the Install event was sent (never again, even with a new id) */
+  installReported: z.boolean().optional().catch(undefined),
+  /** UTC day (YYYY-MM-DD) of the last App start event */
+  lastAppStartDay: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional()
+    .catch(undefined),
+  /** the first-run notice was dismissed */
+  noticeDismissedAt: z.string().optional().catch(undefined),
+  lastSent: z
+    .object({ event: z.string(), at: z.string() })
+    .optional()
+    .catch(undefined),
+});
+
+export type UsageCountsFile = z.output<typeof usageCountsFileSchema>;
+
+/** PATCH /api/telemetry */
+export const usageCountsPatchSchema = z.strictObject({
+  enabled: z.boolean().optional(),
+  noticeDismissed: z.literal(true).optional(),
+});
+
 /** One line per problem, for a 400 answer. */
 export function describeIssues(error: z.ZodError): string {
   return error.issues

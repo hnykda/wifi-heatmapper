@@ -74,6 +74,11 @@ workflow. "Got it" hides it for good; the About dialog can show it again.
   MAC address wins over a prefix, and a longer prefix wins over a shorter one.
 * **Heat map colours** – the colour stops for signal strength (0% = -100 dBm,
   100% = -40 dBm) and the opacity range of the overlay.
+* **Usage counts** – turns the anonymous usage counts (installs, app starts,
+  number of measurements) on or off for this computer, shows the exact event
+  that is sent and when the last one went out, and says why they are off if
+  an environment variable or mock mode turns them off. See
+  [Privacy and usage counts](privacy.md).
 
 ## Floor plan
 

@@ -57,10 +57,20 @@ the app.
 
 ## Is it really free?
 
-Yes. The app is MIT licensed, has no ads, accounts or paid tier, and sends
-nothing anywhere. If it helped you, star the
+Yes. The app is MIT licensed and has no ads, accounts or paid tier. If it
+helped you, star the
 [repository](https://github.com/hnykda/wifi-heatmapper) so others find it, or
 [help out](https://wifi-heatmapper.danielalder.cz/#contribute).
+
+## Does it send anything?
+
+Only anonymous usage counts: that it was installed, that it started (at most
+once a day) and that a measurement was saved, with the app version, the
+system and how the app runs. Never network names, addresses, results or
+anything from your surveys. I build the app on my own, and these counts tell
+me whether people actually use it. Turn them off in Settings > Usage counts,
+or with `WIFI_HEATMAPPER_TELEMETRY=0` or `DO_NOT_TRACK=1`.
+[Privacy and usage counts](privacy.md) lists every field.
 
 ## Something went wrong. How do I report it?
 

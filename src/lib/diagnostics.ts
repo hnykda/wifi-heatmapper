@@ -44,6 +44,8 @@ export interface DiagnosticsInput {
     runMode: string;
     mockMode: boolean;
     dataDir: string;
+    /** "on", or "off (reason)"; never the install id */
+    usageCounts?: string;
   };
   wifi: {
     /** the method the last reading used, null before the first one */
@@ -160,6 +162,7 @@ export function buildDiagnostics(
   }
   if (problem) lines.push(["Problem shown", problem]);
   lines.push(["Data folder", app.dataDir]);
+  if (app.usageCounts) lines.push(["Usage counts", app.usageCounts]);
   lines.push([
     "Network names and addresses",
     hideNetwork ? "hidden" : "included",

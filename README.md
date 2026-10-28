@@ -6,8 +6,8 @@ heat maps of the results on your floor plan. Walk around with a laptop, click
 where you are, and see which rooms need a mesh node or extender, and whether
 a slow connection is really the Wi-Fi's fault.
 
-Free and open source (MIT). Runs on **macOS, Windows and Linux**. Everything
-stays on your computer: surveys are plain JSON files.
+Free and open source (MIT). Runs on **macOS, Windows and Linux**. Your
+surveys stay on your computer: they are plain JSON files.
 
 **Website and docs: <https://wifi-heatmapper.danielalder.cz>**
 
@@ -27,7 +27,14 @@ brew install --cask hnykda/tap/wifi-heatmapper
 The apps are unsigned, so macOS and Windows warn you the first time.
 [Installing the app](docs/guide/install.md) shows what to click on each
 system, and [what has been tested](docs/guide/install.md#what-has-been-tested)
-so far. To run it with Node.js instead:
+so far.
+
+The app sends anonymous usage counts (installs, app starts, number of
+measurements; never network names, addresses or results). I build it on my
+own, and they tell me it's used. Turn them off in Settings or with
+`WIFI_HEATMAPPER_TELEMETRY=0`: see [Privacy and usage counts](docs/guide/privacy.md).
+
+To run it with Node.js instead:
 
 ```bash
 git clone https://github.com/hnykda/wifi-heatmapper.git
@@ -67,6 +74,7 @@ The guide lives in [`docs/guide`](docs/guide) and is published at
 - [Running from source](docs/guide/run-from-source.md): Node.js, mock mode, Docker, logs
 - [AI agents (MCP)](docs/guide/mcp.md): let Claude or another agent read and explain your surveys
 - [FAQ](docs/guide/faq.md)
+- [Privacy and usage counts](docs/guide/privacy.md): what the anonymous usage counts contain and how to turn them off
 - [Changelog](CHANGELOG.md)
 
 For AI assistants: [llms.txt](https://wifi-heatmapper.danielalder.cz/llms.txt)
