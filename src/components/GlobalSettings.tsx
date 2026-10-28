@@ -2,10 +2,9 @@
 
 import {
   createContext,
-  useCallback,
   useContext,
   useEffect,
-  useMemo,
+  useEffectEvent,
   useRef,
   useState,
   ReactNode,
@@ -151,6 +150,30 @@ async function sendChange(
   }
 }
 
+/**
+ * send(), but a failure is logged and, if `isShown()` says the survey is
+ * still on screen, shown to the user. Resolves to null then.
+ */
+async function sendOrReport(
+  op: Op,
+  isShown: () => boolean,
+): Promise<Awaited<ReturnType<typeof send>> | null> {
+  try {
+    return await send(op);
+  } catch (err) {
+    console.error(`[wifi-heatmapper] ${op.kind} on "${op.name}":`, err);
+    if (isShown()) {
+      toast({
+        variant: "destructive",
+        title:
+          op.kind === "load" ? "Could not read the survey" : "Change not saved",
+        description: err instanceof Error ? err.message : String(err),
+      });
+    }
+    return null;
+  }
+}
+
 /** Split an updateSettings() change into what is saved and the password. */
 function toPatch(changes: Partial<HeatmapSettings>): {
   patch: SettingsPatch;
@@ -210,11 +233,11 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   // The debounced settings patch, not queued yet
   const draftRef = useRef<Extract<Op, { kind: "patch" }> | null>(null);
   const draftTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Operations run one at a time (send() errors are caught, so it never breaks)
+  // Operations run one at a time (sendOrReport() never rejects, so it never breaks)
   const queue = useRef<Promise<void>>(Promise.resolve());
 
   /** What to show: the server's survey plus every unanswered change. */
-  const current = useCallback((): HeatmapSettings => {
+  const current = (): HeatmapSettings => {
     const ops = [
       ...pendingRef.current,
       ...(draftRef.current ? [draftRef.current] : []),
@@ -223,83 +246,73 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       .filter((op) => op.name === nameRef.current)
       .reduce(applyLocally, serverRef.current);
     return { ...survey, sudoerPassword: sudoRef.current };
-  }, []);
+  };
 
   // Parts the server answered unchanged keep their identity, so maps and
   // tables don't redraw for nothing
-  const refresh = useCallback(
-    () => setSettings((shown) => keepUnchanged(shown, current())),
-    [current],
-  );
+  const refresh = () => setSettings((shown) => keepUnchanged(shown, current()));
 
   /** Queue an operation; resolves true once the server has saved it. */
-  const enqueue = useCallback(
-    (op: Op): Promise<boolean> => {
-      pendingRef.current.push(op);
-      const done = queue.current.then(async () => {
-        try {
-          const { survey, created } = await send(op);
-          if (op.name === nameRef.current) serverRef.current = survey;
-          const from = survey.meta?.speedSettingsFrom;
-          if (created && from) setInherited({ name: op.name, from });
-          return true;
-        } catch (err) {
-          const message = err instanceof Error ? err.message : String(err);
-          console.error(`[wifi-heatmapper] ${op.kind} on "${op.name}":`, err);
-          if (op.name === nameRef.current) {
-            toast({
-              variant: "destructive",
-              title:
-                op.kind === "load"
-                  ? "Could not read the survey"
-                  : "Change not saved",
-              description: message,
-            });
-          }
-          return false;
-        } finally {
-          pendingRef.current = pendingRef.current.filter((o) => o !== op);
-          if (op.kind === "load" && op.name === nameRef.current) {
-            setLoading(false);
-          }
-          refresh();
-        }
-      });
-      queue.current = done.then(() => undefined);
-      return done;
-    },
-    [refresh],
-  );
+  const enqueue = (op: Op): Promise<boolean> => {
+    pendingRef.current.push(op);
+    const isShown = () => op.name === nameRef.current;
+    const done = queue.current.then(async () => {
+      const answer = await sendOrReport(op, isShown);
+      if (answer) {
+        if (isShown()) serverRef.current = answer.survey;
+        const from = answer.survey.meta?.speedSettingsFrom;
+        if (answer.created && from) setInherited({ name: op.name, from });
+      }
+      pendingRef.current = pendingRef.current.filter((o) => o !== op);
+      if (op.kind === "load" && isShown()) setLoading(false);
+      refresh();
+      return answer !== null;
+    });
+    queue.current = done.then(() => undefined);
+    return done;
+  };
 
   /** Queue the debounced settings patch now, if there is one. */
-  const flushDraft = useCallback(
-    (keepalive = false) => {
-      if (draftTimer.current) {
-        clearTimeout(draftTimer.current);
-        draftTimer.current = null;
-      }
-      const draft = draftRef.current;
-      if (!draft) return;
-      draftRef.current = null;
-      enqueue(keepalive ? { ...draft, keepalive } : draft);
-    },
-    [enqueue],
+  const flushDraft = (keepalive = false) => {
+    if (draftTimer.current) {
+      clearTimeout(draftTimer.current);
+      draftTimer.current = null;
+    }
+    const draft = draftRef.current;
+    if (!draft) return;
+    draftRef.current = null;
+    enqueue(keepalive ? { ...draft, keepalive } : draft);
+  };
+
+  // Effect events: the effects below subscribe once, these see the latest
+  // functions when they run.
+  const flushOnLeave = useEffectEvent((keepalive: boolean) =>
+    flushDraft(keepalive),
   );
+  const reload = useEffectEvent((name: string) =>
+    enqueue({ kind: "load", name }),
+  );
+  // Switch to another survey: send what is left of the previous one first
+  const startLoading = useEffectEvent((name: string) => {
+    flushDraft();
+    nameRef.current = name;
+    enqueue({ kind: "load", name });
+  });
 
   // Send any pending change when the tab is hidden or closed
   useEffect(() => {
     const onHide = () => {
-      if (document.visibilityState === "hidden") flushDraft(true);
+      if (document.visibilityState === "hidden") flushOnLeave(true);
     };
-    const onPageHide = () => flushDraft(true);
+    const onPageHide = () => flushOnLeave(true);
     window.addEventListener("visibilitychange", onHide);
     window.addEventListener("pagehide", onPageHide);
     return () => {
       window.removeEventListener("visibilitychange", onHide);
       window.removeEventListener("pagehide", onPageHide);
-      flushDraft();
+      flushOnLeave(false);
     };
-  }, [flushDraft]);
+  }, []);
 
   // A point the server saved from a measurement (in any tab): show it
   useEffect(
@@ -307,9 +320,9 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       onMeasurementEvent((event) => {
         if (event.type !== "done" || !event.pointId) return;
         if (event.survey !== nameRef.current) return;
-        enqueue({ kind: "load", name: event.survey });
+        reload(event.survey);
       }),
-    [enqueue],
+    [],
   );
 
   // Load the survey (and migrate on first run)
@@ -330,134 +343,104 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         }
       }
       if (cancelled) return;
-      // Anything still unsent belongs to the previous survey: send it now
-      flushDraft();
       // The previous survey stays on screen until this one has loaded
-      const name = floorplanImage || DEFAULT_FLOORPLAN;
-      nameRef.current = name;
-      enqueue({ kind: "load", name });
+      startLoading(floorplanImage || DEFAULT_FLOORPLAN);
     }
     loadSettings();
     return () => {
       cancelled = true;
     };
-  }, [floorplanImage, reloadCounter, flushDraft, enqueue]);
+  }, [floorplanImage, reloadCounter]);
 
-  const readNewSettingsFromFile = useCallback((fileName: string) => {
+  const readNewSettingsFromFile = (fileName: string) => {
     setInherited(null); // "copied from" is only shown right after creation
     setFloorplanImage(fileName); // let useEffect() do the work
-  }, []);
+  };
 
-  const reloadSettings = useCallback(() => {
+  const reloadSettings = () => {
     setReloadCounter((n) => n + 1);
-  }, []);
+  };
 
-  const updateSettings = useCallback(
-    (newSettings: SettingsUpdate) => {
-      const changes =
-        typeof newSettings === "function"
-          ? newSettings(current())
-          : newSettings;
-      const { patch, sudoerPassword } = toPatch(changes);
-      if (sudoerPassword !== undefined && sudoerPassword !== sudoRef.current) {
-        sudoRef.current = sudoerPassword;
-        // the server holds it in memory for measurements an agent starts
-        if (sudoTimer.current) clearTimeout(sudoTimer.current);
-        sudoTimer.current = setTimeout(
-          () => void api.shareSudoPassword(sudoRef.current),
-          SAVE_DEBOUNCE_MS,
-        );
-      }
-      const name = nameRef.current;
-      if (name && Object.keys(patch).length > 0) {
-        const draft = draftRef.current;
-        if (draft && draft.name !== name) flushDraft();
-        draftRef.current = {
-          kind: "patch",
-          name,
-          patch: { ...(draftRef.current?.patch ?? {}), ...patch },
-        };
-        if (draftTimer.current) clearTimeout(draftTimer.current);
-        draftTimer.current = setTimeout(() => flushDraft(), SAVE_DEBOUNCE_MS);
-      }
-      refresh();
-    },
-    [current, refresh, flushDraft],
-  );
+  const updateSettings = (newSettings: SettingsUpdate) => {
+    const changes =
+      typeof newSettings === "function" ? newSettings(current()) : newSettings;
+    const { patch, sudoerPassword } = toPatch(changes);
+    if (sudoerPassword !== undefined && sudoerPassword !== sudoRef.current) {
+      sudoRef.current = sudoerPassword;
+      // the server holds it in memory for measurements an agent starts
+      if (sudoTimer.current) clearTimeout(sudoTimer.current);
+      sudoTimer.current = setTimeout(
+        () => void api.shareSudoPassword(sudoRef.current),
+        SAVE_DEBOUNCE_MS,
+      );
+    }
+    const name = nameRef.current;
+    if (name && Object.keys(patch).length > 0) {
+      const draft = draftRef.current;
+      if (draft && draft.name !== name) flushDraft();
+      draftRef.current = {
+        kind: "patch",
+        name,
+        patch: { ...(draftRef.current?.patch ?? {}), ...patch },
+      };
+      if (draftTimer.current) clearTimeout(draftTimer.current);
+      draftTimer.current = setTimeout(() => flushDraft(), SAVE_DEBOUNCE_MS);
+    }
+    refresh();
+  };
 
   /** Point changes are sent at once, after any settings change before them. */
-  const sendNow = useCallback(
-    (op: Op): Promise<boolean> => {
-      if (!op.name) return Promise.resolve(false); // no survey loaded yet
-      flushDraft();
-      const done = enqueue(op);
-      refresh();
-      return done;
-    },
-    [flushDraft, enqueue, refresh],
-  );
+  const sendNow = (op: Op): Promise<boolean> => {
+    if (!op.name) return Promise.resolve(false); // no survey loaded yet
+    flushDraft();
+    const done = enqueue(op);
+    refresh();
+    return done;
+  };
 
-  const copySettingsFrom = useCallback(
-    (from: string, parts: CopyPart[]) =>
-      sendNow({ kind: "copy", name: nameRef.current, from, parts }),
-    [sendNow],
-  );
+  const copySettingsFrom = (from: string, parts: CopyPart[]) =>
+    sendNow({ kind: "copy", name: nameRef.current, from, parts });
 
   const speedSettingsFrom =
     inherited && inherited.name === settings.floorplanImageName
       ? inherited.from
       : null;
 
-  const surveyPointActions: SurveyPointActions = useMemo(
-    () => ({
-      // The server gives the point the next free "Point_N" id
-      add: (newPoint: SurveyPoint) => {
-        sendNow({ kind: "add", name: nameRef.current, point: newPoint });
-      },
+  const surveyPointActions: SurveyPointActions = {
+    // The server gives the point the next free "Point_N" id
+    add: (newPoint: SurveyPoint) => {
+      sendNow({ kind: "add", name: nameRef.current, point: newPoint });
+    },
 
-      update: (thePoint: SurveyPoint, updatedData: Partial<SurveyPoint>) => {
-        const { id: _id, ...patch } = updatedData;
-        sendNow({
-          kind: "update",
-          name: nameRef.current,
-          id: thePoint.id,
-          patch,
-        });
-      },
+    update: (thePoint: SurveyPoint, updatedData: Partial<SurveyPoint>) => {
+      const { id: _id, ...patch } = updatedData;
+      sendNow({
+        kind: "update",
+        name: nameRef.current,
+        id: thePoint.id,
+        patch,
+      });
+    },
 
-      delete: (points: SurveyPoint[]) => {
-        sendNow({
-          kind: "delete",
-          name: nameRef.current,
-          ids: points.map((point) => point.id),
-        });
-      },
-    }),
-    [sendNow],
-  );
+    delete: (points: SurveyPoint[]) => {
+      sendNow({
+        kind: "delete",
+        name: nameRef.current,
+        ids: points.map((point) => point.id),
+      });
+    },
+  };
 
-  const value = useMemo(
-    () => ({
-      settings,
-      loading,
-      updateSettings,
-      surveyPointActions,
-      readNewSettingsFromFile,
-      reloadSettings,
-      copySettingsFrom,
-      speedSettingsFrom,
-    }),
-    [
-      settings,
-      loading,
-      updateSettings,
-      surveyPointActions,
-      readNewSettingsFromFile,
-      reloadSettings,
-      copySettingsFrom,
-      speedSettingsFrom,
-    ],
-  );
+  const value = {
+    settings,
+    loading,
+    updateSettings,
+    surveyPointActions,
+    readNewSettingsFromFile,
+    reloadSettings,
+    copySettingsFrom,
+    speedSettingsFrom,
+  };
 
   return (
     <SettingsContext.Provider value={value}>

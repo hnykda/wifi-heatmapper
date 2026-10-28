@@ -1,7 +1,7 @@
 "use client";
 
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Check, ChevronDown, ImagePlus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/use-toast";
@@ -15,6 +15,31 @@ type FloorplanPickerProps = {
   onChange: (name: string) => void;
   onDelete: (name: string) => Promise<void>;
 };
+
+async function listFloorplans(): Promise<string[]> {
+  const res = await fetch("/api/media");
+  if (!res.ok) throw new Error("Could not list floor plans");
+  const data = await res.json();
+  return data.files as string[];
+}
+
+/** Upload an image; resolves to its saved name, or to an error message. */
+async function uploadFloorplan(
+  file: File,
+): Promise<{ name: string } | { error: string }> {
+  const formData = new FormData();
+  formData.append("file", file);
+  const res = await fetch("/api/media", { method: "POST", body: formData });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    return {
+      error:
+        body.error ??
+        "The file could not be saved. Use a PNG, JPEG or WebP image.",
+    };
+  }
+  return { name: body.name as string };
+}
 
 /**
  * Pick, upload or delete a floor plan image.
@@ -32,52 +57,49 @@ export default function FloorplanPicker({
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  const fetchFiles = useCallback(async () => {
-    try {
-      const res = await fetch("/api/media");
-      if (!res.ok) throw new Error("Could not list floor plans");
-      const data = await res.json();
-      setFiles(data.files as string[]);
-      setError(null);
-    } catch (err) {
-      setError((err as Error).message);
-    }
-  }, []);
+  const showFiles = (list: string[]) => {
+    setFiles(list);
+    setError(null);
+  };
+  const showError = (err: unknown) => setError((err as Error).message);
+  const fetchFiles = () => listFloorplans().then(showFiles, showError);
 
   useEffect(() => {
-    fetchFiles();
-  }, [fetchFiles]);
+    let current = true;
+    listFloorplans().then(
+      (list) => current && showFiles(list),
+      (err: unknown) => current && showError(err),
+    );
+    return () => {
+      current = false;
+    };
+  }, []);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
 
-    const formData = new FormData();
-    formData.append("file", file);
     setUploading(true);
-    try {
-      const res = await fetch("/api/media", { method: "POST", body: formData });
-      const body = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        toast({
-          variant: "destructive",
-          title: "Upload failed",
-          description:
-            body.error ??
-            "The file could not be saved. Use a PNG, JPEG or WebP image.",
-        });
-        return;
-      }
-      await fetchFiles();
-      onChange(body.name as string);
-      toast({
-        title: "Floor plan added",
-        description: `${body.name} is now the current floor plan.`,
-      });
-    } finally {
+    const result = await uploadFloorplan(file).catch((err: unknown) => ({
+      error: String(err),
+    }));
+    if ("error" in result) {
       setUploading(false);
+      toast({
+        variant: "destructive",
+        title: "Upload failed",
+        description: result.error,
+      });
+      return;
     }
+    await fetchFiles();
+    onChange(result.name);
+    setUploading(false);
+    toast({
+      title: "Floor plan added",
+      description: `${result.name} is now the current floor plan.`,
+    });
   };
 
   const filteredFiles = files.filter((f) =>

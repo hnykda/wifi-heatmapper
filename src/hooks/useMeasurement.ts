@@ -9,7 +9,13 @@
  * reload when the job is done. A job started in another tab for the same
  * survey is followed too.
  */
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useEffectEvent,
+  useRef,
+  useState,
+} from "react";
 import type {
   MeasurementEvent,
   MeasurementFields,
@@ -59,6 +65,48 @@ async function stopJob(jobId: string) {
   }).catch(() => {});
 }
 
+type StatusAnswer =
+  | { kind: "ok"; status: MeasurementJobStatus }
+  | { kind: "gone" } // the server doesn't know the job (restarted?)
+  | { kind: "failed" };
+
+/** Ask for one job's status. Never rejects. */
+async function fetchStatus(jobId: string): Promise<StatusAnswer> {
+  try {
+    const res = await fetch(
+      `/api/start-task?action=status&id=${encodeURIComponent(jobId)}`,
+    );
+    if (res.status === 404) return { kind: "gone" };
+    if (!res.ok) return { kind: "failed" };
+    return { kind: "ok", status: (await res.json()) as MeasurementJobStatus };
+  } catch {
+    return { kind: "failed" };
+  }
+}
+
+/** Ask the server to start a job. Never rejects. */
+async function requestStart(
+  survey: string,
+  x: number,
+  y: number,
+  settings: PartialHeatmapSettings,
+): Promise<{ jobId: string } | { error: string }> {
+  try {
+    const res = await fetch("/api/start-task?action=start", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ survey, x, y, settings }),
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok || typeof body?.jobId !== "string") {
+      return { error: body?.error ?? `The server answered ${res.status}.` };
+    }
+    return { jobId: body.jobId };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : String(err) };
+  }
+}
+
 const isActive = (phase: MeasurementPhase) =>
   phase === "connecting" || phase === "running";
 
@@ -70,13 +118,15 @@ export function useMeasurement(
   // the same as view, readable from callbacks (always set with setView)
   const viewRef = useRef(view);
   const surveyRef = useRef(survey);
-  const onSavedRef = useRef(onSaved);
   useEffect(() => {
     surveyRef.current = survey;
-    onSavedRef.current = onSaved;
-  }, [survey, onSaved]);
+  }, [survey]);
+  const saved = useEffectEvent(onSaved);
   // events for a job whose start hasn't answered yet
   const early = useRef(new Map<string, MeasurementEvent>());
+
+  // apply, adopt and onEvent keep their identity on purpose: the effects
+  // below subscribe with them.
 
   /** Apply one event of the job being watched. */
   const apply = useCallback((event: MeasurementEvent) => {
@@ -162,18 +212,12 @@ export function useMeasurement(
   const active = isActive(view.phase);
   useEffect(() => {
     if (!jobId || !active) return;
-    let failures = 0;
+    const poll = { failures: 0 };
     const timer = setInterval(async () => {
-      try {
-        const res = await fetch(
-          `/api/start-task?action=status&id=${encodeURIComponent(jobId)}`,
-        );
-        if (res.status === 404) {
-          throw Object.assign(new Error("gone"), { gone: true });
-        }
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        failures = 0;
-        const status = (await res.json()) as MeasurementJobStatus;
+      const answer = await fetchStatus(jobId);
+      if (answer.kind === "ok") {
+        poll.failures = 0;
+        const { status } = answer;
         const wasActive = isActive(viewRef.current.phase);
         if (status.progress) apply(status.progress);
         // The survey provider reloads on the "done" event; this covers a
@@ -184,85 +228,75 @@ export function useMeasurement(
           status.pointId &&
           status.survey === surveyRef.current
         ) {
-          onSavedRef.current(status.pointId);
+          saved(status.pointId);
         }
-      } catch (err) {
-        failures++;
-        const gone = (err as { gone?: boolean }).gone;
-        if (gone || failures >= MAX_POLL_FAILURES) {
-          const current = viewRef.current;
-          if (current.job?.id !== jobId || !isActive(current.phase)) return;
-          const next: MeasurementView = {
-            ...current,
-            phase: "error",
-            message: gone
-              ? "The server no longer knows this measurement. Was it restarted?"
-              : "Lost contact with the server. Is it still running?",
-          };
-          viewRef.current = next;
-          setView(next);
-        }
+        return;
+      }
+      poll.failures += 1;
+      const gone = answer.kind === "gone";
+      if (gone || poll.failures >= MAX_POLL_FAILURES) {
+        const current = viewRef.current;
+        if (current.job?.id !== jobId || !isActive(current.phase)) return;
+        const next: MeasurementView = {
+          ...current,
+          phase: "error",
+          message: gone
+            ? "The server no longer knows this measurement. Was it restarted?"
+            : "Lost contact with the server. Is it still running?",
+        };
+        viewRef.current = next;
+        setView(next);
       }
     }, POLL_INTERVAL_MS);
     return () => clearInterval(timer);
   }, [jobId, active, apply]);
 
-  const start = useCallback(
-    async (x: number, y: number, settings: PartialHeatmapSettings) => {
-      if (isActive(viewRef.current.phase)) return;
-      const job: WatchedJob = { id: null, survey: surveyRef.current, x, y };
-      const starting: MeasurementView = {
-        ...IDLE,
-        job,
-        phase: "connecting",
-        header: "Starting",
+  const start = async (
+    x: number,
+    y: number,
+    settings: PartialHeatmapSettings,
+  ) => {
+    if (isActive(viewRef.current.phase)) return;
+    const job: WatchedJob = { id: null, survey: surveyRef.current, x, y };
+    const starting: MeasurementView = {
+      ...IDLE,
+      job,
+      phase: "connecting",
+      header: "Starting",
+    };
+    viewRef.current = starting;
+    setView(starting);
+    early.current.clear();
+    const fail = (message: string) => {
+      const next: MeasurementView = {
+        ...viewRef.current,
+        phase: "error",
+        message,
       };
-      viewRef.current = starting;
-      setView(starting);
-      early.current.clear();
-      const fail = (message: string) => {
-        const next: MeasurementView = {
-          ...viewRef.current,
-          phase: "error",
-          message,
-        };
-        viewRef.current = next;
-        setView(next);
-      };
-      try {
-        const res = await fetch("/api/start-task?action=start", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ survey: job.survey, x, y, settings }),
-        });
-        const body = await res.json().catch(() => ({}));
-        if (!res.ok || typeof body?.jobId !== "string") {
-          return fail(body?.error ?? `The server answered ${res.status}.`);
-        }
-        if (viewRef.current.job !== job) return; // dismissed meanwhile
-        if (viewRef.current.phase === "cancelled") {
-          // cancelled before the server answered: stop it now
-          await stopJob(body.jobId);
-          return;
-        }
-        const running: MeasurementView = {
-          ...viewRef.current,
-          job: { ...job, id: body.jobId },
-          phase: "running",
-        };
-        viewRef.current = running;
-        setView(running);
-        const buffered = early.current.get(body.jobId);
-        early.current.clear();
-        if (buffered) apply(buffered);
-      } catch (err) {
-        fail(err instanceof Error ? err.message : String(err));
-      }
-    },
-    [apply],
-  );
+      viewRef.current = next;
+      setView(next);
+    };
+    const answer = await requestStart(job.survey, x, y, settings);
+    if ("error" in answer) return fail(answer.error);
+    if (viewRef.current.job !== job) return; // dismissed meanwhile
+    if (viewRef.current.phase === "cancelled") {
+      // cancelled before the server answered: stop it now
+      await stopJob(answer.jobId);
+      return;
+    }
+    const running: MeasurementView = {
+      ...viewRef.current,
+      job: { ...job, id: answer.jobId },
+      phase: "running",
+    };
+    viewRef.current = running;
+    setView(running);
+    const buffered = early.current.get(answer.jobId);
+    early.current.clear();
+    if (buffered) apply(buffered);
+  };
 
-  const cancel = useCallback(async () => {
+  const cancel = async () => {
     const current = viewRef.current;
     if (!isActive(current.phase)) return;
     const next: MeasurementView = {
@@ -275,12 +309,12 @@ export function useMeasurement(
     setView(next);
     // no id yet: start() stops it when the server answers
     if (current.job?.id) await stopJob(current.job.id);
-  }, []);
+  };
 
-  const dismiss = useCallback(() => {
+  const dismiss = () => {
     viewRef.current = IDLE;
     setView(IDLE);
-  }, []);
+  };
 
   return { ...view, measuring: isActive(view.phase), start, cancel, dismiss };
 }

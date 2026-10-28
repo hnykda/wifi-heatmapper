@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,7 +28,12 @@ export default function EditableApMapping({ apMapping, onSave }: Props) {
   const [rows, setRows] = useState<ApMapping[]>(() => forDisplay(apMapping));
   const [errors, setErrors] = useState<Record<number, string>>({});
 
-  useEffect(() => setRows(forDisplay(apMapping)), [apMapping]);
+  // A new list from the survey replaces the rows being edited
+  const [shown, setShown] = useState(apMapping);
+  if (apMapping !== shown) {
+    setShown(apMapping);
+    setRows(forDisplay(apMapping));
+  }
 
   const commit = (next: ApMapping[]) => {
     setRows(next);

@@ -112,17 +112,18 @@ const singleMapTitles: Partial<Record<HeatmapProperty, string>> = {
 export function Heatmaps() {
   const { settings, updateSettings } = useSettings();
   const points = settings.surveyPoints;
+  // The memoization from here to renderHeatmap is on purpose, not for speed:
+  // renderCache below is keyed on renderHeatmap's identity, so it must change
+  // exactly when something that changes the pictures does. Editing one map's
+  // colour scale must not redraw the others (an e2e test checks this).
   const enabledPoints = useMemo(
     () => points.filter((p) => p.isEnabled),
     [points],
   );
   // SNR needs a noise reading, which only some platforms report
-  const hasNoise = useMemo(
-    () => points.some((p) => snrOf(p.wifiData) !== null),
-    [points],
-  );
+  const hasNoise = points.some((p) => snrOf(p.wifiData) !== null);
   // Speed maps only make sense once a point has a speed reading
-  const hasSpeed = useMemo(() => points.some(hasSpeedData), [points]);
+  const hasSpeed = points.some(hasSpeedData);
 
   const [heatmaps, setHeatmaps] = useState<
     Partial<Record<HeatmapKey, Rendered>>
@@ -434,14 +435,11 @@ export function Heatmaps() {
     };
   }, [wanted, renderHeatmap, generateHeatmapData, settings.heatmapRanges]);
 
-  const updateScale = useCallback(
-    (key: HeatmapKey, scale: HeatmapScale) => {
-      updateSettings((previous) => ({
-        heatmapRanges: { ...previous.heatmapRanges, [key]: scale },
-      }));
-    },
-    [updateSettings],
-  );
+  const updateScale = (key: HeatmapKey, scale: HeatmapScale) => {
+    updateSettings((previous) => ({
+      heatmapRanges: { ...previous.heatmapRanges, [key]: scale },
+    }));
+  };
 
   /* ---------- controls ---------- */
 

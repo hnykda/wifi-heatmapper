@@ -34,5 +34,6 @@ and draws heat maps on a floor plan. Runs on macOS, Windows, Linux (+Docker).
 - UI copy: sentence case, plain verbs, no jargon. Tokens live in `globals.css`; use `brand` for interactive accents, never raw colors. The heat map gradient is the only loud color.
 - `data-testid` attributes are the e2e contract; keep them when refactoring.
 - e2e specs import `test`/`expect` from `e2e/fixtures.ts`: each test starts from fresh data, and `mock.set({...})` (scenarios in `src/lib/mock-scenario.ts`) makes the mock fail on purpose. Don't fake API answers with `page.route()` when a scenario can do it.
+- The React Compiler is on and the build fails if it skips a component: no `useMemo`/`useCallback` for speed, `useEffectEvent` for effect-only reads, no `try`/`finally` inside components (see CONTRIBUTING.md).
 - A user-visible change updates the matching `docs/guide/` page in the same PR. Link between guide pages with relative `.md` links; the site build rewrites them.
 - Do not add Google Fonts or other network-loaded assets: the app must work offline.

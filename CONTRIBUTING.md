@@ -36,8 +36,20 @@ Node 22.12 or newer is required (CI, the Docker image and the desktop app use No
 
 `npm run check` (the first part of `verify`) runs [oxlint](https://oxc.rs)
 with the rules in `.oxlintrc.json` and `prettier --check` on `src`,
-`__tests__` and `e2e`. Warnings, such as the React Compiler rules, don't
-fail it; errors do.
+`__tests__` and `e2e`. Warnings don't fail it; errors do.
+
+The app is built with the [React Compiler](https://react.dev/learn/react-compiler),
+which memoizes components and hooks. Don't add `useMemo`, `useCallback` or
+`React.memo` for speed; keep them only where an identity matters on purpose
+(the comment in `Heatmaps.tsx` explains its case). For values an effect
+reads but shouldn't re-run for, use `useEffectEvent`. The build fails if
+the compiler has to skip a component (`panicThreshold: "all_errors"` in
+`next.config.mjs`), and oxlint's compiler rules are errors, so most
+problems show up in `npm run check` already. Typical fixes: move
+`try`/`finally` and `throw` inside `try` out of the component into a
+plain async function, and derive state during render instead of copying
+props into state in an effect. `"use no memo"` opts one component out;
+say why in a comment.
 
 The first `npm run e2e` needs a browser: `npx playwright install chromium`.
 The e2e server uses port 3100 and its own build directory, so it can run

@@ -31,10 +31,14 @@ export function HeatmapScaleControl({
   const current = remembered ? scale : automaticRange;
   const [min, setMin] = useState(String(current.min));
   const [max, setMax] = useState(String(current.max));
-  useEffect(() => {
+  // Show the range again whenever it, or fixed vs automatic, changes
+  const source = `${current.min}:${current.max}:${fixed}`;
+  const [shown, setShown] = useState(source);
+  if (source !== shown) {
+    setShown(source);
     setMin(String(current.min));
     setMax(String(current.max));
-  }, [current.min, current.max, fixed]);
+  }
   const draft = { min: Number(min), max: Number(max) };
   const valid =
     min.trim() !== "" &&

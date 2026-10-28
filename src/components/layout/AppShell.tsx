@@ -1,7 +1,7 @@
 "use client";
 
 import * as Tabs from "@radix-ui/react-tabs";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { FlaskConical } from "lucide-react";
 
 import { useSettings } from "@/components/GlobalSettings";
@@ -44,12 +44,12 @@ function useHashTab(defaultTab: TabId): [TabId, (t: TabId) => void] {
     return () => window.removeEventListener("hashchange", read);
   }, []);
 
-  const select = useCallback((t: TabId) => {
+  const select = (t: TabId) => {
     setTab(t);
     if (window.location.hash !== `#${t}`) {
       history.replaceState(null, "", `#${t}`);
     }
-  }, []);
+  };
 
   return [tab, select];
 }
