@@ -52,7 +52,7 @@ describe("pickSafeSettings", () => {
     expect(safe).toMatchObject({
       measureSpeed: false,
       iperfServerAdrs: "",
-      testDuration: 1,
+      testDuration: 3,
       iperfCommands: defaultIperfCommands,
       apMapping: [],
       radiusDivider: null,

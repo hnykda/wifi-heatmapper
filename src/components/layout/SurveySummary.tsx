@@ -4,14 +4,18 @@ import { useSettings } from "@/components/GlobalSettings";
 import { hasSpeedData, parseServerAddress } from "@/lib/measurement-mode";
 import type { TabId } from "./AppShell";
 
-function relativeTime(ts: number): string {
-  const diff = Date.now() - ts;
-  const min = Math.round(diff / 60_000);
-  if (min < 1) return "just now";
-  if (min < 60) return `${min} min ago`;
-  const h = Math.round(min / 60);
-  if (h < 24) return `${h} h ago`;
-  return new Date(ts).toLocaleDateString();
+/** The time today, else the date and time (the year only if not this year). */
+function measuredAt(ts: number): string {
+  const d = new Date(ts);
+  const now = new Date();
+  const time = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  if (d.toDateString() === now.toDateString()) return time;
+  const date = d.toLocaleDateString([], {
+    day: "numeric",
+    month: "short",
+    ...(d.getFullYear() !== now.getFullYear() && { year: "numeric" }),
+  });
+  return `${date}, ${time}`;
 }
 
 /**
@@ -92,7 +96,8 @@ export function SurveySummary({
             {speedProblem}
           </button>
         )}
-        {last > 0 && item("Last measured", relativeTime(last), "floorplan")}
+        {last > 0 &&
+          item("Last measured", measuredAt(last), "floorplan", "summary-last")}
       </div>
     </div>
   );

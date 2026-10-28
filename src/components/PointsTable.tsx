@@ -66,6 +66,7 @@ import {
 import { apNameFor } from "@/lib/apName";
 import { hasSpeedData } from "@/lib/measurement-mode";
 import { surveyPointsToCsv, downloadText } from "@/lib/exportCsv";
+import { ExportSurveyButton } from "./ExportSurveyButton";
 import { AlertDialogModal } from "./AlertDialogModal";
 import { PointLabel } from "./PointLabel";
 import { useSettings } from "./GlobalSettings";
@@ -399,16 +400,19 @@ const SurveyPointsTable: React.FC<SurveyPointsTableProps> = ({
             of the heat maps, or delete the ones that went wrong.
           </p>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={exportCsv}
-          disabled={data.length === 0}
-          data-testid="export-csv"
-        >
-          <Download className="h-3.5 w-3.5" />
-          Export CSV
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={exportCsv}
+            disabled={data.length === 0}
+            data-testid="export-csv"
+          >
+            <Download className="h-3.5 w-3.5" />
+            Export CSV
+          </Button>
+          <ExportSurveyButton floorplan={settings.floorplanImageName} />
+        </div>
       </div>
 
       <div className="flex flex-wrap items-center gap-2">

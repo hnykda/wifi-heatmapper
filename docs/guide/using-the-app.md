@@ -56,7 +56,8 @@ workflow. "Got it" hides it for good; the About dialog can show it again.
   * **Test connection** and the checklist under it – whether iperf3 is
     installed on this computer and whether the server answers, plus a
     reminder to wire the server to the router.
-  * **Test duration** – seconds per test. One second is enough for a survey.
+  * **Test duration** – seconds per test, 3 by default. One second is
+    quicker but gives jumpier numbers.
   * **Advanced: iperf3 options** – extra iperf3 options for each test,
     separated by spaces, such as `-P 4` (four parallel streams). The app
     sets the server, port, duration, download/upload and TCP/UDP itself; the
@@ -145,7 +146,7 @@ default, higher is better) uses only points with a noise reading. macOS and
 Linux drivers that report noise in `iw dev <interface> survey dump` record it;
 Windows does not, so the option is greyed out for surveys without noise.
 
-Under **Colour scales**, turn on a fixed scale for a map and edit its
+Under **Colour scales** (folded away until you open it), turn on a fixed scale for a map and edit its
 **Lower** and **Upper** values. Each map has independent bounds: download,
 upload and the two fixed-rate (UDP) tests do not share ranges, even for the
 same parameter. Signal strength has its own range too. The first time you
@@ -175,7 +176,9 @@ a caption with the floor plan name, point count and date.
 
 Every measurement in the survey. Sort by any column, show more columns
 (signal in dBm, channel, Wi-Fi standard, coordinates, and more), filter,
-switch points off, delete a selection, or export everything as CSV. The
+switch points off, delete a selection, or export everything: **Export CSV**
+for a spreadsheet, **Export JSON** for the whole survey (points and
+settings) exactly as the app saves it. The
 **Name** column shows each point's name; click it to rename the point,
 the same way as in its details. The CSV has it in the `label` column. The
 download and upload columns appear once a point has a speed reading.

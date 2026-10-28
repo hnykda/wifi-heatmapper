@@ -154,7 +154,7 @@ describe("reading survey files (lenient)", () => {
     expect(survey.floorplanImageName).toBe("Office.png");
     expect(survey.iperfServerAdrs).toBe("");
     expect(survey.measureSpeed).toBe(false); // no usable server: signal only
-    expect(survey.testDuration).toBe(1);
+    expect(survey.testDuration).toBe(3);
     expect(survey.nextPointNum).toBe(1);
     expect(survey.dimensions).toEqual(defaults.dimensions);
     expect(survey.radiusDivider).toBeNull();

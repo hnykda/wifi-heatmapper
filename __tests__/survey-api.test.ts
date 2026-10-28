@@ -155,7 +155,7 @@ describe("/api/settings", () => {
     const text = readFileSync(join(surveysDir, "My_plan.png.json"), "utf-8");
     expect(text).not.toMatch(/sudoerPassword|iperfResults/);
     const saved = JSON.parse(text);
-    expect(saved.testDuration).toBe(1);
+    expect(saved.testDuration).toBe(3);
     expect(saved.heatmapRanges).toEqual({});
     expect(saved.surveyPoints[0].iperfData).toBeDefined();
     expect(

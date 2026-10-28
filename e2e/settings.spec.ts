@@ -42,7 +42,7 @@ test("uploading a duplicate name is refused", async ({ page }) => {
 test("settings persist across reloads", async ({ page }) => {
   const name = await uploadFloorplan(page);
   await useSpeedServer(page, "192.168.1.10:5201");
-  await page.getByLabel("Test duration (seconds)").fill("3");
+  await page.getByLabel("Test duration (seconds)").fill("5");
   await expect(page.getByTestId("summary-iperf")).toContainText(
     "192.168.1.10:5201",
   );
@@ -51,7 +51,7 @@ test("settings persist across reloads", async ({ page }) => {
   await readSurvey(
     page,
     name,
-    (s) => s.testDuration === 3 && s.measureSpeed === true,
+    (s) => s.testDuration === 5 && s.measureSpeed === true,
   );
 
   await page.reload();
@@ -62,7 +62,7 @@ test("settings persist across reloads", async ({ page }) => {
   await expect(page.getByLabel("Speed test server (uses iperf3)")).toHaveValue(
     "192.168.1.10:5201",
   );
-  await expect(page.getByLabel("Test duration (seconds)")).toHaveValue("3");
+  await expect(page.getByLabel("Test duration (seconds)")).toHaveValue("5");
 });
 
 test("signal only hides the speed settings", async ({ page }) => {

@@ -232,7 +232,7 @@ export function SpeedSettings({ status }: { status: AppStatus | null }) {
           <FormRow
             id="testDuration"
             label="Test duration (seconds)"
-            help="Each spot runs four short tests: download and upload, once at full speed (TCP) and once at a fixed rate (UDP, for jitter and lost packets). One second each is enough for a survey; longer tests give steadier numbers."
+            help="Each spot runs four short tests: download and upload, once at full speed (TCP) and once at a fixed rate (UDP, for jitter and lost packets). Three seconds each is a good balance: one second is quicker but jumpier, because a connection takes a moment to reach full speed."
           >
             <NumberField
               id="testDuration"
