@@ -5,6 +5,7 @@ import {
   WifiActions,
 } from "./types";
 import { execAsync } from "./server-utils";
+import { checkIperfServerReachable } from "./iperf-server-check";
 import {
   channelToBand,
   getDefaultWifiResults,
@@ -56,16 +57,18 @@ export class LinuxWifiActions implements WifiActions {
       missingTools.push("iw");
     }
 
+    // nmcli only supplies the network list (the SSID in the progress
+    // header), so systems without NetworkManager (iwd, systemd-networkd)
+    // can still measure.
     try {
       await execAsync("which nmcli");
       logger.info("  ✓ nmcli found");
     } catch {
-      logger.warn("  ✗ nmcli not found");
-      missingTools.push("nmcli (NetworkManager)");
+      logger.warn("  ✗ nmcli not found (optional: only lists nearby networks)");
     }
 
     if (missingTools.length > 0) {
-      reason = `Missing required tools: ${missingTools.join(", ")}. Install them with your package manager (e.g., apt install iw network-manager).`;
+      reason = `Missing required tools: ${missingTools.join(", ")}. Install them with your package manager (e.g., apt install iw).`;
       logger.error(reason);
     }
 
@@ -126,21 +129,7 @@ export class LinuxWifiActions implements WifiActions {
   async checkIperfServer(
     settings: PartialHeatmapSettings,
   ): Promise<WifiScanResults> {
-    const response: WifiScanResults = {
-      SSIDs: [],
-      reason: "",
-    };
-    let reason: string = "";
-
-    // check that we can actually connect to the iperf3 server
-    // command throws if there is an error
-    try {
-      await execAsync(`nc -vz ${settings.iperfServerAdrs} 5201`);
-    } catch {
-      reason = "Cannot connect to iperf3 server.";
-    }
-    response.reason = reason;
-    return response;
+    return checkIperfServerReachable(settings);
   }
 
   /**

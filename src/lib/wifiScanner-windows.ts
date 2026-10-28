@@ -5,6 +5,7 @@ import {
   WifiActions,
 } from "./types";
 import { execAsync, delay } from "./server-utils";
+import { checkIperfServerReachable } from "./iperf-server-check";
 import {
   getDefaultWifiResults,
   isValidMacAddress,
@@ -64,20 +65,7 @@ export class WindowsWifiActions implements WifiActions {
   async checkIperfServer(
     settings: PartialHeatmapSettings,
   ): Promise<WifiScanResults> {
-    const response: WifiScanResults = {
-      SSIDs: [],
-      reason: "",
-    };
-    let reason: string = "";
-    const cmd = `powershell -NoProfile -Command "$r=[System.Net.Sockets.TcpClient]::new(); $r.ConnectAsync('${settings.iperfServerAdrs}',5201).Wait(2000) | Out-Null; $ok=$r.Connected; $r.Close(); if (-not $ok) { Write-Output 'Failed to connect to ${settings.iperfServerAdrs}:5201' }"`;
-
-    try {
-      await execAsync(cmd);
-    } catch {
-      reason = "Cannot connect to iperf3 server.";
-    }
-    response.reason = reason;
-    return response;
+    return checkIperfServerReachable(settings);
   }
 
   /**

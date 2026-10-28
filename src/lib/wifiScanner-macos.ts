@@ -6,6 +6,7 @@ import {
   SPAirPortRoot,
 } from "./types";
 import { execAsync, delay } from "./server-utils";
+import { checkIperfServerReachable } from "./iperf-server-check";
 import {
   rssiToPercentage,
   isValidMacAddress,
@@ -133,21 +134,7 @@ export class MacOSWifiActions implements WifiActions {
   async checkIperfServer(
     settings: PartialHeatmapSettings,
   ): Promise<WifiScanResults> {
-    const response: WifiScanResults = {
-      SSIDs: [],
-      reason: "",
-    };
-    let reason: string = "";
-
-    // check that we can actually connect to the iperf3 server
-    // command throws if there is an error
-    try {
-      await execAsync(`nc -vz ${settings.iperfServerAdrs} 5201`);
-    } catch {
-      reason = "Cannot connect to iperf3 server.";
-    }
-    response.reason = reason;
-    return response;
+    return checkIperfServerReachable(settings);
   }
 
   /**
