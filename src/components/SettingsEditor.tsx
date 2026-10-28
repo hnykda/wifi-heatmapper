@@ -34,13 +34,15 @@ export default function SettingsEditor() {
     !!status?.macosHelper && status.platform === "darwin" && !macHelper.helper;
 
   // sudo is only needed where wdutil/iw require it
+  // (mock mode: only when an e2e scenario asks for one)
   const needsSudo =
     !status ||
-    (!status.mockMode &&
-      !status.docker &&
-      status.platform !== "win32" &&
-      !helperWorks &&
-      !helperPending);
+    (status.mockMode
+      ? !!status.mockNeedsSudo
+      : !status.docker &&
+        status.platform !== "win32" &&
+        !helperWorks &&
+        !helperPending);
 
   const deleteFloorplan = async (name: string) => {
     const res = await fetch(`/api/media/${encodeURIComponent(name)}`, {

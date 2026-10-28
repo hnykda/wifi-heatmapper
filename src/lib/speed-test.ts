@@ -9,6 +9,7 @@
 import type { PartialHeatmapSettings } from "./types";
 import { execAsync } from "./server-utils";
 import { isMockMode } from "./app-info";
+import { mockIperf3Version } from "./mock-scenario";
 import { measuresSpeed, parseServerAddress } from "./measurement-mode";
 import { badAddressReason, checkIperfServer } from "./iperf-server-check";
 
@@ -24,9 +25,9 @@ export interface SpeedTestPlan {
 export const IPERF3_MISSING =
   "iperf3 is not installed on this computer, so the speed test was skipped. Install iperf3, or switch to signal only in Settings.";
 
-/** iperf3 --version, or null if it is not installed. Mock mode has none. */
+/** iperf3 --version, or null if it is not installed (mock: the scenario). */
 export async function iperf3Version(): Promise<string | null> {
-  if (isMockMode()) return "mock";
+  if (isMockMode()) return mockIperf3Version();
   try {
     const { stdout } = await execAsync("iperf3", ["--version"]);
     return stdout.split("\n")[0].trim() || "iperf3";

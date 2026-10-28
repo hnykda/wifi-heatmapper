@@ -99,6 +99,48 @@ for command output are pure functions with fixtures under `__tests__/data`;
 when you add support for a new OS version or language, add a fixture and a
 test rather than a mock.
 
+## Writing e2e tests
+
+Specs in `e2e/` import `test` and `expect` from `./fixtures`, not from
+`@playwright/test`. That gives every test two things:
+
+- **Isolation.** Before each test the server goes back to a fresh start
+  (`DELETE /api/e2e/data`): no surveys, only the bundled floor plans, no
+  measurement running, no sudo password held, the normal mock. A test
+  never sees what an earlier one saved, so tests can run in any order,
+  and `uploadFloorplan()` gives you an empty survey with the default
+  settings. Usage counts settings are not reset.
+- **Scenarios.** The `mock` fixture makes the mock backend misbehave on
+  purpose:
+
+  ```ts
+  test("iperf3 missing", async ({ page, mock }) => {
+    await mock.set({ iperf: "missing" });
+    // ...measure, expect "Saved without speed"
+  });
+  ```
+
+  The fields are in `mockScenarioSchema` (`src/lib/schema.ts`): `wifi`
+  (`needs-sudo`, `wrong-sudo`, `not-connected`, `error`), `sudoPassword`,
+  `wifiMethod` (what the report says read the Wi-Fi, e.g.
+  `netsh-fallback`), `noise` (a number, or `null` for none), `signal` (a
+  fixed strength), `iperf` (`missing`, `unreachable`, `fails-midway`) and
+  `delayMs` (how long each step takes, for cancel tests). `set()` calls
+  add up; the scenario is reset after every test.
+
+The scenario only changes what the mock scanner and the mock iperf3 answer
+(`wifiScanner-mock.ts`, which prints iperf3's JSON). The preflight, speed
+test planning, the measurement job, saving and diagnostics are the real
+code, so make the mock fail rather than faking an API answer with
+`page.route()`. Keep `page.route()` for what mock mode can't be, such as
+another OS (`macos-helper.spec.ts`).
+
+The `/api/e2e/*` routes answer 404 unless the server runs with
+`WIFI_HEATMAPPER_MOCK=1`, `WIFI_HEATMAPPER_E2E=1` and its own
+`WIFI_HEATMAPPER_DATA_DIR` (the `e2e:serve:*` scripts), and never in the
+desktop app. If the fixtures report a 404, another server is on the e2e
+port: stop it or pick another `E2E_PORT`.
+
 ## Pull requests
 
 - Keep a PR to one topic. Open an issue first for larger changes.

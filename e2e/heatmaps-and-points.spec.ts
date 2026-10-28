@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures";
 import { uploadFloorplan, gotoTab, readSurvey, measureAt } from "./helpers";
 
 test.describe("with sample points", () => {

@@ -21,7 +21,7 @@ import { createWifiActions } from "./wifiScanner";
 import { getLogger } from "./logger";
 import { defaultIperfCommands, iperfArgs, IperfTest } from "./iperfUtils";
 import { isMockMode } from "./app-info";
-import { mockIperfResult } from "./wifiScanner-mock";
+import { mockIperf3 } from "./wifiScanner-mock";
 import { parseServerAddress } from "./measurement-mode";
 import { planSpeedTest, speedTestFailedWarning } from "./speed-test";
 import { rememberNetworks } from "./diagnostics-state";
@@ -288,10 +288,6 @@ async function runSingleTest(
   const isUdp = testType == "UDP";
   const isDownload = testDir == "Down";
 
-  if (isMockMode()) {
-    return mockIperfResult(isUdp, isDownload, duration, signal);
-  }
-
   // host, host:port, [IPv6]:port or a bare IPv6 address
   const address = parseServerAddress(server);
   if (!address) throw new Error(`Invalid speed test server "${server}"`);
@@ -307,8 +303,10 @@ async function runSingleTest(
     iperfCommands[test] ?? defaultIperfCommands[test],
   );
   logger.debug("Executing iperf3", args);
-  // aborting the signal kills iperf3
-  const { stdout } = await execAsync("iperf3", args, { signal });
+  // aborting the signal kills iperf3. Mock mode answers like iperf3 would.
+  const { stdout } = isMockMode()
+    ? await mockIperf3(args, { signal })
+    : await execAsync("iperf3", args, { signal });
   const result = JSON.parse(stdout);
   logger.trace("Iperf JSON-parsed result:", result);
   const extracted = extractIperfResults(result, isUdp);

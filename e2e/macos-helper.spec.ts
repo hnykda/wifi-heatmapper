@@ -1,4 +1,5 @@
-import { test, expect, Page } from "@playwright/test";
+import type { Page } from "@playwright/test";
+import { test, expect } from "./fixtures";
 
 /**
  * The macOS Wi-Fi helper panel in Settings. The e2e server runs in mock mode

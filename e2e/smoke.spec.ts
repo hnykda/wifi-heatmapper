@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures";
 
 test("server reports mock mode and a version", async ({ request }) => {
   const res = await request.get("/api/status");

@@ -3,7 +3,8 @@ import { defineConfig, devices } from "@playwright/test";
 /**
  * End-to-end tests run the real Next.js server in mock mode
  * (WIFI_HEATMAPPER_MOCK=1): no sudo, no iperf3, synthetic measurements.
- * Survey files are written to .e2e-data/ so your own surveys are untouched.
+ * Survey files are written to .e2e-data/ so your own surveys are untouched,
+ * and reset before each test (e2e/fixtures.ts, WIFI_HEATMAPPER_E2E).
  *
  * Locally:   npm run e2e          (starts `next dev` on :3100 for you)
  * In CI:     npm run e2e:build && CI=1 npm run e2e   (uses `next start`)

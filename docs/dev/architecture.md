@@ -42,8 +42,8 @@ else a human-readable message for the UI.
 The speed test is not part of `WifiActions`: whether it runs is decided the
 same way on every OS by _lib/speed-test.ts_ (`planSpeedTest()`), and
 _lib/iperf-server-check.ts_ (`checkIperfServer()`) is the one socket check
-that the server answers (in mock mode, a name containing "unreachable"
-is treated as down).
+that the server answers (in mock mode it answers unless an e2e scenario
+says otherwise, see _lib/mock-scenario.ts).
 
 ## Running commands
 

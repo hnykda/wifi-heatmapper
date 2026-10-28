@@ -73,6 +73,11 @@ async function copyMissing(from: string, to: string): Promise<number> {
   return copied;
 }
 
+/** Copy the bundled floor plans into the media dir (those not there yet). */
+export function seedBundledFloorplans(): Promise<number> {
+  return copyMissing(getBundledFloorplansDir(), getMediaDir());
+}
+
 let initPromise: Promise<void> | null = null;
 
 /**
@@ -98,7 +103,7 @@ async function doInit(): Promise<void> {
     await fs.mkdir(getSurveysDir(), { recursive: true });
     void reportAppStart(); // never waited for, never throws
 
-    await copyMissing(getBundledFloorplansDir(), mediaDir);
+    await seedBundledFloorplans();
     const migrated = await copyMissing(getLegacyMediaDir(), mediaDir);
     if (migrated > 0) {
       logger.info(

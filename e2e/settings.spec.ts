@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures";
 import {
   uploadFloorplan,
   readSurvey,
@@ -127,9 +127,10 @@ test("extra iperf3 options are saved as arguments", async ({ page }) => {
   await readSurvey(page, name, (s) => s.iperfCommands.tcpDownload.length === 0);
 });
 
-test("test connection checks the speed test server", async ({ page }) => {
+test("test connection checks the speed test server", async ({ page, mock }) => {
+  await mock.set({ iperf: "unreachable" });
   await uploadFloorplan(page);
-  await useSpeedServer(page, "unreachable.local");
+  await useSpeedServer(page, "nas.local");
   await expect(page.getByTestId("check-iperf3")).toHaveAttribute(
     "data-state",
     "ok",
@@ -144,8 +145,10 @@ test("test connection checks the speed test server", async ({ page }) => {
     "bad",
   );
   await expect(page.getByTestId("check-server")).toContainText(
-    "Can't reach the speed test server",
+    "Can't reach the speed test server at nas.local:5201",
   );
+  // the server comes up; a check for another address finds it
+  await mock.set({ iperf: "ok" });
   await page
     .getByLabel("Speed test server (uses iperf3)")
     .fill("[fe80::1]:5202");

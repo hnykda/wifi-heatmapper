@@ -544,6 +544,56 @@ export const usageCountsPatchSchema = z.strictObject({
   noticeDismissed: z.literal(true).optional(),
 });
 
+/* ---------- e2e test scenarios (mock-scenario.ts) ---------- */
+
+/** How the mock reports reading Wi-Fi, as the real scanners name it. */
+export const MOCK_WIFI_METHODS = [
+  "mock",
+  "macos-helper",
+  "wdutil",
+  "wlan-api",
+  "netsh-fallback",
+  "iw",
+  "iw-sudo",
+] as const;
+
+/**
+ * PUT /api/e2e/scenario - how the mock backend behaves (e2e tests only).
+ * Every field is optional; a missing one has its normal mock behaviour.
+ */
+export const mockScenarioSchema = z.strictObject({
+  /**
+   * ok; needs-sudo: refused without a sudo password (and with one other
+   * than `sudoPassword`, if set); wrong-sudo: every password is refused;
+   * not-connected: Wi-Fi is off; error: reading Wi-Fi fails (`wifiError`)
+   */
+  wifi: z
+    .enum(["ok", "needs-sudo", "wrong-sudo", "not-connected", "error"])
+    .optional(),
+  /** the password needs-sudo accepts (any non-empty one if unset) */
+  sudoPassword: z.string().max(200).optional(),
+  /** the message of wifi: "error" */
+  wifiError: z.string().min(1).max(500).optional(),
+  /** what the Wi-Fi reading is recorded as, for diagnostics */
+  wifiMethod: z.enum(MOCK_WIFI_METHODS).optional(),
+  /** noise floor in dBm, or null for none (default: -90 to -95 dBm) */
+  noise: z.number().int().min(-120).max(0).nullable().optional(),
+  /** a fixed signal strength in percent (default: a random walk) */
+  signal: z.number().int().min(1).max(100).optional(),
+  /**
+   * ok; missing: iperf3 is not installed; unreachable: the server doesn't
+   * answer; fails-midway: the first test runs, the second one fails
+   * (`iperfError`)
+   */
+  iperf: z.enum(["ok", "missing", "unreachable", "fails-midway"]).optional(),
+  /** iperf3's "error" for fails-midway */
+  iperfError: z.string().min(1).max(500).optional(),
+  /** how long each step takes, in ms (default 150) */
+  delayMs: z.number().int().min(0).max(30_000).optional(),
+});
+
+export type MockScenario = z.output<typeof mockScenarioSchema>;
+
 /** One line per problem, for a 400 answer. */
 export function describeIssues(error: z.ZodError): string {
   return error.issues
