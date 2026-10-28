@@ -335,6 +335,7 @@ export default function ClickableFloorplan() {
           bssid: "9e05d696e830",
           signalStrength: strength,
           rssi: percentageToRssi(strength),
+          noise: -90 - ((r * 5 + c * 3) % 6), // -90..-95 dBm
           channel: 44,
           band: 5,
         };

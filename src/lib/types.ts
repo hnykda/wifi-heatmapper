@@ -15,6 +15,9 @@ export interface WifiResults {
   ssid: string;
   bssid: string;
   rssi: number; // dBm value
+  // noise floor in dBm; only some platforms report it (macOS, some Linux
+  // drivers). Missing or null means unknown.
+  noise?: number | null;
   signalStrength: number; // percentage of signal strength
   channel: number;
   security: string;
@@ -52,11 +55,12 @@ export const testProperties: IperfTestProperties = {
 } as const;
 
 export type TestTypes = {
-  [K in keyof IperfResults | "signalStrength"]: K;
+  [K in keyof IperfResults | "signalStrength" | "snr"]: K;
 };
 
 export const testTypes: TestTypes = {
   signalStrength: "signalStrength",
+  snr: "snr", // signal-to-noise ratio (RSSI - noise, dB)
   tcpDownload: "tcpDownload",
   tcpUpload: "tcpUpload",
   udpDownload: "udpDownload",
@@ -77,11 +81,15 @@ export interface HeatmapRange {
   max: number;
 }
 
+/** What a heat map shows: an iperf property, signal strength or SNR. */
+export type HeatmapProperty = keyof IperfTestProperty | "snr";
+
 export type HeatmapKey =
   | "signalStrength"
+  | "snr"
   | `${keyof IperfResults}-${keyof IperfTestProperty}`;
 
-/** Saved bounds in display units: Mbps, ms, counts, or signal percent. */
+/** Saved bounds in display units: Mbps, ms, counts, signal percent or dB (SNR). */
 export type HeatmapScale = HeatmapRange & { enabled: boolean };
 
 /** Independent per-map scales; disabled entries retain their saved bounds. */

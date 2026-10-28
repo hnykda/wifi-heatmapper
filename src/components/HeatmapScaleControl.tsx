@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import {
   HeatmapKey,
+  HeatmapProperty,
   HeatmapRange,
   HeatmapScale,
-  IperfTestProperty,
 } from "@/lib/types";
 import { isValidHeatmapRange } from "@/lib/heatmap-scale";
 import { Switch } from "./ui/switch";
@@ -19,7 +19,7 @@ export function HeatmapScaleControl({
   onChange,
 }: {
   mapKey: HeatmapKey;
-  property: keyof IperfTestProperty;
+  property: HeatmapProperty;
   title: string;
   label: string;
   scale?: HeatmapScale;
@@ -113,7 +113,9 @@ export function HeatmapScaleControl({
         <p className="text-xs text-muted-foreground">
           {property === "signalStrength"
             ? "Default: 0–100%."
-            : "Automatic: 0 to this map's maximum."}
+            : property === "snr"
+              ? "Default: 0–50 dB."
+              : "Automatic: 0 to this map's maximum."}
         </p>
       )}
     </div>

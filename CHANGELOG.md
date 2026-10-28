@@ -17,6 +17,14 @@ _This section follows the precepts of [Keep a Changelog](https://keepachangelog.
 * Access point names can match several BSSIDs at once: end the MAC address
   with `*`, for example `aa:bb:cc:dd:ee:*`, to name every BSSID that starts
   with it. An exact MAC address still wins, then the longest prefix (#99).
+* **Noise and signal-to-noise ratio** (#59). Each measurement stores the
+  noise floor (dBm, averaged like the RSSI) where the platform reports it:
+  macOS (Wi-Fi helper, `wdutil`) and Linux drivers that print noise in
+  `iw dev <interface> survey dump` (many do; Intel iwlwifi often doesn't).
+  Windows has no noise reading. A new "Signal-to-noise ratio" heat map
+  (0–50 dB by default, with fixed-scale support) uses the points that have
+  noise, and the point details, points table and CSV export show noise and
+  SNR.
 
 ### Changed
 

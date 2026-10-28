@@ -57,6 +57,38 @@ export const averageRssi = (rssis: number[], strength: number): number => {
   return Math.round(rssis.reduce((a, b) => a + b, 0) / rssis.length);
 };
 
+/** A usable noise reading in dBm: a finite negative number, else null. */
+export const validNoise = (noise: number | null | undefined): number | null =>
+  typeof noise === "number" && Number.isFinite(noise) && noise < 0
+    ? noise
+    : null;
+
+/**
+ * averageNoise - the noise floor to store for a measurement: the average of
+ * the readings that have one. null if none did (Windows, some Linux drivers).
+ * @param noises - dBm readings, null/undefined when the OS gave none
+ */
+export const averageNoise = (
+  noises: (number | null | undefined)[],
+): number | null => {
+  const valid = noises.map(validNoise).filter((n): n is number => n !== null);
+  if (valid.length === 0) return null;
+  return Math.round(valid.reduce((a, b) => a + b, 0) / valid.length);
+};
+
+/**
+ * snrOf - signal-to-noise ratio in dB (RSSI - noise), or null when either
+ * is unknown. An RSSI of 0 means "no reading".
+ */
+export const snrOf = (
+  wifi: Pick<WifiResults, "rssi" | "noise"> | null | undefined,
+): number | null => {
+  if (!wifi) return null;
+  const noise = validNoise(wifi.noise);
+  if (noise === null || !wifi.rssi || !Number.isFinite(wifi.rssi)) return null;
+  return wifi.rssi - noise;
+};
+
 export const toMbps = (value: number): string => {
   return `${(value / 1000000).toFixed(2)}`;
 };
@@ -64,6 +96,7 @@ export const toMbps = (value: number): string => {
 /**
  * format the parameter according to its "natural type" as a string
  *  signalStrength: add "dBm" or "%" as required
+ *  snr: xx dB
  *  throughput: xxx.xx Mbps (two decimal places)
  *  jitter: xxxx ms (four significant digits)
  *  other numbers: just their value as a string
@@ -77,9 +110,12 @@ export const toMbps = (value: number): string => {
 export const metricFormatter = (
   value: number,
   metric: MeasurementTestType,
-  testType?: keyof IperfTestProperty,
+  testType?: keyof IperfTestProperty | "snr",
   showSignalStrengthAsPercentage?: boolean,
 ): string => {
+  if (metric === testTypes.snr || testType === "snr") {
+    return `${Math.round(value)} dB`;
+  }
   if (metric === testTypes.signalStrength) {
     return showSignalStrengthAsPercentage
       ? `${Math.round(value)}%`

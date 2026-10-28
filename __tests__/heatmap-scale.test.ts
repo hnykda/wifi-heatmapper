@@ -241,3 +241,33 @@ describe("normalizeHeatmapRanges", () => {
     ).toEqual({});
   });
 });
+
+describe("signal-to-noise ratio scale", () => {
+  it("is a standalone map with a 0–50 dB automatic range", () => {
+    expect(heatmapKey("snr", "snr")).toBe("snr");
+    expect(resolveHeatmapRange("snr", [12, 61])).toEqual({ min: 0, max: 50 });
+    expect(resolveHeatmapRange("snr", [])).toEqual({ min: 0, max: 50 });
+    expect(toDisplayRange("snr", { min: 0, max: 50 })).toEqual({
+      min: 0,
+      max: 50,
+    });
+  });
+
+  it("uses a fixed scale when enabled, in dB with no 100 cap", () => {
+    expect(
+      resolveHeatmapRange("snr", [30], { enabled: true, min: 10, max: 120 }),
+    ).toEqual({ min: 10, max: 120 });
+    expect(
+      resolveHeatmapRange("snr", [30], { enabled: false, min: 10, max: 40 }),
+    ).toEqual({ min: 0, max: 50 });
+    expect(isValidHeatmapRange({ min: 40, max: 10 }, "snr")).toBe(false);
+  });
+
+  it("keeps a saved SNR scale across serialization", () => {
+    const ranges = normalizeHeatmapRanges({
+      snr: { enabled: true, min: 5, max: 45 },
+    });
+    expect(ranges.snr).toEqual({ enabled: true, min: 5, max: 45 });
+    expect(normalizeHeatmapRanges({ snr: { min: 5, max: 45 } })).toEqual({});
+  });
+});

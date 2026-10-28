@@ -48,6 +48,45 @@ test.describe("with sample points", () => {
     await page.keyboard.press("Escape");
   });
 
+  test("signal-to-noise ratio map renders from points with noise", async ({
+    page,
+  }) => {
+    await gotoTab(page, "heatmaps");
+    await expect(page.getByTestId("snr-unavailable")).toHaveCount(0);
+    await page.getByLabel("Signal-to-noise ratio", { exact: true }).click();
+    const snr = page.getByTestId("heatmap-snr");
+    await expect(snr.locator("img")).toBeVisible({ timeout: 30_000 });
+    await expect(snr.locator("img")).toHaveAttribute("src", /^data:image\/png/);
+    await expect(snr).toContainText("24 points");
+    await expect(page.getByTestId("scale-snr")).toContainText(
+      "Default: 0–50 dB.",
+    );
+  });
+
+  test("signal-to-noise ratio is unavailable without noise readings", async ({
+    page,
+  }) => {
+    const survey = await readSurvey(
+      page,
+      name,
+      (s) => s.surveyPoints.length === 24,
+    );
+    for (const point of survey.surveyPoints) delete point.wifiData.noise;
+    const response = await page.request.post("/api/settings", { data: survey });
+    expect(response.ok()).toBe(true);
+    await page.reload();
+    await gotoTab(page, "settings");
+    await page.getByTestId("floorplan-picker").click();
+    await page.getByRole("menuitem", { name }).click();
+    await expect(page.getByTestId("summary-floorplan")).toContainText(name);
+    await gotoTab(page, "heatmaps");
+    await expect(page.getByTestId("snr-unavailable")).toBeVisible();
+    await expect(
+      page.getByLabel("Signal-to-noise ratio", { exact: true }),
+    ).toBeDisabled();
+    await expect(page.getByTestId("heatmap-snr")).toHaveCount(0);
+  });
+
   test("fixed colour ranges update maps, validate and survive reload", async ({
     page,
   }) => {
@@ -296,6 +335,7 @@ test.describe("with sample points", () => {
     const text = await (await file.createReadStream()).toArray();
     const csv = Buffer.concat(text).toString("utf8");
     expect(csv.split("\n")[0]).toContain("signal_percent");
+    expect(csv.split("\n")[0]).toContain("noise_dbm,snr_db");
     expect(csv.trim().split("\n")).toHaveLength(25);
 
     // select all on the page and delete

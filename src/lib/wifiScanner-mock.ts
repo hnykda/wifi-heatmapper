@@ -7,6 +7,8 @@
  *
  * Signal strength follows a slow random walk so consecutive points look
  * like a real survey; throughput is derived from the signal strength.
+ * Each reading reports a noise floor of -90 to -95 dBm, so the SNR map
+ * can be tried out.
  */
 import {
   IperfTestProperty,
@@ -56,7 +58,12 @@ function nextStrength(): number {
 const DEMO_SSID = "Demo Network";
 const DEMO_BSSID = "9e05d696e830";
 
-function currentWifi(strength: number): WifiResults {
+/** A noise floor between -90 and -95 dBm, like a quiet real channel. */
+function nextNoise(): number {
+  return -90 - Math.round(random() * 5);
+}
+
+function currentWifi(strength: number, noise: number | null): WifiResults {
   const band = strength > 55 ? 5 : 2.4;
   return {
     ...getDefaultWifiResults(),
@@ -64,6 +71,7 @@ function currentWifi(strength: number): WifiResults {
     bssid: DEMO_BSSID,
     signalStrength: strength,
     rssi: percentageToRssi(strength),
+    noise,
     channel: band === 5 ? 44 : 6,
     band,
     channelWidth: band === 5 ? 80 : 20,
@@ -100,7 +108,7 @@ export class MockWifiActions implements WifiActions {
 
   async scanWifi(_settings: PartialHeatmapSettings): Promise<WifiScanResults> {
     await delay(STEP_DELAY_MS);
-    const mine = currentWifi(mockState.strength);
+    const mine = currentWifi(mockState.strength, null);
     const neighbour: WifiResults = {
       ...getDefaultWifiResults(),
       ssid: "Neighbour 5G",
@@ -122,7 +130,10 @@ export class MockWifiActions implements WifiActions {
   async getWifi(_settings: PartialHeatmapSettings): Promise<WifiScanResults> {
     await delay(STEP_DELAY_MS);
     mockState.measurements++;
-    return { SSIDs: [currentWifi(nextStrength())], reason: "" };
+    return {
+      SSIDs: [currentWifi(nextStrength(), nextNoise())],
+      reason: "",
+    };
   }
 }
 

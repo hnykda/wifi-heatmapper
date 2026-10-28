@@ -61,6 +61,11 @@ In mock mode, "Add sample points" fills the plan with synthetic points.
 Tick the measurements you want to see. By default, signal strength uses a
 0–100% scale; other measurements run from 0 to each map's maximum.
 
+**Signal-to-noise ratio** (RSSI minus the noise floor, in dB; 0–50 dB by
+default, higher is better) uses only points with a noise reading. macOS and
+Linux drivers that report noise in `iw dev <interface> survey dump` record it;
+Windows does not, so the option is greyed out for surveys without noise.
+
 Under **Colour scales**, turn on a fixed scale for a map and edit its
 **Lower** and **Upper** values. Each map has independent bounds: TCP download,
 TCP upload, UDP download and UDP upload do not share ranges, even for the

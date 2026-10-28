@@ -44,6 +44,7 @@ test("Parsing macOS 10.15.7 output", () => {
     phyMode: "802.11n",
     security: "None",
     rssi: -51,
+    noise: null,
     signalStrength: 82,
     band: 5,
     txRate: 0, // candidates don't give txRate
@@ -59,6 +60,7 @@ test("Parsing macOS 10.15.7 output", () => {
     phyMode: "802.11n",
     security: "None",
     rssi: -55,
+    noise: -98,
     signalStrength: 75,
     band: 2.4,
     txRate: 145, // candidates don't give txRate
@@ -89,6 +91,7 @@ test("Parsing macOS 15.5 output", () => {
     channelWidth: 20,
     phyMode: "802.11g/n",
     rssi: -39,
+    noise: -97,
     security: "None",
     signalStrength: 100,
     ssid: "SSID-2",
@@ -104,6 +107,7 @@ test("Parsing macOS 15.5 output", () => {
     phyMode: "802.11n",
     security: "None",
     rssi: -40,
+    noise: -97,
     signalStrength: 100,
     band: 2.4,
     txRate: 144, // candidates don't give txRate
@@ -175,6 +179,7 @@ test("Parsing macOS 12.7.2 output", () => {
     phyMode: "802.11",
     security: "WPA2 Personal",
     rssi: -67,
+    noise: -93,
     signalStrength: 55,
     band: 5,
     txRate: 0, // candidates don't give txRate
@@ -190,6 +195,7 @@ test("Parsing macOS 12.7.2 output", () => {
     phyMode: "802.11ax",
     security: "WPA2 Personal",
     rssi: -68,
+    noise: -93,
     signalStrength: 53,
     band: 5,
     txRate: 324, // candidates don't give txRate

@@ -1,8 +1,11 @@
 import { describe, it, expect } from "vitest";
 import {
+  averageNoise,
   averageRssi,
   extractIperfResults,
+  metricFormatter,
   percentageToRssi,
+  snrOf,
 } from "../src/lib/utils";
 import { buildIperfCommand, defaultIperfCommands } from "../src/lib/iperfUtils";
 import fs from "fs";
@@ -180,5 +183,40 @@ describe("averageRssi", () => {
   it("converts the average percentage if a reading has no RSSI", () => {
     expect(averageRssi([-50, 0, -60], 50)).toBe(percentageToRssi(50));
     expect(averageRssi([], 50)).toBe(percentageToRssi(50));
+  });
+});
+
+describe("averageNoise", () => {
+  it("averages the noise readings", () => {
+    expect(averageNoise([-92, -94, -95])).toBe(-94);
+  });
+
+  it("ignores readings without noise", () => {
+    expect(averageNoise([-90, null, undefined, -94])).toBe(-92);
+    expect(averageNoise([0, NaN, -96])).toBe(-96);
+  });
+
+  it("is null when no reading had noise", () => {
+    expect(averageNoise([])).toBeNull();
+    expect(averageNoise([null, undefined, 0])).toBeNull();
+  });
+});
+
+describe("snrOf", () => {
+  it("is RSSI minus noise in dB", () => {
+    expect(snrOf({ rssi: -55, noise: -92 })).toBe(37);
+    expect(snrOf({ rssi: -88, noise: -91 })).toBe(3);
+  });
+
+  it("is null when noise or RSSI is missing", () => {
+    expect(snrOf({ rssi: -55 })).toBeNull();
+    expect(snrOf({ rssi: -55, noise: null })).toBeNull();
+    expect(snrOf({ rssi: -55, noise: 0 })).toBeNull();
+    expect(snrOf({ rssi: 0, noise: -92 })).toBeNull();
+    expect(snrOf(null)).toBeNull();
+  });
+
+  it("is formatted in dB", () => {
+    expect(metricFormatter(36.6, "snr")).toBe("37 dB");
   });
 });

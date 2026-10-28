@@ -24,6 +24,9 @@ test("clicking the floor plan takes a measurement and stores it", async ({
   expect(p.wifiData.ssid).toBe("Demo Network");
   expect(p.wifiData.signalStrength).toBeGreaterThan(0);
   expect(p.wifiData.signalStrength).toBeLessThanOrEqual(100);
+  // the mock reports a noise floor, averaged over the readings
+  expect(p.wifiData.noise).toBeGreaterThanOrEqual(-95);
+  expect(p.wifiData.noise).toBeLessThanOrEqual(-90);
   expect(p.x).toBeCloseTo(800 * 0.3, -1);
   expect(p.y).toBeCloseTo(500 * 0.4, -1);
   // iperf3 server is localhost by default: no throughput
@@ -105,6 +108,8 @@ test("points can be inspected, ignored and deleted from the plan", async ({
   await expect(details).toBeVisible();
   await expect(details).toContainText("Point_1");
   await expect(details).toContainText("Demo Network");
+  await expect(details).toContainText(/Noise\s*-9\d dBm/);
+  await expect(details).toContainText(/Signal-to-noise\s*\d+ dB/);
 
   await details.getByRole("switch").click();
   await expect(details).toContainText("Ignored");
