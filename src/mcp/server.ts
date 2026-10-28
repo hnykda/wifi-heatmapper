@@ -142,8 +142,8 @@ export function createMcpServer(client: AppClient, version: string): McpServer {
         "confirm before every start_measurement, then wait_for_measurement; one at a time (survey_walkthrough guides this). " +
         "It cannot see the rendered heat map images or handle the sudo password: never ask for it in chat, the person types it in the app's Settings. " +
         "If something looks like a bug in the app rather than a Wi-Fi problem (an error message, impossible readings " +
-        "such as 0% signal or -100 dBm at every point or channel 0, no noise readings on macOS, Windows falling back " +
-        "from the WLAN API to netsh), suggest reporting it and call report_problem: it returns a redacted summary and a " +
+        "such as 0% signal or -100 dBm at every point or channel 0, no noise readings on macOS, Windows saying it " +
+        "can't read Wi-Fi through the WLAN API), suggest reporting it and call report_problem: it returns a redacted summary and a " +
         "prefilled GitHub issue link for the person to open. It never posts anything.",
     },
   );

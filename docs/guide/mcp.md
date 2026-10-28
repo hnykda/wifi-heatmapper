@@ -537,8 +537,8 @@ to paste into the issue.
 
 Agents are told to suggest it when they see something that looks like a bug
 rather than a Wi-Fi problem: an error, impossible readings (0% or -100 dBm
-everywhere, channel 0), no noise readings on macOS, or Windows falling back
-from the WLAN API to `netsh`.
+everywhere, channel 0), no noise readings on macOS, or Windows saying it
+can't read Wi-Fi through the WLAN API.
 
 ## Prompts
 
