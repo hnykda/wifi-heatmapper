@@ -9,7 +9,9 @@
  * - mutate(name, fn) reads, applies fn and writes, one change at a time per
  *   file (a promise chain per file), so two writers (two tabs, the browser
  *   and the MCP server) can never lose each other's changes. A missing file
- *   starts from the defaults.
+ *   starts from the defaults, with the speed settings of the most recently
+ *   saved other survey (newSurvey()), so a second floor plan is set up
+ *   like the first.
  * - writes go to a temp file that is renamed over the survey, so a crash
  *   never leaves half a JSON file behind; each one is stamped with `meta`;
  *   the sudo password is never written (no schema has it).
@@ -25,6 +27,7 @@ import {
   readdir,
   readFile,
   rename,
+  stat,
   unlink,
   writeFile,
 } from "fs/promises";
@@ -33,6 +36,7 @@ import path from "path";
 import { APP_VERSION, describeOS } from "./app-info";
 import { parseSurveyFile, SurveyDocument } from "./schema";
 import { defaultSurvey } from "./survey-defaults";
+import { copySettings, CopyPart, samePart } from "./survey-ops";
 import { getSurveysDir } from "./server-paths";
 import { sanitizeFilename } from "./utils";
 
@@ -126,16 +130,23 @@ async function write(floorPlan: string, survey: SurveyDocument) {
 
 /**
  * mutate() - change a survey and save it; returns what was saved.
- * fn gets a fresh copy (a new survey if there is no file) and returns the
- * next version. It may throw SurveyChangeError to refuse; nothing is
- * written then.
+ * fn gets a fresh copy (a new survey if there is no file: newSurvey(), or
+ * the plain defaults with `inherit: false`) and returns the next version.
+ * It may throw SurveyChangeError to refuse; nothing is written then.
  */
 export function mutate(
   floorPlan: string,
   fn: (survey: SurveyDocument) => SurveyDocument | Promise<SurveyDocument>,
+  { inherit = true }: { inherit?: boolean } = {},
 ): Promise<SurveyDocument> {
   return withLock(floorPlan, async () => {
-    const current = (await read(floorPlan)) ?? defaultSurvey(floorPlan);
+    const existing = await read(floorPlan);
+    const created = existing
+      ? null
+      : inherit
+        ? await newSurvey(floorPlan)
+        : { survey: defaultSurvey(floorPlan) };
+    const current = existing ?? created!.survey;
     const changed = await fn(current);
     // parse again: drops anything that isn't part of a survey (a password)
     const next = parseSurveyFile(
@@ -149,10 +160,78 @@ export function mutate(
       platform: os.platform(),
       osName: describeOS(),
       savedAt: new Date().toISOString(),
+      ...(created?.speedSettingsFrom
+        ? { speedSettingsFrom: created.speedSettingsFrom }
+        : {}),
     };
     await write(floorPlan, next);
     return next;
   });
+}
+
+/**
+ * newSurvey() - what a survey file for a new floor plan starts with: the
+ * defaults, with the speed settings (what to measure, server, duration,
+ * commands) of the most recently saved other survey. speedSettingsFrom
+ * names that survey when it changed anything.
+ */
+export async function newSurvey(
+  floorPlan: string,
+): Promise<{ survey: SurveyDocument; speedSettingsFrom?: string }> {
+  const fresh = defaultSurvey(floorPlan);
+  const source = await lastSaved(floorPlan);
+  if (!source) return { survey: fresh };
+  const survey = copySettings(fresh, source, ["speed"]);
+  return samePart(survey, fresh, "speed")
+    ? { survey }
+    : { survey, speedSettingsFrom: source.floorplanImageName };
+}
+
+/**
+ * The most recently saved survey other than `except`, by meta.savedAt
+ * (files older than 0.5 have no meta: their modification time). Files that
+ * can't be read are skipped.
+ */
+async function lastSaved(except: string): Promise<SurveyDocument | null> {
+  let best: SurveyDocument | null = null;
+  let bestAt = 0;
+  for (const name of await list()) {
+    if (sameFile(name, except)) continue;
+    try {
+      const survey = await read(name);
+      if (!survey) continue;
+      const at = survey.meta?.savedAt
+        ? Date.parse(survey.meta.savedAt)
+        : (await stat(surveyPath(name))).mtimeMs;
+      if (Number.isFinite(at) && at > bestAt) {
+        best = survey;
+        bestAt = at;
+      }
+    } catch {
+      // damaged or removed meanwhile: not a source
+    }
+  }
+  return best;
+}
+
+/**
+ * copyFrom() - copy parts of another survey's settings into `to` (created
+ * if missing) and save it; returns what was saved. Points, the floor plan
+ * and its size are never copied.
+ */
+export async function copyFrom(
+  from: string,
+  to: string,
+  parts: readonly CopyPart[],
+): Promise<SurveyDocument> {
+  if (sameFile(from, to)) {
+    throw new SurveyChangeError("Pick another survey to copy from");
+  }
+  const source = await read(from);
+  if (!source) {
+    throw new SurveyChangeError(`There is no survey for "${from}"`, 404);
+  }
+  return mutate(to, (target) => copySettings(target, source, parts));
 }
 
 /** Replace the whole survey (the old POST /api/settings). */
@@ -160,7 +239,9 @@ export function replace(
   floorPlan: string,
   survey: Record<string, unknown>,
 ): Promise<SurveyDocument> {
-  return mutate(floorPlan, () => parseSurveyFile(survey, floorPlan, sameFile));
+  return mutate(floorPlan, () => parseSurveyFile(survey, floorPlan, sameFile), {
+    inherit: false,
+  });
 }
 
 /** Delete the survey file; a missing one is not an error. */

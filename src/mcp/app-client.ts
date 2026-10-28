@@ -12,6 +12,7 @@ import type {
   SettingsPatch,
 } from "../lib/types";
 import type { DiagnosticsReport } from "../lib/diagnostics";
+import type { CopyPart } from "../lib/survey-ops";
 
 export const DEFAULT_APP_URL = "http://localhost:3000";
 export const ALLOW_REMOTE_ENV = "WIFI_HEATMAPPER_MCP_ALLOW_REMOTE";
@@ -209,6 +210,22 @@ export class AppClient {
         body: JSON.stringify(patch),
       },
     );
+    return stripSecrets(saved);
+  }
+
+  /**
+   * Copy parts of one survey's settings into another
+   * (POST /api/settings/copy); returns the saved target survey.
+   */
+  async copySettings(
+    from: string,
+    to: string,
+    parts: readonly CopyPart[],
+  ): Promise<StoredSurvey> {
+    const query = new URLSearchParams({ from, to, parts: parts.join(",") });
+    const saved = await this.json<StoredSurvey>(`api/settings/copy?${query}`, {
+      method: "POST",
+    });
     return stripSecrets(saved);
   }
 }

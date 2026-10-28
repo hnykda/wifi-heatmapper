@@ -1,5 +1,6 @@
 import { expect, Page } from "@playwright/test";
 import { deflateSync } from "node:zlib";
+import { defaultIperfCommands } from "../src/lib/iperfUtils";
 
 /** A plain white PNG of the given size, built without any image library. */
 export function makePng(width: number, height: number): Buffer {
@@ -47,12 +48,31 @@ export function uniqueName(prefix = "e2e"): string {
 /**
  * Upload a fresh floor plan so the test owns an empty survey.
  * Returns the floor plan file name.
+ *
+ * A new survey copies the speed settings of the last saved one, which
+ * here is whatever the previous test left. So the survey is created with
+ * the default speed settings first, unless `inherit` is set.
  */
 export async function uploadFloorplan(
   page: Page,
   name = uniqueName(),
   size: [number, number] = [800, 500],
+  { inherit = false }: { inherit?: boolean } = {},
 ): Promise<string> {
+  if (!inherit) {
+    const res = await page.request.patch(
+      `/api/settings?name=${encodeURIComponent(name)}`,
+      {
+        data: {
+          measureSpeed: false,
+          iperfServerAdrs: "",
+          testDuration: 1,
+          iperfCommands: defaultIperfCommands,
+        },
+      },
+    );
+    expect(res.ok()).toBe(true);
+  }
   await page.goto("/#settings");
   await page.getByTestId("floorplan-picker").waitFor();
   await page.getByTestId("floorplan-file-input").setInputFiles({

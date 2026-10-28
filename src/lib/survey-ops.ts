@@ -29,6 +29,55 @@ export const SETTINGS_PATCH_KEYS = [
   "iperfCommands",
 ] as const satisfies readonly (keyof SettingsPatch)[];
 
+/**
+ * What "Copy settings from…" can copy from one survey to another. Never
+ * the points, the floor plan, its size or the sudo password.
+ */
+export const COPY_PARTS = {
+  /** What to measure, the iperf3 server, test duration and commands */
+  speed: ["measureSpeed", "iperfServerAdrs", "testDuration", "iperfCommands"],
+  /** Access point names */
+  apNames: ["apMapping"],
+  /** Heat spot radius, opacity, blur, colours and fixed colour scales */
+  heatmapLook: [
+    "radiusDivider",
+    "maxOpacity",
+    "minOpacity",
+    "blur",
+    "gradient",
+    "heatmapRanges",
+  ],
+} as const satisfies Record<string, readonly (keyof SurveyDocument)[]>;
+
+export type CopyPart = keyof typeof COPY_PARTS;
+export const COPY_PART_NAMES = Object.keys(COPY_PARTS) as CopyPart[];
+
+/** `target` with the given parts of `source`'s settings (deep copies). */
+export function copySettings<T extends SurveyDocument>(
+  target: T,
+  source: SurveyDocument,
+  parts: readonly CopyPart[],
+): T {
+  const next: T = { ...target };
+  for (const part of parts) {
+    for (const key of COPY_PARTS[part]) {
+      (next as Record<string, unknown>)[key] = structuredClone(source[key]);
+    }
+  }
+  return next;
+}
+
+/** true if every setting in `part` is the same in both surveys. */
+export function samePart(
+  a: SurveyDocument,
+  b: SurveyDocument,
+  part: CopyPart,
+): boolean {
+  return COPY_PARTS[part].every(
+    (key) => JSON.stringify(a[key]) === JSON.stringify(b[key]),
+  );
+}
+
 /** Apply a validated settings patch. */
 export function applySettingsPatch<T extends SurveyDocument>(
   survey: T,

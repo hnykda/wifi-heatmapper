@@ -37,6 +37,26 @@ export async function readBody<T extends z.ZodType>(
   return { ok: true, data: parsed.data };
 }
 
+/** Parse the query string with a (strict) schema; a 400 answer if it doesn't fit. */
+export function readQuery<T extends z.ZodType>(
+  request: { nextUrl: URL },
+  schema: T,
+): { ok: true; data: z.output<T> } | { ok: false; response: NextResponse } {
+  const parsed = schema.safeParse(
+    Object.fromEntries(request.nextUrl.searchParams),
+  );
+  if (!parsed.success) {
+    return {
+      ok: false,
+      response: jsonError(
+        400,
+        `Invalid request: ${describeIssues(parsed.error)}`,
+      ),
+    };
+  }
+  return { ok: true, data: parsed.data };
+}
+
 /** The answer for an error thrown by survey-store. */
 export function storeErrorResponse(err: unknown, what: string) {
   if (err instanceof SurveyChangeError)

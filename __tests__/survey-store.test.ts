@@ -151,4 +151,158 @@ describe("survey-store", () => {
     expect(await store.read("w.png")).toBeNull();
     await store.remove("w.png"); // already gone: fine
   });
+
+  describe("a new survey", () => {
+    const speed = {
+      measureSpeed: true,
+      iperfServerAdrs: "192.168.1.10:5201",
+      testDuration: 5,
+      iperfCommands: {
+        tcpDownload: "iperf3 -c {server} -p {port} -t {duration} -R -J",
+        tcpUpload: "iperf3 -c {server} -p {port} -t {duration} -J",
+        udpDownload: "iperf3 -c {server} -p {port} -t {duration} -u -R -J",
+        udpUpload: "iperf3 -c {server} -p {port} -t {duration} -u -J",
+      },
+    };
+
+    it("starts from the defaults when there is no other survey", async () => {
+      const saved = await store.mutate("first.png", (s) => s);
+      expect(saved).toMatchObject({
+        measureSpeed: false,
+        iperfServerAdrs: "",
+        testDuration: 1,
+      });
+      expect(saved.meta?.speedSettingsFrom).toBeUndefined();
+    });
+
+    it("copies the speed settings of the most recently saved survey", async () => {
+      await store.mutate("older.png", (s) => ({
+        ...s,
+        ...speed,
+        iperfServerAdrs: "10.0.0.1",
+      }));
+      await new Promise((r) => setTimeout(r, 5));
+      await store.mutate("newer.png", (s) => ({
+        ...s,
+        ...speed,
+        apMapping: [{ apName: "Hall", macAddress: "aabbccddeeff" }],
+        maxOpacity: 0.9,
+        surveyPoints: [{ ...newPoint(), id: "Point_1" }],
+      }));
+      const saved = await store.mutate("second.png", (s) => s);
+      expect(saved).toMatchObject(speed);
+      // only the speed settings: not the names, the look or the points
+      expect(saved.apMapping).toEqual([]);
+      expect(saved.maxOpacity).toBe(0.7);
+      expect(saved.surveyPoints).toEqual([]);
+      expect(saved.floorplanImageName).toBe("second.png");
+      expect(saved.meta?.speedSettingsFrom).toBe("newer.png");
+      // said only on the save that created it
+      const next = await store.mutate("second.png", (s) => s);
+      expect(next.meta?.speedSettingsFrom).toBeUndefined();
+      expect(next.iperfServerAdrs).toBe("192.168.1.10:5201");
+    });
+
+    it("says nothing when the last survey has the default speed settings", async () => {
+      await store.mutate("plain.png", (s) => s);
+      const saved = await store.mutate("next.png", (s) => s);
+      expect(saved.meta?.speedSettingsFrom).toBeUndefined();
+      expect(saved.measureSpeed).toBe(false);
+    });
+
+    it("skips files it can't read; files without meta use their date", async () => {
+      mkdirSync(surveysDir, { recursive: true });
+      writeFileSync(join(surveysDir, "broken.png.json"), "{ not json");
+      writeFileSync(
+        join(surveysDir, "old.png.json"),
+        JSON.stringify({
+          floorplanImageName: "old.png",
+          iperfServerAdrs: "10.0.0.7",
+        }),
+      );
+      const saved = await store.mutate("new.png", (s) => s);
+      expect(saved.iperfServerAdrs).toBe("10.0.0.7");
+      expect(saved.measureSpeed).toBe(true); // derived, as for any old file
+      expect(saved.meta?.speedSettingsFrom).toBe("old.png");
+    });
+
+    it("an import (replace) does not inherit", async () => {
+      await store.mutate("set.png", (s) => ({ ...s, ...speed }));
+      const saved = await store.replace("imported.png", {
+        floorplanImageName: "imported.png",
+      });
+      expect(saved.measureSpeed).toBe(false);
+      expect(saved.meta?.speedSettingsFrom).toBeUndefined();
+    });
+  });
+
+  describe("copyFrom", () => {
+    async function setUp() {
+      await store.mutate("from.png", (s) => ({
+        ...s,
+        measureSpeed: true,
+        iperfServerAdrs: "10.0.0.5",
+        testDuration: 9,
+        apMapping: [{ apName: "Hall", macAddress: "aabbccddeeff" }],
+        radiusDivider: 120,
+        maxOpacity: 0.5,
+        minOpacity: 0.1,
+        blur: 0.5,
+        gradient: { 0: "red", 1: "blue" },
+        heatmapRanges: { signalStrength: { min: 10, max: 90, enabled: true } },
+        dimensions: { width: 1000, height: 800 },
+        surveyPoints: [{ ...newPoint(), id: "Point_1" }],
+        nextPointNum: 2,
+      }));
+      return store.replace("to.png", {
+        floorplanImageName: "to.png",
+        dimensions: { width: 300, height: 200 },
+        surveyPoints: [{ ...newPoint(5), id: "Point_7" }],
+        nextPointNum: 8,
+      });
+    }
+
+    it("copies only the parts asked for", async () => {
+      const before = await setUp();
+      const speed = await store.copyFrom("from.png", "to.png", ["speed"]);
+      expect(speed).toMatchObject({
+        measureSpeed: true,
+        iperfServerAdrs: "10.0.0.5",
+        testDuration: 9,
+        apMapping: [],
+        radiusDivider: null,
+        gradient: before.gradient,
+      });
+      const names = await store.copyFrom("from.png", "to.png", ["apNames"]);
+      expect(names.apMapping).toEqual([
+        { apName: "Hall", macAddress: "aabbccddeeff" },
+      ]);
+      expect(names.radiusDivider).toBeNull();
+      const look = await store.copyFrom("from.png", "to.png", ["heatmapLook"]);
+      expect(look).toMatchObject({
+        radiusDivider: 120,
+        maxOpacity: 0.5,
+        minOpacity: 0.1,
+        blur: 0.5,
+        gradient: { 0: "red", 1: "blue" },
+        heatmapRanges: { signalStrength: { min: 10, max: 90, enabled: true } },
+      });
+      // never the points, the floor plan or its size
+      expect(look.surveyPoints.map((p) => p.id)).toEqual(["Point_7"]);
+      expect(look.nextPointNum).toBe(8);
+      expect(look.dimensions).toEqual({ width: 300, height: 200 });
+      expect(look.floorplanImageName).toBe("to.png");
+      expect(onDisk("to.png")).toEqual(JSON.parse(JSON.stringify(look)));
+    });
+
+    it("refuses a missing source or the same survey", async () => {
+      await setUp();
+      await expect(
+        store.copyFrom("nope.png", "to.png", ["speed"]),
+      ).rejects.toMatchObject({ status: 404 });
+      await expect(
+        store.copyFrom("to.png", "to.png", ["speed"]),
+      ).rejects.toMatchObject({ status: 400 });
+    });
+  });
 });
