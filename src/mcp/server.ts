@@ -46,6 +46,7 @@ import { registerPrompts } from "./prompts";
 
 const metricTitles: Record<MeasurementTestType, string> = {
   signalStrength: "Signal strength",
+  snr: "Signal-to-noise ratio",
   tcpDownload: "TCP download",
   tcpUpload: "TCP upload",
   udpDownload: "UDP download",

@@ -10,6 +10,7 @@ import type {
   SurveyPoint,
 } from "../lib/types";
 import { apNameFor } from "../lib/apName";
+import { snrOf, validNoise } from "../lib/utils";
 
 const round = (value: number, digits = 1) => {
   const f = 10 ** digits;
@@ -35,6 +36,10 @@ export interface PointRecord {
   apName: string | null;
   signalPercent: number;
   rssiDbm: number;
+  /** dBm, or null where the platform reports no noise (Windows) */
+  noiseDbm: number | null;
+  /** RSSI minus noise, in dB */
+  snrDb: number | null;
   channel: number;
   bandGHz: number;
   channelWidthMHz: number;
@@ -87,6 +92,8 @@ export function describePoint(
     apName: apNameFor(w.bssid, apMapping) ?? null,
     signalPercent: w.signalStrength,
     rssiDbm: w.rssi,
+    noiseDbm: validNoise(w.noise),
+    snrDb: snrOf(w),
     channel: w.channel,
     bandGHz: w.band,
     channelWidthMHz: w.channelWidth,
@@ -144,6 +151,8 @@ const METRICS: {
 }[] = [
   { key: "signalPercent", unit: "%", digits: 0, read: (p) => p.signalPercent },
   { key: "rssiDbm", unit: "dBm", digits: 0, read: (p) => p.rssiDbm },
+  { key: "noiseDbm", unit: "dBm", digits: 0, read: (p) => p.noiseDbm },
+  { key: "snrDb", unit: "dB", digits: 0, read: (p) => p.snrDb },
   {
     key: "tcpDownloadMbps",
     unit: "Mbps",

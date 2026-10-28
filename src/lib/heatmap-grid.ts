@@ -26,9 +26,11 @@ import {
   HeatmapKey,
   IperfResults,
   IperfTestProperty,
+  HeatmapProperty,
   MeasurementTestType,
   SurveyPoint,
 } from "./types";
+import { snrOf } from "./utils";
 
 /** The shader's weight falloff exponent (heatmapLayerRenderer.ts, u_power). */
 export const IDW_POWER = 3;
@@ -36,6 +38,7 @@ export const IDW_POWER = 3;
 /** Every map the Heat maps tab can draw, by its HeatmapKey. */
 export const HEATMAP_KEYS = [
   "signalStrength",
+  "snr",
   "tcpDownload-bitsPerSecond",
   "tcpDownload-retransmits",
   "tcpUpload-bitsPerSecond",
@@ -57,11 +60,12 @@ export function isGridHeatmapKey(key: string): key is GridHeatmapKey {
 
 export function parseHeatmapKey(key: GridHeatmapKey): {
   metric: MeasurementTestType;
-  property: keyof IperfTestProperty;
+  property: HeatmapProperty;
 } {
   if (key === "signalStrength") {
     return { metric: "signalStrength", property: "signalStrength" };
   }
+  if (key === "snr") return { metric: "snr", property: "snr" };
   const [metric, property] = key.split("-") as [
     keyof IperfResults,
     keyof IperfTestProperty,
@@ -70,10 +74,12 @@ export function parseHeatmapKey(key: GridHeatmapKey): {
 }
 
 /** Units of the values a grid (and the colour scale controls) use. */
-export function displayUnit(property: keyof IperfTestProperty): string {
+export function displayUnit(property: HeatmapProperty): string {
   switch (property) {
     case "signalStrength":
       return "%";
+    case "snr":
+      return "dB";
     case "bitsPerSecond":
       return "Mbps";
     case "jitterMs":
@@ -84,10 +90,7 @@ export function displayUnit(property: keyof IperfTestProperty): string {
 }
 
 /** Raw measurement (bits/s for throughput) to display units. */
-export function toDisplayUnits(
-  property: keyof IperfTestProperty,
-  raw: number,
-): number {
+export function toDisplayUnits(property: HeatmapProperty, raw: number): number {
   return property === "bitsPerSecond" ? raw / 1e6 : raw;
 }
 
@@ -98,15 +101,16 @@ export function toDisplayUnits(
 export function heatmapValue(
   point: SurveyPoint,
   metric: MeasurementTestType,
-  property: keyof IperfTestProperty,
+  property: HeatmapProperty,
 ): number | null {
   if (metric === "signalStrength") {
     const v = point.wifiData?.signalStrength;
     return typeof v === "number" && Number.isFinite(v) ? v : null;
   }
+  if (metric === "snr") return snrOf(point.wifiData);
   const test = point.iperfData?.[metric];
   if (!test || test.bitsPerSecond === 0) return null; // test not run
-  const v = test[property];
+  const v = test[property as keyof IperfTestProperty];
   return typeof v === "number" && Number.isFinite(v) ? v : null;
 }
 

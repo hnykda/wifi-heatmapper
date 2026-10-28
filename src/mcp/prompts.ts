@@ -12,7 +12,7 @@ function user(text: string): GetPromptResult {
 export function analyseSurveyPrompt(name: string): string {
   return `Analyse the Wi-Fi survey "${name}" from wifi-heatmapper.
 
-1. Call get_survey for "${name}". Call get_heatmap_grid for signalStrength and, if throughput was measured, for tcpDownload-bitsPerSecond.
+1. Call get_survey for "${name}". Call get_heatmap_grid for signalStrength, for snr if the points have noise readings, and, if throughput was measured, for tcpDownload-bitsPerSecond.
 2. Report, citing point ids and floor-plan coordinates (pixels, origin top left):
    - dead zones and weak areas (from the summary and the null or low cells of the grid);
    - which access point (apName or BSSID, band, channel) serves which part of the plan;

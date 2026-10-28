@@ -229,8 +229,9 @@ The summary only uses points that are switched on, like the heat maps:
 
 ### get_heatmap_grid
 
-`metric` is one of the maps on the Heat maps tab: `signalStrength`,
-`tcpDownload-bitsPerSecond`, `tcpDownload-retransmits`,
+`metric` is one of the maps on the Heat maps tab: `signalStrength`, `snr`
+(signal-to-noise ratio in dB; only points with a noise reading, which macOS
+and some Linux drivers give and Windows doesn't), `tcpDownload-bitsPerSecond`, `tcpDownload-retransmits`,
 `tcpUpload-bitsPerSecond`, and for `udpDownload` and `udpUpload` each of
 `-bitsPerSecond`, `-jitterMs`, `-lostPackets`, `-packetsReceived`.
 `cells` (2 to 60, default 20) is the number of cells along the longer side.
