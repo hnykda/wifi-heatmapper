@@ -18,6 +18,7 @@ import { initLocalization } from "./localization";
 import * as wlanApi from "./wlan-api";
 import { ERROR_ACCESS_DENIED } from "./wlan-api-parse";
 import { getLogger } from "./logger";
+import { recordWifiMethod } from "./diagnostics-state";
 // import { getLogger } from "./logger";
 // const logger = getLogger("wifi-Windows");
 
@@ -551,7 +552,10 @@ export class WindowsWifiActions extends NetshWifiActions {
       // give it a few seconds, as the netsh path does
       for (let attempt = 0; attempt < 10; attempt++) {
         const current = await wlanApi.getCurrentConnection();
-        if (current) return { SSIDs: [current], reason: "" };
+        if (current) {
+          recordWifiMethod("Windows WLAN API");
+          return { SSIDs: [current], reason: "" };
+        }
         await delay(300);
       }
       return { SSIDs: [], reason: NOT_CONNECTED_MESSAGE };
@@ -559,7 +563,14 @@ export class WindowsWifiActions extends NetshWifiActions {
       const message = wlanApiFailureMessage(err);
       if (message) return { SSIDs: [], reason: message };
       this.fallback("connection query", err);
-      return super.getWifi(settings);
+      const result = await super.getWifi(settings);
+      if (result.SSIDs.length > 0) {
+        recordWifiMethod(
+          "netsh (fallback)",
+          `the WLAN API failed: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+      return result;
     }
   }
 }

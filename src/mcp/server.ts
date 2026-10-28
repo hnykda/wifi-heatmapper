@@ -29,6 +29,7 @@ import { resolveHeatmapRange, toDisplayRange } from "../lib/heatmap-scale";
 import type { MeasurementTestType, SurveyPoint } from "../lib/types";
 import { sanitizeFilename } from "../lib/utils";
 import { measuresSpeed } from "../lib/measurement-mode";
+import { buildIssueUrl, PASTE_HINT } from "../lib/diagnostics";
 import {
   AppClient,
   AppRequestError,
@@ -126,7 +127,11 @@ export function createMcpServer(client: AppClient, version: string): McpServer {
         "signal strength and iperf3 throughput measured at points on a floor plan. " +
         "Start with list_surveys, then get_survey for the numbers and get_heatmap_grid " +
         "for a coarse map. Coordinates are floor-plan image pixels, origin top left. " +
-        "This server cannot take measurements, see the rendered heat map images, or handle the sudo password.",
+        "This server cannot take measurements, see the rendered heat map images, or handle the sudo password. " +
+        "If something looks like a bug in the app rather than a Wi-Fi problem (an error message, impossible readings " +
+        "such as 0% signal or -100 dBm at every point or channel 0, no noise readings on macOS, Windows falling back " +
+        "from the WLAN API to netsh), suggest reporting it and call report_problem: it returns a redacted summary and a " +
+        "prefilled GitHub issue link for the person to open. It never posts anything.",
     },
   );
 
@@ -534,6 +539,60 @@ export function createMcpServer(client: AppClient, version: string): McpServer {
           x: grid.x.map((v) => Math.round(v)),
           y: grid.y.map((v) => Math.round(v)),
           values: grid.values,
+        });
+      }),
+  );
+
+  server.registerTool(
+    "report_problem",
+    {
+      title: "Report a problem",
+      description:
+        "Prepare a bug report for the wifi-heatmapper developers: app version, OS, how the app runs, how Wi-Fi is read, " +
+        "iperf3, the last measurement and the recent server log, with the sudo password removed and network names, MAC and " +
+        "IP addresses replaced by placeholders (unless includeNetwork). Returns the summary and a prefilled GitHub issue link " +
+        "for the person to open and submit. Nothing is posted. Use it for app bugs (errors, impossible readings), not for weak Wi-Fi.",
+      inputSchema: {
+        name: nameArg
+          .optional()
+          .describe("Floor plan name of the survey involved (optional)"),
+        problem: z
+          .string()
+          .max(2000)
+          .optional()
+          .describe(
+            "What went wrong, in a sentence or two: the error message or the odd readings",
+          ),
+        includeNetwork: z
+          .boolean()
+          .optional()
+          .describe(
+            "Keep network names, MAC and IP addresses (default false). Only if the person agrees.",
+          ),
+      },
+      annotations: { readOnlyHint: true, openWorldHint: false },
+    },
+    (args) =>
+      guarded(async () => {
+        const report = await client.diagnostics({
+          survey: args.name,
+          problem: args.problem,
+          includeNetwork: args.includeNetwork === true,
+        });
+        const link = buildIssueUrl(report);
+        return ok({
+          issueUrl: link.url,
+          summary: report.summary,
+          networkHidden: report.networkHidden,
+          logLines: report.logLineCount,
+          ...(link.complete
+            ? {
+                note: "The link carries the whole report, log included. Give it to the person to open, check and submit; nothing has been sent.",
+              }
+            : {
+                note: `The report is too long for the link, which carries only the summary. Give the person the link and the full text below to paste where the issue says "${PASTE_HINT}". Nothing has been sent.`,
+                fullDiagnostics: report.text,
+              }),
         });
       }),
   );

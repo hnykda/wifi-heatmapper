@@ -13,7 +13,10 @@ with the server's address. In a speed survey it also warns when no server is
 set or the newest point was saved without speed.
 
 The header also has a light/dark switch and an "i" button that opens the
-About dialog with the version, OS and iperf3 details to include in bug reports.
+About dialog with the version, OS and iperf3 details. The **?** in the
+bottom-right corner opens the guide for the tab you are on, what's new, and
+**Report a problem**, which fills in a bug report for you (see the
+[FAQ](faq.md#something-went-wrong-how-do-i-report-it)).
 
 The first time you open the app a short welcome message explains the
 workflow. "Got it" hides it for good; the About dialog can show it again.

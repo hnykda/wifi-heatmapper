@@ -19,6 +19,7 @@ export function analyseSurveyPrompt(name: string): string {
    - throughput bottlenecks: points with good signal but low throughput point at the AP, its uplink, interference or the iperf3 server, not coverage;
    - concrete suggestions: where to move an AP or add one, band or channel changes, where more points are needed.
 3. Say clearly what the data can't show: walls and materials, other floors, interference sources, client-specific behaviour, anything between points or outside the radius, and that one reading per point is a snapshot.
+4. Watch for readings that point at a bug in the app rather than the Wi-Fi: 0% signal or -100 dBm at many points, channel 0, the same reading everywhere, noise missing on macOS (it should be there), or errors. If you see one, say so and offer to call report_problem, which prepares a redacted bug report and a prefilled GitHub issue link (it posts nothing).
 Keep it short. Use the app's units (%, dBm, Mbps).`;
 }
 

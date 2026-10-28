@@ -1,0 +1,77 @@
+# The app fills this form in: help button (bottom right) > Report a problem.
+# The field ids are its prefill contract (src/lib/diagnostics.ts, ISSUE_FIELDS):
+# rename one there and here together.
+name: Bug report
+description: Something does not work as expected
+title: "Problem: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! Wi-Fi works differently on every system and version, so reports like yours are how we fix it.
+
+        **Tip:** in the app, click the help button in the bottom-right corner and choose **Report a problem**. It fills in the details below for you, with network names and addresses hidden.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What did you do, and what happened? Error messages and screenshots help.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: false
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open the Floor plan tab
+        2. Click the floor plan
+        3. ...
+    validations:
+      required: false
+  - type: input
+    id: version
+    attributes:
+      label: App version
+      description: In the About dialog (the "i" in the header).
+      placeholder: "0.7.0"
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: Operating system and version
+      placeholder: "macOS Sequoia 15.5, Windows 11 24H2, Ubuntu 24.04"
+    validations:
+      required: true
+  - type: input
+    id: run-mode
+    attributes:
+      label: How you run it
+      description: Desktop app (which installer), from source (npm run dev or npm start), Docker or Podman, mock mode.
+      placeholder: "desktop app (.dmg)"
+    validations:
+      required: false
+  - type: input
+    id: wifi-method
+    attributes:
+      label: How the app reads Wi-Fi
+      description: "Filled in by the app: for example the macOS Wi-Fi helper, wdutil, iw, the Windows WLAN API or netsh."
+    validations:
+      required: false
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Diagnostics
+      description: |
+        Filled in by the app's "Report a problem" (or paste what "Copy diagnostics" copied). Check it before you submit.
+        Without the app: the "System Information" block the server prints at start-up, and a log (`LOG_LEVEL=2 npm run dev`).
+      render: text
+    validations:
+      required: false

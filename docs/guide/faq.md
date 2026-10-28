@@ -64,11 +64,48 @@ nothing anywhere. If it helped you, star the
 
 ## Something went wrong. How do I report it?
 
-Open an [issue](https://github.com/hnykda/wifi-heatmapper/issues/new/choose).
-Include the details from the About dialog (the "i" button in the header) and,
-if you can, a log: in the desktop app the log paths are in
-[Installing the app](install.md); from source, see
-[logs](run-from-source.md#logs).
+Please do. Wi-Fi works differently on every system and version (macOS
+needs Location access and changes what it reports from one release to the
+next, Windows has two ways in, Linux drivers each report a little
+differently), and the developers can't test them all. Reports like yours
+are how it gets fixed.
+
+The quickest way is from the app:
+
+1. Click the **help button** (the **?** in the bottom-right corner) and
+   choose **Report a problem**. When a measurement fails (**Could not
+   measure**) or a point is **Saved without speed**, the panel has a
+   **Report this** link that adds the reason; error messages have one too.
+2. The dialog shows exactly what would be shared: the app version, your
+   system and version, how the app runs (desktop app, from source, Docker,
+   mock mode), how it reads Wi-Fi on your system (for example the macOS
+   Wi-Fi helper, `wdutil`, `iw`, the Windows WLAN API or `netsh`), whether
+   iperf3 is installed, whether the survey measures signal only or signal
+   and speed, the last measurement and why it failed or had no speed,
+   and the last few hundred lines of the app's log.
+3. Click **Open GitHub issue**. GitHub opens in your browser with the form
+   filled in; add what you did and what you expected, check it, and submit.
+   Nothing is sent before you do. If the report is too long for a link, the
+   app copies it, and the issue asks you to paste it. **Copy diagnostics**
+   copies it too, for anywhere else.
+
+What is left out:
+
+- **Your sudo password, always.** It is removed from everything, including
+  the commands in the log.
+- **Network names, access point (MAC) addresses and IP addresses**, unless
+  you switch on **Include network names and addresses**. They are replaced
+  with placeholders such as `<ssid-1>`, `<mac-1>` and `<ip-1>`; the same
+  network gets the same placeholder throughout, so the report still shows
+  when something changed. Your computer's name is hidden too, and your home
+  folder shows as `~`.
+
+The log in the report is what the app printed at its current log level. For
+more detail, run it with `LOG_LEVEL=2` (see [logs](run-from-source.md#logs)),
+repeat what went wrong, and report again. Without the app, open an
+[issue](https://github.com/hnykda/wifi-heatmapper/issues/new?template=bug_report.yml)
+and fill the form in by hand; the desktop app's log files are listed in
+[Installing the app](install.md).
 
 Tried a desktop app? Tell us how it went, even if it just worked, with the
 [desktop app report](https://github.com/hnykda/wifi-heatmapper/issues/new?template=desktop-app-report.md).

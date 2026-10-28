@@ -52,6 +52,31 @@ function surveyPoint(
 
 let files: Record<string, Record<string, unknown>>;
 const patches: SettingsPatch[] = [];
+const diagnosticsQueries: URLSearchParams[] = [];
+let diagnosticsLog = "[2026-10-28T09:00:00.000Z] [root:INFO] started";
+
+/** What GET /api/diagnostics answers (the app redacts it). */
+function fakeReport(q: URLSearchParams) {
+  const hidden = q.get("network") !== "include";
+  const summary = [
+    "App version: 0.7.0",
+    "Operating system: linux 6.8 (linux 6.8, x64)",
+    `Network names and addresses: ${hidden ? "hidden" : "included"}`,
+    ...(q.get("problem") ? [`Problem shown: ${q.get("problem")}`] : []),
+  ].join("\n");
+  return {
+    networkHidden: hidden,
+    version: "0.7.0",
+    os: "linux 6.8 (linux 6.8, x64)",
+    runMode: "from source (next start)",
+    wifiMethod: "iw",
+    problem: q.get("problem"),
+    summary,
+    logExcerpt: diagnosticsLog,
+    logLineCount: diagnosticsLog.split("\n").length,
+    text: `${summary}\n\nRecent log:\n${diagnosticsLog}`,
+  };
+}
 let app: Server;
 let url: string;
 
@@ -115,6 +140,10 @@ beforeAll(async () => {
         desktopApp: false,
         macosHelper: null,
       });
+    }
+    if (u.pathname === "/api/diagnostics") {
+      diagnosticsQueries.push(u.searchParams);
+      return send(200, fakeReport(u.searchParams));
     }
     if (u.pathname === "/api/media") {
       return send(200, { files: ["Home.png", "Empty.png"] });
@@ -184,6 +213,7 @@ describe("MCP server over stdio against a fake app", () => {
       "get_settings",
       "get_survey",
       "list_surveys",
+      "report_problem",
       "update_settings",
     ]);
     const prompts = (await client.listPrompts()).prompts.map((p) => p.name);
@@ -198,6 +228,63 @@ describe("MCP server over stdio against a fake app", () => {
     });
     const text = p.messages[0].content;
     expect(text.type === "text" && text.text).toContain("get_survey");
+    expect(text.type === "text" && text.text).toContain("report_problem");
+    expect(client.getInstructions()).toMatch(/report_problem/);
+  });
+
+  it("report_problem returns a redacted summary and an issue link, posting nothing", async () => {
+    const count = patches.length;
+    const r = json(
+      await client.callTool({
+        name: "report_problem",
+        arguments: { name: "Home.png", problem: "Every point reads 0%" },
+      }),
+    );
+    const q = diagnosticsQueries.at(-1)!;
+    expect(q.get("network")).toBeNull(); // hidden unless asked
+    expect(q.get("survey")).toBe("Home.png");
+    expect(q.get("problem")).toBe("Every point reads 0%");
+    expect(r.networkHidden).toBe(true);
+    expect(r.summary).toContain("App version: 0.7.0");
+    expect(
+      r.issueUrl.startsWith(
+        "https://github.com/hnykda/wifi-heatmapper/issues/new?template=bug_report.yml&",
+      ),
+    ).toBe(true);
+    const params = new URL(r.issueUrl).searchParams;
+    expect(params.get("version")).toBe("0.7.0");
+    expect(params.get("title")).toBe("Problem: Every point reads 0%");
+    expect(params.get("diagnostics")).toContain("Recent log:");
+    expect(r.fullDiagnostics).toBeUndefined();
+    expect(patches.length).toBe(count); // nothing written
+
+    json(
+      await client.callTool({
+        name: "report_problem",
+        arguments: { includeNetwork: true },
+      }),
+    );
+    expect(diagnosticsQueries.at(-1)!.get("network")).toBe("include");
+  });
+
+  it("report_problem with a long log: summary in the link, full text to paste", async () => {
+    diagnosticsLog = Array.from(
+      { length: 200 },
+      (_, i) =>
+        `[2026-10-28T09:00:00.000Z] [root:INFO] line ${i} ${"x".repeat(80)}`,
+    ).join("\n");
+    try {
+      const r = json(
+        await client.callTool({ name: "report_problem", arguments: {} }),
+      );
+      expect(r.issueUrl.length).toBeLessThanOrEqual(7500);
+      expect(new URL(r.issueUrl).searchParams.get("diagnostics")).toContain(
+        "Paste the copied diagnostics here.",
+      );
+      expect(r.fullDiagnostics).toContain("line 199");
+    } finally {
+      diagnosticsLog = "[2026-10-28T09:00:00.000Z] [root:INFO] started";
+    }
   });
 
   it("list_surveys combines floor plans and surveys", async () => {

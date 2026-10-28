@@ -82,8 +82,10 @@ the test suites and what a PR needs; [docs/dev](docs/dev) has the
 [desktop app](docs/dev/desktop-app.md). Every PR needs evidence it was tested:
 automated tests, or a screenshot and a note on which OS you tried it.
 
-Found a bug? Open an [issue](https://github.com/hnykda/wifi-heatmapper/issues/new/choose)
-with the details from the app's About dialog (the "i" button in the header).
+Found a bug? In the app, click the **?** in the bottom-right corner and
+choose **Report a problem**: it opens a GitHub issue with your system and
+the app's diagnostics filled in, with the sudo password, network names and
+addresses left out ([more](docs/guide/faq.md#something-went-wrong-how-do-i-report-it)).
 Tried a desktop app? [Tell us how it went](https://github.com/hnykda/wifi-heatmapper/issues/new?template=desktop-app-report.md),
 even if it just worked.
 

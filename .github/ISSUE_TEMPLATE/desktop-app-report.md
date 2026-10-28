@@ -29,7 +29,9 @@ assignees: ''
 
 ## Log
 
-<!-- If something failed, attach the log. Locations:
+<!-- If something failed: in the app, the help button (bottom right) >
+"Report a problem" > "Copy diagnostics" copies the details and the recent
+log, redacted; paste them here. Or attach the log file:
 macOS:  ~/Library/Logs/com.github.hnykda.wifi-heatmapper/server.log
 Linux:  ~/.local/share/com.github.hnykda.wifi-heatmapper/logs/server.log
 Windows: %LOCALAPPDATA%\com.github.hnykda.wifi-heatmapper\logs\server.log -->

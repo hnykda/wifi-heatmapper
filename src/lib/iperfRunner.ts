@@ -23,6 +23,7 @@ import { isMockMode } from "./app-info";
 import { mockIperfResult } from "./wifiScanner-mock";
 import { parseServerAddress } from "./measurement-mode";
 import { planSpeedTest, speedTestFailedWarning } from "./speed-test";
+import { rememberNetworks } from "./diagnostics-state";
 const logger = getLogger("iperfRunner");
 
 type TestType = "TCP" | "UDP";
@@ -153,6 +154,7 @@ export async function runSurveyTests(
   try {
     // Which SSID are we on? (used for the progress header)
     const ssids = await wifiActions.scanWifi(settings);
+    rememberNetworks(ssids.SSIDs);
     logger.debug(`scanWifi returned: ${JSON.stringify(ssids)}`);
     const ssidName = ssids.SSIDs.find((item) => item.currentSSID)?.ssid ?? "";
 
@@ -175,6 +177,7 @@ export async function runSurveyTests(
       if (resp.reason != "" || resp.SSIDs.length === 0) {
         throw new Error(resp.reason || "No Wi-Fi information returned.");
       }
+      rememberNetworks(resp.SSIDs);
       wifiStrengths.push(resp.SSIDs[0].signalStrength);
       wifiRssis.push(resp.SSIDs[0].rssi);
       wifiNoises.push(resp.SSIDs[0].noise);

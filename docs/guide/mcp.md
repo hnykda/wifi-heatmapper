@@ -35,7 +35,10 @@ AI agent  --stdio-->  MCP server  --HTTP, this computer only-->  wifi-heatmapper
   helper there and allowed Location access, are throughput tests set up;
 - change a short list of settings: iperf3 server, test duration, iperf3
   commands, access point names, heat spot radius, opacity and fixed colour
-  scales.
+  scales;
+- prepare a bug report when something looks like a bug in the app rather
+  than weak Wi-Fi: it gives you a summary and a prefilled GitHub issue link
+  to open yourself. It never posts anything.
 
 **It cannot:**
 
@@ -189,6 +192,7 @@ pixels, with the origin at the top left. Throughput is in Mbps.
 | `update_settings(name, ...)` | Change some of them and save the survey. |
 | `check_setup(name?)` | What the app can tell without measuring, plus problems and notes. |
 | `get_heatmap_grid(name, metric, cells)` | A numeric heat map. |
+| `report_problem(name?, problem?, includeNetwork?)` | A bug report for the developers and a prefilled GitHub issue link. Posts nothing. |
 
 ### get_survey
 
@@ -301,6 +305,22 @@ Some things can't be checked without measuring: whether the iperf3 server
 answers, whether Wi-Fi can be read, and whether a sudo password is needed.
 The app only checks them when a measurement starts, so the agent will ask
 you to take one measurement in the app.
+
+### report_problem
+
+The same report as **Report a problem** in the app (see the
+[FAQ](faq.md#something-went-wrong-how-do-i-report-it)): app version, OS,
+how the app runs and reads Wi-Fi, iperf3, the last measurement and the
+recent log. The sudo password is always removed; network names, MAC and IP
+addresses are replaced by placeholders unless `includeNetwork` is true. It
+returns the summary and an `issueUrl` for you to open, check and submit.
+When the report is too long for a link, it also returns `fullDiagnostics`
+to paste into the issue.
+
+Agents are told to suggest it when they see something that looks like a bug
+rather than a Wi-Fi problem: an error, impossible readings (0% or -100 dBm
+everywhere, channel 0), no noise readings on macOS, or Windows falling back
+from the WLAN API to `netsh`.
 
 ## Prompts
 

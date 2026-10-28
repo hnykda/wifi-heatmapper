@@ -11,7 +11,7 @@ Key facts:
 - Signal is read with CoreWLAN through a bundled helper on macOS (Location access needed to see the network name), the Native Wifi API (`wlanapi.dll`) on Windows, and `iw` on Linux. Each survey is either "Signal only" (the default, nothing to set up) or "Signal and speed", which needs `iperf3` on this computer and `iperf3 -s` on another computer on the network, ideally wired. If iperf3 is missing or the server cannot be reached, the signal is still saved, with a warning.
 - Workflow: Settings (floor plan, what to measure, speed test server) -> Floor plan (click where you stand to measure) -> Heat maps (adjust radius, fixed colour scales, download PNG) -> Survey points (table, CSV export).
 - Data: one JSON file per floor plan. In the desktop app under the OS's app data folder (see Installing the app); from source in `data/` (override with `WIFI_HEATMAPPER_DATA_DIR`).
-- Bug reports: https://github.com/hnykda/wifi-heatmapper/issues/new/choose with the details from the app's About dialog and a log (`LOG_LEVEL=2`).
+- Bug reports: in the app, the help button (bottom right) > "Report a problem" prefills https://github.com/hnykda/wifi-heatmapper/issues/new?template=bug_report.yml with redacted diagnostics; the MCP tool `report_problem` does the same.
 
 ## Docs
 

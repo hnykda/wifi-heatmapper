@@ -14,7 +14,9 @@ import {
 import { runSurveyTests } from "@/lib/iperfRunner";
 import { readBody } from "@/lib/api-helpers";
 import { startTaskSchema } from "@/lib/schema";
-import { getLogger } from "../../../lib/logger";
+import { getLogger, rememberSecret } from "../../../lib/logger";
+import { recordMeasurement } from "@/lib/diagnostics-state";
+import { measuresSpeed } from "@/lib/measurement-mode";
 const logger = getLogger("start-task");
 
 // handle a "status" request
@@ -43,10 +45,13 @@ export async function POST(req: NextRequest) {
     const body = await readBody(req, startTaskSchema);
     if (!body.ok) return body.response;
     const { settings } = body.data;
-    logger.debug(
-      `action=start: ${JSON.stringify({ ...settings, sudoerPassword: settings.sudoerPassword ? "(set)" : "" })}`,
-    );
+    rememberSecret(settings.sudoerPassword);
+    const { sudoerPassword: _pw, ...loggable } = settings;
+    logger.debug(`action=start: ${JSON.stringify(loggable)}`);
     setSurveyResults({ state: "pending" });
+    const speedTests = measuresSpeed(settings);
+    const failed = (error: string) =>
+      recordMeasurement({ ok: false, speedTests, error });
 
     // Start off the survey process immediately
     // this IIFE runs independently and uses setSurveyResults for the client
@@ -56,6 +61,7 @@ export async function POST(req: NextRequest) {
           await runSurveyTests(settings);
         // status that isn't "" means preflight went wrong
         if (status != "") {
+          if (status !== "Measurement cancelled") failed(status);
           setSurveyResults({
             explanation: status,
             state: "error",
@@ -63,18 +69,25 @@ export async function POST(req: NextRequest) {
           return;
         }
         if (!wifiData || !iperfData) {
+          failed("The measurement returned no data.");
           setSurveyResults({
             state: "error",
             explanation: "The measurement returned no data.",
           });
           return;
         }
+        recordMeasurement({
+          ok: true,
+          speedTests,
+          ...(warning ? { note: `Saved without speed: ${warning}` } : {}),
+        });
         setSurveyResults({
           state: "done",
           results: { wifiData, iperfData },
           ...(warning ? { warning } : {}),
         });
       } catch (err) {
+        failed(String(err));
         setSurveyResults({ state: "error", explanation: String(err) });
       }
     })();

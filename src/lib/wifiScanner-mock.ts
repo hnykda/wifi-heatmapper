@@ -21,6 +21,7 @@ import { getDefaultWifiResults, percentageToRssi } from "./utils";
 import { delay } from "./server-utils";
 import { badAddressReason, unreachableReason } from "./iperf-server-check";
 import { parseServerAddress } from "./measurement-mode";
+import { recordWifiMethod } from "./diagnostics-state";
 
 const STEP_DELAY_MS = parseInt(
   process.env.WIFI_HEATMAPPER_MOCK_DELAY_MS || "150",
@@ -133,6 +134,7 @@ export class MockWifiActions implements WifiActions {
   async getWifi(_settings: PartialHeatmapSettings): Promise<WifiScanResults> {
     await delay(STEP_DELAY_MS);
     mockState.measurements++;
+    recordWifiMethod("mock (synthetic readings)");
     return {
       SSIDs: [currentWifi(nextStrength(), nextNoise())],
       reason: "",
