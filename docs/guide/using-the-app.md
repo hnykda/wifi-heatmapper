@@ -111,6 +111,14 @@ Click a dot to see its details (signal, noise and signal-to-noise ratio
 where measured, network, access point and speed), switch it off (it is then ignored by the heat
 maps) or delete it.
 
+**Name a point** to find it again: click its name at the top of the
+details (`Point_1` until you name it), type a name such as "Kitchen" or
+"Desk upstairs" and press Enter, or click elsewhere. Escape cancels; an
+empty name goes back to the id. Names are up to 60 characters. The name is
+shown instead of the id in the details, the points table and the CSV; the
+id stays as it is. The measured values can't be edited: a point shows what
+was measured.
+
 On Linux, measurements use the first connected managed Wi-Fi interface,
 ignoring monitor, AP and P2P devices. If the link is disconnected or its
 signal information is incomplete, the measurement reports an error instead
@@ -168,6 +176,8 @@ a caption with the floor plan name, point count and date.
 Every measurement in the survey. Sort by any column, show more columns
 (signal in dBm, channel, Wi-Fi standard, coordinates, and more), filter,
 switch points off, delete a selection, or export everything as CSV. The
+**Name** column shows each point's name; click it to rename the point,
+the same way as in its details. The CSV has it in the `label` column. The
 download and upload columns appear once a point has a speed reading.
 A test that did not run shows as "—" (an empty cell in the CSV); a test
 that ran and got nothing through shows as 0, a real dead spot.

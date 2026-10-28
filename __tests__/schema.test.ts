@@ -14,6 +14,7 @@ import {
   surveyImportSchema,
 } from "@/lib/schema";
 import { hasSpeedData } from "@/lib/measurement-mode";
+import { cleanPointLabel, POINT_LABEL_MAX, pointName } from "@/lib/point-label";
 import type { IperfResults } from "@/lib/types";
 import { defaultSurvey } from "@/lib/survey-defaults";
 import {
@@ -538,5 +539,96 @@ describe("speed tests that did not run (schema version 2)", () => {
         iperfData: { ...NONE, tcpUpload: { bitsPerSecond: "fast" } },
       }).iperfData.tcpUpload,
     ).toBeNull();
+  });
+});
+
+describe("point labels", () => {
+  const load = (label: unknown) =>
+    parseSurveyFile(
+      { surveyPoints: [{ ...point("Point_1"), label }] },
+      "Plan.png",
+    ).surveyPoints[0];
+
+  it("reads a stored label leniently: trimmed, cut to 60, else none", () => {
+    expect(load("  Kitchen ").label).toBe("Kitchen");
+    expect(load("x".repeat(80)).label).toBe("x".repeat(POINT_LABEL_MAX));
+    expect(load("   ").label).toBeUndefined();
+    expect(load(42).label).toBeUndefined();
+    expect(
+      parseSurveyFile({ surveyPoints: [point("Point_1")] }, "Plan.png")
+        .surveyPoints[0],
+    ).not.toHaveProperty("label");
+    // a bad label never costs the point
+    expect(load({ name: "Kitchen" }).id).toBe("Point_1");
+  });
+
+  it("checks a label in a point patch strictly", () => {
+    expect(pointPatchSchema.parse({ label: "  Desk upstairs " })).toEqual({
+      label: "Desk upstairs",
+    });
+    expect(pointPatchSchema.parse({ label: "" })).toEqual({ label: "" });
+    expect(
+      pointPatchSchema.safeParse({ label: "x".repeat(POINT_LABEL_MAX) })
+        .success,
+    ).toBe(true);
+    const tooLong = pointPatchSchema.safeParse({
+      label: "x".repeat(POINT_LABEL_MAX + 1),
+    });
+    expect(tooLong.success).toBe(false);
+    if (!tooLong.success) {
+      expect(describeIssues(tooLong.error)).toBe(
+        "label: a label is at most 60 characters",
+      );
+    }
+    expect(pointPatchSchema.safeParse({ label: 7 }).success).toBe(false);
+    // still strict about everything else
+    expect(pointPatchSchema.safeParse({ label: "a", name: "b" }).success).toBe(
+      false,
+    );
+  });
+
+  it("renaming changes only the label; '' removes it", () => {
+    const survey = {
+      ...defaultSurvey("Plan.png"),
+      surveyPoints: [point("Point_1"), point("Point_2", 5, 6)],
+    };
+    const named = updatePoint(
+      survey,
+      "Point_2",
+      pointPatchSchema.parse({ label: " Hall " }),
+    )!;
+    const saved = parseSurveyFile(
+      JSON.parse(JSON.stringify(named)),
+      "Plan.png",
+    );
+    expect(saved.surveyPoints[1]).toEqual({
+      ...survey.surveyPoints[1],
+      label: "Hall",
+    });
+    expect(saved.surveyPoints[0]).not.toHaveProperty("label");
+
+    const cleared = parseSurveyFile(
+      JSON.parse(
+        JSON.stringify(
+          updatePoint(saved, "Point_2", pointPatchSchema.parse({ label: "" })),
+        ),
+      ),
+      "Plan.png",
+    );
+    expect(cleared.surveyPoints[1].label).toBeUndefined();
+    expect(cleared.surveyPoints[1].id).toBe("Point_2");
+  });
+
+  it("a new point may come with a label", () => {
+    expect(addPointSchema.parse({ ...point(""), label: " Porch " }).label).toBe(
+      "Porch",
+    );
+  });
+
+  it("names a point by its label, else its id", () => {
+    expect(pointName({ id: "Point_3", label: "Kitchen" })).toBe("Kitchen");
+    expect(pointName({ id: "Point_3", label: " " })).toBe("Point_3");
+    expect(pointName({ id: "Point_3" })).toBe("Point_3");
+    expect(cleanPointLabel("  a  b ")).toBe("a  b");
   });
 });

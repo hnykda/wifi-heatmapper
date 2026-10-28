@@ -186,7 +186,9 @@ and gives it to the server's memory (see [The sudo password](#the-sudo-password)
   kept for older clients.
   _api/surveys/[name]/points/route.ts_: POST adds a point (the server picks
   its `Point_N` id), DELETE removes points by id.
-  _api/surveys/[name]/points/[id]/route.ts_: PATCH changes one point.
+  _api/surveys/[name]/points/[id]/route.ts_: PATCH changes one point
+  (in the app: `isEnabled`, and `label`, the optional display name of
+  _lib/point-label.ts_; the id never changes).
   Every write returns the whole updated survey. See
   [Survey files](#survey-files).
 

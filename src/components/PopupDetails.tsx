@@ -8,6 +8,8 @@ import {
 } from "@/lib/types";
 import { formatMacAddress, snrOf, validNoise } from "@/lib/utils";
 import { apNameFor } from "@/lib/apName";
+import { pointName } from "@/lib/point-label";
+import { PointLabel } from "@/components/PointLabel";
 import { hasSpeedData } from "@/lib/measurement-mode";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
@@ -92,9 +94,14 @@ const PopupDetails: React.FC<PopupDetailsProps> = ({
           style={{ background: color }}
           aria-hidden="true"
         />
-        <h3 className="truncate text-sm font-semibold">{point.id}</h3>
-        <span className="tabular ml-auto text-xs text-muted-foreground">
-          x {point.x}, y {point.y}
+        <h3 className="min-w-0 flex-1 text-sm font-semibold">
+          <PointLabel
+            point={point}
+            onSave={(label) => surveyPointActions.update(point, { label })}
+          />
+        </h3>
+        <span className="tabular shrink-0 text-xs text-muted-foreground">
+          {point.label ? `${point.id} · ` : ""}x {point.x}, y {point.y}
         </span>
         <button
           type="button"
@@ -125,7 +132,7 @@ const PopupDetails: React.FC<PopupDetailsProps> = ({
           {point.isEnabled ? "Used in heat maps" : "Ignored"}
         </label>
         <AlertDialogModal
-          title={`Delete ${point.id}?`}
+          title={`Delete ${pointName(point)}?`}
           description="The measurement is removed from this survey. This cannot be undone."
           confirmLabel="Delete point"
           destructive

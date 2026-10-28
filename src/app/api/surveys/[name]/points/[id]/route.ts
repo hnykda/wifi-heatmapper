@@ -1,6 +1,7 @@
 /**
  * PATCH /api/surveys/[name]/points/[id] - change one point (body: any of
- * x, y, isEnabled, timestamp, wifiData, iperfData; not the id). Returns the
+ * x, y, isEnabled, timestamp, wifiData, iperfData, label; not the id).
+ * A label is trimmed, at most 60 characters; "" removes it. Returns the
  * survey; 404 if there is no such point.
  */
 import { NextRequest, NextResponse } from "next/server";

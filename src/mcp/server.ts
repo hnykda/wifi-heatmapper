@@ -27,6 +27,7 @@ import {
 import { resolveHeatmapRange, toDisplayRange } from "../lib/heatmap-scale";
 import type { MeasurementTestType, SurveyPoint } from "../lib/types";
 import { sanitizeFilename } from "../lib/utils";
+import { POINT_LABEL_MAX } from "../lib/point-label";
 import { COPY_PART_NAMES, type CopyPart } from "../lib/survey-ops";
 import { measuresSpeed } from "../lib/measurement-mode";
 import { buildIssueUrl, PASTE_HINT } from "../lib/diagnostics";
@@ -136,6 +137,7 @@ export function createMcpServer(client: AppClient, version: string): McpServer {
         "signal strength and iperf3 throughput measured at points on a floor plan. " +
         "Start with list_surveys, then get_survey for the numbers and get_heatmap_grid " +
         "for a coarse map. Coordinates are floor-plan image pixels, origin top left. " +
+        'Points have an id ("Point_3") and may have a label the person gave them ("Kitchen"): call points by their label when they have one. ' +
         "It can take measurements with a person carrying the laptop: agree on the spot with them, ask them to go there and " +
         "confirm before every start_measurement, then wait_for_measurement; one at a time (survey_walkthrough guides this). " +
         "It cannot see the rendered heat map images or handle the sudo password: never ask for it in chat, the person types it in the app's Settings. " +
@@ -227,7 +229,7 @@ export function createMcpServer(client: AppClient, version: string): McpServer {
     {
       title: "Get survey",
       description:
-        "All points of a survey (position in floor-plan pixels, signal %, RSSI dBm, SSID/BSSID, access point name, " +
+        "All points of a survey (id and the name the person gave it, if any, position in floor-plan pixels, signal %, RSSI dBm, SSID/BSSID, access point name, " +
         "iperf3 results, enabled or not) and a summary: min/median/max per metric over enabled points, " +
         "dead-zone, weak and slow points, and the access points seen. Throughput is in Mbps; null means the test did not run.",
       inputSchema: {
@@ -729,7 +731,7 @@ export function createMcpServer(client: AppClient, version: string): McpServer {
           speedTest: measuresSpeed(survey) ? "on" : "off (signal only)",
           ...(near
             ? {
-                note: `${near.id} is ${near.distancePixels} px away; this adds another point next to it.`,
+                note: `${near.name} is ${near.distancePixels} px away; this adds another point next to it.`,
               }
             : {}),
           next: "Call wait_for_measurement with this jobId. Ask the person to keep the laptop still until it is done.",
@@ -788,6 +790,58 @@ export function createMcpServer(client: AppClient, version: string): McpServer {
         }
         const { isError, value } = await describeJob(client, job);
         return isError ? { ...ok(value), isError: true } : ok(value);
+      }),
+  );
+
+  server.registerTool(
+    "update_point",
+    {
+      title: "Name a point",
+      description:
+        'Give a survey point a label (a name such as "Kitchen" or "Desk upstairs"), shown in the app instead of its id, ' +
+        'or remove it with "". Only the label changes: the id and the measured values stay as they were. ' +
+        "Useful right after wait_for_measurement, with the name the person uses for that spot.",
+      inputSchema: {
+        survey: nameArg,
+        pointId: z
+          .string()
+          .min(1)
+          .describe(
+            'The point\'s id, e.g. "Point_3" (from get_survey or wait_for_measurement)',
+          ),
+        label: z
+          .string()
+          .max(POINT_LABEL_MAX)
+          .describe(
+            `The name, at most ${POINT_LABEL_MAX} characters; "" removes it`,
+          ),
+      },
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
+    },
+    (args) =>
+      guarded(async () => {
+        const survey = await loadSurvey(client, args.survey);
+        if (!(survey.surveyPoints ?? []).some((p) => p.id === args.pointId)) {
+          return fail(
+            `No point "${args.pointId}" in ${args.survey}. Call get_survey for the point ids.`,
+          );
+        }
+        const name = survey.floorplanImageName || args.survey;
+        const saved = await client.updatePoint(name, args.pointId, {
+          label: args.label,
+        });
+        const point = saved.surveyPoints?.find((p) => p.id === args.pointId);
+        return ok({
+          survey: name,
+          pointId: args.pointId,
+          label: point?.label ?? null,
+          note: "Saved. An open app tab shows the new name.",
+        });
       }),
   );
 

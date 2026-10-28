@@ -25,6 +25,7 @@ export function surveyPointsToCsv(
 ): string {
   const header = [
     "id",
+    "label",
     "enabled",
     "x",
     "y",
@@ -55,6 +56,7 @@ export function surveyPointsToCsv(
     const ap = apNameFor(w.bssid, apMapping) ?? "";
     return [
       p.id,
+      p.label ?? "",
       p.isEnabled ? "yes" : "no",
       p.x,
       p.y,

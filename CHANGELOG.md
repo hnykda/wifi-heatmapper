@@ -4,6 +4,16 @@ _This section follows the precepts of [Keep a Changelog](https://keepachangelog.
 
 ## Unreleased
 
+### Added
+
+* **Name your survey points** ([#43](https://github.com/hnykda/wifi-heatmapper/issues/43)).
+  Click a point's name in its details or in the points table and type,
+  for example, "Kitchen". Enter or clicking away saves, Escape cancels.
+  The name is shown instead of `Point_N`, is in the CSV's new `label`
+  column, and is part of what an AI agent reads over MCP, which can also
+  name a point with the new `update_point` tool. The point's id and its
+  measured values don't change.
+
 ### Fixed
 
 * **Points without a speed test no longer show as 0 Mbps.** A test that
