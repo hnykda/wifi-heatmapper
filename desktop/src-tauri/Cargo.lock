@@ -3852,7 +3852,7 @@ dependencies = [
 
 [[package]]
 name = "wifi-heatmapper-desktop"
-version = "0.7.0"
+version = "0.8.0"
 dependencies = [
  "libc",
  "serde",

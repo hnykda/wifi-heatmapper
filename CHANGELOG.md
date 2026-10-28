@@ -2,7 +2,7 @@
 
 _This section follows the precepts of [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) so that future readers can understand the state and evolution of the project._
 
-## Unreleased
+## Version 0.8.0 - 2026-10-28
 
 **Before you update:** the macOS desktop app now needs **macOS 13.5
 (Ventura) or later**, and the app now sends **anonymous usage counts**,

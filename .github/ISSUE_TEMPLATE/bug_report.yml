@@ -40,7 +40,7 @@ body:
     attributes:
       label: App version
       description: In the About dialog (the "i" in the header).
-      placeholder: "0.7.0"
+      placeholder: "0.8.0"
     validations:
       required: true
   - type: input
