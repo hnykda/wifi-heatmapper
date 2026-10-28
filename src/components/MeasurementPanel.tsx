@@ -1,104 +1,47 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect } from "react";
 import { Check, CircleAlert, TriangleAlert, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import type { SSEMessageType } from "@/app/api/events/route";
+import type { MeasurementFields } from "@/lib/types";
+import type { MeasurementPhase } from "@/hooks/useMeasurement";
 import { cn } from "@/lib/utils";
 import { openReport } from "@/components/help/report-store";
 
 interface MeasurementPanelProps {
-  /** Called once the SSE channel is open; start the measurement then. */
-  onReady: () => void;
+  phase: Exclude<MeasurementPhase, "idle">;
+  header: string;
+  fields: MeasurementFields | null;
+  /** set when the point is (being) saved without speed, and why */
+  warning: string;
+  /** why it failed or was cancelled */
+  message: string;
   /** Called when the panel wants to go away (done, cancelled, dismissed). */
   onClose: () => void;
   /** Called when the user cancels. */
   onCancel: () => void;
-  /** Optional error from the results poll (shown instead of progress). */
-  error?: string | null;
   /** The survey's choice, shown until the server confirms it. */
   measureSpeed?: boolean;
 }
 
-type Phase = "connecting" | "running" | "done" | "cancelled" | "error";
-
 const DONE_AUTOCLOSE_MS = 2500;
+const NO_FIELDS = { strength: "-", tcp: "-", udp: "-" };
 
 /**
  * Progress of one measurement, anchored to the bottom-right corner.
- * Listens to the server's event stream (/api/events) for updates.
+ * The measurement itself (and its event stream) is useMeasurement's.
  */
 export default function MeasurementPanel({
-  onReady,
+  phase,
+  header,
+  fields: shown,
+  warning,
+  message,
   onClose,
   onCancel,
-  error,
   measureSpeed = false,
 }: MeasurementPanelProps) {
-  const [phase, setPhase] = useState<Phase>("connecting");
-  const [header, setHeader] = useState("Connecting");
-  const [fields, setFields] = useState({ strength: "-", tcp: "-", udp: "-" });
-  const [mode, setMode] = useState<"signal" | "speed">(
-    measureSpeed ? "speed" : "signal",
-  );
-  const [warning, setWarning] = useState("");
-  const [message, setMessage] = useState("");
-  const onReadyRef = useRef(onReady);
-  onReadyRef.current = onReady;
-
-  useEffect(() => {
-    const es = new EventSource("/api/events");
-
-    es.onmessage = (event: MessageEvent) => {
-      let data: SSEMessageType;
-      try {
-        data = JSON.parse(event.data);
-      } catch {
-        return;
-      }
-      if (data.type === "heartbeat") return;
-      if (data.type === "ready") {
-        setPhase("running");
-        setHeader("Starting");
-        onReadyRef.current();
-        return;
-      }
-      if (data.fields) {
-        setFields(data.fields);
-        if (data.fields.mode) setMode(data.fields.mode);
-      }
-      setWarning(data.warning ?? "");
-      setHeader(data.header);
-      if (data.type === "update") return;
-      if (data.type === "done") {
-        es.close();
-        const failed = /error|cancel/i.test(data.header);
-        if (failed) {
-          setPhase(/cancel/i.test(data.header) ? "cancelled" : "error");
-          setMessage(data.status);
-        } else {
-          setPhase("done");
-        }
-      }
-    };
-
-    es.onerror = () => {
-      es.close();
-      setPhase((p) => (p === "connecting" ? "error" : p));
-      setMessage(
-        (m) => m || "Lost contact with the server. Is it still running?",
-      );
-    };
-
-    return () => es.close();
-  }, []);
-
-  // An error surfaced by the results poll wins over whatever the stream said
-  useEffect(() => {
-    if (error) {
-      setPhase("error");
-      setMessage(error);
-    }
-  }, [error]);
+  const fields = shown ?? NO_FIELDS;
+  const mode = shown?.mode ?? (measureSpeed ? "speed" : "signal");
 
   // Success closes itself; a warning stays until it is dismissed
   useEffect(() => {
@@ -107,14 +50,7 @@ export default function MeasurementPanel({
     return () => clearTimeout(t);
   }, [phase, warning, onClose]);
 
-  const cancel = async () => {
-    setPhase("cancelled");
-    setHeader("Cancelled");
-    onCancel();
-    await fetch("/api/start-task?action=stop", { method: "POST" }).catch(
-      () => {},
-    );
-  };
+  const cancel = onCancel;
 
   const running = phase === "connecting" || phase === "running";
   const savedWithWarning = phase === "done" && !!warning;

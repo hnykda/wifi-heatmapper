@@ -6,11 +6,11 @@
  * never stops the signal reading from being saved; the reason comes back
  * as a warning instead.
  */
-import type { PartialHeatmapSettings, WifiActions } from "./types";
+import type { PartialHeatmapSettings } from "./types";
 import { execAsync } from "./server-utils";
 import { isMockMode } from "./app-info";
 import { measuresSpeed, parseServerAddress } from "./measurement-mode";
-import { badAddressReason } from "./iperf-server-check";
+import { badAddressReason, checkIperfServer } from "./iperf-server-check";
 
 export interface SpeedTestPlan {
   /** run the iperf3 tests at this spot */
@@ -42,7 +42,6 @@ export async function iperf3Version(): Promise<string | null> {
  */
 export async function planSpeedTest(
   settings: PartialHeatmapSettings,
-  actions: Pick<WifiActions, "checkIperfServer">,
 ): Promise<SpeedTestPlan> {
   if (!measuresSpeed(settings)) {
     return { run: false, signalOnly: true, warning: "" };
@@ -66,7 +65,7 @@ export async function planSpeedTest(
   if (!(await iperf3Version())) {
     return skip(IPERF3_MISSING);
   }
-  const reachable = await actions.checkIperfServer(settings);
+  const reachable = await checkIperfServer(settings);
   if (reachable.reason) {
     return skip(`${reachable.reason} The speed test was skipped.`);
   }

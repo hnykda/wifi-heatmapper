@@ -131,9 +131,65 @@ test("a measurement can be cancelled", async ({ page }) => {
   await expect(panel).toHaveAttribute("data-phase", "cancelled");
   await panel.getByRole("button", { name: "Dismiss" }).click();
   await expect(panel).toHaveCount(0);
+  // the job stops at once, so another spot can be measured right away
+  await measureAt(page, 0.3, 0.3);
   await page.waitForTimeout(500);
-  const survey = await readSurvey(page, name);
-  expect(survey.surveyPoints).toHaveLength(0);
+  const survey = await readSurvey(
+    page,
+    name,
+    (s) => s.surveyPoints.length === 1,
+  );
+  // only the second spot was saved
+  expect(survey.surveyPoints[0].x).toBeCloseTo(800 * 0.3, -1);
+});
+
+test("closing the page mid-measurement still saves the point", async ({
+  page,
+  context,
+}) => {
+  const name = await uploadFloorplan(page);
+  await useSpeedServer(page, "10.0.0.2");
+  await page.getByLabel("Test duration (seconds)").fill("10");
+  await readSurvey(page, name, (s) => s.testDuration === 10);
+  await gotoTab(page, "floorplan");
+  await measureAt(page, 0.2, 0.8, { wait: false });
+  await page.close();
+
+  // the server finishes the measurement and saves it at that spot
+  const other = await context.newPage();
+  let survey: any = null;
+  await expect
+    .poll(
+      async () => {
+        const res = await other.request.get(
+          `/api/settings?name=${encodeURIComponent(name)}`,
+        );
+        survey = await res.json();
+        return survey.surveyPoints.length;
+      },
+      { timeout: 30_000 },
+    )
+    .toBe(1);
+  expect(survey.surveyPoints[0].x).toBeCloseTo(800 * 0.2, -1);
+  expect(survey.surveyPoints[0].y).toBeCloseTo(500 * 0.8, -1);
+  expect(
+    survey.surveyPoints[0].iperfData.tcpDownload.bitsPerSecond,
+  ).toBeGreaterThan(0);
+});
+
+test("leaving the floor plan mid-measurement still shows the point", async ({
+  page,
+}) => {
+  const name = await uploadFloorplan(page);
+  await useSpeedServer(page, "10.0.0.2");
+  await page.getByLabel("Test duration (seconds)").fill("10");
+  await readSurvey(page, name, (s) => s.testDuration === 10);
+  await gotoTab(page, "floorplan");
+  await measureAt(page, 0.6, 0.3, { wait: false });
+  await gotoTab(page, "points");
+  await expect(page.getByTestId("summary-points")).toContainText("1", {
+    timeout: 30_000,
+  });
 });
 
 test("points can be inspected, ignored and deleted from the plan", async ({

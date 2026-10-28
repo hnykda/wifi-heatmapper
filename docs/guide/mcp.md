@@ -430,10 +430,9 @@ measurements are synthetic.
 - Tests: `__tests__/heatmap-grid.test.ts`, `__tests__/mcp-*.test.ts`. The
   last one builds the bundle and drives it with the SDK's client against a
   fake app.
-- **Step two (planned): measuring.** A tool that starts a measurement
-  (`POST /api/start-task?action=start`), follows its progress, and adds the
-  point at a given position (`POST /api/surveys/<name>/points` appends one
-  without touching the rest). Open question: it needs a clear confirmation,
+- **Step two (planned): measuring.** A tool that starts a measurement at a
+  given position (`POST /api/start-task?action=start` with the survey, x
+  and y) and follows it by job id; the app's server saves the point itself. Open question: it needs a clear confirmation,
   because a measurement runs commands on this computer.
 - Possible follow-ups: let the desktop app write its URL somewhere the MCP
   server can find it, or prefer a fixed port, so `WIFI_HEATMAPPER_PORT` isn't

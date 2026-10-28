@@ -1,109 +1,76 @@
 /**
- * start-task API - /api/start-task?action=...
- * - GET  of "action=status" returns the current status
- * - POST of "action=start" begins the measurement process
- * - POST of "action=stop" sets the cancel flag to halt the process
+ * start-task API - /api/start-task?action=... (see lib/measurement-job.ts)
+ * - POST action=start  { survey, x, y, settings } -> { jobId, job };
+ *        409 { error, jobId, job } while another measurement runs
+ * - POST action=stop   { jobId? } -> { stopped }; stops that job (or the
+ *        running one) at once, killing a running iperf3
+ * - GET  action=status&id=<jobId> -> the job (404 if unknown);
+ *        without id: { job } for the running job, or { job: null }
+ * When a job finishes, the server has saved the point; the "done" event
+ * and the status carry its id.
  */
 import { NextRequest, NextResponse } from "next/server";
 import {
-  setCancelFlag,
-  getGlobalStatus,
-  setSurveyResults,
-  getSurveyResults,
-} from "@/lib/server-globals";
-import { runSurveyTests } from "@/lib/iperfRunner";
-import { readBody } from "@/lib/api-helpers";
+  currentJob,
+  getJob,
+  startMeasurement,
+  stopMeasurement,
+} from "@/lib/measurement-job";
+import { jsonError, readBody } from "@/lib/api-helpers";
 import { startTaskSchema } from "@/lib/schema";
-import { getLogger, rememberSecret } from "../../../lib/logger";
-import { recordMeasurement } from "@/lib/diagnostics-state";
-import { measuresSpeed } from "@/lib/measurement-mode";
+import { getLogger, rememberSecret } from "@/lib/logger";
 const logger = getLogger("start-task");
 
-// handle a "status" request
+export const dynamic = "force-dynamic";
+
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const action = searchParams.get("action");
-  if (action === "status") {
-    return NextResponse.json(getGlobalStatus());
-  } else if (action === "results") {
-    return NextResponse.json(getSurveyResults() ?? { state: "pending" });
+  if (action !== "status") {
+    return jsonError(400, `Invalid action "${action}"`);
   }
-  // invalid action
-  return NextResponse.json(
-    { error: `Invalid action "${action}"` },
-    { status: 400 },
-  );
+  const id = searchParams.get("id");
+  if (!id) return NextResponse.json({ job: currentJob() });
+  const job = getJob(id);
+  return job
+    ? NextResponse.json(job)
+    : jsonError(404, `No measurement "${id}"`);
 }
 
 export async function POST(req: NextRequest) {
-  // Get the `action` parameter - /api/start-task?action=start`
   const { searchParams } = new URL(req.url);
   const action = searchParams.get("action");
 
-  // action=start: expects an object with a single property: settings
   if (action === "start") {
     const body = await readBody(req, startTaskSchema);
     if (!body.ok) return body.response;
-    const { settings } = body.data;
+    const { settings, survey, x, y } = body.data;
     rememberSecret(settings.sudoerPassword);
     const { sudoerPassword: _pw, ...loggable } = settings;
-    logger.debug(`action=start: ${JSON.stringify(loggable)}`);
-    setSurveyResults({ state: "pending" });
-    const speedTests = measuresSpeed(settings);
-    const failed = (error: string) =>
-      recordMeasurement({ ok: false, speedTests, error });
+    logger.debug(
+      `action=start: ${survey} (${x}, ${y}) ${JSON.stringify(loggable)}`,
+    );
+    const started = await startMeasurement({ survey, x, y, settings });
+    if (!started.ok) {
+      return NextResponse.json(
+        {
+          error: "A measurement is already running. Wait for it to finish.",
+          jobId: started.running.id,
+          job: started.running,
+        },
+        { status: 409 },
+      );
+    }
+    return NextResponse.json({ jobId: started.job.id, job: started.job });
+  }
 
-    // Start off the survey process immediately
-    // this IIFE runs independently and uses setSurveyResults for the client
-    void (async () => {
-      try {
-        const { iperfData, wifiData, status, warning } =
-          await runSurveyTests(settings);
-        // status that isn't "" means preflight went wrong
-        if (status != "") {
-          if (status !== "Measurement cancelled") failed(status);
-          setSurveyResults({
-            explanation: status,
-            state: "error",
-          });
-          return;
-        }
-        if (!wifiData || !iperfData) {
-          failed("The measurement returned no data.");
-          setSurveyResults({
-            state: "error",
-            explanation: "The measurement returned no data.",
-          });
-          return;
-        }
-        recordMeasurement({
-          ok: true,
-          speedTests,
-          ...(warning ? { note: `Saved without speed: ${warning}` } : {}),
-        });
-        setSurveyResults({
-          state: "done",
-          results: { wifiData, iperfData },
-          ...(warning ? { warning } : {}),
-        });
-      } catch (err) {
-        failed(String(err));
-        setSurveyResults({ state: "error", explanation: String(err) });
-      }
-    })();
-
-    // and immediately retun an OK status
-    return NextResponse.json("OK");
-
-    // Stop
-  } else if (action === "stop") {
-    setCancelFlag(true); // in sseGlobal.ts
-    return NextResponse.json({ message: "Task stopped" });
+  if (action === "stop") {
+    const body = await req.json().catch(() => ({}));
+    const jobId =
+      typeof body?.jobId === "string" && body.jobId ? body.jobId : undefined;
+    return NextResponse.json({ stopped: stopMeasurement(jobId) });
   }
 
   logger.debug(`Unexpected action received: ${action}`);
-  return NextResponse.json(
-    { error: `Invalid action "${action}"` },
-    { status: 400 },
-  );
+  return jsonError(400, `Invalid action "${action}"`);
 }

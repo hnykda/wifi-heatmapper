@@ -5,7 +5,6 @@ import {
   WifiActions,
 } from "./types";
 import { execAsync, delay } from "./server-utils";
-import { checkIperfServerReachable } from "./iperf-server-check";
 import {
   getDefaultWifiResults,
   isValidMacAddress,
@@ -46,17 +45,6 @@ export class NetshWifiActions implements WifiActions {
     _settings: PartialHeatmapSettings,
   ): Promise<WifiScanResults> {
     return { SSIDs: [], reason: "" };
-  }
-
-  /**
-   * checkIperfServer() - test if an iperf3 server is available at the address
-   * @param settings includes the iperfServerAddress
-   * @returns "" or error string
-   */
-  async checkIperfServer(
-    settings: PartialHeatmapSettings,
-  ): Promise<WifiScanResults> {
-    return checkIperfServerReachable(settings);
   }
 
   /**
@@ -102,44 +90,6 @@ export class NetshWifiActions implements WifiActions {
       response.reason = `Cannot get wifi info: ${err}"`;
     }
     return response;
-  }
-
-  /**
-   * setWifi(settings, newSSID) - associate with the named SSID
-   * Use: netsh wlan connect name="YourProfile" ssid="YourSSID"
-   *
-   * @param settings - same as always
-   * @param wifiSettings - new SSID to associate with
-   * @returns WifiScanResults - empty array of results, only the reason
-   */
-  async setWifi(
-    settings: PartialHeatmapSettings,
-    wifiSettings: WifiResults,
-  ): Promise<WifiScanResults> {
-    //
-    // NOT IMPLEMENTED - DON'T USE THIS FUNCTION
-    throw "wifi-heatmapper does not implement setWifi()";
-
-    const response: WifiScanResults = {
-      SSIDs: [],
-      reason: "",
-    };
-    return response;
-
-    const profiles = await getProfiles();
-    const theProfile = await getProfileFromSSID(profiles, wifiSettings.ssid);
-
-    try {
-      await execAsync(
-        `netsh wlan connect name="${theProfile}" ssid="${wifiSettings.ssid}"`,
-      );
-    } catch (err) {
-      response.reason = `${err}`;
-      return response;
-    }
-
-    // if it worked, return information about that interface/SSID
-    return await this.getWifi(settings);
   }
 
   /**
@@ -399,15 +349,6 @@ export function parseNetshInterfaces(output: string): WifiResults {
 }
 
 /**
- * getProfiles - issue `netsh wlan show profiles` and return an
- * array of profile names (string)
- */
-async function getProfiles(): Promise<string[]> {
-  const { stdout } = await execAsync("netsh wlan show profiles");
-  return parseProfiles(stdout);
-}
-
-/**
  * parseProfiles() - return the list of profiles from `netsh ... profiles`
  * Valid lines contain "????? : profileName"
  * @param stdout - output of the `netsh ...` command
@@ -424,30 +365,6 @@ export function parseProfiles(stdout: string): string[] {
     }
   }
   return response;
-}
-/**
- * getProfileFromSSID(ssid)
- * Look through all the Profiles on the system, and return
- *   the first profile name that contains the specified SSID
- * @param profiles the profiles for this wifi device (string[])
- * @param theSSID to retrieve (string)
- * @returns the Profile that matches that SSID
- */
-
-async function getProfileFromSSID(
-  profiles: string[],
-  theSSID: string,
-): Promise<string> {
-  for (const profile of profiles) {
-    // netsh wlan show profile name="Profile 2"
-    const { stdout } = await execAsync(
-      `netsh wlan show profile name="${profile}"`,
-    );
-    const matchedProfile = findProfileFromSSID(stdout, theSSID);
-    if (matchedProfile) return matchedProfile;
-  }
-  // tried them all, didn't find a match. Throw an error
-  throw `Didn't find a profile to match ${theSSID}`;
 }
 
 /**

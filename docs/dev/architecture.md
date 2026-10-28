@@ -23,33 +23,27 @@ _lib/localStorageMigration.ts_ moves them to files once.
 ## Platform-specific `WifiActions`
 
 All platform-specific code is encapsulated in a `WifiActions` object
-that implements the following functions.
-These functions take a parameter of `PartialHeatmapSettings` that includes
-sudo password, iperf server address, and test duration.
-All the functions return an array (possibly empty) of `WifiResults`
-and "" for a successful operation or
-a human readable error message suitable for display in the user interface.
+(_lib/wifiScanner-{macos,windows,linux,mock}.ts_; _lib/wifiScanner.ts_
+picks one). Each function takes the `PartialHeatmapSettings` sent with the
+measurement (sudo password, iperf3 server, test duration) and returns an
+array (possibly empty) of `WifiResults` and a `reason`: "" when it worked,
+else a human-readable message for the UI.
 
-* `preflightSettings()` Check all the settings to see if the test
-  can proceed. Return a human-readable error message if not.
-* `checkIperfServer()` Check that the iperf3 server is reachable,
-  or return an error message.
-* `findWifiInterface()` Return the platform-specific name of the wifi interface
-* `scanWifi()` Return an array of SSIDs "in the neighborhood",
-  sorted by signal strength.
-  The current SSID (whether the strongest or not)
-  is marked with `{ currentSSID: true }`
-  _This may be useful for showing when the strongest SSID is not the
-  SSID currently in use._  
-* `setWifi()` Change the current SSID to use a new SSID, specified in the
-  additional `newWifiSettings` parameter.
-  _NB: This function was (partially) implemented on macOS,
-  but does not work on modern versions of macOS (15+).
-  The problem is that user-level code cannot change the SSID
-  without a credential check for **every** new change.
-  That constraint is unworkable: that effort has been abandonded for now._  
-* `getWifi()` Return the array with a single `WifiResults` with all the
-  information for the current SSID.  
+* `preflightSettings()` Can the Wi-Fi be read? On macOS without the Wi-Fi
+  helper, and on Linux when `iw` needs it, this checks the sudo password,
+  once per password value (_lib/sudo.ts_ remembers a hash of the last one
+  that worked, in memory).
+* `getWifi()` The current connection, as a single `WifiResults`. The
+  measurement reads it three times; the network name in the progress
+  header comes from it too.
+* `scanWifi()` Nearby networks, sorted by signal strength, the current one
+  marked `currentSSID: true`. Not used while measuring.
+
+The speed test is not part of `WifiActions`: whether it runs is decided the
+same way on every OS by _lib/speed-test.ts_ (`planSpeedTest()`), and
+_lib/iperf-server-check.ts_ (`checkIperfServer()`) is the one socket check
+that the server answers (in mock mode, a name containing "unreachable"
+is treated as down).
 
 ## Component Hierarchy
 
@@ -146,79 +140,72 @@ browser's memory and is only sent with a measurement.
   [Survey files](#survey-files).
 
 * _api/status/route.ts_: version, OS, Node, iperf3 and mock-mode details.
-  
-* The _api/events/route.ts_ file listens for a GET request,
-  then keeps open a connection that sends
-  `sseMessageType` events to the client.
-  These indicate the progress of the measurement or
-  that the measurement had been cancelled.
-  
-* The _api/start-task/route.ts_ file listens for a POST
-  to start or end the measurement process.
-  The parameter is `action=start|stop`.
-  The `start` action causes a new measurement process to begin.
-  The `stop` action cancels the measurement process and returns
-  a `done` `sseMessage` containing "canceled".
-  
-## How the GUI and server communicate
 
-When an empty space is clicked, the `Floorplan` component
-triggers the measurement process
-and displays the progress of the measurements.
+* _api/start-task/route.ts_ starts and stops measurements and answers for
+  them; _api/events/route.ts_ streams their progress. See
+  [Measurements](#measurements).
 
-* A click in the Floorplan initiates a test with a
-  POST _api/start=task/action=start_
-  that immediately returns an "OK" response and
-  in parallel starts an IIFE on the server that ultimately calls
-  `runSurveyTest()`
-  
-* The Floorplan also polls once per second with
-  GET _/api/start-task?action=results_.
-  The result is a `SurveyResult` that contains `wifiData`, `iperfData`,
-  and a `state`.
-  When the returned `state` is "done", the rest of the results
-  contain the information about the measurement.
+## Measurements
 
-* A click on the Floorplan also opens the `MeasurementPanel` component.
-  It issues GET _/api/events_ that starts a stream of
-  Server Sent Events with `sendToClient()`
-  that is registered in the global _server-globals.ts_ module.
-  Those events contain the progress shown in the panel.
-  When the stream reports `ready`, the Floorplan starts the measurement.
+A measurement is a job the server owns (_lib/measurement-job.ts_):
+`{ id, survey, x, y, state, progress, result, abortController }`. One runs
+at a time.
 
-* The panel also has a **Cancel** button that aborts the measurement
-  process by issuing POST _/api/start-task?action=stop_
-  This calls global `setCancelFlag(true)`.
-  The server's measurement process notices this and halts the process
-  with appropriate status updates.
-  
-_NB: Why are there two separate processes - SSE and polling within Floorplan?
-They could have been combined into a single mechanism.
-However, the SSE process was initially implemented,
-but subsequent changes (turning Wi-Fi off and on) disrupted the SSE stream.
-So now Floorplan polls for the status in parallel with the SSE stream.
-wifi-heatmapper no longer turns off the Wi-Fi, but we leave both in place._
-  
-## Server-Sent Events - sseMessage
+* `POST /api/start-task?action=start` with `{ survey, x, y, settings }`
+  starts one for that spot and answers `{ jobId }`, or 409 (with the
+  running job's id) while another measures or saves. A job that was just
+  cancelled gets a few seconds to finish stopping first.
+* The job runs `runSurveyTests()` (_lib/iperfRunner.ts_) with the job's
+  `AbortSignal`. The signal is passed to every command it runs, so
+  `POST /api/start-task?action=stop` with `{ jobId }` kills a running
+  iperf3 at once; the job is `cancelled` immediately, and whatever the
+  measurement code returns afterwards is thrown away. A stop for another
+  job id changes nothing, so a late cancel can never stop the next spot.
+* When the measurement is done the job is `saving` (too late to cancel):
+  the server appends the point through `survey-store.mutate()` and the job
+  becomes `done` with the new point's id. The browser doesn't save it, so
+  closing or reloading the tab mid-measurement loses nothing. Errors end
+  in `error`, and nothing is saved. A job is stopped after 10 minutes.
+* `GET /api/events` is a server-sent event stream. Every open stream (one
+  per tab) gets every event: the job keeps a set of listeners. Connecting
+  changes nothing about a running job; a stream that connects while one
+  runs gets its latest progress at once.
+* `GET /api/start-task?action=status&id=<jobId>` answers for one job
+  (running or one of the last 20); without `id` it answers
+  `{ job }` for the running job, or `{ job: null }`.
 
-The server sends [server-sent events](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events)
-to the client.
-SSEs have these fields:
+The last measurement and the way the Wi-Fi was read are kept for problem
+reports (_lib/diagnostics-state.ts_).
 
-```javascript
-export type SSEMessageType = {
-  type: string;//ready, update, done, info
-  header: string;
-  status: string; 
-};
+In the browser, `useMeasurement` (_hooks/useMeasurement.ts_) does the
+talking for `Floorplan`: a click starts a job; it follows that job's
+events (and a status poll keyed by the job id, in case the stream drops)
+and, on `done`, reloads the survey to show the point the server saved.
+It also follows a job for the same survey that another tab started, or one
+still running after a reload. `MeasurementPanel` only draws the progress.
+
+### Measurement events
+
+`MeasurementEvent` (_lib/types.ts_):
+
+```typescript
+{
+  type: "ready" | "update" | "done" | "heartbeat";
+  jobId?: string; // with survey, x, y and state: the job it belongs to
+  header: string; // e.g. "Testing download speed"
+  status: string; // human readable, multi-line
+  fields?: { strength; tcp; udp; mode }; // what the panel shows
+  warning?: string; // saved without speed, and why
+  state?: "running" | "saving" | "done" | "error" | "cancelled";
+  pointId?: string; // done: the saved point
+}
 ```
 
-* `ready` signals NewToast to tell its parent to
-  begin the measurements
-* `update` simply provides updated header and status messages
-* `done` updates the header and status, then starts a timer to
-  remove the NewToast after several seconds.
-* `info` is a general message - ignored by NewToast
+* `ready` is sent when a stream connects, `heartbeat` every 5 seconds;
+  neither names a job.
+* `update` is progress.
+* `done` ends a job; its `state` says how (`done`: saved, with
+  `pointId`).
 
 ## Localization
 

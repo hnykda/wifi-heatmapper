@@ -2,7 +2,15 @@
  * The survey route handlers, called directly with a NextRequest against a
  * temporary data directory.
  */
-import { afterAll, beforeEach, describe, expect, it } from "vitest";
+import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 import {
   mkdirSync,
   mkdtempSync,
@@ -19,6 +27,7 @@ import * as pointsRoute from "@/app/api/surveys/[name]/points/route";
 import * as pointRoute from "@/app/api/surveys/[name]/points/[id]/route";
 import * as startTaskRoute from "@/app/api/start-task/route";
 import { getDefaultIperfResults, getDefaultWifiResults } from "@/lib/utils";
+import { defaultIperfCommands } from "@/lib/iperfUtils";
 
 const dataDir = mkdtempSync(join(tmpdir(), "wifi-heatmapper-api-"));
 const surveysDir = join(dataDir, "surveys");
@@ -360,5 +369,81 @@ describe("/api/start-task", () => {
       }),
     );
     expect(res.status).toBe(400);
+  });
+
+  describe("in mock mode", () => {
+    const mock = process.env.WIFI_HEATMAPPER_MOCK;
+    beforeAll(() => {
+      process.env.WIFI_HEATMAPPER_MOCK = "1";
+    });
+    afterAll(() => {
+      if (mock === undefined) delete process.env.WIFI_HEATMAPPER_MOCK;
+      else process.env.WIFI_HEATMAPPER_MOCK = mock;
+    });
+    const start = (x: number) =>
+      startTaskRoute.POST(
+        req(`/api/start-task?action=start`, "POST", {
+          survey: NAME,
+          x,
+          y: 20,
+          settings: {
+            measureSpeed: false,
+            iperfServerAdrs: "",
+            testDuration: 1,
+            sudoerPassword: "",
+            iperfCommands: defaultIperfCommands,
+          },
+        }),
+      );
+    const status = async (id: string) =>
+      (await startTaskRoute
+        .GET(req(`/api/start-task?action=status&id=${id}`))
+        .then((r) => r.json())) as { state: string; pointId?: string };
+    const settle = async (id: string) => {
+      await vi.waitFor(
+        async () =>
+          expect(["done", "cancelled", "error"]).toContain(
+            (await status(id)).state,
+          ),
+        { timeout: 5000, interval: 50 },
+      );
+      return status(id);
+    };
+
+    it("runs one job at a time, stops it, and saves the point itself", async () => {
+      const first = await start(30);
+      expect(first.status).toBe(200);
+      const { jobId } = await first.json();
+      expect(typeof jobId).toBe("string");
+      // a second start is refused while the first runs
+      const busy = await start(40);
+      expect(busy.status).toBe(409);
+      expect((await busy.json()).jobId).toBe(jobId);
+      expect((await status(jobId)).state).toBe("running");
+
+      const stop = await startTaskRoute.POST(
+        req(`/api/start-task?action=stop`, "POST", { jobId }),
+      );
+      expect(await stop.json()).toEqual({ stopped: true });
+      expect((await settle(jobId)).state).toBe("cancelled");
+
+      // the next one runs to the end, and the server saved its point
+      const second = await start(50);
+      expect(second.status).toBe(200);
+      const done = await settle((await second.json()).jobId);
+      expect(done).toMatchObject({ state: "done", pointId: "Point_1" });
+      const survey = await settingsRoute
+        .GET(req(`/api/settings${q}`))
+        .then((r) => r.json());
+      expect(survey.surveyPoints).toHaveLength(1);
+      expect(survey.surveyPoints[0]).toMatchObject({ x: 50, y: 20 });
+    });
+
+    it("answers 404 for an unknown job", async () => {
+      const res = await startTaskRoute.GET(
+        req(`/api/start-task?action=status&id=nope`),
+      );
+      expect(res.status).toBe(404);
+    });
   });
 });

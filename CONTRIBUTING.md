@@ -51,12 +51,13 @@ src/app/                Next.js app router: layout, page, API routes
   api/media             floor plan images: list, upload, serve, delete
   api/settings          survey files: read, change settings, list, delete
   api/surveys           a survey's points: add, change, delete
-  api/start-task        start/stop/poll a measurement
-  api/events            server-sent progress events during a measurement
+  api/start-task        start/stop a measurement job, or ask for its status
+  api/events            server-sent progress events, to every open tab
   webGL/                heat map renderer (inverse-distance weighting)
 src/components/         React UI. layout/ has the shell; ui/ is shadcn/Radix
 src/lib/                shared code
   wifiScanner-*.ts      one file per OS + wifiScanner-mock.ts; picked by wifiScanner.ts
+  measurement-job.ts    a measurement is a server job: one at a time, cancel, saves the point
   iperfRunner.ts        the measurement sequence (wifi, TCP, wifi, UDP, wifi)
   server-paths.ts       where data lives on disk
   schema.ts             Zod schemas: the survey file (lenient) and API bodies (strict)
@@ -77,14 +78,16 @@ User data lives in `data/` (`surveys/*.json`, `media/*`). Set
 
 ## How a measurement works
 
-1. The browser POSTs the measurement settings to `/api/start-task?action=start`
-   and opens `/api/events` for progress.
-2. The server runs `runSurveyTests()` in `iperfRunner.ts`: preflight checks,
-   then Wi-Fi, TCP tests, Wi-Fi, UDP tests, Wi-Fi. Signal strength is the
-   average of the three readings.
-3. The browser polls `/api/start-task?action=results` until the state is
-   `done` or `error`, then adds the point to the survey, which is saved to
-   `data/surveys/<floor plan>.json`.
+1. The browser POSTs the spot (survey, x, y) and the measurement settings
+   to `/api/start-task?action=start` and gets a job id (409 if one is
+   already running). Every open tab follows `/api/events`.
+2. The server's job (`measurement-job.ts`) runs `runSurveyTests()` in
+   `iperfRunner.ts`: preflight checks, then Wi-Fi, TCP tests, Wi-Fi, UDP
+   tests, Wi-Fi. Signal strength is the average of the three readings.
+   Cancel aborts the job's AbortController, which kills a running iperf3.
+3. The job saves the point to `data/surveys/<floor plan>.json` itself and
+   sends a `done` event with the point id; the browser reloads the survey.
+   A status poll by job id covers a dropped event stream.
 
 Platform code implements the `WifiActions` interface in `types.ts`. Parsers
 for command output are pure functions with fixtures under `__tests__/data`;

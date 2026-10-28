@@ -459,6 +459,10 @@ export const copySettingsQuerySchema = z.strictObject({
 
 /** POST /api/start-task?action=start */
 export const startTaskSchema = z.strictObject({
+  // the floor plan (survey) the point is saved to, and where
+  survey: z.string().trim().min(1),
+  x: finite.min(0),
+  y: finite.min(0),
   settings: z.object({
     // missing: derived from the server (localhost or empty = signal only)
     measureSpeed: z.boolean().optional(),

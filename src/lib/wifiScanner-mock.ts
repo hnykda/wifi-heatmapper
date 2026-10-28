@@ -19,8 +19,6 @@ import {
 } from "./types";
 import { getDefaultWifiResults, percentageToRssi } from "./utils";
 import { delay } from "./server-utils";
-import { badAddressReason, unreachableReason } from "./iperf-server-check";
-import { parseServerAddress } from "./measurement-mode";
 import { recordWifiMethod } from "./diagnostics-state";
 
 const STEP_DELAY_MS = parseInt(
@@ -48,7 +46,7 @@ const random = makeRandom(
 export const mockState = {
   strength: 78, // percent
   measurements: 0,
-  // chosen once per measurement (in scanWifi), so the band never flips
+  // chosen once per measurement (in preflightSettings), so the band never flips
   // half way and fails the "Wi-Fi changed during the measurement" check
   band: 5 as 2.4 | 5,
 };
@@ -92,26 +90,14 @@ export class MockWifiActions implements WifiActions {
   async preflightSettings(
     _settings: PartialHeatmapSettings,
   ): Promise<WifiScanResults> {
-    // like Windows: nothing to check before reading Wi-Fi
+    // like Windows: nothing to check before reading Wi-Fi. The band is
+    // chosen here, once per measurement, so it never flips half way.
+    mockState.band = mockState.strength > 55 ? 5 : 2.4;
     return { SSIDs: [], reason: "" };
-  }
-
-  async checkIperfServer(
-    settings: PartialHeatmapSettings,
-  ): Promise<WifiScanResults> {
-    await delay(STEP_DELAY_MS);
-    // "unreachable" lets tests and demos exercise the error path
-    const reason = !parseServerAddress(settings.iperfServerAdrs)
-      ? badAddressReason(settings.iperfServerAdrs)
-      : /unreachable/i.test(settings.iperfServerAdrs)
-        ? unreachableReason(settings.iperfServerAdrs)
-        : "";
-    return { SSIDs: [], reason };
   }
 
   async scanWifi(_settings: PartialHeatmapSettings): Promise<WifiScanResults> {
     await delay(STEP_DELAY_MS);
-    mockState.band = mockState.strength > 55 ? 5 : 2.4;
     const mine = currentWifi(mockState.strength, null);
     const neighbour: WifiResults = {
       ...getDefaultWifiResults(),
@@ -125,10 +111,6 @@ export class MockWifiActions implements WifiActions {
       security: "WPA2 Personal",
     };
     return { SSIDs: [mine, neighbour], reason: "" };
-  }
-
-  async setWifi(): Promise<WifiScanResults> {
-    return { SSIDs: [], reason: "setWifi is not supported" };
   }
 
   async getWifi(_settings: PartialHeatmapSettings): Promise<WifiScanResults> {
@@ -150,8 +132,10 @@ export async function mockIperfResult(
   isUdp: boolean,
   isDownload: boolean,
   duration: number,
+  signal?: AbortSignal,
 ): Promise<IperfTestProperty> {
-  await delay(Math.min(duration, 2) * STEP_DELAY_MS * 2);
+  // like a real iperf3 run, a cancel stops it at once
+  await delay(Math.min(duration, 2) * STEP_DELAY_MS * 2, signal);
   const quality = mockState.strength / 100;
   const jitter = () => 0.9 + random() * 0.2;
   const tcpMbps = 950 * quality * quality * jitter() * (isDownload ? 1 : 0.8);

@@ -1,75 +1,59 @@
-// /**
-//  * Server-Sent-Events
-//  * These are triggered by a GET to /api/events
-//  */
-
+/**
+ * GET /api/events - server-sent events with the progress of measurements.
+ *
+ * Every open stream (every tab) gets every event; each event names its
+ * job (see MeasurementEvent in lib/types.ts). Connecting changes nothing
+ * about a running measurement. A stream that connects while a job runs
+ * gets that job's latest progress at once.
+ */
 import { NextRequest } from "next/server";
-import {
-  registerSSESender,
-  clearSSESender,
-  sendSSEMessage,
-  setCancelFlag,
-} from "../../../lib/server-globals";
-import { getLogger } from "../../../lib/logger";
+import { currentJob, subscribe } from "@/lib/measurement-job";
+import type { MeasurementEvent } from "@/lib/types";
+import { getLogger } from "@/lib/logger";
 const logger = getLogger("api-events");
 
-export type SSEMessageType = {
-  type: string; // ready | update | done | heartbeat
-  header: string;
-  status: string; // human readable, multi-line
-  fields?: {
-    strength: string; // "78%" or "-"
-    tcp: string; // "312.10 / 280.55 Mbps", "Skipped" or "Off"
-    udp: string;
-    // "signal": the survey measures signal only; "speed": signal and speed
-    mode?: "signal" | "speed";
-  };
-  // set when the reading is saved without speed although the survey wants it
-  warning?: string;
-};
+export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
   const encoder = new TextEncoder();
   const stream = new TransformStream();
   const writer = stream.writable.getWriter();
+  let open = true;
+
+  const write = (text: string) => {
+    if (!open) return;
+    writer.write(encoder.encode(text)).catch(() => close());
+  };
+  const send = (msg: MeasurementEvent) =>
+    write(`data: ${JSON.stringify(msg)}\r\n\r\n`);
 
   // Safari buffering hack: pad with 2KB of comment lines
-  const prelude = ": ".padEnd(2049, " ") + "\r\n";
-  writer.write(encoder.encode(prelude));
-  writer.write(encoder.encode(": connected\r\n\r\n"));
+  write(": ".padEnd(2049, " ") + "\r\n");
+  write(": connected\r\n\r\n");
 
-  // sendToClient is a function that encodes and sends the mgs
-  // Assign the live send function, then register it globally
-  const sendToClient = (msg: SSEMessageType) => {
-    const data = `data: ${JSON.stringify(msg)}\r\n\r\n`;
-    writer.write(encoder.encode(data));
-  };
-  registerSSESender(sendToClient);
-
-  // Send a ready event and clear the (global) cancel flag
   logger.debug("SSE client connected");
-  sendSSEMessage({
-    type: "ready",
-    header: "",
-    status: "SSE connection established",
-  });
-  setCancelFlag(false); // set the global flag to stop measuring
+  send({ type: "ready", header: "", status: "SSE connection established" });
+  const running = currentJob();
+  if (running?.progress) send(running.progress);
+  const unsubscribe = subscribe(send);
 
-  // Heartbeat every 5 seconds
+  // Heartbeat every 5 seconds, for this stream only
   const heartbeat = setInterval(() => {
-    sendSSEMessage({
-      type: "heartbeat",
-      header: "",
-      status: new Date().toISOString(),
-    });
+    send({ type: "heartbeat", header: "", status: new Date().toISOString() });
   }, 5000);
+
+  function close() {
+    if (!open) return;
+    open = false;
+    clearInterval(heartbeat);
+    unsubscribe();
+    writer.close().catch(() => {});
+  }
 
   // Cleanup on client disconnect
   req.signal.addEventListener("abort", () => {
-    clearInterval(heartbeat);
-    clearSSESender();
-    writer.close();
-    logger.debug("SSE client disconnected because of abort");
+    close();
+    logger.debug("SSE client disconnected");
   });
 
   return new Response(stream.readable, {
