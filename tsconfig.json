@@ -27,7 +27,10 @@
         "./src/*"
       ]
     },
-    "target": "ES2020"
+    "target": "ES2020",
+    "types": [
+      "node"
+    ]
   },
   "include": [
     "**/*.ts",
