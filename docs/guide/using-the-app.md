@@ -128,6 +128,25 @@ ignoring monitor, AP and P2P devices. If the link is disconnected or its
 signal information is incomplete, the measurement reports an error instead
 of saving an empty reading.
 
+**Zoom and pan.** The plan first shows whole, fitted to the window's
+width and height, so a tall plan doesn't run off the screen. To look
+closer:
+
+* the buttons in the plan's top-right corner zoom out, zoom in (up to
+  800%) and go back to the whole plan (**Fit to view**); the number
+  between them is the zoom, where 100% is the whole plan;
+* hold Ctrl (⌘ on a Mac) and turn the mouse wheel, or pinch on a trackpad
+  or touch screen, to zoom in or out where the pointer is. The wheel alone
+  scrolls the page as usual;
+* drag the plan to move around it. A drag never measures or selects a
+  point; only a click that stays put does;
+* after clicking the plan (or tabbing to it), **+** and **-** zoom, **0**
+  fits and the arrow keys move around.
+
+Dots and their labels keep their size on screen at any zoom. The zoom is
+not saved: it goes back to the whole plan when you pick another floor
+plan or reload the page.
+
 In mock mode, "Add sample points" fills the plan with synthetic points.
 
 ## Heat maps
@@ -171,7 +190,9 @@ automatic value based on how spread out your points are; drag it until
 neighbouring spots merge into one surface.
 
 Hover a map to enlarge or download it. Downloaded PNGs include the legend and
-a caption with the floor plan name, point count and date.
+a caption with the floor plan name, point count and date. An enlarged map
+zooms and pans like the floor plan: the buttons in its corner, Ctrl (⌘) +
+wheel or a pinch, dragging, and **+** / **-** / **0**.
 
 ## Survey points
 

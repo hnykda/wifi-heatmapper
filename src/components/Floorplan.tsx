@@ -6,6 +6,7 @@ import { useSettings } from "./GlobalSettings";
 import { useAppStatus } from "@/hooks/useAppStatus";
 import MeasurementPanel from "@/components/MeasurementPanel";
 import PopupDetails from "@/components/PopupDetails";
+import { ZoomPanViewport } from "@/components/ZoomPanViewport";
 import { Button } from "@/components/ui/button";
 import { getColorAt, objectToRGBAString } from "@/lib/utils-gradient";
 import {
@@ -16,23 +17,28 @@ import {
 } from "@/lib/utils";
 import { Gradient, SurveyPoint } from "@/lib/types";
 import { useMeasurement } from "@/hooks/useMeasurement";
+import { useZoomPan } from "@/hooks/useZoomPan";
 import { cn } from "@/lib/utils";
 
 type XY = { x: number; y: number };
+type MarkerSizes = ReturnType<typeof markerSizes>;
 
 /**
- * Marker sizes in image pixels. They grow with the image so dots are never
- * tiny on big plans, and never shrink below a readable size on screen
- * (`scale` is CSS px per image px).
+ * Marker sizes in image pixels. At fit they grow with the image so dots are
+ * never tiny on big plans, and never shrink below a readable size on screen
+ * (`fit` is CSS px per image px with the whole plan in view). Zooming in
+ * keeps the size they have on screen at fit, so they stay readable without
+ * covering more of the plan.
  */
-function markerSizes(imageWidth: number, scale: number) {
-  const s = scale > 0 ? scale : 1;
-  const R = Math.max(7, 0.008 * imageWidth, 9 / s);
+function markerSizes(imageWidth: number, fit: number, zoom: number) {
+  const s = fit > 0 ? fit : 1;
+  const z = zoom > 0 ? zoom : 1;
+  const R = Math.max(7, 0.008 * imageWidth, 9 / s) / z;
   return {
     R,
-    font: Math.max(11, 0.012 * imageWidth, 11 / s),
+    font: Math.max(11, 0.012 * imageWidth, 11 / s) / z,
     labelOffset: R * 1.9,
-    pad: Math.max(2, 0.004 * imageWidth, 2.5 / s),
+    pad: Math.max(2, 0.004 * imageWidth, 2.5 / s) / z,
   };
 }
 
@@ -40,12 +46,11 @@ function markerSizes(imageWidth: number, scale: number) {
 function drawPoint(
   ctx: CanvasRenderingContext2D,
   point: SurveyPoint,
-  W: number,
-  scale: number,
+  sizes: MarkerSizes,
   selected: boolean,
   gradient: Gradient,
 ) {
-  const { R, font, labelOffset, pad } = markerSizes(W, scale);
+  const { R, font, labelOffset, pad } = sizes;
   const wifi = point.wifiData;
   if (!wifi) return;
 
@@ -60,15 +65,15 @@ function drawPoint(
       })
     : "rgba(160, 165, 175, 0.9)";
   ctx.fill();
-  ctx.lineWidth = Math.max(1, R * 0.18);
+  ctx.lineWidth = R * 0.18;
   ctx.strokeStyle = "rgba(20, 24, 33, 0.65)";
   if (!point.isEnabled) ctx.setLineDash([R * 0.6, R * 0.5]);
   ctx.stroke();
   ctx.setLineDash([]);
   if (selected) {
     ctx.beginPath();
-    ctx.arc(point.x, point.y, R + Math.max(3, R * 0.5), 0, Math.PI * 2);
-    ctx.lineWidth = Math.max(2, R * 0.25);
+    ctx.arc(point.x, point.y, R * 1.5, 0, Math.PI * 2);
+    ctx.lineWidth = R * 0.25;
     ctx.strokeStyle = "hsl(252 56% 57%)";
     ctx.stroke();
   }
@@ -124,11 +129,18 @@ export default function ClickableFloorplan() {
     settings.surveyPoints.find((p) => p.id === selectedId) ?? null;
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  // The container's size in CSS px, kept up to date by a ResizeObserver
-  const [box, setBox] = useState({ width: 0, height: 0 });
-  // CSS px per image px
-  const scale = image && box.width ? box.width / image.naturalWidth : 1;
+  // Zoom and pan; back to fit for another floor plan. The frame fits the
+  // width and the window's height below the header, the survey strip and
+  // the title (about 190 px), so the whole plan is in view without scrolling.
+  const zp = useZoomPan({
+    image: image
+      ? { width: image.naturalWidth, height: image.naturalHeight }
+      : null,
+    resetKey: path,
+    maxHeight: (h) => Math.max(240, h - 190),
+  });
+  const { frame, scale, offsetX, offsetY, fit, zoom } = zp;
+  const imageWidth = image?.naturalWidth ?? 0;
   const [hoveringPoint, setHoveringPoint] = useState(false);
 
   // The server measures and saves the point; reload the survey to show it
@@ -178,54 +190,61 @@ export default function ClickableFloorplan() {
     };
   }, [path]);
 
-  /* ---------- scale to container ---------- */
-
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-    const ro = new ResizeObserver(() =>
-      setBox({ width: el.clientWidth, height: el.clientHeight }),
-    );
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
-
   /* ---------- drawing ---------- */
 
+  // The canvas is the frame, i.e. what is on screen, drawn at the device
+  // pixel ratio for the current zoom and pan. Markers and labels stay sharp
+  // at any zoom (the image itself is as sharp as its own pixels allow), and
+  // the cost doesn't grow with the zoom or the image's size.
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas || !image) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    canvas.width = image.naturalWidth;
-    canvas.height = image.naturalHeight;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const dpr = Math.min(3, window.devicePixelRatio || 1);
+    canvas.width = Math.round(frame.width * dpr);
+    canvas.height = Math.round(frame.height * dpr);
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.setTransform(
+      dpr * scale,
+      0,
+      0,
+      dpr * scale,
+      dpr * offsetX,
+      dpr * offsetY,
+    );
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
     ctx.drawImage(image, 0, 0);
+    const sizes = markerSizes(image.naturalWidth, fit, zoom);
     for (const p of settings.surveyPoints) {
-      drawPoint(
-        ctx,
-        p,
-        canvas.width,
-        scale,
-        p.id === selectedId,
-        settings.gradient,
-      );
+      drawPoint(ctx, p, sizes, p.id === selectedId, settings.gradient);
     }
-  }, [image, settings.surveyPoints, scale, selectedId, settings.gradient]);
+  }, [
+    image,
+    settings.surveyPoints,
+    frame.width,
+    frame.height,
+    scale,
+    offsetX,
+    offsetY,
+    fit,
+    zoom,
+    selectedId,
+    settings.gradient,
+  ]);
 
   /* ---------- hit testing ---------- */
 
   const toImageCoords = (e: React.MouseEvent<HTMLCanvasElement>): XY => {
     const rect = e.currentTarget.getBoundingClientRect();
-    return {
-      x: (e.clientX - rect.left) / scale,
-      y: (e.clientY - rect.top) / scale,
-    };
+    return zp.toImage({ x: e.clientX - rect.left, y: e.clientY - rect.top });
   };
 
   const hitTest = (pt: XY): SurveyPoint | undefined => {
-    const W = image?.naturalWidth ?? 0;
-    const { R } = markerSizes(W, scale);
+    const { R } = markerSizes(imageWidth, fit, zoom);
     // generous on touch screens: at least 14 CSS px
     const tolerance = Math.max(R * 1.6, 14 / scale);
     let best: SurveyPoint | undefined;
@@ -255,7 +274,12 @@ export default function ClickableFloorplan() {
       return;
     }
     if (measuring) return; // one at a time
-    void measurement.start(Math.round(pt.x), Math.round(pt.y), {
+    const x = Math.round(pt.x);
+    const y = Math.round(pt.y);
+    if (x < 0 || y < 0 || x > image.naturalWidth || y > image.naturalHeight) {
+      return;
+    }
+    void measurement.start(x, y, {
       measureSpeed: settings.measureSpeed,
       iperfServerAdrs: settings.iperfServerAdrs,
       testDuration: settings.testDuration,
@@ -324,13 +348,15 @@ export default function ClickableFloorplan() {
 
   const popupStyle = ((): React.CSSProperties => {
     if (!selectedPoint) return {};
-    const cw = box.width;
-    const ch = box.height;
-    const px = selectedPoint.x * scale;
-    const py = selectedPoint.y * scale;
+    // next to the point; at the frame's edge when it is panned out of view
+    const cw = frame.width;
+    const ch = frame.height;
+    const at = zp.toFrame(selectedPoint);
+    const px = Math.min(cw, Math.max(0, at.x));
+    const py = Math.min(ch, Math.max(0, at.y));
     const POPUP_W = 288; // w-72
     const GAP = 14;
-    const flipX = px + GAP + POPUP_W > cw;
+    const flipX = px + GAP + POPUP_W > cw && px - GAP - POPUP_W >= 0;
     const top = Math.min(Math.max(8, py - 40), Math.max(8, ch - 260));
     return {
       left: flipX ? px - GAP - POPUP_W : px + GAP,
@@ -341,6 +367,7 @@ export default function ClickableFloorplan() {
   /* ---------- render ---------- */
 
   const points = settings.surveyPoints;
+  const dot = pending ? zp.toFrame(pending) : null;
 
   return (
     <div className="space-y-4">
@@ -349,7 +376,7 @@ export default function ClickableFloorplan() {
           <h1 className="text-lg font-semibold">Floor plan</h1>
           <p className="text-sm text-muted-foreground">
             Stand where you want to measure, then click that spot on the plan.
-            Click a dot to see its details.
+            Click a dot to see its details. Drag to move around a zoomed plan.
           </p>
         </div>
         {status?.mockMode && (
@@ -386,47 +413,56 @@ export default function ClickableFloorplan() {
           </div>
         )}
 
-        <div ref={containerRef} className="relative">
-          {!image && !imageError && (
-            <div className="flex aspect-2/1 items-center justify-center text-sm text-muted-foreground">
-              {loading ? "Loading survey" : "Loading floor plan"}
-            </div>
-          )}
+        {!image && !imageError && (
+          <div className="flex aspect-2/1 items-center justify-center text-sm text-muted-foreground">
+            {loading ? "Loading survey" : "Loading floor plan"}
+          </div>
+        )}
+
+        <ZoomPanViewport
+          zp={zp}
+          label="Floor plan"
+          testId="floorplan-viewport"
+          className="rounded-md bg-white shadow-xs"
+          overlay={
+            selectedPoint && (
+              <div className="absolute z-20" style={popupStyle}>
+                <PopupDetails
+                  point={selectedPoint}
+                  settings={settings}
+                  surveyPointActions={surveyPointActions}
+                  onClose={() => setSelectedId(null)}
+                />
+              </div>
+            )
+          }
+        >
           <canvas
             ref={canvasRef}
             onClick={handleCanvasClick}
             onMouseMove={handleMouseMove}
             data-testid="floorplan-canvas"
             className={cn(
-              "block w-full rounded-md bg-white shadow-xs",
+              "absolute inset-0 block h-full w-full",
               !image && "hidden",
-              hoveringPoint
-                ? "cursor-pointer"
-                : measuring
-                  ? "cursor-progress"
-                  : "cursor-crosshair",
+              zp.dragging
+                ? "cursor-grabbing"
+                : hoveringPoint
+                  ? "cursor-pointer"
+                  : measuring
+                    ? "cursor-progress"
+                    : "cursor-crosshair",
             )}
           />
 
-          {pending && (
+          {dot && (
             <span
               aria-hidden="true"
               className="measuring-dot pointer-events-none absolute h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-brand"
-              style={{ left: pending.x * scale, top: pending.y * scale }}
+              style={{ left: dot.x, top: dot.y }}
             />
           )}
-
-          {selectedPoint && (
-            <div className="absolute z-20" style={popupStyle}>
-              <PopupDetails
-                point={selectedPoint}
-                settings={settings}
-                surveyPointActions={surveyPointActions}
-                onClose={() => setSelectedId(null)}
-              />
-            </div>
-          )}
-        </div>
+        </ZoomPanViewport>
       </div>
 
       {measurement.phase !== "idle" && (
