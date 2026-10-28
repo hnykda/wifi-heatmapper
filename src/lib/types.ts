@@ -120,6 +120,8 @@ export interface AppStatus {
   // macOS only: path of the native Wi-Fi helper if it is built, else null.
   // Details (does it work, Location access) come from GET /api/macos-helper.
   macosHelper: string | null;
+  // mock mode only: the e2e scenario wants a sudo password (mock-scenario.ts)
+  mockNeedsSudo?: boolean;
 }
 
 /**

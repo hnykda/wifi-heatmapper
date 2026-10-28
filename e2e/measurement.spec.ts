@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures";
 import {
   uploadFloorplan,
   gotoTab,
@@ -74,16 +74,18 @@ test("with signal and speed, speed is measured too", async ({ page }) => {
 
 test("an unreachable speed test server still records the signal, with a warning", async ({
   page,
+  mock,
 }) => {
+  await mock.set({ iperf: "unreachable" });
   const name = await uploadFloorplan(page);
-  await useSpeedServer(page, "unreachable.local");
+  await useSpeedServer(page, "10.0.0.2");
   await gotoTab(page, "floorplan");
   await measureAt(page, 0.5, 0.5);
   const panel = page.getByTestId("measurement-panel");
   await expect(panel).toHaveAttribute("data-warning", "true");
   await expect(panel).toContainText("Saved without speed");
   await expect(page.getByTestId("measurement-warning")).toContainText(
-    "Can't reach the speed test server at unreachable.local:5201",
+    "Can't reach the speed test server at 10.0.0.2:5201",
   );
   // the warning stays until dismissed, and the header keeps it visible
   await page.waitForTimeout(3000);
@@ -115,42 +117,50 @@ test("a speed survey without a server warns before measuring", async ({
   );
 });
 
-test("a measurement can be cancelled", async ({ page }) => {
+test("a slow measurement can be cancelled: nothing is saved", async ({
+  page,
+  mock,
+}) => {
   const name = await uploadFloorplan(page);
-  // speed tests with a long duration keep the mock busy for a few seconds
-  await useSpeedServer(page, "10.0.0.2");
-  await page.getByLabel("Test duration (seconds)").fill("10");
   await gotoTab(page, "floorplan");
-  const canvas = page.getByTestId("floorplan-canvas");
-  await expect(canvas).toBeVisible();
-  const box = (await canvas.boundingBox())!;
-  await canvas.click({ position: { x: box.width * 0.6, y: box.height * 0.6 } });
+  // each Wi-Fi reading takes 2 s, so the measurement runs for 6 s
+  await mock.set({ delayMs: 2000 });
+  await measureAt(page, 0.6, 0.6, { wait: false });
   const panel = page.getByTestId("measurement-panel");
-  await expect(panel).toHaveAttribute("data-phase", "running");
+  await expect(panel).toContainText("Measuring Wi-Fi");
   await page.getByTestId("measurement-cancel").click();
   await expect(panel).toHaveAttribute("data-phase", "cancelled");
+  await expect(panel).toContainText("Measurement cancelled");
+  // the job stopped at once: none is running
+  const status = await page.request.get("/api/start-task?action=status");
+  expect((await status.json()).job).toBeNull();
   await panel.getByRole("button", { name: "Dismiss" }).click();
   await expect(panel).toHaveCount(0);
-  // the job stops at once, so another spot can be measured right away
-  await measureAt(page, 0.3, 0.3);
-  await page.waitForTimeout(500);
-  const survey = await readSurvey(
-    page,
-    name,
-    (s) => s.surveyPoints.length === 1,
+  await expect(page.getByTestId("floorplan-canvas")).not.toHaveClass(
+    /cursor-progress/,
   );
-  // only the second spot was saved
+  // well after it would have finished, still nothing saved
+  await page.waitForTimeout(6500);
+  let survey = await readSurvey(page, name);
+  expect(survey.surveyPoints).toHaveLength(0);
+  await expect(page.getByTestId("summary-points")).toContainText("none yet");
+
+  // and another spot can be measured right away
+  await mock.set({ delayMs: 150 });
+  await measureAt(page, 0.3, 0.3);
+  survey = await readSurvey(page, name, (s) => s.surveyPoints.length === 1);
   expect(survey.surveyPoints[0].x).toBeCloseTo(800 * 0.3, -1);
 });
 
 test("closing the page mid-measurement still saves the point", async ({
   page,
   context,
+  mock,
 }) => {
   const name = await uploadFloorplan(page);
   await useSpeedServer(page, "10.0.0.2");
-  await page.getByLabel("Test duration (seconds)").fill("10");
-  await readSurvey(page, name, (s) => s.testDuration === 10);
+  await readSurvey(page, name, (s) => s.measureSpeed === true);
+  await mock.set({ delayMs: 500 }); // a few seconds per measurement
   await gotoTab(page, "floorplan");
   await measureAt(page, 0.2, 0.8, { wait: false });
   await page.close();
@@ -179,11 +189,12 @@ test("closing the page mid-measurement still saves the point", async ({
 
 test("leaving the floor plan mid-measurement still shows the point", async ({
   page,
+  mock,
 }) => {
   const name = await uploadFloorplan(page);
   await useSpeedServer(page, "10.0.0.2");
-  await page.getByLabel("Test duration (seconds)").fill("10");
-  await readSurvey(page, name, (s) => s.testDuration === 10);
+  await readSurvey(page, name, (s) => s.measureSpeed === true);
+  await mock.set({ delayMs: 500 }); // a few seconds per measurement
   await gotoTab(page, "floorplan");
   await measureAt(page, 0.6, 0.3, { wait: false });
   await gotoTab(page, "points");

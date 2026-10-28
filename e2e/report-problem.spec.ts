@@ -1,4 +1,5 @@
-import { test, expect, Page } from "@playwright/test";
+import type { Page } from "@playwright/test";
+import { test, expect } from "./fixtures";
 import {
   uploadFloorplan,
   gotoTab,
@@ -66,37 +67,14 @@ async function measureInTheMiddle(page: Page) {
   await canvas.click({ position: { x: box.width / 2, y: box.height / 2 } });
 }
 
-test("a measurement error can be reported from the panel", async ({ page }) => {
+test("a measurement error can be reported from the panel", async ({
+  page,
+  mock,
+}) => {
   await uploadFloorplan(page);
-  // the mock never fails, so make the result an error
-  const problem = "Wi-Fi is turned off";
-  const jobId = "fake-job";
-  await page.route(
-    (url) =>
-      url.pathname === "/api/start-task" &&
-      url.searchParams.get("action") === "start",
-    (route) => route.fulfill({ json: { jobId } }),
-  );
-  await page.route(
-    (url) =>
-      url.pathname === "/api/start-task" &&
-      url.searchParams.get("id") === jobId,
-    (route) =>
-      route.fulfill({
-        json: {
-          id: jobId,
-          state: "error",
-          error: problem,
-          progress: {
-            type: "done",
-            jobId,
-            state: "error",
-            header: "Error",
-            status: problem,
-          },
-        },
-      }),
-  );
+  await mock.set({ wifi: "not-connected" });
+  const problem =
+    "Wi-Fi is not connected. Connect to a Wi-Fi network and try again.";
   await measureInTheMiddle(page);
 
   const panel = page.getByTestId("measurement-panel");
@@ -108,6 +86,8 @@ test("a measurement error can be reported from the panel", async ({ page }) => {
 
   const preview = page.getByTestId("report-preview");
   await expect(preview).toContainText(`Problem shown: ${problem}`);
+  // the server's own record of it
+  await expect(preview).toContainText("Last measurement: failed at");
   const href = (await page
     .getByTestId("report-open-issue")
     .getAttribute("href"))!;
@@ -118,10 +98,11 @@ test("a measurement error can be reported from the panel", async ({ page }) => {
 
 test("a point saved without speed can be reported from the panel", async ({
   page,
+  mock,
 }) => {
+  await mock.set({ iperf: "unreachable" });
   await uploadFloorplan(page);
-  // "unreachable" makes the mock's speed test server unreachable
-  await useSpeedServer(page, "unreachable.example");
+  await useSpeedServer(page, "10.0.0.2");
   await measureInTheMiddle(page);
 
   const panel = page.getByTestId("measurement-panel");

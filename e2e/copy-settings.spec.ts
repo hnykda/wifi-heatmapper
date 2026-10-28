@@ -1,5 +1,11 @@
-import { test, expect, Page } from "@playwright/test";
-import { readSurvey, uploadFloorplan, useSpeedServer } from "./helpers";
+import type { Page } from "@playwright/test";
+import { test, expect } from "./fixtures";
+import {
+  readSurvey,
+  uniqueName,
+  uploadFloorplan,
+  useSpeedServer,
+} from "./helpers";
 
 test("a second floor plan starts with the speed settings of the first", async ({
   page,
@@ -13,9 +19,7 @@ test("a second floor plan starts with the speed settings of the first", async ({
     (s) => s.iperfServerAdrs === "192.168.5.5:5201" && s.testDuration === 4,
   );
 
-  const second = await uploadFloorplan(page, undefined, undefined, {
-    inherit: true,
-  });
+  const second = await uploadFloorplan(page);
   await expect(page.getByTestId("speed-settings-copied")).toHaveText(
     `Speed settings copied from ${first}.`,
   );
@@ -41,9 +45,13 @@ test("a second floor plan starts with the speed settings of the first", async ({
   await expect(page.getByTestId("speed-settings-copied")).toHaveCount(0);
 });
 
-/** A survey with speed, access point names and its own heat map look. */
+/**
+ * A survey with speed, access point names and its own heat map look,
+ * written through the API after the open one, so that one doesn't start
+ * with its speed settings.
+ */
 async function sourceSurvey(page: Page): Promise<string> {
-  const name = await uploadFloorplan(page);
+  const name = uniqueName("source");
   const res = await page.request.patch(
     `/api/settings?name=${encodeURIComponent(name)}`,
     {
@@ -87,8 +95,8 @@ async function copyOnly(
 }
 
 test("copy settings from: speed settings", async ({ page }) => {
-  const from = await sourceSurvey(page);
   const to = await uploadFloorplan(page);
+  const from = await sourceSurvey(page);
   await expect(page.getByLabel("Signal only")).toBeChecked();
   await copyOnly(page, from, "speed");
 
@@ -109,8 +117,8 @@ test("copy settings from: speed settings", async ({ page }) => {
 });
 
 test("copy settings from: access point names", async ({ page }) => {
-  const from = await sourceSurvey(page);
   const to = await uploadFloorplan(page);
+  const from = await sourceSurvey(page);
   await copyOnly(page, from, "apNames");
 
   await expect(
@@ -126,8 +134,8 @@ test("copy settings from: access point names", async ({ page }) => {
 });
 
 test("copy settings from: heat map look", async ({ page }) => {
-  const from = await sourceSurvey(page);
   const to = await uploadFloorplan(page);
+  const from = await sourceSurvey(page);
   await copyOnly(page, from, "heatmapLook");
 
   await expect(page.getByLabel("Opacity at strongest")).toHaveValue("0.4");

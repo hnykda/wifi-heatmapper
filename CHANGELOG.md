@@ -141,6 +141,11 @@ _This section follows the precepts of [Keep a Changelog](https://keepachangelog.
 * **The macOS desktop app needs macOS 13.5 (Ventura) or later** (was 11).
   The Node.js 26 it ships doesn't run on older versions. On an older Mac,
   [run the app from source](docs/guide/run-from-source.md) with Node.js 22.
+* e2e tests can pick how the mock behaves (a sudo password needed, iperf3
+  missing or failing half way, no noise reading, a slow measurement...)
+  and each starts from fresh data. See "Writing e2e tests" in
+  CONTRIBUTING.md. In mock mode a speed test server whose name contains
+  "unreachable" no longer counts as down.
 
 ### Fixed
 

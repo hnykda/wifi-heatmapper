@@ -45,6 +45,17 @@ function state(): State {
   return g[KEY]!;
 }
 
+/** How the Wi-Fi was read, as the scanners record it. */
+export const WIFI_METHOD = {
+  mock: "mock (synthetic readings)",
+  macosHelper: "macOS Wi-Fi helper (CoreWLAN)",
+  wdutil: "wdutil with sudo",
+  wlanApi: "Windows WLAN API",
+  netshFallback: "netsh (fallback)",
+  iw: "iw",
+  iwSudo: "iw with sudo",
+} as const;
+
 export function recordWifiMethod(method: string, detail?: string): void {
   state().wifiMethod = { method, detail, at: new Date().toISOString() };
 }
@@ -82,6 +93,12 @@ export function rememberNetworks(
     if (n.ssid && s.ssids.size < MAX_NETWORKS) s.ssids.add(n.ssid);
     if (n.bssid && s.bssids.size < MAX_NETWORKS) s.bssids.add(n.bssid);
   }
+}
+
+/** e2e tests only: forget everything (e2e-control.ts). */
+export function resetDiagnosticsState(): void {
+  const g = globalThis as unknown as Record<string, State | undefined>;
+  delete g[KEY];
 }
 
 export function seenNetworks(): { ssids: string[]; bssids: string[] } {

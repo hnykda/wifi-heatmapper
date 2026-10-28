@@ -190,25 +190,17 @@ export function SpeedSettings({ status }: { status: AppStatus | null }) {
             data-testid="speed-checklist"
           >
             <ChecklistItem
-              state={
-                status?.mockMode
-                  ? "ok"
-                  : !status
-                    ? "unknown"
-                    : iperf3
-                      ? "ok"
-                      : "bad"
-              }
+              state={!status ? "unknown" : iperf3 ? "ok" : "bad"}
               testid="check-iperf3"
               title="iperf3 installed on this computer"
               detail={
-                status?.mockMode
-                  ? "Mock mode makes up the speed results."
-                  : !status
-                    ? "Checking."
-                    : iperf3
-                      ? iperf3
-                      : `Not found, so speed tests are skipped. ${installHint(status)}`
+                !status
+                  ? "Checking."
+                  : iperf3
+                    ? status.mockMode
+                      ? "Mock mode makes up the speed results."
+                      : iperf3
+                    : `Not found, so speed tests are skipped. ${installHint(status)}`
               }
             />
             <ChecklistItem

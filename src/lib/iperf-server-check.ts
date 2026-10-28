@@ -7,11 +7,7 @@ import {
 } from "./measurement-mode";
 import { isMockMode } from "./app-info";
 import { delay } from "./server-utils";
-
-const MOCK_DELAY_MS = parseInt(
-  process.env.WIFI_HEATMAPPER_MOCK_DELAY_MS || "150",
-  10,
-);
+import { mockDelayMs, mockServerReachable } from "./mock-scenario";
 
 /**
  * canConnect() - open (and close) a TCP connection, without nc or PowerShell
@@ -77,21 +73,20 @@ export async function checkIperfServerReachable(
 
 /**
  * checkIperfServer() - does the speed test server answer? The same socket
- * check on every OS. In mock mode nothing is contacted: a server whose
- * name contains "unreachable" is treated as down, so tests and demos can
- * exercise that path.
+ * check on every OS. In mock mode nothing is contacted: the server answers
+ * unless the e2e scenario says it is unreachable (mock-scenario.ts).
  */
 export async function checkIperfServer(
   settings: PartialHeatmapSettings,
 ): Promise<WifiScanResults> {
   if (isMockMode()) {
-    await delay(MOCK_DELAY_MS);
+    await delay(mockDelayMs());
     const address = settings.iperfServerAdrs;
     const reason = !parseServerAddress(address)
       ? badAddressReason(address)
-      : /unreachable/i.test(address)
-        ? unreachableReason(address)
-        : "";
+      : mockServerReachable()
+        ? ""
+        : unreachableReason(address);
     return { SSIDs: [], reason };
   }
   return checkIperfServerReachable(settings);

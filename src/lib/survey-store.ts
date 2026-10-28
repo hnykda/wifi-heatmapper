@@ -95,6 +95,11 @@ function withLock<T>(floorPlan: string, fn: () => Promise<T>): Promise<T> {
   return result;
 }
 
+/** Resolves when every write started so far has finished (e2e reset). */
+export async function settled(): Promise<void> {
+  await Promise.all([...locks().values()]);
+}
+
 /** The survey for a floor plan, or null if it has none. */
 export async function read(floorPlan: string): Promise<SurveyDocument | null> {
   let text: string;

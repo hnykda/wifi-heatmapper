@@ -5,7 +5,12 @@ import {
   WifiActions,
   SPAirPortRoot,
 } from "./types";
-import { checkSudoPassword, runWithSudo } from "./sudo";
+import {
+  checkSudoPassword,
+  runWithSudo,
+  SUDO_PASSWORD_INVALID,
+  sudoPasswordMissing,
+} from "./sudo";
 import { execAsync } from "./server-utils";
 import {
   rssiToPercentage,
@@ -17,7 +22,7 @@ import {
   validNoise,
 } from "./utils";
 import { getLogger } from "./logger";
-import { recordWifiMethod } from "./diagnostics-state";
+import { recordWifiMethod, WIFI_METHOD } from "./diagnostics-state";
 import { findMacosHelper, runMacosHelper } from "./macos-helper";
 import { parseHelperInfo, parseHelperScan } from "./macos-helper-parse";
 const logger = getLogger("wifi-macOS");
@@ -91,16 +96,16 @@ export class MacOSWifiActions implements WifiActions {
 
     // without it, wdutil needs a sudo password
     else if (!settings.sudoerPassword || settings.sudoerPassword == "") {
-      reason = process.env.WIFI_HEATMAPPER_RESOURCES_DIR
-        ? "Please set sudo password. The app's Wi-Fi helper did not work, so macOS needs it."
-        : "Please set sudo password. It is required on macOS unless you build the Wi-Fi helper (npm run build:macos-helper).";
+      reason = sudoPasswordMissing(
+        Boolean(process.env.WIFI_HEATMAPPER_RESOURCES_DIR),
+      );
     }
 
     // check that the sudo password is actually correct
     // (once per password value, see sudo.ts)
     else {
       if (!(await checkSudoPassword(settings.sudoerPassword))) {
-        reason = "Please enter a valid sudo password.";
+        reason = SUDO_PASSWORD_INVALID;
       }
     }
 
@@ -215,7 +220,7 @@ export class MacOSWifiActions implements WifiActions {
           return response;
         }
         response.SSIDs.push(info.wifi);
-        recordWifiMethod("macOS Wi-Fi helper (CoreWLAN)");
+        recordWifiMethod(WIFI_METHOD.macosHelper);
         return response;
       } catch (err) {
         logger.warn(`Wi-Fi helper failed: ${err}`);
@@ -229,7 +234,7 @@ export class MacOSWifiActions implements WifiActions {
     try {
       const netInfo: WifiResults = await getWdutilResults(settings);
       recordWifiMethod(
-        "wdutil with sudo",
+        WIFI_METHOD.wdutil,
         findMacosHelper()
           ? "the Wi-Fi helper is built but did not answer"
           : "the Wi-Fi helper is not built",

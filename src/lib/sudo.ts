@@ -16,6 +16,16 @@ import { execAsync, RunOptions, RunResult } from "./server-utils";
 
 const KEY = "__wifiHeatmapperSudoChecked__";
 
+/** The preflight reason when sudo refuses the password (MCP matches it). */
+export const SUDO_PASSWORD_INVALID = "Please enter a valid sudo password.";
+
+/** The macOS preflight reason when wdutil needs a password and has none. */
+export function sudoPasswordMissing(desktopApp: boolean): string {
+  return desktopApp
+    ? "Please set sudo password. The app's Wi-Fi helper did not work, so macOS needs it."
+    : "Please set sudo password. It is required on macOS unless you build the Wi-Fi helper (npm run build:macos-helper).";
+}
+
 function hash(password: string): string {
   return createHash("sha256").update(password).digest("hex");
 }

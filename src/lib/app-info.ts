@@ -11,6 +11,7 @@ import { execAsync } from "./server-utils";
 import { getDataDir } from "./server-paths";
 import { AppStatus } from "./types";
 import { findMacosHelper } from "./macos-helper";
+import { mockIperf3Version, mockNeedsSudo } from "./mock-scenario";
 
 export const APP_VERSION: string = pkg.version;
 
@@ -26,6 +27,15 @@ export async function getAppStatus(): Promise<AppStatus> {
   const base = await cached;
   // not cached: the helper may be built while the server runs
   const helper = base.mockMode ? null : findMacosHelper();
+  if (base.mockMode) {
+    // not cached either: an e2e scenario can change them
+    return {
+      ...base,
+      iperf3Version: mockIperf3Version(),
+      mockNeedsSudo: mockNeedsSudo(),
+      macosHelper: null,
+    };
+  }
   return { ...base, macosHelper: helper?.display ?? null };
 }
 

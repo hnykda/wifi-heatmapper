@@ -4,7 +4,7 @@ import {
   WifiScanResults,
   WifiActions,
 } from "./types";
-import { checkSudoPassword, runWithSudo } from "./sudo";
+import { checkSudoPassword, runWithSudo, SUDO_PASSWORD_INVALID } from "./sudo";
 import { execAsync } from "./server-utils";
 import {
   channelToBand,
@@ -19,7 +19,7 @@ import {
 import isDocker from "is-docker";
 import isPodman from "is-podman";
 import { getLogger } from "./logger";
-import { recordWifiMethod } from "./diagnostics-state";
+import { recordWifiMethod, WIFI_METHOD } from "./diagnostics-state";
 const logger = getLogger("wifi-Linux");
 
 export class LinuxWifiActions implements WifiActions {
@@ -80,7 +80,7 @@ export class LinuxWifiActions implements WifiActions {
       // (once per password value, see sudo.ts)
       else {
         if (!(await checkSudoPassword(settings.sudoerPassword))) {
-          reason = "Please enter a valid sudo password.";
+          reason = SUDO_PASSWORD_INVALID;
         }
       }
     }
@@ -133,7 +133,7 @@ export class LinuxWifiActions implements WifiActions {
       const parsed = parseIwOutput(linkOutput, infoOutput);
       parsed.noise = await readNoise(interfaceId, settings.sudoerPassword);
       recordWifiMethod(
-        lastLinkUsedSudo ? "iw with sudo" : "iw",
+        lastLinkUsedSudo ? WIFI_METHOD.iwSudo : WIFI_METHOD.iw,
         `iw dev ${interfaceId} link; noise ${parsed.noise == null ? "not reported" : "from survey dump"}`,
       );
       logger.trace("Final WiFi data:", parsed);

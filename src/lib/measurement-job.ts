@@ -342,6 +342,31 @@ async function run(job: Job, settings: PartialHeatmapSettings, runner: Runner) {
   finish(job, "done", { pointId, ...(warning ? { warning } : {}) }, fields);
 }
 
+/**
+ * e2e tests only (e2e-control.ts): stop the running job, wait until its
+ * measurement code has returned, and forget every job. Open event
+ * streams stay subscribed.
+ */
+export async function stopAndForgetJobs(): Promise<void> {
+  const h = hub();
+  const job = h.current;
+  if (job) {
+    // a job that is saving finishes its save (before the files go)
+    if (job.state === "running") {
+      job.abortController.abort(new Error("reset"));
+      finish(job, "cancelled");
+    }
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    await Promise.race([
+      job.settled,
+      new Promise((resolve) => (timer = setTimeout(resolve, CANCEL_GRACE_MS))),
+    ]);
+    clearTimeout(timer);
+  }
+  h.current = null;
+  h.jobs.clear();
+}
+
 /** Tests only: forget every job and listener. */
 export function resetMeasurementJobs(): void {
   const h = hub();
