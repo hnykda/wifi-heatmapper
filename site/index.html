@@ -53,7 +53,8 @@
     <p class="lede">
       Walk around with your laptop and click where you stand on a floor plan.
       Wi-Fi Heatmapper measures the signal strength there, and optionally the real speed.
-      A few rooms later you have a heat map of your home or office.
+      A few rooms later you have a heat map of your home or office, and you know where
+      the next access point should go.
     </p>
     <div class="cta">
       <a class="button" id="dl-primary" href="https://github.com/hnykda/wifi-heatmapper/releases/latest">Download</a>
@@ -79,8 +80,11 @@
 <section class="wrap screenshot" aria-label="Screenshot">
   <figure>
     <div class="shot__frame">
-      <img src="/img/heatmaps.webp" width="1280" height="860" loading="lazy"
-        alt="The Heat maps tab: signal strength and TCP download heat maps over a house and garage, mostly green near the house and yellow toward the garage.">
+      <picture>
+        <source srcset="/img/heatmaps-dark.webp" media="(prefers-color-scheme: dark)">
+        <img src="/img/heatmaps.webp" width="1280" height="860" loading="lazy"
+          alt="The Heat maps tab: signal strength and download speed heat maps over a house and garage, mostly green near the house and yellow toward the garage.">
+      </picture>
     </div>
     <figcaption>The real app. Green is good; yellow and red are where you need another access point.</figcaption>
   </figure>
@@ -94,15 +98,19 @@
   <dl class="features">
     <div>
       <dt>Signal strength everywhere</dt>
-      <dd>Each spot records the signal in dBm and percent, plus the access point, channel and band it was connected to. Where the driver reports noise, you also get a signal-to-noise map.</dd>
+      <dd>Each spot records the signal in dBm and percent, plus the access point, channel and band it was connected to.</dd>
     </div>
     <div>
       <dt>Real speed, not just bars</dt>
       <dd>Choose “Signal and speed” and every spot also gets its download and upload speed, measured against a second computer on your network with <a href="https://iperf.fr">iperf3</a>, plus jitter and lost packets.</dd>
     </div>
     <div>
+      <dt>Noise and signal-to-noise</dt>
+      <dd>Where your system reports noise (macOS and many Linux drivers), you also get a signal-to-noise map: it shows spots that look strong but are drowned out by interference.</dd>
+    </div>
+    <div>
       <dt>Before and after</dt>
-      <dd>Fix the colour scale of each map, then survey again after moving the router or adding a mesh node. Same colours, same numbers.</dd>
+      <dd>Fix the colour scale of each map, then survey again after moving the router or adding a mesh node. Same colours, same numbers. Copy the settings to the next floor in one click.</dd>
     </div>
     <div>
       <dt>Any floor plan</dt>
@@ -113,8 +121,16 @@
       <dd>Call <code>aa:bb:cc:dd:ee:*</code> “Upstairs mesh” and every band of that node shows up under one name in the table and export.</dd>
     </div>
     <div>
+      <dt>Works with AI agents</dt>
+      <dd>Claude or another agent can read and explain your surveys, and walk you through a new one: it tells you where to stand and measures once you say you’re there. <a href="#agent">More below</a>.</dd>
+    </div>
+    <div>
+      <dt>Easy to report a problem</dt>
+      <dd>Wi-Fi differs on every system. <strong>Report a problem</strong> fills in a GitHub issue with the app’s diagnostics, leaving out your password, network names and addresses.</dd>
+    </div>
+    <div>
       <dt>Stays on your computer</dt>
-      <dd>No account, no cloud, works offline. Surveys are plain JSON files. Export points as CSV and maps as PNG with a legend. The app only sends <a href="/docs/privacy">anonymous usage counts</a>, which tell me it&rsquo;s used; turn them off any time.</dd>
+      <dd>No account, no cloud, works offline. Surveys are plain JSON files; export points as CSV and maps as PNG. The app only sends <a href="/docs/privacy">anonymous usage counts</a>, which tell me it&rsquo;s used; turn them off any time.</dd>
     </div>
   </dl>
 </section>
@@ -214,6 +230,18 @@
     <h2 id="how-title">How it works</h2>
     <p>A survey of a flat takes about ten minutes.</p>
   </div>
+  <div class="modes how-art">
+    <figure class="mode">
+      <img class="mode__art" src="/docs/images/one-measurement.svg" width="520" height="240" loading="lazy"
+        alt="One measurement: the laptop at a spot on the floor plan reads the Wi-Fi signal from the router, optionally runs a speed test against a second computer wired to the router, and a coloured dot appears on that spot.">
+      <figcaption><strong>One measurement.</strong> The laptop reads the signal where you stand, and with speed on, sends test data to a wired computer and back.</figcaption>
+    </figure>
+    <figure class="mode">
+      <img class="mode__art" src="/docs/images/points-to-heatmap.svg" width="520" height="240" loading="lazy"
+        alt="From points to a heat map: coloured dots, one per measurement, spread out and blend into one continuous map, green near the router and yellow to red far from it.">
+      <figcaption><strong>From points to a heat map.</strong> Each dot’s colour spreads to its neighbours, closer points counting more, until the dots blend into one map.</figcaption>
+    </figure>
+  </div>
   <ol class="steps">
     <li>
       <h3>Pick a floor plan</h3>
@@ -234,8 +262,11 @@
   </ol>
   <figure class="shot shot--small">
     <div class="shot__frame">
-      <img src="/img/floorplan.webp" width="1280" height="860" loading="lazy"
-        alt="The Floor plan tab: survey points on the plan, each a coloured dot labelled with its signal percentage.">
+      <picture>
+        <source srcset="/img/floorplan-dark.webp" media="(prefers-color-scheme: dark)">
+        <img src="/img/floorplan.webp" width="1280" height="860" loading="lazy"
+          alt="The Floor plan tab: survey points on the plan, each a coloured dot labelled with its signal percentage.">
+      </picture>
     </div>
     <figcaption>Each dot is one measurement, labelled with its signal strength.</figcaption>
   </figure>
@@ -243,12 +274,35 @@
     <h3>Under the hood</h3>
     <p>
       The app uses what your system already has: CoreWLAN on macOS (through a small helper, no password),
-      the Native Wifi API on Windows, and <code>iw</code> on Linux. Speed (throughput, technically)
-      comes from <code>iperf3</code>. The heat map is inverse-distance weighting drawn with WebGL.
+      the Native Wifi API on Windows (with <code>netsh</code> as a fallback), and <code>iw</code> on Linux.
+      Speed (throughput, technically) comes from <code>iperf3</code>. The app’s server runs each measurement
+      and saves the point, so closing the tab doesn’t lose it, and nothing runs through a shell.
+      The heat map is inverse-distance weighting drawn with WebGL.
       The details are on the
       <a href="/docs/how-it-works">how it works</a> page.
     </p>
   </div>
+</section>
+
+<section id="agent" class="section wrap" aria-labelledby="agent-title">
+  <div class="section__head">
+    <h2 id="agent-title">Survey with an AI agent</h2>
+    <p>An optional MCP server lets Claude Code, Claude Desktop or another agent work with the app on your computer. You carry the laptop; the agent does the bookkeeping.</p>
+  </div>
+  <div class="agent">
+    <div class="chat" aria-label="Example conversation">
+      <p class="chat__you"><span>You</span>Let’s measure the ground floor. I have the laptop.</p>
+      <p class="chat__agent"><span>Agent</span>Nothing is measured in the east half yet. First the kitchen, top right on the plan. Tell me when you’re there.</p>
+      <p class="chat__you"><span>You</span>I’m by the counter.</p>
+      <p class="chat__agent"><span>Agent</span>Kitchen: signal 48% (−74 dBm), download 180 Mbps. Weak but usable. Next: the hallway by the front door.</p>
+    </div>
+    <ul class="agent__list">
+      <li><strong>It can</strong> read and explain your surveys, plan where to measure, set up and copy settings, measure each spot once you confirm, and prepare a problem report.</li>
+      <li><strong>It can’t</strong> walk around, see the drawn maps (it gets the numbers instead), or handle your sudo password, and it needs the app running.</li>
+      <li><strong>It stays local:</strong> it only talks to the app on this computer, asks before every measurement, and can’t delete anything.</li>
+    </ul>
+  </div>
+  <p class="modes__more">Setup for each client is in the <a href="/docs/mcp">AI agent guide</a>.</p>
 </section>
 
 <section id="download" class="section wrap" aria-labelledby="download-title">
@@ -260,7 +314,7 @@
   <div class="downloads">
     <div class="platform" data-os="mac">
       <h3>macOS</h3>
-      <p class="req">macOS 11 or later</p>
+      <p class="req">macOS 13.5 (Ventura) or later</p>
       <ul>
         <li><a href="https://github.com/hnykda/wifi-heatmapper/releases/download/v{{VERSION}}/WiFi.Heatmapper_{{VERSION}}_aarch64.dmg">Apple silicon (.dmg)</a></li>
         <li><a href="https://github.com/hnykda/wifi-heatmapper/releases/download/v{{VERSION}}/WiFi.Heatmapper_{{VERSION}}_x64.dmg">Intel (.dmg)</a></li>
@@ -299,7 +353,7 @@
       <a href="/docs/install#what-has-been-tested">what has been tested</a> so far.
     </p>
     <p>
-      <strong>Rather run it from source?</strong> With Node.js 20 or newer:
+      <strong>Rather run it from source?</strong> With Node.js 22.12 or newer (also the way to go on a Mac older than 13.5):
     </p>
     <pre class="code"><code>git clone https://github.com/hnykda/wifi-heatmapper.git
 cd wifi-heatmapper

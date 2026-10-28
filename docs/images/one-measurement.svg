@@ -1,0 +1,126 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 240" width="520" height="240" role="img" aria-labelledby="t d">
+<title id="t">One measurement</title>
+<desc id="d">You stand at a spot on the floor plan with the laptop and click it. The laptop reads the Wi-Fi signal from the router. If the survey also measures speed, test data goes through the router to a second computer wired to it, and back. Then a coloured dot with the signal percentage appears on that spot.</desc>
+<style>
+  svg { --bg: #f6f7f9; --surface: #ffffff; --ink: #181c25; --muted: #5a6272; --rule: #e1e4ea; --brand: #6a55d6; --brand-soft: #efecfc; --wall: #2a2f3a; --floor: #fbfbfc; --dot: #2fd36b; }
+  @media (prefers-color-scheme: dark) {
+    svg { --bg: #14161b; --surface: #1c1f26; --ink: #e7e9ee; --muted: #9aa2b1; --rule: #2b2f38; --brand: #a493f2; --brand-soft: #2a2640; --wall: #d9dce3; --floor: #1f222a; --dot: #3ccf7f; }
+  }
+  text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; }
+  .card { fill: var(--bg); }
+  .floor { fill: var(--floor); }
+  .wall { fill: none; stroke: var(--wall); stroke-width: 3; stroke-linecap: square; }
+  .room { font-size: 10px; fill: var(--muted); }
+  .box rect { fill: var(--surface); stroke: var(--ink); stroke-width: 1.6; }
+  .box path { fill: none; stroke: var(--ink); stroke-width: 1.6; stroke-linecap: round; }
+  .router rect { fill: var(--brand-soft); }
+  .laptop path { fill: var(--ink); stroke: var(--ink); stroke-width: 1; stroke-linejoin: round; }
+  .wave { fill: none; stroke: var(--brand); stroke-width: 2; stroke-linecap: round; }
+  .cable { fill: none; stroke: var(--ink); stroke-width: 2.5; stroke-linejoin: round; }
+  .label { font-size: 10px; fill: var(--muted); }
+  .spot { fill: none; stroke: var(--brand); stroke-width: 1.5; stroke-dasharray: 3 3; }
+  .dot { fill: var(--dot); stroke: var(--surface); stroke-width: 2; }
+  .dot-label { font-size: 11px; font-weight: 700; fill: var(--ink); }
+  .packet { fill: var(--brand); opacity: 0; }
+  .panel rect.bg { fill: var(--surface); stroke: var(--rule); stroke-width: 1; }
+  .panel .h { font-size: 12px; font-weight: 600; fill: var(--ink); }
+  .panel .k { font-size: 11px; fill: var(--muted); }
+  .panel .v { font-size: 11px; font-weight: 600; fill: var(--ink); }
+  .panel .o { font-size: 9.5px; fill: var(--muted); }
+  .panel line { stroke: var(--rule); stroke-width: 1; }
+
+  /* Static picture (also the reduced-motion version): everything shown, no packet. */
+  @media (prefers-reduced-motion: no-preference) {
+    .wave { animation: wave 2.4s ease-out infinite; }
+    .w2 { animation-delay: 0.3s; }
+    .w3 { animation-delay: 0.6s; }
+    .row-signal { animation: show-signal 9s linear infinite; }
+    .row-speed { animation: show-speed 9s linear infinite; }
+    .packet { animation: packet 9s ease-in-out infinite; }
+    .dot, .dot-label { transform-box: fill-box; transform-origin: center; animation: dot 9s ease-out infinite; }
+    .spot { animation: spot 9s linear infinite; }
+  }
+  @keyframes wave { 0% { opacity: 0.15; } 30% { opacity: 1; } 100% { opacity: 0.15; } }
+  @keyframes show-signal { 0%, 14% { opacity: 0; } 18%, 94% { opacity: 1; } 100% { opacity: 0; } }
+  @keyframes show-speed { 0%, 62% { opacity: 0; } 66%, 94% { opacity: 1; } 100% { opacity: 0; } }
+  @keyframes dot { 0%, 70% { opacity: 0; transform: scale(0); } 75% { opacity: 1; transform: scale(1.15); } 78%, 94% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(1); } }
+  @keyframes spot { 0%, 70% { opacity: 1; } 76%, 100% { opacity: 0; } }
+  @keyframes packet {
+    0%, 20% { opacity: 0; transform: translate(254px, 150px); }
+    22% { opacity: 1; transform: translate(254px, 150px); }
+    30% { transform: translate(90px, 70px); }
+    38% { opacity: 1; transform: translate(90px, 166px); }
+    40%, 42% { opacity: 0; transform: translate(90px, 166px); }
+    44% { opacity: 1; transform: translate(90px, 166px); }
+    52% { transform: translate(90px, 70px); }
+    60% { opacity: 1; transform: translate(254px, 150px); }
+    62%, 100% { opacity: 0; transform: translate(254px, 150px); }
+  }
+</style>
+
+<rect class="card" x="0" y="0" width="520" height="240" rx="12"/>
+
+<!-- floor plan: two rooms -->
+<rect class="floor" x="16" y="16" width="300" height="208" rx="3"/>
+<path class="wall" d="M16 16h300v208H16z M170 16v78 M170 134v90"/>
+<text class="room" x="26" y="34">Living room</text>
+<text class="room" x="180" y="34">Study</text>
+
+<!-- router -->
+<g class="box router" transform="translate(90 70)">
+  <rect x="-13" y="-6" width="26" height="12" rx="2"/>
+  <path d="M-8 -6v-8 M8 -6v-8"/>
+</g>
+<text class="label" x="72" y="74" text-anchor="end">router</text>
+
+<!-- second computer, wired (speed only) -->
+<path class="cable" d="M90 76 V152"/>
+<g class="box" transform="translate(90 166)">
+  <rect x="-10" y="-14" width="20" height="28" rx="2"/>
+  <path d="M-5 -7h10 M-5 -2h10"/>
+</g>
+<text class="label" x="90" y="196" text-anchor="middle">second computer,</text>
+<text class="label" x="90" y="208" text-anchor="middle">wired (speed only)</text>
+
+<!-- Wi-Fi waves from the router toward the study -->
+<g transform="translate(106 76) rotate(118)">
+  <path class="wave w1" d="M-10 -6a14 14 0 0 1 20 0"/>
+  <path class="wave w2" d="M-17 -12a24 24 0 0 1 34 0"/>
+  <path class="wave w3" d="M-24 -18a34 34 0 0 1 48 0"/>
+</g>
+
+<!-- the spot you clicked, and the dot that appears there -->
+<circle class="spot" cx="254" cy="176" r="11"/>
+<circle class="dot" cx="254" cy="176" r="8"/>
+<text class="dot-label" x="254" y="202" text-anchor="middle">78%</text>
+
+<!-- laptop at the spot -->
+<g class="box laptop" transform="translate(254 160)">
+  <rect x="-13" y="-19" width="26" height="17" rx="1.5"/>
+  <path d="M-18 0h36l-3 -2h-30z"/>
+</g>
+<text class="label" x="254" y="128" text-anchor="middle">you, with the laptop</text>
+
+<!-- test data going to the second computer and back -->
+<circle class="packet" cx="0" cy="0" r="4.5"/>
+
+<!-- what the measurement records -->
+<g class="panel">
+  <rect class="bg" x="332" y="40" width="172" height="150" rx="10"/>
+  <text class="h" x="346" y="62">At this spot</text>
+  <line x1="346" y1="72" x2="490" y2="72"/>
+  <g class="row-signal">
+    <text class="k" x="346" y="92">Signal</text>
+    <text class="v" x="490" y="92" text-anchor="end">78%, -53 dBm</text>
+    <text class="k" x="346" y="110">Network</text>
+    <text class="v" x="490" y="110" text-anchor="end">5 GHz, ch 44</text>
+  </g>
+  <g class="row-speed">
+    <text class="k" x="346" y="134">Download</text>
+    <text class="v" x="490" y="134" text-anchor="end">410 Mbps</text>
+    <text class="k" x="346" y="152">Upload</text>
+    <text class="v" x="490" y="152" text-anchor="end">320 Mbps</text>
+  </g>
+  <text class="o" x="346" y="176">Speed only with “Signal and speed”</text>
+</g>
+</svg>

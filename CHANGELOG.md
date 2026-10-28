@@ -4,176 +4,172 @@ _This section follows the precepts of [Keep a Changelog](https://keepachangelog.
 
 ## Unreleased
 
-### Security
-
-* The API refuses requests from other web sites. Before, any page open in
-  your browser could send a request to the app on `localhost` that ran
-  commands on your computer. Requests must now come from the app's own
-  pages or from a non-browser tool, and be addressed to a local host name
-  (see `WIFI_HEATMAPPER_ALLOWED_HOSTS` in the README).
-* The sudo password no longer appears in debug logs (`LOG_LEVEL=2`) or in
-  error messages: failed `echo … | sudo -S …` commands put it in the error
-  text, which could be shown in the app or logged.
-* **No command runs through a shell any more.** The speed test server, the
-  iperf3 options and the Wi-Fi tools are passed to the program as separate
-  arguments, so a value such as `x; touch /tmp/pwned` is just a (wrong)
-  server name, never a second command. The sudo password goes to `sudo` on
-  its standard input instead of `echo <password> | sudo -S` on a command
-  line, and is checked with `sudo -k`, so a cached sudo login no longer
-  makes a wrong password look right. Server code is marked `server-only`
-  instead of `"use server"`, which had made every exported function of the
-  measurement code callable from the network as a server action.
+**Before you update:** the macOS desktop app now needs **macOS 13.5
+(Ventura) or later**, and the app now sends **anonymous usage counts**,
+which you can turn off (both below).
 
 ### Added
 
-* **Measure with an AI agent while you carry the laptop.** The MCP server
-  has `start_measurement`, `wait_for_measurement` and `cancel_measurement`
-  tools and a `survey_walkthrough` prompt: the agent tells you where to go,
-  waits until you confirm you're there, measures at that spot, saves the
-  point and tells you the result in plain words, then moves on. Clients ask
-  before each measurement, one runs at a time, and an open app tab shows
-  each one live. Where reading Wi-Fi needs the sudo password, you type it
-  in Settings as before; the app's server now keeps it in memory (never on
-  disk, never returned, gone on restart) so measurements the agent starts
-  can use it. `update_settings` and `copy_settings` now accept the same
-  speed settings as the app, and a speed test server must be a valid host
-  name, IP address or `host:port`. See [the MCP guide](docs/guide/mcp.md).
+* **Use it with an AI agent.** An optional MCP server lets Claude Code,
+  Claude Desktop and other MCP clients work with the running app. An agent
+  can read and summarise your surveys, get a numeric heat map grid computed
+  like the app's maps, check your setup, change a short list of settings,
+  copy settings between surveys and prepare a problem report. It can also
+  **measure with you carrying the laptop**: it tells you where to go, waits
+  until you say you're there, measures that spot, and tells you the result
+  in plain words (the `survey_walkthrough` prompt guides this). Your client
+  asks before each measurement, one runs at a time, and an open app tab
+  shows it live. The MCP server only talks to the app on this computer and
+  never sees the sudo password. Build it with `npm run mcp:build`; the
+  desktop app ships it as `server/mcp-server.mjs`. See
+  [the MCP guide](docs/guide/mcp.md).
 * **Anonymous usage counts, on by default.** The app's server (never the
-  browser) now sends three kinds of event to the developer's self-hosted
+  browser) sends three kinds of event to the developer's self-hosted
   Plausible: `Install` (once), `App start` (at most once a day) and
   `Measurement` (one per saved point), with the app version, OS, processor
   type, how the app runs and, for measurements, signal only or speed and
   whether speed worked. Never network names, addresses, results, file names
-  or anything from a survey; Plausible doesn't store IP addresses. A notice
-  says so the first time the app runs. Turn them off in **Settings > Usage
-  counts**, with `WIFI_HEATMAPPER_TELEMETRY=0` or with `DO_NOT_TRACK=1`;
-  they are always off in mock mode, `npm run dev` and CI. Bug reports say
-  whether they are on. Every field is listed in
-  [Privacy and usage counts](docs/guide/privacy.md).
+  or anything from a survey, and Plausible doesn't store IP addresses. A
+  notice says so the first time the app runs. Turn them off in **Settings >
+  Usage counts**, with `WIFI_HEATMAPPER_TELEMETRY=0` or with
+  `DO_NOT_TRACK=1`; they are always off in mock mode, `npm run dev` and CI.
+  Every field is listed in [Privacy and usage counts](docs/guide/privacy.md).
+* **Report a problem from the app.** A help button in the bottom-right
+  corner opens **Report a problem**, **Docs** (the guide for the current
+  tab) and **What's new**. The report shows exactly what would be shared
+  (app version, OS, how the app runs and reads Wi-Fi, iperf3, signal only or
+  speed, the last measurement and the recent log) and opens a prefilled
+  GitHub issue, or copies it. The sudo password is always removed; network
+  names, MAC and IP addresses are replaced by placeholders unless you
+  include them. **Could not measure**, **Saved without speed** and error
+  messages have a **Report this** link. The bug report is now a GitHub
+  issue form, the MCP server has a matching `report_problem` tool, and
+  `GET /api/diagnostics` returns the report.
+* **Noise and a signal-to-noise ratio map** (#59). Each measurement stores
+  the noise level where the system reports it: macOS, and Linux drivers that
+  print noise in `iw dev <interface> survey dump` (many do; Intel iwlwifi
+  often doesn't). Windows has no noise reading. A new "Signal-to-noise
+  ratio" heat map (0–50 dB by default) uses the points that have noise, and
+  point details, the points table and the CSV export show noise and SNR.
 * **Set up a second floor plan in fewer steps.** A new survey starts with
-  the speed settings (what to measure, speed test server, test duration,
-  iperf3 commands) of the survey saved last, instead of the defaults, and
-  Settings says where they came from. **Copy settings from…** in Settings
-  copies speed settings, access point names or the heat map look from
-  another survey (`POST /api/settings/copy`), and the MCP server has a
-  matching `copy_settings` tool. Points and floor plans are never copied.
-* **Report a problem from the app.** A small help button in the bottom-right
-  corner (hidden while the measurement panel is open there) opens **Report a problem**, **Docs** (the guide for the current tab)
-  and **What's new**. The report shows exactly what would be shared (app
-  version, OS, how the app runs and reads Wi-Fi, iperf3, signal only or
-  signal and speed, the last measurement and the recent log, kept in memory
-  only) and opens
-  a prefilled GitHub issue in the browser, or copies it. The sudo password
-  is always removed; network names, MAC and IP addresses are replaced by
-  placeholders unless you include them. **Could not measure**, **Saved
-  without speed** and error messages have a **Report this** link. The bug report is now a GitHub issue
-  form, the MCP server has a `report_problem` tool, and `GET /api/diagnostics`
-  returns the report.
-
-* **An optional MCP server for AI agents** (Claude Code, Claude Desktop and
-  other MCP clients). It reads surveys from the running app, summarises
-  them, returns a numeric heat map grid computed like the app's maps, checks
-  the setup, and can change a short list of settings (iperf3 server and
-  commands, test duration, access point names, radius, opacity, colour
-  scales). Prompts for analysing, comparing and planning surveys are
-  included. It only talks to the app on this computer, never sees the sudo
-  password, and can't take measurements yet. `npm run mcp:build`; the
-  desktop app ships it as `server/mcp-server.mjs`. See
-  [the MCP guide](docs/guide/mcp.md).
-
-* Access point names can match several BSSIDs at once: end the MAC address
-  with `*`, for example `aa:bb:cc:dd:ee:*`, to name every BSSID that starts
-  with it. An exact MAC address still wins, then the longest prefix (#99).
-* **Noise and signal-to-noise ratio** (#59). Each measurement stores the
-  noise floor (dBm, averaged like the RSSI) where the platform reports it:
-  macOS (Wi-Fi helper, `wdutil`) and Linux drivers that print noise in
-  `iw dev <interface> survey dump` (many do; Intel iwlwifi often doesn't).
-  Windows has no noise reading. A new "Signal-to-noise ratio" heat map
-  (0–50 dB by default, with fixed-scale support) uses the points that have
-  noise, and the point details, points table and CSV export show noise and
-  SNR.
+  the speed settings of the survey saved last (what to measure, speed test
+  server, test duration, iperf3 options), and Settings says where they came
+  from. **Copy settings from…** in Settings copies speed settings, access
+  point names or the heat map look from another survey
+  (`POST /api/settings/copy`). Points and floor plans are never copied.
+* **Access point names with wildcards**: end a MAC address with `*`, for
+  example `aa:bb:cc:dd:ee:*`, to name every BSSID that starts with it, such
+  as all bands of one mesh node. An exact address still wins, then the
+  longest prefix (#99).
+* **A website and one guide**: <https://wifi-heatmapper.danielalder.cz>,
+  built from the Markdown in `docs/guide/`, with `llms.txt` for AI
+  assistants. Developer docs moved to `docs/dev/`.
 
 ### Changed
 
-* **Signal only or signal and speed is now an explicit choice** (#109).
-  Settings has a "What to measure" option per survey, instead of "leave
-  the iperf3 server at localhost". Existing surveys keep what they did:
+* **The macOS desktop app needs macOS 13.5 (Ventura) or later** (was 11):
+  the Node.js 26 it ships doesn't run on older versions. On an older Mac,
+  [run the app from source](docs/guide/run-from-source.md) with Node.js 22.
+* **Signal only or signal and speed is an explicit choice** (#109).
+  Settings has a "What to measure" option per survey, instead of "leave the
+  iperf3 server at localhost". Existing surveys keep what they did:
   `localhost` or an empty server becomes signal only, any other server
-  signal and speed. New surveys start with signal only. The speed server,
-  test duration and iperf3 commands (now under "Advanced") only show for
-  speed, with a setup checklist and a "Test connection" button. The header
-  strip, the measurement panel, the heat maps and the points table all say
-  which mode the survey is in, and speed maps and columns stay hidden until
-  a point has speed data. The UI says "speed", "download / upload" and
-  "fixed rate (UDP)" instead of throughput and TCP/UDP.
-
-* **The server takes the measurement and saves the point.** Closing or
-  reloading the page mid-measurement no longer loses it, and every open
-  page of the survey shows the progress. Cancel stops at once, even in the
-  middle of a speed test (it stops iperf3), and a cancelled measurement is
-  never saved. One measurement runs at a time; starting another meanwhile
-  says so. `POST /api/start-task?action=start` now takes the survey and
-  the spot and returns a job id; see docs/dev/architecture.md.
-* The sudo password is checked once per password, not before every
-  measurement.
-* **iperf3 commands are now extra iperf3 options.** Settings > Advanced:
-  iperf3 options takes the extra options per test (for example `-P 4`, or
-  `-b 500M` for UDP); the app builds the rest of the command (server, port,
-  duration, `-R`, `-u`, `-J`) and shows it under each field. Surveys keep
-  their extra options: an older command template is read into its
-  options, and one with shell syntax (pipes, `;`, redirects, quotes) or
-  another program falls back to the defaults with a warning in the log.
-  The settings API and the MCP `update_settings` tool take
-  `iperfCommands` as argument lists, such as `{ "udpUpload": ["-b",
-  "500M"] }`.
-
-* **Windows reads Wi-Fi details from the Native Wifi API** (`wlanapi.dll`,
-  through koffi) instead of parsing `netsh` output, so it works in any
-  display language and stores the real RSSI in dBm. 6 GHz networks are
-  labelled 6 GHz, nearby networks show their security, and the connected
-  adapter is used when there are several. `netsh` remains as a fallback.
-  Based on work by @WayneUON (#85, #79).
+  signal and speed. New surveys start with signal only. The speed settings
+  only show for speed, with a setup checklist and a **Test connection**
+  button, and the header, the measurement panel, the heat maps and the
+  points table all say which mode the survey is in. The app says "speed",
+  "download / upload" and "fixed rate (UDP)" instead of throughput and
+  TCP/UDP, and the guide explains speed tests in plain words.
+* **Measurements run on the app's server.** Closing or reloading the page
+  mid-measurement no longer loses the point, every open page of the survey
+  shows the progress, and **Cancel** stops at once, even in the middle of a
+  speed test; a cancelled measurement is never saved. One measurement runs
+  at a time. `POST /api/start-task?action=start` now takes the survey and
+  the spot and returns a job id (see `docs/dev/architecture.md`).
+* **The server owns the survey files.** Each change is sent and saved on its
+  own, checked against a schema and written atomically, so two tabs (or the
+  app and an AI agent) can change one survey without undoing each other. A
+  hand-edited file with a bad value loads with that value's default; a file
+  that isn't JSON is left alone and reported.
+* **Windows reads Wi-Fi details from the Native Wifi API** (`wlanapi.dll`)
+  instead of parsing `netsh` output, so it works in any display language and
+  stores the real RSSI in dBm. 6 GHz networks are labelled 6 GHz, nearby
+  networks show their security, and the connected adapter is used when there
+  are several. `netsh` remains as a fallback. Based on work by @WayneUON
+  (#85, #79).
+* **iperf3 commands are now extra iperf3 options.** **Settings > Advanced:
+  iperf3 options** takes only the extra options per test (for example
+  `-P 4`, or `-b 500M` for UDP) and shows the whole command; the app adds
+  the server, port, duration and the rest. Older surveys keep their extra
+  options; a command with shell syntax (pipes, `;`, redirects, quotes) or
+  another program falls back to the defaults with a warning in the log. The
+  settings API and the MCP `update_settings` tool take `iperfCommands` as
+  argument lists, such as `{ "udpUpload": ["-b", "500M"] }`.
+* **The sudo password is held in the server's memory for the session**, so
+  measurements an AI agent starts, and your own after a page reload, can use
+  it. It is never written to disk or a log, never returned by any API, and
+  gone when the app restarts. It is checked once per password, not before
+  every measurement.
 * The stored RSSI of a measurement is now the average of the dBm readings
-  taken during it (on every platform), not a conversion of the average
-  signal percentage.
+  taken during it, on every system, not a conversion of the average
+  percentage.
 * The desktop app and the Docker image run on Node.js 26 (was 22). Running
   from source needs Node.js 22.12 or newer.
-* **The macOS desktop app needs macOS 13.5 (Ventura) or later** (was 11).
-  The Node.js 26 it ships doesn't run on older versions. On an older Mac,
-  [run the app from source](docs/guide/run-from-source.md) with Node.js 22.
-* e2e tests can pick how the mock behaves (a sudo password needed, iperf3
-  missing or failing half way, no noise reading, a slow measurement...)
-  and each starts from fresh data. See "Writing e2e tests" in
-  CONTRIBUTING.md. In mock mode a speed test server whose name contains
-  "unreachable" no longer counts as down.
+* Under the hood: Next.js 16, TypeScript 7, Tailwind CSS 4, the React
+  Compiler, oxlint instead of ESLint, and Vitest 5. e2e tests can choose how
+  the mock behaves (a sudo password needed, iperf3 missing or failing half
+  way, no noise reading, a slow measurement...) and each starts from fresh
+  data; see "Writing e2e tests" in CONTRIBUTING.md.
 
 ### Fixed
 
 * A missing iperf3, a missing or unreachable speed test server, or a failed
-  iperf3 run no longer stops a measurement or loses it. The signal reading
-  is saved and the panel says "Saved without speed" with the reason, the
-  same on macOS, Windows and Linux. Before, macOS and Linux refused to
-  measure without iperf3, Windows lost the reading, and an empty server
-  blocked every measurement (#109).
-* A speed test server given as `host:port` is checked on that port (it
-  was silently skipped), and IPv6 addresses work: `[fe80::1]:5201` or a
-  bare address (#109).
+  iperf3 run no longer stops or loses a measurement. The signal is saved and
+  the panel says **Saved without speed** with the reason, the same on macOS,
+  Windows and Linux. Before, macOS and Linux refused to measure without
+  iperf3, Windows lost the reading, and an empty server blocked every
+  measurement (#109).
+* Changes made in quick succession could overwrite each other when the
+  survey was saved (#105).
 * Cancelling a measurement and clicking another spot could save the first
   spot's numbers at the second spot, and a second tab took the progress
-  away from the first. Each measurement is now its own job on the server.
-* The measurement panel's title says "Could not measure" on errors
-  instead of staying at "Starting".
-* The settings API never returns a sudo password, even from an old or
-  hand-edited survey file.
-* Windows: each Wi-Fi reading no longer waits about 5 seconds before it is
-  read on English, German, French, Spanish and Italian systems. The app was
-  waiting for a "State" line that only the Chinese table recognised.
+  away from the first.
+* A speed test server given as `host:port` is checked on that port (it was
+  silently skipped), and IPv6 addresses work: `[fe80::1]:5201` or a bare
+  address (#109).
 * The iperf3 server check no longer needs `nc` (Linux and macOS) or
   PowerShell (Windows), so a missing `nc` no longer shows up as "Cannot
   connect to iperf3 server" (#82).
 * Linux no longer requires NetworkManager: `nmcli` is optional and only
   lists nearby networks, so systems using iwd or systemd-networkd can
   measure (#82).
+* Windows: each Wi-Fi reading no longer waits about 5 seconds on English,
+  German, French, Spanish and Italian systems.
+* The measurement panel's title says "Could not measure" on errors instead
+  of staying at "Starting".
+* In mock mode, a speed test server whose name contains "unreachable" no
+  longer counts as down.
+
+### Security
+
+* **The app refuses requests from other web sites.** Before, any page open
+  in your browser could send a request to the app on `localhost` that ran
+  commands on your computer. Requests must now come from the app's own pages
+  or from a tool on this computer, and be addressed to a local host name (to
+  use another name, set `WIFI_HEATMAPPER_ALLOWED_HOSTS`; see
+  [Running from source](docs/guide/run-from-source.md#docker-linux-hosts-only)).
+* **No command runs through a shell any more.** The speed test server, the
+  iperf3 options and the Wi-Fi tools get their values as separate arguments,
+  so a value such as `x; touch /tmp/pwned` is just a (wrong) server name,
+  never a second command. Server code is marked `server-only` instead of
+  `"use server"`, which had made every exported function of the measurement
+  code callable from the network as a server action.
+* The sudo password goes to `sudo` on its standard input instead of an
+  `echo <password> | sudo -S` command line, and is checked with `sudo -k`,
+  so a cached sudo login no longer makes a wrong password look right. It no
+  longer appears in debug logs (`LOG_LEVEL=2`) or error messages, and the
+  settings API never returns one, even from an old or hand-edited survey
+  file.
 
 ## Version 0.7.0 - 2026-10-27
 

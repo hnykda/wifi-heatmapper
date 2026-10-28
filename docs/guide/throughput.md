@@ -83,9 +83,9 @@ fixed-rate tests send at a steady rate and show how evenly the data arrives,
 which matters for calls and games.
 
 **The fixed-rate (UDP) tests are capped at 100 Mbps** by `-b 100M` in their
-commands, which is safe on most networks. If your UDP results sit at exactly
-100 Mbps, the connection can do more: raise the cap, for example to
-`-b 500M`.
+extra iperf3 options, which is safe on most networks. If your UDP results sit at exactly
+100 Mbps, the connection can do more: raise the cap under **Advanced:
+iperf3 options**, for example to `-b 500M`.
 
 **Test duration** sets the seconds per test; one second is enough for a
 survey, so a spot takes about 6 to 10 seconds in all. Longer tests give

@@ -110,7 +110,7 @@ Any one of these:
   counts**, or **Turn off** on the first-run notice. It is saved for this
   computer (not in your surveys), and the install id is deleted.
 - **With an environment variable:** start the app with
-  `WIFI_HEATMAPPER_TELEMETRY=0` (`false` or `off` work too). For example
+  `WIFI_HEATMAPPER_TELEMETRY=0` (`false`, `off` or `no` work too). For example
   `WIFI_HEATMAPPER_TELEMETRY=0 npm start`, or
   `docker run -e WIFI_HEATMAPPER_TELEMETRY=0 ...`.
 - **With `DO_NOT_TRACK=1`**, the [common convention](https://consoledonottrack.com)

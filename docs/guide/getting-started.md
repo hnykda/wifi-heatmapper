@@ -20,8 +20,8 @@ only [anonymous usage counts](privacy.md), which you can turn off.
 
 Download the app for your system from the
 [latest release](https://github.com/hnykda/wifi-heatmapper/releases/latest):
-a `.dmg` for macOS, an installer for Windows, a `.deb` or AppImage for Linux.
-On a Mac you can use [Homebrew](https://brew.sh) instead, which also installs
+a `.dmg` for macOS (13.5 Ventura or later), an installer for Windows, a
+`.deb` or AppImage for Linux. On a Mac you can use [Homebrew](https://brew.sh) instead, which also installs
 iperf3:
 
 ```bash
@@ -78,6 +78,14 @@ the heat map look too, use **Copy settings from…** under **Floor plan**.
 Green is good. The scale runs green, turquoise, blue for acceptable signal,
 then yellow and red where it gets poor. [Using the app](using-the-app.md)
 explains every tab and setting.
+
+**Rather be guided?** An AI agent such as Claude can plan the survey, tell
+you where to stand, take each measurement once you say you're there, and
+explain the result: see [Using it with an AI agent](mcp.md).
+
+**Something odd?** Click the **?** in the bottom-right corner and choose
+**Report a problem**. Wi-Fi behaves differently on every system, so reports
+really help (see the [FAQ](faq.md#something-went-wrong-how-do-i-report-it)).
 
 ## Try it without any hardware
 

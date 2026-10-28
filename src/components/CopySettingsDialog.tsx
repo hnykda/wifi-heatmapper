@@ -22,7 +22,8 @@ import { cn, sanitizeFilename } from "@/lib/utils";
 const PARTS: Record<CopyPart, { label: string; detail: string }> = {
   speed: {
     label: "Speed settings",
-    detail: "What to measure, the speed test server, duration and commands",
+    detail:
+      "What to measure, the speed test server, duration and extra iperf3 options",
   },
   apNames: {
     label: "Access point names",

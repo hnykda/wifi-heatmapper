@@ -24,7 +24,8 @@ Open [http://localhost:3000](http://localhost:3000) and follow
 What else each system needs:
 
 - **macOS:** enter your sudo password in Settings: `wdutil` needs it to read
-  the signal. It is kept in memory only and never saved. To skip the password,
+  the signal. The app's server keeps it in memory until you stop the app,
+  and never saves it. To skip the password,
   run `npm run build:macos-helper` once (needs the Xcode command line tools)
   and restart `npm run dev`. The Wi-Fi helper reads the signal without sudo;
   allow it Location access in Settings to also record the network name. See

@@ -45,7 +45,7 @@ workflow. "Got it" hides it for good; the About dialog can show it again.
   per spot) or **Signal and speed** (needs iperf3 on this computer and on a
   second one, about 6 to 10 seconds per spot). Each survey keeps its own
   choice. A new survey starts with the speed settings (what to measure,
-  server, duration and commands) of the survey you saved last, and says so
+  server, duration and extra iperf3 options) of the survey you saved last, and says so
   under **Measurement**: "Speed settings copied from …". The very first
   survey starts with signal only. See
   [signal only or with speed?](getting-started.md#signal-only-or-with-speed)
@@ -63,9 +63,13 @@ workflow. "Got it" hides it for good; the About dialog can show it again.
     field shows the whole command. Surveys from before 0.8 stored whole
     commands; their extra options are kept, and a command with shell syntax
     (pipes, `;`, redirects) is replaced by the defaults.
-* **sudo password** – required on macOS and Linux to read the signal. Kept in
-  memory only; never written to disk. Not shown on Windows, in Docker, or in
-  mock mode.
+* **sudo password** – needed only where reading the signal needs it: on
+  macOS without the Wi-Fi helper (running from source) and on Linux when
+  `iw` is refused. The app's server holds it in memory for as long as the
+  app runs, so measurements an [AI agent](mcp.md) starts can use it too. It
+  is never written to disk, never sent back to the page, and gone when the
+  app restarts; emptying the field forgets it. Not shown on Windows, in
+  Docker, in mock mode, or when the Wi-Fi helper makes it unnecessary.
 * **Access point names** – optional names for access points, by MAC address
   (BSSID), shown instead of the address in point details, the table and the
   CSV export. End a MAC
@@ -96,14 +100,15 @@ reloading the page while it runs doesn't lose it: open the app again and
 the point is there (a page opened meanwhile shows the progress too).
 Cancel stops at once, even in the middle of a speed test, and nothing is
 saved. One measurement runs at a time; other open pages of the same survey
-show its progress.
+show its progress, and so does a measurement an [AI agent](mcp.md) starts.
 
 If the survey measures speed but the speed test could not run (iperf3 not
 installed, no server, server not answering), the point is still saved: the
 panel says **Saved without speed**, gives the reason and stays open until you
 dismiss it. See [when the speed test can't run](throughput.md#when-the-speed-test-cant-run).
 
-Click a dot to see its details, switch it off (it is then ignored by the heat
+Click a dot to see its details (signal, noise and signal-to-noise ratio
+where measured, network, access point and speed), switch it off (it is then ignored by the heat
 maps) or delete it.
 
 On Linux, measurements use the first connected managed Wi-Fi interface,
