@@ -14,6 +14,17 @@ _This section follows the precepts of [Keep a Changelog](https://keepachangelog.
 
 ### Added
 
+* **An optional MCP server for AI agents** (Claude Code, Claude Desktop and
+  other MCP clients). It reads surveys from the running app, summarises
+  them, returns a numeric heat map grid computed like the app's maps, checks
+  the setup, and can change a short list of settings (iperf3 server and
+  commands, test duration, access point names, radius, opacity, colour
+  scales). Prompts for analysing, comparing and planning surveys are
+  included. It only talks to the app on this computer, never sees the sudo
+  password, and can't take measurements yet. `npm run mcp:build`; the
+  desktop app ships it as `server/mcp-server.mjs`. See
+  [the MCP guide](docs/guide/mcp.md).
+
 * Access point names can match several BSSIDs at once: end the MAC address
   with `*`, for example `aa:bb:cc:dd:ee:*`, to name every BSSID that starts
   with it. An exact MAC address still wins, then the longest prefix (#99).
@@ -40,6 +51,8 @@ _This section follows the precepts of [Keep a Changelog](https://keepachangelog.
 
 ### Fixed
 
+* The settings API never returns a sudo password, even from an old or
+  hand-edited survey file.
 * Windows: each Wi-Fi reading no longer waits about 5 seconds before it is
   read on English, German, French, Spanish and Italian systems. The app was
   waiting for a "State" line that only the Chinese table recognised.

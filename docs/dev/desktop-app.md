@@ -14,6 +14,7 @@ WiFi Heatmapper.app / .exe / .AppImage
 └── resources/server/         assembled by desktop/build-server.mjs
     ├── node(.exe)            official Node build, version pinned in build-server.mjs
     ├── server-entry.mjs      exits when the shell goes away, then loads server.js
+    ├── mcp-server.mjs        optional MCP server for AI agents (docs/guide/mcp.md)
     ├── server.js, .next-desktop/, node_modules/
     │                         Next's `output: "standalone"` build
     ├── public/, assets/, data/localization/

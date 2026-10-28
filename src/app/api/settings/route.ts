@@ -67,7 +67,9 @@ export async function GET(request: NextRequest) {
 
   try {
     const data = await readFile(getSurveyPath(name), "utf-8");
-    return NextResponse.json(JSON.parse(data));
+    // POST never writes it, but a hand-edited or very old file might have one
+    const { sudoerPassword: _, ...survey } = JSON.parse(data);
+    return NextResponse.json(survey);
   } catch (err: unknown) {
     if (isNotFound(err)) {
       return NextResponse.json({ error: "Survey not found" }, { status: 404 });

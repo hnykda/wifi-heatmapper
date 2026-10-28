@@ -194,6 +194,13 @@ if (process.platform === "win32") {
   rmSync(koffiDir, { recursive: true, force: true });
 }
 cpSync(join(here, "server-entry.mjs"), join(outDir, "server-entry.mjs"));
+// The optional MCP server (docs/guide/mcp.md): one self-contained file that the
+// bundled node runs; it talks to the app over HTTP like any other client.
+run(
+  process.execPath,
+  [join(repoRoot, "scripts", "build-mcp.mjs"), join(outDir, "mcp-server.mjs")],
+  { shell: false },
+);
 console.log(`server            ${mib(outDir)}`);
 
 // 3. The Node runtime.

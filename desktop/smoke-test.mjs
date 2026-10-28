@@ -6,7 +6,8 @@
  *
  * Mock mode, a temp data dir, a free port on 127.0.0.1. Checks the page and
  * its static assets, /api/status, the seeded floor plans, a survey write,
- * that nothing was written into the server dir, and that closing stdin
+ * that nothing was written into the server dir, that the bundled MCP server
+ * answers a tool call through the API, and that closing stdin
  * stops the server (how the shell avoids orphaned node processes).
  * Run by CI (.github/workflows/ci.yaml, desktop-server job).
  */
@@ -152,6 +153,57 @@ await check("a survey can be saved", async () => {
   });
   const surveys = readdirSync(join(dataDir, "surveys"));
   assert(surveys.length === 1, `surveys dir: ${surveys}`);
+});
+
+await check("the MCP server lists surveys through the app", async () => {
+  const mcp = spawn(join(serverDir, exe), ["mcp-server.mjs"], {
+    cwd: serverDir,
+    env: { ...process.env, WIFI_HEATMAPPER_URL: base },
+    stdio: ["pipe", "pipe", "inherit"],
+  });
+  const replies = new Map();
+  let buffer = "";
+  mcp.stdout.on("data", (chunk) => {
+    buffer += chunk;
+    let nl;
+    while ((nl = buffer.indexOf("\n")) >= 0) {
+      const msg = JSON.parse(buffer.slice(0, nl));
+      buffer = buffer.slice(nl + 1);
+      if (msg.id !== undefined) replies.set(msg.id, msg);
+    }
+  });
+  const send = (msg) => mcp.stdin.write(JSON.stringify({ jsonrpc: "2.0", ...msg }) + "\n");
+  const reply = async (id) => {
+    const deadline = Date.now() + 15_000;
+    while (!replies.has(id)) {
+      if (Date.now() > deadline) throw new Error(`no MCP reply to ${id}`);
+      await new Promise((r) => setTimeout(r, 50));
+    }
+    return replies.get(id);
+  };
+  try {
+    send({
+      id: 1,
+      method: "initialize",
+      params: {
+        protocolVersion: "2025-06-18",
+        capabilities: {},
+        clientInfo: { name: "smoke-test", version: "1" },
+      },
+    });
+    await reply(1);
+    send({ method: "notifications/initialized" });
+    send({ id: 2, method: "tools/call", params: { name: "list_surveys", arguments: {} } });
+    const result = (await reply(2)).result;
+    assert(!result.isError, JSON.stringify(result));
+    const { surveys } = JSON.parse(result.content[0].text);
+    assert(
+      surveys.some((s) => s.name === "EmptyFloorPlan.png" && s.hasSurvey),
+      `surveys: ${JSON.stringify(surveys)}`,
+    );
+  } finally {
+    mcp.kill();
+  }
 });
 
 await check("closing stdin stops the server", async () => {
