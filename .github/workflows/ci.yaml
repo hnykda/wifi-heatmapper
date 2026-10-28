@@ -64,6 +64,9 @@ jobs:
         with:
           path: desktop/.cache
           key: node-dist-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('desktop/build-server.mjs') }}
+          # An older entry may hold the same Node version; build-server.mjs
+          # only downloads when the pinned one is missing.
+          restore-keys: node-dist-${{ runner.os }}-${{ runner.arch }}-
       # Next standalone build + the pinned Node binary, as the app ships them
       - run: npm run desktop:server
       # Starts the bundle read-only with a temp data dir in mock mode and
