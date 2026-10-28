@@ -67,3 +67,6 @@ datas/media/*
 # website build (site/build.mjs)
 /_site/
 /site/node_modules/
+
+# MCP server bundle (npm run mcp:build)
+/dist/

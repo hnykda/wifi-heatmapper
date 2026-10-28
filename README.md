@@ -36,6 +36,22 @@ npm install
 npm run dev        # or npm run dev:mock for made-up measurements
 ```
 
+## Use it with an AI agent (optional)
+
+An optional [MCP](https://modelcontextprotocol.io) server lets an AI agent
+such as Claude Code or Claude Desktop read your surveys, help you plan one,
+and explain the results: dead zones, which access point covers which rooms,
+and why throughput is slow. It talks to the running app on this computer
+only; it can't take measurements (yet) or see your sudo password.
+
+```bash
+npm run mcp:build
+claude mcp add wifi-heatmapper -- node "$PWD/dist/mcp/wifi-heatmapper-mcp.mjs"
+```
+
+The desktop app ships it too. Setup for other clients, the tools and the
+limits are in [the MCP guide](docs/guide/mcp.md).
+
 ## Documentation
 
 The guide lives in [`docs/guide`](docs/guide) and is published at
@@ -47,6 +63,7 @@ The guide lives in [`docs/guide`](docs/guide) and is published at
 - [Measuring speed with iperf3](docs/guide/throughput.md)
 - [How it works](docs/guide/how-it-works.md): readings per system, signal percent vs dBm, the heat map
 - [Running from source](docs/guide/run-from-source.md): Node.js, mock mode, Docker, logs
+- [AI agents (MCP)](docs/guide/mcp.md): let Claude or another agent read and explain your surveys
 - [FAQ](docs/guide/faq.md)
 - [Changelog](CHANGELOG.md)
 

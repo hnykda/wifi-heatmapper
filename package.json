@@ -25,7 +25,9 @@
     "desktop:dev": "npm run desktop:install && npm --prefix desktop run dev",
     "desktop:dev:mock": "cross-env WIFI_HEATMAPPER_MOCK=1 npm run desktop:dev",
     "desktop:build": "npm run desktop:install && npm --prefix desktop run build",
-    "build:macos-helper": "node native/macos-wifi-helper/build.mjs"
+    "build:macos-helper": "node native/macos-wifi-helper/build.mjs",
+    "mcp:build": "node scripts/build-mcp.mjs",
+    "mcp": "node scripts/build-mcp.mjs && node dist/mcp/wifi-heatmapper-mcp.mjs"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.11",
@@ -59,6 +61,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.28.0",
+    "@modelcontextprotocol/sdk": "1.32.2",
     "@next/eslint-plugin-next": "^15.3.3",
     "@playwright/test": "^1.63.0",
     "@types/eslint": "^9.6.1",
@@ -68,6 +71,7 @@
     "@types/react-dom": "19.1.6",
     "autoprefixer": "^10.4.21",
     "cross-env": "^10.1.0",
+    "esbuild": "0.25.5",
     "eslint": "^9.28.0",
     "eslint-config-prettier": "^10.1.5",
     "eslint-plugin-prettier": "^5.4.1",
@@ -78,7 +82,8 @@
     "tailwindcss": "^3.4.1",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.33.1",
-    "vitest": "^3.2.2"
+    "vitest": "^3.2.2",
+    "zod": "4.6.2"
   },
   "overrides": {
     "@types/react": "19.1.6",
