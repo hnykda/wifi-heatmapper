@@ -41,7 +41,7 @@ export function defaultSurvey(floorPlan: string): SurveyDocument {
     measureSpeed: false, // new surveys measure signal only
     iperfServerAdrs: "",
     apMapping: [],
-    testDuration: 1,
+    testDuration: 5,
     nextPointNum: 1,
     dimensions: { width: 100, height: 100 },
     radiusDivider: null,

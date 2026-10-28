@@ -61,6 +61,7 @@ test.describe("with sample points", () => {
     await expect(snr.locator("img")).toBeVisible({ timeout: 30_000 });
     await expect(snr.locator("img")).toHaveAttribute("src", /^data:image\/png/);
     await expect(snr).toContainText("24 points");
+    await page.getByTestId("colour-scales-toggle").click();
     await expect(page.getByTestId("scale-snr")).toContainText(
       "Default: 0–50 dB.",
     );
@@ -109,6 +110,7 @@ test.describe("with sample points", () => {
         return canvas.toDataURL();
       });
     const original = await mapPixels();
+    await page.getByTestId("colour-scales-toggle").click();
     const scale = page.getByTestId("scale-tcpDownload-bitsPerSecond");
     await scale.getByRole("switch").click();
     const seeded = await readSurvey(
@@ -164,6 +166,7 @@ test.describe("with sample points", () => {
     await expect(page.getByTestId("summary-floorplan")).toContainText(name);
     await gotoTab(page, "heatmaps");
     await page.getByLabel("Download speed", { exact: true }).click();
+    await page.getByTestId("colour-scales-toggle").click();
     await expect(scale.getByRole("switch")).toBeChecked();
     await expect(
       scale.getByLabel("Download speed (Mbps) lower value"),
@@ -184,6 +187,7 @@ test.describe("with sample points", () => {
     await expect(page.getByTestId("summary-floorplan")).toContainText(name);
     await gotoTab(page, "heatmaps");
     await page.getByLabel("Download speed", { exact: true }).click();
+    await page.getByTestId("colour-scales-toggle").click();
     await expect(scale.getByRole("switch")).not.toBeChecked();
     await scale.getByRole("switch").click();
     await expect(
@@ -209,6 +213,7 @@ test.describe("with sample points", () => {
         page.getByTestId(`heatmap-${key}`).locator("img"),
       ).toBeVisible({ timeout: 30_000 });
     }
+    await page.getByTestId("colour-scales-toggle").click();
     const tcp = page.getByTestId("scale-tcpDownload-bitsPerSecond");
     const udp = page.getByTestId("scale-tcpUpload-bitsPerSecond");
     await tcp.getByRole("switch").click();
@@ -282,6 +287,7 @@ test.describe("with sample points", () => {
     await gotoTab(page, "heatmaps");
     await page.getByLabel("Download speed", { exact: true }).click();
     await page.getByLabel("Upload speed", { exact: true }).click();
+    await page.getByTestId("colour-scales-toggle").click();
     for (const key of [
       "signalStrength",
       "tcpDownload-bitsPerSecond",
@@ -339,6 +345,20 @@ test.describe("with sample points", () => {
     expect(csv.split("\n")[0]).toContain("signal_percent");
     expect(csv.split("\n")[0]).toContain("noise_dbm,snr_db");
     expect(csv.trim().split("\n")).toHaveLength(25);
+
+    // the whole survey as JSON, named like the file on disk
+    const jsonDownload = page.waitForEvent("download");
+    await page.getByTestId("export-json").click();
+    const jsonFile = await jsonDownload;
+    expect(jsonFile.suggestedFilename()).toBe(`${name}.json`);
+    const survey = JSON.parse(
+      Buffer.concat(
+        await (await jsonFile.createReadStream()).toArray(),
+      ).toString("utf8"),
+    );
+    expect(survey.floorplanImageName).toBe(name);
+    expect(survey.surveyPoints).toHaveLength(24);
+    expect(survey).not.toHaveProperty("sudoerPassword");
 
     // select all on the page and delete
     await page.getByLabel("Select all rows on this page").click();

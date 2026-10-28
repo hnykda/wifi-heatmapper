@@ -385,7 +385,7 @@ export const surveyFileSchema = z.object({
   // don't have it; parseSurveyFile() derives it from the server address.
   measureSpeed: z.boolean().optional().catch(undefined),
   iperfServerAdrs: z.string().catch(""), // the speed test (iperf3) server, host[:port]
-  testDuration: finite.catch(1),
+  testDuration: finite.catch(5),
   apMapping: lenientArray(apMappingSchema),
   nextPointNum: z.int().catch(1),
   dimensions: z

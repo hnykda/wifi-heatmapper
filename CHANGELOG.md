@@ -4,7 +4,21 @@ _This section follows the precepts of [Keep a Changelog](https://keepachangelog.
 
 ## Unreleased
 
+### Added
+
+* **Export JSON.** The Points tab has **Export JSON** next to **Export
+  CSV**, and Settings has **Download** next to where the survey is saved:
+  both download the whole survey (points and settings) as the app saves it.
+
 ### Changed
+
+* **Speed tests run 5 seconds each by default**, up from 1: a connection
+  takes a second or two to reach full speed, so one-second tests read low
+  and jump around. Existing surveys keep their setting.
+* **Colour scales on the Heat maps tab are folded away** until you open
+  them.
+* **"Last measured" shows the time** (or the date and time) instead of
+  "just now", which never updated.
 
 * **No more usage counts notice.** The banner at the top of the app the
   first time it runs is gone. **Settings > Usage counts** has the switch at

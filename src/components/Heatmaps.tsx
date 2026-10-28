@@ -27,6 +27,12 @@ import createHeatmapWebGLRenderer from "@/app/webGL/renderers/mainRenderer";
 
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { HeatmapSlider } from "./Slider";
 import { HeatmapScaleControl } from "./HeatmapScaleControl";
 import {
@@ -589,43 +595,57 @@ export function Heatmaps() {
             </div>
           )}
 
-          <section className="space-y-4" aria-label="Colour scale settings">
-            <h2 className="text-sm font-medium">Colour scales</h2>
-            {selectedMetrics.map((metric) => {
-              const maps = wanted.filter((w) => w.metric === metric);
-              if (!maps.length) return null;
-              return (
-                <div key={metric} className="space-y-3">
-                  <h3 className="text-xs font-medium text-muted-foreground">
-                    {metricTitles[metric]}
-                  </h3>
-                  {maps.map((w) => (
-                    <HeatmapScaleControl
-                      key={`${settings.floorplanImageName}-${w.key}`}
-                      mapKey={w.key}
-                      property={w.property}
-                      title={
-                        singleMapTitles[w.property] ??
-                        propertyTitles[w.property as keyof IperfTestProperty]
-                      }
-                      label={singleMapTitles[w.property] ?? w.title}
-                      scale={settings.heatmapRanges?.[w.key]}
-                      automaticRange={toDisplayRange(
-                        w.property,
-                        resolveHeatmapRange(
-                          w.property,
-                          generateHeatmapData(metric, w.property).map(
-                            (p) => p.value,
-                          ),
-                        ),
-                      )}
-                      onChange={updateScale}
-                    />
-                  ))}
-                </div>
-              );
-            })}
-          </section>
+          <Accordion type="single" collapsible>
+            <AccordionItem value="scales" className="border-b-0">
+              <AccordionTrigger
+                className="py-0 text-sm font-medium"
+                data-testid="colour-scales-toggle"
+              >
+                Colour scales
+              </AccordionTrigger>
+              <AccordionContent
+                className="space-y-4 pt-3"
+                aria-label="Colour scale settings"
+              >
+                {selectedMetrics.map((metric) => {
+                  const maps = wanted.filter((w) => w.metric === metric);
+                  if (!maps.length) return null;
+                  return (
+                    <div key={metric} className="space-y-3">
+                      <h3 className="text-xs font-medium text-muted-foreground">
+                        {metricTitles[metric]}
+                      </h3>
+                      {maps.map((w) => (
+                        <HeatmapScaleControl
+                          key={`${settings.floorplanImageName}-${w.key}`}
+                          mapKey={w.key}
+                          property={w.property}
+                          title={
+                            singleMapTitles[w.property] ??
+                            propertyTitles[
+                              w.property as keyof IperfTestProperty
+                            ]
+                          }
+                          label={singleMapTitles[w.property] ?? w.title}
+                          scale={settings.heatmapRanges?.[w.key]}
+                          automaticRange={toDisplayRange(
+                            w.property,
+                            resolveHeatmapRange(
+                              w.property,
+                              generateHeatmapData(metric, w.property).map(
+                                (p) => p.value,
+                              ),
+                            ),
+                          )}
+                          onChange={updateScale}
+                        />
+                      ))}
+                    </div>
+                  );
+                })}
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
 
           <HeatmapSlider
             value={radius}

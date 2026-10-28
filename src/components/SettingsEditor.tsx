@@ -13,6 +13,7 @@ import { GradientEditor } from "./GradientEditor";
 import EditableApMapping from "./ApMapping";
 import { CopySettingsDialog } from "./CopySettingsDialog";
 import { UsageCountsSettings } from "./UsageCountsSettings";
+import { ExportSurveyButton } from "./ExportSurveyButton";
 import { sanitizeFilename } from "@/lib/utils";
 import { AppStatus } from "@/lib/types";
 
@@ -79,7 +80,15 @@ export default function SettingsEditor() {
                 Survey saved as{" "}
                 <code className="break-all rounded bg-muted px-1 py-0.5 font-mono text-[11px]">
                   {surveyPath(status, settings.floorplanImageName)}
-                </code>
+                </code>{" "}
+                <ExportSurveyButton
+                  floorplan={settings.floorplanImageName}
+                  variant="link"
+                  testId="export-json-settings"
+                  className="h-auto p-0 text-[11px]"
+                >
+                  Download
+                </ExportSurveyButton>
               </>
             )
           }
