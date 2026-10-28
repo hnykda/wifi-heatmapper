@@ -255,16 +255,20 @@ describe("parseIwOutput connected-link validation", () => {
 });
 
 test("iw link is tried without sudo first, with sudo only given a password", () => {
+  const args = ["iw", "dev", "wlp1s0", "link"];
   expect(iwLinkCommands("wlp1s0", "", false)).toStrictEqual([
-    "iw dev wlp1s0 link",
+    { args, sudo: false },
   ]);
   expect(iwLinkCommands("wlp1s0", "secret", false)).toStrictEqual([
-    "iw dev wlp1s0 link",
-    'echo "secret" | sudo -S iw dev wlp1s0 link',
+    { args, sudo: false },
+    { args, sudo: true },
   ]);
+  expect(
+    JSON.stringify(iwLinkCommands("wlp1s0", "secret", false)),
+  ).not.toContain("secret");
   // Docker and Podman already run as root
   expect(iwLinkCommands("wlp1s0", "secret", true)).toStrictEqual([
-    "iw dev wlp1s0 link",
+    { args, sudo: false },
   ]);
 });
 
@@ -293,16 +297,17 @@ describe("parseIwSurveyNoise", () => {
 });
 
 test("iw survey dump is tried without sudo first, like iw link", () => {
-  expect(iwDevCommands("wlp1s0", "survey dump", "", false)).toStrictEqual([
-    "iw dev wlp1s0 survey dump",
+  const args = ["iw", "dev", "wlp1s0", "survey", "dump"];
+  const survey = ["survey", "dump"];
+  expect(iwDevCommands("wlp1s0", survey, "", false)).toStrictEqual([
+    { args, sudo: false },
   ]);
-  expect(iwDevCommands("wlp1s0", "survey dump", "secret", false)).toStrictEqual(
-    [
-      "iw dev wlp1s0 survey dump",
-      'echo "secret" | sudo -S iw dev wlp1s0 survey dump',
-    ],
-  );
-  expect(iwDevCommands("wlp1s0", "survey dump", "secret", true)).toStrictEqual([
-    "iw dev wlp1s0 survey dump",
+  // the password is never part of the command (sudo reads it on stdin)
+  expect(iwDevCommands("wlp1s0", survey, "secret", false)).toStrictEqual([
+    { args, sudo: false },
+    { args, sudo: true },
+  ]);
+  expect(iwDevCommands("wlp1s0", survey, "secret", true)).toStrictEqual([
+    { args, sudo: false },
   ]);
 });

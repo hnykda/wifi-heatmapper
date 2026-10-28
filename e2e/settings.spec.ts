@@ -82,6 +82,51 @@ test("signal only hides the speed settings", async ({ page }) => {
   await readSurvey(page, name, (s) => s.measureSpeed === true);
 });
 
+test("extra iperf3 options are saved as arguments", async ({ page }) => {
+  const name = await uploadFloorplan(page);
+  await useSpeedServer(page, "10.0.0.2");
+  await page.getByTestId("iperf-commands-toggle").click();
+  const download = page.getByLabel("Download (TCP)");
+  await expect(download).toHaveValue("");
+  await expect(page.getByLabel("Fixed-rate upload (UDP)")).toHaveValue(
+    "-b 100M",
+  );
+  await download.fill("-P 4 --title 'two words'");
+  // the field shows the whole command the app runs
+  await expect(
+    page.getByText("Runs: iperf3 -c <server> -t <duration> -R").first(),
+  ).toBeVisible();
+  let survey = await readSurvey(
+    page,
+    name,
+    (s) => s.iperfCommands.tcpDownload.length === 4,
+  );
+  expect(survey.iperfCommands.tcpDownload).toEqual([
+    "-P",
+    "4",
+    "--title",
+    "two words",
+  ]);
+
+  // options the app sets itself are refused, and not saved
+  await download.fill("-P 4 -c 10.0.0.9");
+  await expect(
+    page.getByTestId("iperf-options-error-tcpDownload"),
+  ).toContainText("sets -c");
+  await page.waitForTimeout(600);
+  survey = await readSurvey(page, name);
+  expect(survey.iperfCommands.tcpDownload).toEqual([
+    "-P",
+    "4",
+    "--title",
+    "two words",
+  ]);
+
+  await page.getByRole("button", { name: "Reset options to defaults" }).click();
+  await expect(download).toHaveValue("");
+  await readSurvey(page, name, (s) => s.iperfCommands.tcpDownload.length === 0);
+});
+
 test("test connection checks the speed test server", async ({ page }) => {
   await uploadFloorplan(page);
   await useSpeedServer(page, "unreachable.local");

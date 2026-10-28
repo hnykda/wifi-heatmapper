@@ -103,13 +103,13 @@ describe("/api/settings", () => {
     const res = await settingsRoute.PATCH(
       req(`/api/settings${q}`, "PATCH", {
         testDuration: 3,
-        iperfCommands: { tcpUpload: "iperf3 -c {server} -J" },
+        iperfCommands: { tcpUpload: ["-P", "4"] },
       }),
     );
     const survey = await res.json();
     expect(survey.testDuration).toBe(3);
-    expect(survey.iperfCommands.tcpUpload).toBe("iperf3 -c {server} -J");
-    expect(survey.iperfCommands.tcpDownload).toMatch(/-R/);
+    expect(survey.iperfCommands.tcpUpload).toEqual(["-P", "4"]);
+    expect(survey.iperfCommands.udpDownload).toEqual(["-b", "100M"]);
     expect(survey.surveyPoints).toHaveLength(1);
   });
 

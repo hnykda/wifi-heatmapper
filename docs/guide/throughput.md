@@ -89,9 +89,9 @@ commands, which is safe on most networks. If your UDP results sit at exactly
 
 **Test duration** sets the seconds per test; one second is enough for a
 survey, so a spot takes about 6 to 10 seconds in all. Longer tests give
-steadier numbers. The exact commands are editable under **Advanced: iperf3
-commands** in Settings; `{server}`, `{port}` and `{duration}` are filled in
-from the settings above.
+steadier numbers. Extra iperf3 options per test (for example `-P 4` for
+parallel streams, or the UDP cap) go under **Advanced: iperf3 options** in
+Settings; the server, port and duration come from the settings above.
 
 ## Comparing before and after
 

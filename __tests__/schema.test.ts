@@ -22,6 +22,7 @@ import {
 } from "@/lib/survey-ops";
 import { defaultIperfCommands } from "@/lib/iperfUtils";
 import { getDefaultIperfResults, getDefaultWifiResults } from "@/lib/utils";
+import { clearLogBuffer, recentLogLines } from "@/lib/logger";
 
 const fixture = (name: string) =>
   JSON.parse(
@@ -145,9 +146,10 @@ describe("reading survey files (lenient)", () => {
     expect(survey.heatmapRanges).toEqual({
       "tcpDownload-bitsPerSecond": { min: 0, max: 400, enabled: true },
     });
+    // an old command template becomes its extra options
     expect(survey.iperfCommands).toEqual({
       ...defaultIperfCommands,
-      tcpDownload: "iperf3 -c {server} -R -J",
+      tcpDownload: ["-P", "3"],
     });
     expect(survey.meta).toBeUndefined();
     expect(survey).not.toHaveProperty("someFutureField");
@@ -183,7 +185,7 @@ describe("request bodies (strict)", () => {
         testDuration: 3,
         maxOpacity: 0.5,
         iperfServerAdrs: " 10.0.0.2 ",
-        iperfCommands: { tcpUpload: "iperf3 -c {server} -J" },
+        iperfCommands: { tcpUpload: ["-P", "4"] },
         heatmapRanges: {
           signalStrength: null,
           "tcpDownload-bitsPerSecond": { min: 0, max: 600, enabled: true },
@@ -205,8 +207,13 @@ describe("request bodies (strict)", () => {
       { dimensions: { width: 0, height: 10 } },
       { gradient: {} },
       { gradient: { 2: "red" } },
-      { iperfCommands: { tcpSideways: "iperf3" } },
+      { iperfCommands: { tcpSideways: [] } },
       { iperfCommands: { tcpUpload: 5 } },
+      // command templates are not options any more
+      { iperfCommands: { tcpUpload: "iperf3 -c {server} -J" } },
+      // options the app sets itself
+      { iperfCommands: { tcpUpload: ["-c", "evil"] } },
+      { iperfCommands: { udpUpload: ["-J"] } },
       { apMapping: [{ apName: "a" }] },
       { heatmapRanges: { bogus: { min: 0, max: 1, enabled: true } } },
       {
@@ -362,7 +369,7 @@ describe("survey operations", () => {
     };
     const next = applySettingsPatch(withRange, {
       testDuration: 5,
-      iperfCommands: { tcpUpload: "iperf3 -c {server} -J" },
+      iperfCommands: { tcpUpload: ["-P", "4"] },
       heatmapRanges: {
         snr: null,
         signalStrength: { min: 0, max: 80, enabled: true },
@@ -371,11 +378,54 @@ describe("survey operations", () => {
     expect(next.testDuration).toBe(5);
     expect(next.iperfCommands).toEqual({
       ...defaultIperfCommands,
-      tcpUpload: "iperf3 -c {server} -J",
+      tcpUpload: ["-P", "4"],
     });
     expect(next.heatmapRanges).toEqual({
       signalStrength: { min: 0, max: 80, enabled: true },
     });
     expect(withRange.heatmapRanges.snr).toBeDefined(); // not mutated
+  });
+});
+
+describe("iperf3 commands from before 0.8", () => {
+  const load = (iperfCommands: Record<string, unknown>) =>
+    parseSurveyFile({ floorplanImageName: "old.png", iperfCommands }, "old.png")
+      .iperfCommands;
+
+  it("the old default templates become the default options", () => {
+    expect(
+      load({
+        tcpDownload: "iperf3 -c {server} {port} -t {duration} -R -J",
+        tcpUpload: "iperf3 -c {server} {port} -t {duration} -J",
+        udpDownload: "iperf3 -c {server} {port} -t {duration} -R -u -b 100M -J",
+        udpUpload: "iperf3 -c {server} {port} -t {duration} -u -b 100M -J",
+      }),
+    ).toEqual(defaultIperfCommands);
+  });
+
+  it("a changed template keeps its extra options", () => {
+    expect(
+      load({
+        udpUpload: "iperf3 -c {server} {port} -t {duration} -u -b 500M -J",
+      }).udpUpload,
+    ).toEqual(["-b", "500M"]);
+  });
+
+  it("a template with shell syntax falls back to the defaults, with a warning", () => {
+    clearLogBuffer();
+    const loaded = load({
+      tcpDownload: "iperf3 -c {server} -t {duration} -R -J; touch /tmp/pwned",
+      udpUpload: "iperf3 -c {server} -t {duration} -u -J | tee /tmp/log",
+    });
+    expect(loaded).toEqual(defaultIperfCommands);
+    const log = recentLogLines().join("\n");
+    expect(log).toMatch(/tcpDownload iperf3 command .* contains shell syntax/);
+    expect(log).toMatch(/udpUpload iperf3 command/);
+  });
+
+  it("options that are already arguments load as they are", () => {
+    expect(load({ tcpUpload: ["-P", "4"] }).tcpUpload).toEqual(["-P", "4"]);
+    // ...unless they set what the app sets
+    expect(load({ tcpUpload: ["-c", "evil"] }).tcpUpload).toEqual([]);
   });
 });

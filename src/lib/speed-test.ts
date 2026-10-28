@@ -28,7 +28,7 @@ export const IPERF3_MISSING =
 export async function iperf3Version(): Promise<string | null> {
   if (isMockMode()) return "mock";
   try {
-    const { stdout } = await execAsync("iperf3 --version");
+    const { stdout } = await execAsync("iperf3", ["--version"]);
     return stdout.split("\n")[0].trim() || "iperf3";
   } catch {
     return null;

@@ -1,72 +1,144 @@
-"use server";
-import { exec, ExecOptions } from "child_process";
+import "server-only";
+import { spawn } from "child_process";
+import { access, constants } from "fs/promises";
+import path from "path";
 import { getLogger } from "./logger";
-import { hideSudoPassword } from "./redact";
 import { abortError } from "./abort";
 const logger = getLogger("server-utils");
 
+export interface RunOptions {
+  /** aborting it kills the child process; the call rejects with an AbortError */
+  signal?: AbortSignal;
+  /** written to the command's stdin, which is then closed (e.g. a sudo password) */
+  input?: string;
+}
+
+export interface RunResult {
+  stdout: string;
+  stderr: string;
+}
+
+/** A command that failed. Like execFile's error: the output is attached. */
+export type CommandError = Error & {
+  code?: number | string | null;
+  signal?: NodeJS.Signals | null;
+  stdout: string;
+  stderr: string;
+  cmd: string;
+};
+
+/** How a command line is shown in logs and errors. Arguments only. */
+export function showCommand(file: string, args: readonly string[]): string {
+  return [file, ...args]
+    .map((a) => (a === "" || /[\s"'\\]/.test(a) ? JSON.stringify(a) : a))
+    .join(" ");
+}
+
 /**
- * exexAsync - asynchronously run the command, return { stdout, stderr }
- * Trim **ends** of both return values to remove the trailing newline
- * The {shell:true} option allows shell options (pipes, redirection, etc)
- * The option is set to true so that Node can use the proper command for the OS
- * @ts-expect-error avoids Typescript error (the option is typed as a string)
+ * execAsync(file, args) - run a program with an argument array and return
+ * { stdout, stderr }, ends trimmed.
  *
- * Completion Handling:
- * If the command completes normally (return of zero), stdout and stderr
- *    (strings) are filled with the results, and the "else" clause
- *    executes the resolve() function, passing back { stdout, stderr }
- * If the command has an error (non-zero return), error (string)
- *    is set to the result, and the reject() function is called
- * The caller can use catch() to handle a non-zero error return
+ * There is no shell: `args` reach the program exactly as given, so a value
+ * like `x; touch /tmp/pwned` is one argument, never a second command. Pipes
+ * and redirects are done in JavaScript instead. On Windows no console window
+ * is opened (the desktop app runs node without one).
  *
- * Pass `signal` to stop the command: aborting it kills the child process
- * and rejects with an AbortError.
- *
- * @param command to execute
- * @returns { stdout , stderr }
+ * A non-zero exit rejects with a CommandError carrying stdout and stderr
+ * (netsh prints why it was denied on stdout). `input` is written to stdin
+ * and never logged; `signal` kills the program.
  */
-
-export const execAsync = async (
-  command: string,
-  { signal }: { signal?: AbortSignal } = {},
-): Promise<{ stdout: string; stderr: string }> => {
-  const options: ExecOptions = {
-    // @ts-expect-error // "shell" is the name of the shell program, but prop must be boolean
-    shell: true, // Node.js finds the right binary for the OS
-    // Windows: never open a console window for cmd.exe/netsh/iperf3 (the
-    // desktop app runs node without one). No effect elsewhere.
-    windowsHide: true,
-    signal,
-  };
-
-  // `echo <password> | sudo -S ...` must never reach a log or the UI
-  const shown = hideSudoPassword(command);
-  // Aborting kills the shell; `exec` makes the shell become the program,
-  // so the program itself is killed (dash, Linux's sh, would otherwise
-  // leave it running). Only stoppable commands (iperf3) pass a signal.
-  const run =
-    signal && process.platform !== "win32" ? `exec ${command}` : command;
+export function execAsync(
+  file: string,
+  args: readonly string[] = [],
+  { signal, input }: RunOptions = {},
+): Promise<RunResult> {
+  const shown = showCommand(file, args);
   return new Promise((resolve, reject) => {
+    if (signal?.aborted) return reject(abortError(signal));
     logger.debug("Executing command:", shown);
-    exec(run, options, (error, stdout, stderr) => {
-      if (error) {
-        // Node puts the whole command line in the message ("Command failed:
-        // echo pw | sudo -S ...") and in `cmd`; callers show and log both.
-        error.message = hideSudoPassword(error.message);
-        (error as { cmd?: string }).cmd = shown;
-        if (error.stack) error.stack = hideSudoPassword(error.stack);
-        logger.debug(`execAsync(${shown}) rejects with "${error}"`);
-        // Like util.promisify(exec): callers may need the output of a
-        // command that failed (netsh prints why it was denied on stdout).
-        reject(Object.assign(error, { stdout, stderr }));
-      } else {
+    const child = spawn(file, [...args], {
+      windowsHide: true,
+      signal,
+      stdio: [input === undefined ? "ignore" : "pipe", "pipe", "pipe"],
+    });
+    const out: Buffer[] = [];
+    const err: Buffer[] = [];
+    child.stdout?.on("data", (chunk: Buffer) => out.push(chunk));
+    child.stderr?.on("data", (chunk: Buffer) => err.push(chunk));
+    if (input !== undefined && child.stdin) {
+      // a program that exits without reading its stdin is not an error
+      child.stdin.on("error", () => {});
+      child.stdin.end(input);
+    }
+
+    let settled = false;
+    const fail = (error: Error, code?: number | null, sig?: string | null) => {
+      if (settled) return;
+      settled = true;
+      const stdout = Buffer.concat(out).toString();
+      const stderr = Buffer.concat(err).toString();
+      if (error.name === "AbortError") return reject(error);
+      Object.assign(error, {
+        code: code ?? (error as { code?: unknown }).code,
+        signal: sig ?? null,
+        stdout,
+        stderr,
+        cmd: shown,
+      });
+      logger.debug(`execAsync(${shown}) rejects with "${error}"`);
+      reject(error);
+    };
+
+    // could not start (ENOENT: not installed), or aborted
+    child.on("error", (error) => fail(error));
+    child.on("close", (code, sig) => {
+      if (settled) return;
+      if (code === 0) {
+        settled = true;
+        const stdout = Buffer.concat(out).toString();
         logger.debug(`Command result: ${JSON.stringify(stdout)}`);
-        resolve({ stdout: stdout.trimEnd(), stderr: stderr.trimEnd() });
+        resolve({
+          stdout: stdout.trimEnd(),
+          stderr: Buffer.concat(err).toString().trimEnd(),
+        });
+        return;
       }
+      const stderr = Buffer.concat(err).toString().trim();
+      fail(
+        new Error(
+          `Command failed: ${shown}${stderr ? `\n${stderr}` : ""}` +
+            (sig ? ` (killed by ${sig})` : ""),
+        ),
+        code,
+        sig,
+      );
     });
   });
-};
+}
+
+/**
+ * findOnPath() - where a program is on PATH (like `command -v`), or null.
+ * On Windows the PATHEXT extensions (.EXE, ...) are tried too.
+ */
+export async function findOnPath(name: string): Promise<string | null> {
+  const dirs = (process.env.PATH ?? "").split(path.delimiter).filter(Boolean);
+  const exts =
+    process.platform === "win32"
+      ? ["", ...(process.env.PATHEXT ?? ".EXE;.CMD;.BAT;.COM").split(";")]
+      : [""];
+  for (const dir of dirs) {
+    for (const ext of exts) {
+      const candidate = path.join(dir, name + ext);
+      try {
+        await access(candidate, constants.X_OK);
+        return candidate;
+      } catch {
+        // not here
+      }
+    }
+  }
+  return null;
+}
 
 /**
  * delay a given number of milliseconds

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  iperfCommandProblem,
+  iperfOptionsProblem,
   isSafeIperfServer,
   pickSafeSettings,
   SAFE_SETTING_KEYS,
@@ -31,7 +31,7 @@ const survey = {
   gradient: { 0: "red", 1: "green" },
   iperfCommands: {
     ...defaultIperfCommands,
-    tcpUpload: "iperf3 -c {server} -J",
+    tcpUpload: ["-P", "2"],
   },
   heatmapRanges: {
     signalStrength: { min: 0, max: 100, enabled: true },
@@ -45,7 +45,7 @@ describe("pickSafeSettings", () => {
     const safe = pickSafeSettings(survey);
     expect(Object.keys(safe).sort()).toEqual([...SAFE_SETTING_KEYS].sort());
     expect(JSON.stringify(safe)).not.toContain("hunter2");
-    expect(safe.iperfCommands.tcpUpload).toBe("iperf3 -c {server} -J");
+    expect(safe.iperfCommands.tcpUpload).toEqual(["-P", "2"]);
   });
 
   it("fills in the app's defaults for old files", () => {
@@ -69,7 +69,7 @@ describe("validateSettingsPatch", () => {
         iperfServerAdrs: "192.168.1.10:5201",
         testDuration: 3,
         iperfCommands: {
-          udpUpload: "iperf3 -c {server} {port} -t {duration} -u -b 50M -J",
+          udpUpload: ["-b", "50M"],
         },
         apMapping: [
           { apName: "Office", macAddress: "AA-BB-CC-DD-EE-02" },
@@ -111,21 +111,31 @@ describe("validateSettingsPatch", () => {
     for (const good of ["localhost", "192.168.1.10", "nas.local:5201", "a"]) {
       expect(isSafeIperfServer(good), good).toBe(true);
     }
-    expect(iperfCommandProblem("iperf3 -c {server} -J; rm -rf ~")).toMatch(
-      /not allowed/,
-    );
-    expect(iperfCommandProblem("iperf3 -c {server} -J > /tmp/x")).toMatch(
-      /not allowed/,
-    );
-    expect(iperfCommandProblem("iperf3 -c `id` -J")).toMatch(/not allowed/);
-    expect(iperfCommandProblem("sh -c {server} -J")).toMatch(
-      /start with iperf3/,
-    );
-    expect(iperfCommandProblem("iperf3 -c 10.0.0.1 -J")).toMatch(/\{server\}/);
-    expect(iperfCommandProblem("iperf3 -c {server}")).toMatch(/-J/);
-    for (const cmd of Object.values(defaultIperfCommands)) {
-      expect(iperfCommandProblem(cmd), cmd).toBeNull();
+    for (const bad of [
+      [";", "rm", "-rf", "~"],
+      [">", "/tmp/x"],
+      ["`id`"],
+      ["a b"],
+    ]) {
+      expect(iperfOptionsProblem(bad), bad.join(" ")).toMatch(
+        /not a plain iperf3 argument/,
+      );
     }
+    // the options the app sets itself
+    expect(iperfOptionsProblem(["-c", "10.0.0.1"])).toMatch(/-c/);
+    expect(iperfOptionsProblem(["-J"])).toMatch(/-J/);
+    expect(
+      validateSettingsPatch({ iperfCommands: { tcpUpload: ["-u"] } }).join(),
+    ).toMatch(/iperfCommands.tcpUpload sets -u/);
+    for (const args of Object.values(defaultIperfCommands)) {
+      expect(iperfOptionsProblem(args), args.join(" ")).toBeNull();
+    }
+    // an old command template is not accepted any more
+    expect(
+      validateSettingsPatch({
+        iperfCommands: { tcpUpload: "iperf3 -c {server} -J" } as never,
+      }),
+    ).toHaveLength(1);
   });
 
   it("checks ranges, MAC addresses and colour scales", () => {
@@ -134,7 +144,7 @@ describe("validateSettingsPatch", () => {
       radiusDivider: -5,
       maxOpacity: 2,
       apMapping: [{ apName: " ", macAddress: "nope" }],
-      iperfCommands: { tcpSideways: "iperf3 -c {server} -J" } as never,
+      iperfCommands: { tcpSideways: ["-P", "2"] } as never,
       heatmapRanges: {
         bogus: { min: 0, max: 1, enabled: true },
         signalStrength: { min: 0, max: 120, enabled: true },
@@ -146,7 +156,7 @@ describe("validateSettingsPatch", () => {
     expect(errors.join("\n")).toMatch(/maxOpacity/);
     expect(errors.join("\n")).toMatch(/apName must not be empty/);
     expect(errors.join("\n")).toMatch(/macAddress must be a MAC address/);
-    expect(errors.join("\n")).toMatch(/tcpSideways is not a command/);
+    expect(errors.join("\n")).toMatch(/tcpSideways is not a test/);
     expect(errors.join("\n")).toMatch(/heatmapRanges.bogus is not a heat map/);
     expect(errors.join("\n")).toMatch(/heatmapRanges.signalStrength/);
     expect(errors.join("\n")).toMatch(/heatmapRanges.tcpUpload-bitsPerSecond/);
@@ -167,7 +177,7 @@ describe("toSettingsPatch + the app's merge", () => {
   it("merges only the given fields and keeps everything else", () => {
     const patch = toSettingsPatch({
       iperfServerAdrs: " 10.0.0.5 ",
-      iperfCommands: { tcpDownload: "iperf3  -c {server}  -R -J" },
+      iperfCommands: { tcpDownload: ["-P", "4"] },
       heatmapRanges: {
         signalStrength: null,
         "udpUpload-bitsPerSecond": { min: 0, max: 100, enabled: false },
@@ -180,15 +190,13 @@ describe("toSettingsPatch + the app's merge", () => {
       "iperfServerAdrs",
       "measureSpeed", // follows the server when not given
     ]);
-    expect(patch.iperfCommands).toEqual({
-      tcpDownload: "iperf3 -c {server} -R -J",
-    });
+    expect(patch.iperfCommands).toEqual({ tcpDownload: ["-P", "4"] });
     const next = applySettingsPatch(survey, patch);
     expect(next.iperfServerAdrs).toBe("10.0.0.5");
     expect(next.iperfCommands).toEqual({
       ...defaultIperfCommands,
-      tcpUpload: "iperf3 -c {server} -J", // untouched
-      tcpDownload: "iperf3 -c {server} -R -J",
+      tcpUpload: ["-P", "2"], // untouched
+      tcpDownload: ["-P", "4"],
     });
     expect(next.heatmapRanges).toEqual({
       "tcpDownload-bitsPerSecond": { min: 0, max: 500, enabled: true },

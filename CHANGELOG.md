@@ -14,6 +14,15 @@ _This section follows the precepts of [Keep a Changelog](https://keepachangelog.
 * The sudo password no longer appears in debug logs (`LOG_LEVEL=2`) or in
   error messages: failed `echo … | sudo -S …` commands put it in the error
   text, which could be shown in the app or logged.
+* **No command runs through a shell any more.** The speed test server, the
+  iperf3 options and the Wi-Fi tools are passed to the program as separate
+  arguments, so a value such as `x; touch /tmp/pwned` is just a (wrong)
+  server name, never a second command. The sudo password goes to `sudo` on
+  its standard input instead of `echo <password> | sudo -S` on a command
+  line, and is checked with `sudo -k`, so a cached sudo login no longer
+  makes a wrong password look right. Server code is marked `server-only`
+  instead of `"use server"`, which had made every exported function of the
+  measurement code callable from the network as a server action.
 
 ### Added
 
@@ -83,6 +92,16 @@ _This section follows the precepts of [Keep a Changelog](https://keepachangelog.
   the spot and returns a job id; see docs/dev/architecture.md.
 * The sudo password is checked once per password, not before every
   measurement.
+* **iperf3 commands are now extra iperf3 options.** Settings > Advanced:
+  iperf3 options takes the extra options per test (for example `-P 4`, or
+  `-b 500M` for UDP); the app builds the rest of the command (server, port,
+  duration, `-R`, `-u`, `-J`) and shows it under each field. Surveys keep
+  their extra options: an older command template is read into its
+  options, and one with shell syntax (pipes, `;`, redirects, quotes) or
+  another program falls back to the defaults with a warning in the log.
+  The settings API and the MCP `update_settings` tool take
+  `iperfCommands` as argument lists, such as `{ "udpUpload": ["-b",
+  "500M"] }`.
 
 * **Windows reads Wi-Fi details from the Native Wifi API** (`wlanapi.dll`,
   through koffi) instead of parsing `netsh` output, so it works in any

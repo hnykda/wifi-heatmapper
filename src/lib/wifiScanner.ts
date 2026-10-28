@@ -1,4 +1,4 @@
-"use server";
+import "server-only";
 import os from "os";
 import { WifiActions, WifiScanResults, WifiResults } from "./types";
 import { getLogger } from "./logger";

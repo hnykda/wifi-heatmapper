@@ -20,13 +20,20 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { defaultIperfCommands } from "@/lib/iperfUtils";
+import {
+  defaultIperfCommands,
+  formatArgs,
+  iperfArgsProblem,
+  iperfFixedPart,
+  IperfTest,
+  splitArgs,
+} from "@/lib/iperfUtils";
 import { parseServerAddress } from "@/lib/measurement-mode";
 import { cn } from "@/lib/utils";
-import { AppStatus, IperfCommands } from "@/lib/types";
+import { AppStatus } from "@/lib/types";
 
 const IPERF_HELP =
-  "Placeholders: {server}, {port} and {duration} are filled in from the settings above. See https://iperf.fr/iperf-doc.php for the options.";
+  "Extra iperf3 options for this test, separated by spaces, for example -P 4 for four parallel streams. The server, port and duration come from the settings above. See https://iperf.fr/iperf-doc.php for the options.";
 const UDP_HELP =
   "-b 100M caps the fixed-rate (UDP) tests at 100 Mbps, which is safe on most networks. If your UDP results sit at exactly 100 Mbps, raise it (for example -b 500M).";
 
@@ -91,7 +98,7 @@ export function SpeedSettings({ status }: { status: AppStatus | null }) {
     }
   };
 
-  const setCommand = (key: keyof IperfCommands, value: string) =>
+  const setOptions = (key: IperfTest, value: string[]) =>
     updateSettings({
       iperfCommands: { ...settings.iperfCommands, [key]: value },
     });
@@ -246,12 +253,12 @@ export function SpeedSettings({ status }: { status: AppStatus | null }) {
                 className="py-1 text-sm font-medium"
                 data-testid="iperf-commands-toggle"
               >
-                Advanced: iperf3 commands
+                Advanced: iperf3 options
               </AccordionTrigger>
               <AccordionContent className="space-y-4 pt-3">
                 <p className="text-sm text-muted-foreground">
-                  The exact commands run for each test. The fixed-rate (UDP)
-                  tests are capped at 100 Mbps by{" "}
+                  Extra options added to the iperf3 command of each test. The
+                  fixed-rate (UDP) tests are capped at 100 Mbps by{" "}
                   <code className="font-mono text-xs">-b 100M</code>.
                 </p>
                 {(
@@ -260,23 +267,18 @@ export function SpeedSettings({ status }: { status: AppStatus | null }) {
                     ["tcpUpload", "Upload (TCP)", IPERF_HELP],
                     ["udpDownload", "Fixed-rate download (UDP)", UDP_HELP],
                     ["udpUpload", "Fixed-rate upload (UDP)", UDP_HELP],
-                  ] as [keyof IperfCommands, string, string][]
+                  ] as [IperfTest, string, string][]
                 ).map(([key, label, help]) => (
-                  <FormRow
+                  <IperfOptionsField
                     key={key}
-                    id={`cmd-${key}`}
+                    test={key}
                     label={label}
                     help={help}
-                  >
-                    <Input
-                      id={`cmd-${key}`}
-                      type="text"
-                      spellCheck={false}
-                      className="font-mono text-xs"
-                      value={settings.iperfCommands?.[key] ?? ""}
-                      onChange={(e) => setCommand(key, e.target.value)}
-                    />
-                  </FormRow>
+                    value={
+                      settings.iperfCommands?.[key] ?? defaultIperfCommands[key]
+                    }
+                    onChange={(args) => setOptions(key, args)}
+                  />
                 ))}
                 <Button
                   type="button"
@@ -289,7 +291,7 @@ export function SpeedSettings({ status }: { status: AppStatus | null }) {
                   }
                 >
                   <RotateCcw className="h-3.5 w-3.5" />
-                  Reset commands to defaults
+                  Reset options to defaults
                 </Button>
               </AccordionContent>
             </AccordionItem>
@@ -297,6 +299,89 @@ export function SpeedSettings({ status }: { status: AppStatus | null }) {
         </>
       )}
     </>
+  );
+}
+
+const sameArgs = (a: readonly string[] | null, b: readonly string[]) =>
+  !!a && a.length === b.length && a.every((arg, i) => arg === b[i]);
+
+/**
+ * The extra options of one test, typed as text. What is typed stays as
+ * typed; it is saved whenever it reads as valid options.
+ */
+function IperfOptionsField({
+  test,
+  label,
+  help,
+  value,
+  onChange,
+}: {
+  test: IperfTest;
+  label: string;
+  help: string;
+  value: readonly string[];
+  onChange: (args: string[]) => void;
+}) {
+  const [draft, setDraft] = useState(() => formatArgs(value));
+  const [error, setError] = useState("");
+  // the saved options changed elsewhere (reset, another tab): show them
+  const [shown, setShown] = useState(value);
+  if (!sameArgs(shown, value)) {
+    setShown(value);
+    if (!sameArgs(splitArgs(draft), value)) {
+      setDraft(formatArgs(value));
+      setError("");
+    }
+  }
+
+  const change = (text: string) => {
+    setDraft(text);
+    const args = splitArgs(text);
+    if (!args) return setError("A quote is not closed.");
+    const problem = iperfArgsProblem(args);
+    if (problem) return setError(`This ${problem}.`);
+    setError("");
+    if (!sameArgs(args, value)) onChange(args);
+  };
+
+  const fixed = iperfFixedPart(test);
+  const id = `cmd-${test}`;
+  return (
+    <FormRow
+      id={id}
+      label={label}
+      help={help}
+      hint={
+        error ? (
+          <span
+            className="text-destructive"
+            role="alert"
+            data-testid={`iperf-options-error-${test}`}
+          >
+            {error} Not saved.
+          </span>
+        ) : (
+          <span className="font-mono">
+            Runs: {fixed.before}{" "}
+            {draft.trim() && (
+              <span className="text-foreground">{draft.trim()} </span>
+            )}
+            {fixed.after}
+          </span>
+        )
+      }
+    >
+      <Input
+        id={id}
+        type="text"
+        spellCheck={false}
+        className="font-mono text-xs"
+        placeholder="No extra options"
+        aria-invalid={!!error}
+        value={draft}
+        onChange={(e) => change(e.target.value)}
+      />
+    </FormRow>
   );
 }
 

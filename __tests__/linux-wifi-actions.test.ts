@@ -19,10 +19,10 @@ const monitorFirst = fixture("linux-iw-dev-monitor-first.txt");
 const multipleManaged = fixture("linux-iw-dev-multiple-managed.txt");
 const linkCommand = "iw dev wlp0s20f3 link";
 const infoCommand = "iw dev wlp0s20f3 info";
-const sudoLinkCommand = 'echo "test-password" | sudo -S iw dev wlp0s20f3 link';
+// sudo -S -p "" <command>, with the password on stdin (checked below)
+const sudoLinkCommand = "sudo iw dev wlp0s20f3 link";
 const surveyCommand = "iw dev wlp0s20f3 survey dump";
-const sudoSurveyCommand =
-  'echo "test-password" | sudo -S iw dev wlp0s20f3 survey dump';
+const sudoSurveyCommand = "sudo iw dev wlp0s20f3 survey dump";
 const settings: PartialHeatmapSettings = {
   iperfServerAdrs: "localhost",
   testDuration: 5,
@@ -45,7 +45,8 @@ beforeEach(() => {
     [infoCommand, connectedInfo],
     [surveyCommand, fixture("linux-iw-survey-noise.txt")],
   ]);
-  mockExec.mockImplementation(async (command) => {
+  mockExec.mockImplementation(async (file, args = [], options) => {
+    const command = asCommand(file, args, options?.input);
     // Noise is optional: a survey the test did not set up behaves like a
     // driver that doesn't support it.
     if (command.includes("survey dump") && !commands.has(command)) {
@@ -73,7 +74,23 @@ function calledCommands() {
 }
 
 function allCommands() {
-  return mockExec.mock.calls.map(([command]) => command);
+  return mockExec.mock.calls.map(([file, args]) => asCommand(file, args));
+}
+
+/**
+ * The command a call runs, as one string for the tables above. A sudo call
+ * must pass the password on stdin, never as an argument.
+ */
+function asCommand(
+  file: string,
+  args: readonly string[] = [],
+  input?: string,
+): string {
+  if (file !== "sudo") return [file, ...args].join(" ");
+  expect(args.slice(0, 3)).toEqual(["-S", "-p", ""]);
+  expect(args.join(" ")).not.toContain("test-password");
+  if (input !== undefined) expect(input).toBe("test-password\n");
+  return ["sudo", ...args.slice(3)].join(" ");
 }
 
 function expectConnected(result: WifiScanResults) {

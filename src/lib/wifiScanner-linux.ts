@@ -4,7 +4,7 @@ import {
   WifiScanResults,
   WifiActions,
 } from "./types";
-import { checkSudoPassword } from "./sudo";
+import { checkSudoPassword, runWithSudo } from "./sudo";
 import { execAsync } from "./server-utils";
 import {
   channelToBand,
@@ -52,7 +52,7 @@ export class LinuxWifiActions implements WifiActions {
     const missingTools: string[] = [];
 
     try {
-      await execAsync("which iw");
+      await execAsync("which", ["iw"]);
       logger.info("  ✓ iw found");
     } catch {
       logger.warn("  ✗ iw not found");
@@ -101,7 +101,7 @@ export class LinuxWifiActions implements WifiActions {
 
     try {
       // Get the Wifi information from system_profiler
-      const result = await execAsync(`nmcli -t dev wifi list`);
+      const result = await execAsync("nmcli", ["-t", "dev", "wifi", "list"]);
 
       response.SSIDs = getCandidateSSIDs(result.stdout);
       logger.debug(`Local SSIDs: ${response.SSIDs.length}`);
@@ -170,7 +170,7 @@ function hasIwConnection(output: string): boolean {
 async function readConnectedWifiLink(
   password: string,
 ): Promise<{ interfaceId: string; linkOutput: string }> {
-  const { stdout } = await execAsync("iw dev");
+  const { stdout } = await execAsync("iw", ["dev"]);
   const interfaces = parseIwInterfaces(stdout);
   if (!interfaces.length)
     throw new Error(
@@ -197,6 +197,12 @@ async function readConnectedWifiLink(
   );
 }
 
+/** One way to run an iw command: as this user, or with sudo. */
+export interface IwCommand {
+  args: string[]; // ["iw", "dev", <if>, ...]
+  sudo: boolean;
+}
+
 /**
  * iwLinkCommands() - the commands that read the current link, in the order to
  * try them. `iw dev <if> link` only asks nl80211 for state (no scan), which
@@ -205,33 +211,37 @@ async function readConnectedWifiLink(
  * @param interfaceId - e.g. "wlp1s0"
  * @param pw - the sudo password ("" if none was given)
  * @param isRoot - true in Docker/Podman, where sudo is neither needed nor present
- * @returns one or two shell commands
+ * @returns one or two commands
  */
 export function iwLinkCommands(
   interfaceId: string,
   pw: string,
   isRoot: boolean,
-): string[] {
-  return iwDevCommands(interfaceId, "link", pw, isRoot);
+): IwCommand[] {
+  return iwDevCommands(interfaceId, ["link"], pw, isRoot);
 }
 
 /**
  * iwDevCommands() - `iw dev <if> <subcommand>`, unprivileged first, then
- * with sudo if a password was given (see iwLinkCommands).
+ * with sudo if a password was given (see iwLinkCommands). The password is
+ * never part of the command: runWithSudo() passes it on stdin.
  */
 export function iwDevCommands(
   interfaceId: string,
-  subcommand: string,
+  subcommand: string[],
   pw: string,
   isRoot: boolean,
-): string[] {
-  const command = `iw dev ${interfaceId} ${subcommand}`;
-  if (isRoot || !pw) return [command];
-  return [command, `echo "${pw}" | sudo -S ${command}`];
+): IwCommand[] {
+  const args = ["iw", "dev", interfaceId, ...subcommand];
+  if (isRoot || !pw) return [{ args, sudo: false }];
+  return [
+    { args, sudo: false },
+    { args, sudo: true },
+  ];
 }
 
 async function iwDevLink(interfaceId: string, pw: string): Promise<string> {
-  return iwDevRun(interfaceId, "link", pw);
+  return iwDevRun(interfaceId, ["link"], pw);
 }
 
 /** true when the last `iw dev <if> link` only worked with sudo */
@@ -239,7 +249,7 @@ let lastLinkUsedSudo = false;
 
 async function iwDevRun(
   interfaceId: string,
-  subcommand: string,
+  subcommand: string[],
   pw: string,
 ): Promise<string> {
   const commands = iwDevCommands(
@@ -249,10 +259,12 @@ async function iwDevRun(
     isDocker() || isPodman(),
   );
   let lastError: unknown;
-  for (const command of commands) {
+  for (const { args, sudo } of commands) {
     try {
-      const { stdout } = await execAsync(command);
-      if (subcommand === "link") lastLinkUsedSudo = command.includes("sudo");
+      const { stdout } = sudo
+        ? await runWithSudo(pw, args)
+        : await execAsync(args[0], args.slice(1));
+      if (subcommand[0] === "link") lastLinkUsedSudo = sudo;
       return stdout;
     } catch (err) {
       lastError = err;
@@ -272,7 +284,9 @@ async function readNoise(
   pw: string,
 ): Promise<number | null> {
   try {
-    return parseIwSurveyNoise(await iwDevRun(interfaceId, "survey dump", pw));
+    return parseIwSurveyNoise(
+      await iwDevRun(interfaceId, ["survey", "dump"], pw),
+    );
   } catch (err) {
     logger.debug(`iw survey dump failed, noise unknown: ${err}`);
     return null;
@@ -294,8 +308,7 @@ export function parseIwSurveyNoise(output: string): number | null {
 }
 
 async function iwDevInfo(interfaceId: string): Promise<string> {
-  const command = `iw dev ${interfaceId} info`;
-  const { stdout } = await execAsync(command);
+  const { stdout } = await execAsync("iw", ["dev", interfaceId, "info"]);
   return stdout;
 }
 

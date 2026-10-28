@@ -5,7 +5,7 @@ import {
   WifiActions,
   SPAirPortRoot,
 } from "./types";
-import { checkSudoPassword } from "./sudo";
+import { checkSudoPassword, runWithSudo } from "./sudo";
 import { execAsync } from "./server-utils";
 import {
   rssiToPercentage,
@@ -117,11 +117,11 @@ export class MacOSWifiActions implements WifiActions {
   async findWifiInterface(): Promise<string> {
     // logger.info(`Called findWifi():`);
 
-    const { stdout } = await execAsync(
-      'networksetup -listallhardwareports | grep -A 1 "Wi-Fi\\|Airport" | grep "Device" |  sed "s/Device: //"',
-    );
-    this.nameOfWifi = stdout;
-    return stdout;
+    const { stdout } = await execAsync("networksetup", [
+      "-listallhardwareports",
+    ]);
+    this.nameOfWifi = parseWifiDevice(stdout);
+    return this.nameOfWifi;
   }
 
   /**
@@ -169,7 +169,10 @@ export class MacOSWifiActions implements WifiActions {
 
     try {
       // Get the Wifi information from system_profiler
-      const result = await execAsync(`system_profiler -json SPAirPortDataType`);
+      const result = await execAsync("system_profiler", [
+        "-json",
+        "SPAirPortDataType",
+      ]);
       jsonResults = JSON.parse(result.stdout);
 
       // jsonResults holds the Wifi environment from system_profiler
@@ -257,9 +260,11 @@ async function getWdutilResults(
   settings: PartialHeatmapSettings,
 ): Promise<WifiResults> {
   // Issue the OS command
-  const wdutilOutput = await execAsync(
-    `echo ${settings.sudoerPassword} | sudo -S wdutil info`,
-  );
+  // the password goes to sudo on stdin
+  const wdutilOutput = await runWithSudo(settings.sudoerPassword, [
+    "wdutil",
+    "info",
+  ]);
   // parse that command into wdutilNetworkInfo
   const wdutilNetworkInfo = parseWdutilOutput(wdutilOutput.stdout);
   // logger.trace("WDUTIL output:", wdutilNetworkInfo);
@@ -450,18 +455,41 @@ export function mergeSSIDs(
  * @returns
  */
 const getIoregSsid = async (): Promise<string> => {
-  const { stdout } = await execAsync(
-    "ioreg -l -n AirPortDriver | grep IO80211SSID | sed 's/^.*= \"\\(.*\\)\".*$/\\1/; s/ /_/g'",
-  );
-  return stdout.trim();
+  const { stdout } = await execAsync("ioreg", ["-l", "-n", "AirPortDriver"]);
+  return parseIoregSsid(stdout);
 };
 
 const getIoregBssid = async (): Promise<string> => {
-  const { stdout } = await execAsync(
-    "ioreg -l | grep \"IO80211BSSID\" | awk -F' = ' '{print $2}' | sed 's/[<>]//g'",
-  );
-  return stdout.trim();
+  const { stdout } = await execAsync("ioreg", ["-l"]);
+  return parseIoregBssid(stdout);
 };
+
+/** The SSID in `ioreg -l -n AirPortDriver` output (spaces as "_"). */
+export function parseIoregSsid(output: string): string {
+  const m = /"IO80211SSID" = "(.*)"/.exec(output);
+  return m ? m[1].replace(/ /g, "_") : "";
+}
+
+/** The BSSID in `ioreg -l` output, without the <>. */
+export function parseIoregBssid(output: string): string {
+  const line = output.split("\n").find((l) => l.includes("IO80211BSSID"));
+  const value = line?.split(" = ")[1] ?? "";
+  return value.replace(/[<>]/g, "").trim();
+}
+
+/**
+ * The Wi-Fi device (e.g. en0) in `networksetup -listallhardwareports`:
+ * the "Device:" line after "Hardware Port: Wi-Fi" (or AirPort).
+ */
+export function parseWifiDevice(output: string): string {
+  const lines = output.split("\n");
+  for (let i = 0; i < lines.length; i++) {
+    if (!/Hardware Port:.*(Wi-Fi|AirPort)/i.test(lines[i])) continue;
+    const device = /^Device:\s*(\S+)/.exec(lines[i + 1]?.trim() ?? "");
+    if (device) return device[1];
+  }
+  return "";
+}
 
 /**
  * parseChannel() from the `wdutil info` output

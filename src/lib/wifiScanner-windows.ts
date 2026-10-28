@@ -55,7 +55,7 @@ export class NetshWifiActions implements WifiActions {
   async findWifi(): Promise<string> {
     // logger.info(`Called findWifi():`);
 
-    const stdout = await netsh("wlan show interfaces");
+    const stdout = await netsh(["wlan", "show", "interfaces"]);
     const lines = stdout.split("\n");
     for (const line of lines) {
       const [, key, val] = splitLine(line);
@@ -79,7 +79,7 @@ export class NetshWifiActions implements WifiActions {
 
     // Get information about local SSIDs
     try {
-      const stdout = await netsh("wlan show networks mode=bssid");
+      const stdout = await netsh(["wlan", "show", "networks", "mode=bssid"]);
       response.SSIDs = parseNetshNetworks(stdout);
       const currSSIDResults = await this.getWifi(_settings);
       const currSSID = response.SSIDs.filter(
@@ -108,7 +108,7 @@ export class NetshWifiActions implements WifiActions {
     // line never matches: fall through and let parseNetshInterfaces()
     // explain the problem instead of waiting forever.
     for (let attempt = 0; attempt < 25; attempt++) {
-      stdout = await netsh("wlan show interfaces");
+      stdout = await netsh(["wlan", "show", "interfaces"]);
       if (netshInterfacesReady(stdout)) break;
       await delay(200);
     }
@@ -141,11 +141,15 @@ export function needsLocationPermission(netshOutput: string): boolean {
   return netshOutput.includes(LOCATION_SETTINGS_URI);
 }
 
-/** Run `netsh <args>`; turn "needs location permission" into a clear error. */
-async function netsh(args: string): Promise<string> {
+/**
+ * Run netsh with these arguments (no cmd.exe in between, so nothing is
+ * quoted or interpreted); turn "needs location permission" into a clear
+ * error, whether netsh failed or not.
+ */
+async function netsh(args: string[]): Promise<string> {
   let stdout: string;
   try {
-    ({ stdout } = await execAsync(`netsh ${args}`));
+    ({ stdout } = await execAsync("netsh", args));
   } catch (err) {
     // execAsync attaches the output of a failed command
     const output = (err as { stdout?: string }).stdout ?? "";

@@ -45,6 +45,36 @@ _lib/iperf-server-check.ts_ (`checkIperfServer()`) is the one socket check
 that the server answers (in mock mode, a name containing "unreachable"
 is treated as down).
 
+## Running commands
+
+Every command runs without a shell: `execAsync(file, args, { signal,
+input })` in _lib/server-utils.ts_ spawns the program with an argument
+array. A value from the user (the speed test server, iperf3 options) is
+always one argument, never parsed as shell syntax, and pipes like
+`ioreg | grep` are done in JavaScript. `signal` kills the program (a
+cancelled measurement), and a failed command rejects with its stdout and
+stderr (netsh prints why it was refused on stdout; that is how the Windows
+location-permission message is found).
+
+* sudo gets the password on stdin: `runWithSudo(password, command)` in
+  _lib/sudo.ts_ runs `sudo -S -p "" <command>` and writes `password + "\n"`.
+  The password is never on a command line, in `ps`, or in an error message.
+* iperf3: the survey stores only the extra options per test
+  (`iperfCommands`, argument arrays; the key kept its old name).
+  `iperfArgs()` in _lib/iperfUtils.ts_ builds
+  `-c <server> [-p <port>] -t <duration> [-R] [-u] <extra...> -J`. Options
+  the app sets itself are refused in the extras. Files from 0.7 and
+  earlier stored command templates for a shell; `migrateIperfTemplate()`
+  turns one into its extra options when loading, and one with shell
+  syntax falls back to the defaults with a warning in the log.
+* Windows: netsh is spawned directly, without cmd.exe, so its arguments
+  (`mode=bssid`) need no quoting.
+
+Server-only modules start with `import "server-only"` (a build error if a
+client component imports them). They used to start with `"use server"`,
+which makes every export a server action that can be called over the
+network.
+
 ## Component Hierarchy
 
 This is a fairly standard Next.js project:
@@ -107,7 +137,7 @@ The server owns the survey files. Two pieces do the work:
   not meant to be shared by two servers.
 
 The changes themselves (_lib/survey-ops.ts_) are pure functions shared by
-the server and the browser: apply a settings patch (iperf3 commands and
+the server and the browser: apply a settings patch (iperf3 options and
 colour scales merge per key; `null` removes a scale), add, update and
 delete points.
 

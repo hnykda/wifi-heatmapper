@@ -233,7 +233,8 @@ describe("measurement job", () => {
   it.skipIf(process.platform === "win32")(
     "cancel kills the running command",
     async () => {
-      const marker = `sleep ${30 + Math.floor(Math.random() * 1000) / 1000}`;
+      const seconds = String(30 + Math.floor(Math.random() * 1000) / 1000);
+      const marker = `sleep ${seconds}`;
       const running = () => {
         try {
           return execFileSync("pgrep", ["-f", marker]).toString().trim();
@@ -242,7 +243,7 @@ describe("measurement job", () => {
         }
       };
       const started = await start(async (_s, { signal }) => {
-        await execAsync(marker, { signal });
+        await execAsync("sleep", [seconds], { signal });
         return measured();
       });
       const id = started.ok ? started.job.id : "";

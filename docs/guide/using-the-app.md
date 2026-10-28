@@ -33,7 +33,7 @@ workflow. "Got it" hides it for good; the About dialog can show it again.
   of another floor plan's survey into this one. Pick the survey, then tick
   what to copy:
   * **Speed settings** (ticked to start with) – what to measure, the speed
-    test server, the test duration and the iperf3 commands;
+    test server, the test duration and extra iperf3 options;
   * **Access point names**;
   * **Heat map look** – spot size, opacity, colours and the fixed colour
     scales set on the Heat maps tab. The spot size is in floor-plan pixels,
@@ -57,9 +57,12 @@ workflow. "Got it" hides it for good; the About dialog can show it again.
     installed on this computer and whether the server answers, plus a
     reminder to wire the server to the router.
   * **Test duration** – seconds per test. One second is enough for a survey.
-  * **Advanced: iperf3 commands** – the exact commands run for each test.
-    `{server}`, `{port}` and `{duration}` are filled in from the settings
-    above.
+  * **Advanced: iperf3 options** – extra iperf3 options for each test,
+    separated by spaces, such as `-P 4` (four parallel streams). The app
+    sets the server, port, duration, download/upload and TCP/UDP itself; the
+    field shows the whole command. Surveys from before 0.8 stored whole
+    commands; their extra options are kept, and a command with shell syntax
+    (pipes, `;`, redirects) is replaced by the defaults.
 * **sudo password** – required on macOS and Linux to read the signal. Kept in
   memory only; never written to disk. Not shown on Windows, in Docker, or in
   mock mode.
