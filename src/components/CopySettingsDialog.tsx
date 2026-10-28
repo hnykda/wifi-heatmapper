@@ -128,7 +128,7 @@ export function CopySettingsDialog() {
                 value={from}
                 onChange={(e) => setFrom(e.target.value)}
                 data-testid="copy-settings-source"
-                className="h-9 w-full rounded-md border border-input bg-surface px-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background"
+                className="h-9 w-full rounded-md border border-input bg-surface px-2 text-sm text-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background"
               >
                 {surveys.map((name) => (
                   <option key={name} value={name}>

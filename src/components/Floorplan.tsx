@@ -358,7 +358,7 @@ export default function ClickableFloorplan() {
 
         <div ref={containerRef} className="relative">
           {!image && !imageError && (
-            <div className="flex aspect-[2/1] items-center justify-center text-sm text-muted-foreground">
+            <div className="flex aspect-2/1 items-center justify-center text-sm text-muted-foreground">
               {loading ? "Loading survey" : "Loading floor plan"}
             </div>
           )}
@@ -368,7 +368,7 @@ export default function ClickableFloorplan() {
             onMouseMove={handleMouseMove}
             data-testid="floorplan-canvas"
             className={cn(
-              "block w-full rounded-md bg-white shadow-sm",
+              "block w-full rounded-md bg-white shadow-xs",
               !image && "hidden",
               hoveringPoint
                 ? "cursor-pointer"

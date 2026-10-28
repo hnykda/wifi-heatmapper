@@ -65,7 +65,7 @@ export default function AppShell() {
       onValueChange={(v) => isTabId(v) && setTab(v)}
       className="flex min-h-screen flex-col"
     >
-      <header className="sticky top-0 z-30 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+      <header className="sticky top-0 z-30 border-b bg-background/95 backdrop-blur-sm supports-backdrop-filter:bg-background/80">
         <div className="mx-auto flex max-w-[1440px] flex-wrap items-center gap-x-6 px-4 sm:h-14 sm:flex-nowrap sm:px-6">
           <a
             href="#settings"
@@ -90,7 +90,7 @@ export default function AppShell() {
                   "hover:text-foreground data-[state=active]:text-foreground",
                   "after:absolute after:inset-x-3 after:bottom-0 after:h-0.5 after:rounded-full after:bg-brand after:opacity-0 after:transition-opacity",
                   "data-[state=active]:after:opacity-100",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset rounded-md",
+                  "focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset rounded-md",
                 )}
               >
                 {t.label}
@@ -135,16 +135,16 @@ export default function AppShell() {
       <main className="mx-auto w-full max-w-[1440px] flex-1 px-4 py-6 sm:px-6">
         <UsageCountsNotice onShowDetails={() => setTab("settings")} />
         <WelcomePanel />
-        <Tabs.Content value="settings" className="outline-none">
+        <Tabs.Content value="settings" className="outline-hidden">
           <SettingsEditor />
         </Tabs.Content>
-        <Tabs.Content value="floorplan" className="outline-none">
+        <Tabs.Content value="floorplan" className="outline-hidden">
           <ClickableFloorplan />
         </Tabs.Content>
-        <Tabs.Content value="heatmaps" className="outline-none">
+        <Tabs.Content value="heatmaps" className="outline-hidden">
           <Heatmaps />
         </Tabs.Content>
-        <Tabs.Content value="points" className="outline-none">
+        <Tabs.Content value="points" className="outline-hidden">
           <PointsTable
             data={settings.surveyPoints}
             surveyPointActions={surveyPointActions}

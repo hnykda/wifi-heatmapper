@@ -233,7 +233,7 @@ export function SpeedSettings({ status }: { status: AppStatus | null }) {
               min={1}
               max={60}
               step={1}
-              className="max-w-[8rem]"
+              className="max-w-32"
               value={settings.testDuration}
               onChange={(n) => updateSettings({ testDuration: Math.round(n) })}
             />
@@ -395,7 +395,7 @@ function ModeOption({
       htmlFor={id}
       className={cn(
         "flex cursor-pointer gap-3 rounded-md border p-3 transition-colors",
-        "hover:border-brand/50 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring",
+        "hover:border-brand/50 has-focus-visible:ring-2 has-focus-visible:ring-ring",
         checked ? "border-brand bg-brand-soft/60" : "bg-surface",
       )}
       data-testid={id}
@@ -405,7 +405,7 @@ function ModeOption({
         id={id}
         type="radio"
         name="measure-mode"
-        className="mt-0.5 h-4 w-4 shrink-0 accent-brand dark:[color-scheme:dark]"
+        className="mt-0.5 h-4 w-4 shrink-0 accent-brand dark:scheme-dark"
         checked={checked}
         onChange={onSelect}
       />
@@ -450,7 +450,7 @@ function ChecklistItem({
       />
       <span className="grid min-w-0 gap-0.5">
         <span className="font-medium">{title}</span>
-        <span className="break-words text-xs text-muted-foreground">
+        <span className="wrap-break-word text-xs text-muted-foreground">
           {detail}
         </span>
       </span>

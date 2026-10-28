@@ -116,7 +116,7 @@ export function WelcomePanel() {
         type="button"
         onClick={dismiss}
         aria-label="Dismiss welcome message"
-        className="rounded p-1 text-muted-foreground hover:bg-background/70 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="rounded p-1 text-muted-foreground hover:bg-background/70 hover:text-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
       >
         <X className="h-4 w-4" />
       </button>

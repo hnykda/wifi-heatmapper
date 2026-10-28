@@ -51,7 +51,7 @@ export function SurveySummary({
     <button
       type="button"
       onClick={() => onNavigate(tab)}
-      className="group flex items-baseline gap-2 rounded-md py-1 text-left hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      className="group flex items-baseline gap-2 rounded-md py-1 text-left hover:text-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
       data-testid={testid}
     >
       <span className="text-xs text-muted-foreground">{label}</span>
@@ -85,7 +85,7 @@ export function SurveySummary({
           <button
             type="button"
             onClick={() => onNavigate("settings")}
-            className="flex items-center gap-1.5 rounded-md py-1 text-sm font-medium text-warning hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="flex items-center gap-1.5 rounded-md py-1 text-sm font-medium text-warning hover:underline focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
             data-testid="summary-speed-warning"
           >
             <TriangleAlert className="h-3.5 w-3.5 shrink-0" />

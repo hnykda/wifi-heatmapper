@@ -515,7 +515,7 @@ export function Heatmaps() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[16rem_minmax(0,1fr)]">
-        <aside className="space-y-6 lg:sticky lg:top-[7.5rem] lg:self-start">
+        <aside className="space-y-6 lg:sticky lg:top-30 lg:self-start">
           <div>
             <h2 className="mb-1.5 text-sm font-medium">Show</h2>
             {Object.values(testTypes)
@@ -723,7 +723,7 @@ export function Heatmaps() {
 
 function EmptyTile({ title, body }: { title: string; body: string }) {
   return (
-    <div className="flex aspect-[4/3] flex-col items-start justify-end rounded-md border border-dashed p-4">
+    <div className="flex aspect-4/3 flex-col items-start justify-end rounded-md border border-dashed p-4">
       <p className="text-sm font-medium">{title}</p>
       <p className="mt-1 text-sm text-muted-foreground">{body}</p>
     </div>
@@ -733,7 +733,7 @@ function EmptyTile({ title, body }: { title: string; body: string }) {
 function SkeletonTile({ title }: { title: string }) {
   return (
     <div className="space-y-1.5">
-      <div className="aspect-[4/3] animate-pulse rounded-md border bg-muted" />
+      <div className="aspect-4/3 animate-pulse rounded-md border bg-muted" />
       <p className="text-sm font-medium">{title}</p>
     </div>
   );
