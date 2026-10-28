@@ -91,6 +91,11 @@ an unexpected folder.
 The installers are not signed, so Windows SmartScreen says it protected your
 PC: click **More info**, then **Run anyway**.
 
+The app reads Wi-Fi through the Native Wifi API that is part of Windows, so
+it works in any display language. If that ever fails, measuring stops with
+an error that says what went wrong; please send it with
+[Report a problem](faq.md#something-went-wrong-how-do-i-report-it).
+
 ### Location access
 
 On Windows 11 24H2 and later, Windows only shares Wi-Fi details with apps that

@@ -99,7 +99,6 @@ src/instrumentation.ts  runs once when the server starts (seeds floor plans, mig
 __tests__/              Vitest unit tests + fixtures of real command output
 e2e/                    Playwright tests
 assets/floorplans/      floor plans bundled with the app
-data/localization/      label tables for localized `netsh` output (Windows)
 docs/guide/             the user guide, also published on the website
 docs/dev/               architecture, desktop app, to-do
 site/                   the website (wifi-heatmapper.danielalder.cz), built from docs/guide
@@ -123,8 +122,8 @@ User data lives in `data/` (`surveys/*.json`, `media/*`). Set
 
 Platform code implements the `WifiActions` interface in `types.ts`. Parsers
 for command output are pure functions with fixtures under `__tests__/data`;
-when you add support for a new OS version or language, add a fixture and a
-test rather than a mock.
+when you add support for a new OS version, add a fixture and a test rather
+than a mock.
 
 ## Writing e2e tests
 
@@ -149,11 +148,12 @@ Specs in `e2e/` import `test` and `expect` from `./fixtures`, not from
 
   The fields are in `mockScenarioSchema` (`src/lib/schema.ts`): `wifi`
   (`needs-sudo`, `wrong-sudo`, `not-connected`, `error`), `sudoPassword`,
-  `wifiMethod` (what the report says read the Wi-Fi, e.g.
-  `netsh-fallback`), `noise` (a number, or `null` for none), `signal` (a
-  fixed strength), `iperf` (`missing`, `unreachable`, `fails-midway`) and
-  `delayMs` (how long each step takes, for cancel tests). `set()` calls
-  add up; the scenario is reset after every test.
+  `wifiMethod` (what the report says read the Wi-Fi, e.g. `wlan-api`;
+  `wlan-api-error` fails the reading like a broken WLAN API), `noise` (a
+  number, or `null` for none), `signal` (a fixed strength), `iperf`
+  (`missing`, `unreachable`, `fails-midway`) and `delayMs` (how long each
+  step takes, for cancel tests). `set()` calls add up; the scenario is
+  reset after every test.
 
 The scenario only changes what the mock scanner and the mock iperf3 answer
 (`wifiScanner-mock.ts`, which prints iperf3's JSON). The preflight, speed
@@ -180,13 +180,6 @@ port: stop it or pick another `E2E_PORT`.
 - If you change something users see, update the page in `docs/guide/` that
   describes it (usually `using-the-app.md`). The website is built from those
   files on every push to `main`; see [site/README.md](site/README.md).
-
-## Windows localization
-
-`netsh wlan` prints localized labels. `data/localization/*.json` maps them to
-internal names. To add a language, copy `en-us-win11.json`, translate the
-keys (not the values), and add fixtures of your `netsh` output to
-`__tests__/data/` with a test in `__tests__/parsing/`. See issue #26.
 
 ## Desktop app (development)
 
@@ -225,7 +218,7 @@ How the app runs the server, and what the server can rely on:
   Linux: `~/.local/share/com.github.hnykda.wifi-heatmapper/data`), unless you
   already set it.
 - `WIFI_HEATMAPPER_RESOURCES_DIR` = `<resources>/server`: shipped, read-only
-  files (`assets/`, `data/localization/`, and on macOS
+  files (`assets/`, and on macOS
   `helpers/WiFiHeatmapperHelper.app`).
 - `PATH` with `/opt/homebrew/bin` and `/usr/local/bin` added, so a Homebrew
   `iperf3` is found when the app is opened from Finder (Linux: `/usr/local/bin`,
@@ -275,7 +268,7 @@ and `bundle/msi/*.msi` (per-machine). What differs from macOS:
   not roaming); log: `%LOCALAPPDATA%\com.github.hnykda.wifi-heatmapper\logs\server.log`.
 - `node.exe` runs without a console window, inside a Job Object
   (`desktop/src-tauri/src/windows_job.rs`): quitting the app, or the app
-  dying, ends node.exe and everything it started (iperf3, netsh).
+  dying, ends node.exe and everything it started (iperf3).
 - `PATH` gets the winget, Scoop and Chocolatey tool folders added.
 - `node desktop/smoke-test-app.mjs <path to wifi-heatmapper.exe>` checks a
   built or installed app: server up, and no node.exe or child left after a

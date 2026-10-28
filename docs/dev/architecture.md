@@ -53,8 +53,7 @@ array. A value from the user (the speed test server, iperf3 options) is
 always one argument, never parsed as shell syntax, and pipes like
 `ioreg | grep` are done in JavaScript. `signal` kills the program (a
 cancelled measurement), and a failed command rejects with its stdout and
-stderr (netsh prints why it was refused on stdout; that is how the Windows
-location-permission message is found).
+stderr.
 
 * sudo gets the password on stdin: `runWithSudo(password, command)` in
   _lib/sudo.ts_ runs `sudo -S -p "" <command>` and writes `password + "\n"`.
@@ -67,8 +66,6 @@ location-permission message is found).
   earlier stored command templates for a shell; `migrateIperfTemplate()`
   turns one into its extra options when loading, and one with shell
   syntax falls back to the defaults with a warning in the log.
-* Windows: netsh is spawned directly, without cmd.exe, so its arguments
-  (`mode=bssid`) need no quoting.
 
 Server-only modules start with `import "server-only"` (a build error if a
 client component imports them). They used to start with `"use server"`,
@@ -296,54 +293,28 @@ Settings (it stays in memory), then try again".
 * `done` ends a job; its `state` says how (`done`: saved, with
   `pointId`).
 
-## Localization
+## Windows: the Native Wifi API
 
-Windows reads Wi-Fi details from the Native Wifi API (`wlanapi.dll`, see
-`src/lib/wlan-api.ts`), which does not depend on the display language. The
-`netsh` parsing below is only used if that API cannot be loaded or fails.
+Windows reads Wi-Fi details only from the Native Wifi API (`wlanapi.dll`),
+called through [koffi](https://koffi.dev) in _lib/wlan-api.ts_; the struct
+decoding is in _lib/wlan-api-parse.ts_ (pure, tested on every OS). It does
+not depend on the display language, so there are no label tables to
+maintain. Versions up to 0.8 parsed localized `netsh wlan` output as a
+fallback; that and its tables in `data/localization/` are gone.
 
-The Windows `netsh wlan ...` code is localized for the
-system's language setting.
-Curiously, different English systems also use slightly different
-labels (e.g. "AP BSSID" vs "BSSID").
-Consequently, there is no obvious algorithm for retreiving values
-from the `netsh...` output.
+There is no fallback. In _lib/wifiScanner-windows.ts_:
 
-To address this, at server startup, the _lib/localization.ts_ code
-reads a set of _xxxx.json_ files to build a lookup table of
-localized strings that map to the corresponding property
-in a `WifiNetwork` (or null).
+* `ERROR_ACCESS_DENIED` means Windows 11 24H2+ location permission is off:
+  the reading fails with `LOCATION_PERMISSION_MESSAGE` (what to turn on).
+* koffi or `wlanapi.dll` not loading (`WlanLoadError`) or any other WLAN API
+  error (`WlanApiError`, a Win32 code) fails the reading with one message
+  that says what failed and asks for a report through **Report a problem**.
+  The diagnostics keep the Wi-Fi method `Windows WLAN API` with the error as
+  its detail, e.g. `connection query failed: koffi could not load
+  wlanapi.dll: ...`.
 
-The Windows parsing code then retrieves each localized label from the
-`netsh ...` command, does a lookup, and sets the
-appropriate property.
-
-### Creating a localization file for your System Language
-
-To create a localization file for your Windows system's language:
-
-* Duplicate one of the _data/localization_ files
-* Rename it to _XX.json_, where "XX" is the proper code for the language
-  (e.g., _fr.json_ for a French system). The exact name is not important
-  except for the _.json_ suffix.
-* Run these four commands from the Windows command line:
-  * `netsh wlan show interfaces`
-  * `netsh wlan show networks mode="bssid"`
-  * `netsh wlan show profiles`
-  * `netsh wlan show profile name="profile"` where
-    `profile` is one of the profiles listed in the previous command
-* Paste the output of the all four commands into the bottom of the new file.
-* Comment out the new lines (use `//` at the start of the line),
-  and remove the prior output
-* Add a comment (use "//") indicating the version of Windows (Win10, Win11)
-  and the system language
-* In the JSON structure at the top of the file,
-  replace the localized phrases from the `netsh wlan...` output
-  (on the left) with the corresponding phrase on the right.
-* Restart the `wifi-heatmapper` server (`npm run dev`)
-  to read the new localized values
-* If you have a new file, or if you have questions, create an
-  [issue in the repo](https://github.com/hnykda/wifi-heatmapper/issues).
+The e2e scenario `wifiMethod: "wlan-api-error"` (mock mode) shows that
+error, so the report flow is tested without Windows.
 
 ## WebGL Heatmap Rendering
 
