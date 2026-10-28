@@ -1,3 +1,4 @@
+import { apNameFor } from "./apName";
 import { ApMapping, SurveyPoint } from "./types";
 
 const toMbps = (bps: number) => Math.round((bps / 1_000_000) * 100) / 100;
@@ -39,7 +40,7 @@ export function surveyPointsToCsv(
   const rows = points.map((p) => {
     const w = p.wifiData;
     const i = p.iperfData;
-    const ap = apMapping.find((a) => a.macAddress === w.bssid)?.apName ?? "";
+    const ap = apNameFor(w.bssid, apMapping) ?? "";
     return [
       p.id,
       p.isEnabled ? "yes" : "no",

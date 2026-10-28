@@ -26,7 +26,10 @@ workflow. "Got it" hides it for good; the About dialog can show it again.
   memory only; never written to disk. Not shown on Windows, in Docker, or in
   mock mode.
 * **Access point names** – optional names for BSSIDs, shown instead of the
-  MAC address in point details and the table.
+  MAC address in point details, the table and the CSV export. End a MAC
+  address with `*` (for example `aa:bb:cc:dd:ee:*`) to name every BSSID that
+  starts with it, such as the per-band BSSIDs of one access point. An exact
+  MAC address wins over a prefix, and a longer prefix wins over a shorter one.
 * **Heat map colours** – the colour stops for signal strength (0% = -100 dBm,
   100% = -40 dBm) and the opacity range of the overlay.
 * **iperf3 commands** – the exact commands run for each test.

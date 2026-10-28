@@ -3,11 +3,8 @@ import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ApMapping } from "@/lib/types";
-import {
-  formatMacAddress,
-  isValidMacAddress,
-  normalizeMacAddress,
-} from "@/lib/utils";
+import { formatApPattern, isValidApPattern } from "@/lib/apName";
+import { normalizeMacAddress } from "@/lib/utils";
 
 type Props = {
   apMapping: ApMapping[];
@@ -18,19 +15,28 @@ type Props = {
  * Give each access point (BSSID) a name. Names show up in the survey
  * point details and table instead of a bare MAC address.
  * Rows are edited in place; a MAC address is checked when you leave the field.
+ * One ending in "*" (e.g. 9E:05:D6:96:E8:*) names every BSSID starting with it.
  */
+const forDisplay = (apMapping: ApMapping[]): ApMapping[] =>
+  apMapping.map((ap) =>
+    isValidApPattern(ap.macAddress)
+      ? { ...ap, macAddress: formatApPattern(ap.macAddress) }
+      : ap,
+  );
+
 export default function EditableApMapping({ apMapping, onSave }: Props) {
-  const [rows, setRows] = useState<ApMapping[]>(apMapping);
+  const [rows, setRows] = useState<ApMapping[]>(() => forDisplay(apMapping));
   const [errors, setErrors] = useState<Record<number, string>>({});
 
-  useEffect(() => setRows(apMapping), [apMapping]);
+  useEffect(() => setRows(forDisplay(apMapping)), [apMapping]);
 
   const commit = (next: ApMapping[]) => {
     setRows(next);
     const errs: Record<number, string> = {};
     next.forEach((ap, i) => {
-      if (ap.macAddress && !isValidMacAddress(ap.macAddress)) {
-        errs[i] = "A MAC address has 12 hex digits, e.g. 9E:05:D6:96:E8:30";
+      if (ap.macAddress && !isValidApPattern(ap.macAddress)) {
+        errs[i] =
+          "A MAC address has 12 hex digits, e.g. 9E:05:D6:96:E8:30, or ends with *";
       }
     });
     setErrors(errs);
@@ -38,7 +44,7 @@ export default function EditableApMapping({ apMapping, onSave }: Props) {
       onSave(
         next.map((ap) => ({
           apName: ap.apName.trim(),
-          macAddress: normalizeMacAddress(ap.macAddress),
+          macAddress: normalizeMacAddress(ap.macAddress.trim()),
         })),
       );
     }
@@ -75,13 +81,8 @@ export default function EditableApMapping({ apMapping, onSave }: Props) {
               onBlur={() =>
                 commit(
                   rows.map((r, j) =>
-                    j === i && isValidMacAddress(r.macAddress)
-                      ? {
-                          ...r,
-                          macAddress: formatMacAddress(
-                            normalizeMacAddress(r.macAddress),
-                          ),
-                        }
+                    j === i && isValidApPattern(r.macAddress)
+                      ? { ...r, macAddress: formatApPattern(r.macAddress) }
                       : r,
                   ),
                 )
@@ -100,6 +101,9 @@ export default function EditableApMapping({ apMapping, onSave }: Props) {
           {errors[i] && <p className="text-xs text-destructive">{errors[i]}</p>}
         </div>
       ))}
+      <p className="text-xs text-muted-foreground">
+        End a MAC address with * to match every BSSID that starts with it.
+      </p>
       <Button
         type="button"
         variant="outline"

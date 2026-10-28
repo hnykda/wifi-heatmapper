@@ -45,6 +45,7 @@ import {
 } from "@/lib/types";
 import { getColorAt, objectToRGBAString } from "@/lib/utils-gradient";
 import { formatMacAddress, rssiToPercentage } from "@/lib/utils";
+import { apNameFor } from "@/lib/apName";
 import { surveyPointsToCsv, downloadText } from "@/lib/exportCsv";
 import { AlertDialogModal } from "./AlertDialogModal";
 import { useSettings } from "./GlobalSettings";
@@ -115,9 +116,7 @@ const SurveyPointsTable: React.FC<SurveyPointsTableProps> = ({
         y: point.y,
         ssid: point.wifiData.ssid,
         bssid: point.wifiData.bssid,
-        accessPoint:
-          apMapping.find((ap) => ap.macAddress === point.wifiData.bssid)
-            ?.apName ?? "",
+        accessPoint: apNameFor(point.wifiData.bssid, apMapping) ?? "",
         rssi: point.wifiData.rssi,
         signalQuality:
           point.wifiData.signalStrength ||
