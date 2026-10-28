@@ -2,11 +2,12 @@
 
 import * as Tabs from "@radix-ui/react-tabs";
 import { useCallback, useEffect, useState } from "react";
-import { FlaskConical, Github } from "lucide-react";
+import { FlaskConical } from "lucide-react";
 
 import { useSettings } from "@/components/GlobalSettings";
 import { useAppStatus } from "@/hooks/useAppStatus";
 import { BrandMark } from "./BrandMark";
+import { GithubIcon } from "./GithubIcon";
 import { AboutDialog } from "./AboutDialog";
 import { SurveySummary } from "./SurveySummary";
 import { WelcomePanel } from "./WelcomePanel";
@@ -123,7 +124,7 @@ export default function AppShell() {
               aria-label="Source code on GitHub"
               title="GitHub"
             >
-              <Github className="h-4 w-4" />
+              <GithubIcon className="h-4 w-4" />
             </a>
           </div>
         </div>

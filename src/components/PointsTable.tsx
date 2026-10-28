@@ -1,14 +1,26 @@
 "use client";
 import React, { useCallback, useMemo, useState } from "react";
 import {
-  useReactTable,
-  getCoreRowModel,
-  getFilteredRowModel,
-  getPaginationRowModel,
-  getSortedRowModel,
+  useTable,
+  tableFeatures,
+  columnFilteringFeature,
+  globalFilteringFeature,
+  columnVisibilityFeature,
+  rowPaginationFeature,
+  rowSelectionFeature,
+  rowSortingFeature,
+  createFilteredRowModel,
+  createPaginatedRowModel,
+  createSortedRowModel,
+  filterFn_includesString,
+  sortFn_alphanumeric,
+  sortFn_datetime,
+  sortFn_text,
+  metaHelper,
   ColumnDef,
   flexRender,
-  VisibilityState,
+  ColumnVisibilityState,
+  RowSelectionState,
   SortingState,
 } from "@tanstack/react-table";
 import {
@@ -56,6 +68,28 @@ import { surveyPointsToCsv, downloadText } from "@/lib/exportCsv";
 import { AlertDialogModal } from "./AlertDialogModal";
 import { useSettings } from "./GlobalSettings";
 import { cn } from "@/lib/utils";
+
+// TanStack Table v9 only includes the features a table registers. These are
+// the ones v8 bundled and this table uses, with the built-in functions the
+// "auto" filter and sort pick for its column types.
+const features = tableFeatures({
+  columnFilteringFeature,
+  globalFilteringFeature,
+  columnVisibilityFeature,
+  rowSortingFeature,
+  rowSelectionFeature,
+  rowPaginationFeature,
+  filteredRowModel: createFilteredRowModel(),
+  sortedRowModel: createSortedRowModel(),
+  paginatedRowModel: createPaginatedRowModel(),
+  filterFns: { includesString: filterFn_includesString },
+  sortFns: {
+    alphanumeric: sortFn_alphanumeric,
+    datetime: sortFn_datetime,
+    text: sortFn_text,
+  },
+  columnMeta: metaHelper<{ align?: "left" }>(),
+});
 
 type Row = {
   id: string;
@@ -107,24 +141,25 @@ const SurveyPointsTable: React.FC<SurveyPointsTableProps> = ({
   const { settings } = useSettings();
   // Speed columns would be empty: leave them out until a point has speed
   const hasSpeed = useMemo(() => data.some(hasSpeedData), [data]);
-  const [rowSelection, setRowSelection] = useState({});
+  const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const [globalFilter, setGlobalFilter] = useState("");
   const [sorting, setSorting] = useState<SortingState>([]);
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({
-    rssi: false,
-    noise: false,
-    snr: false,
-    ssid: false,
-    security: false,
-    txRate: false,
-    phyMode: false,
-    channelWidth: false,
-    channel: false,
-    x: false,
-    y: false,
-    udpDownloadMbps: false,
-    udpUploadMbps: false,
-  });
+  const [columnVisibility, setColumnVisibility] =
+    useState<ColumnVisibilityState>({
+      rssi: false,
+      noise: false,
+      snr: false,
+      ssid: false,
+      security: false,
+      txRate: false,
+      phyMode: false,
+      channelWidth: false,
+      channel: false,
+      x: false,
+      y: false,
+      udpDownloadMbps: false,
+      udpUploadMbps: false,
+    });
 
   const rows: Row[] = useMemo(
     () =>
@@ -159,7 +194,7 @@ const SurveyPointsTable: React.FC<SurveyPointsTableProps> = ({
   );
 
   const update = surveyPointActions.update;
-  const allColumns: ColumnDef<Row>[] = useMemo(
+  const allColumns: ColumnDef<typeof features, Row>[] = useMemo(
     () => [
       {
         id: "select",
@@ -167,7 +202,10 @@ const SurveyPointsTable: React.FC<SurveyPointsTableProps> = ({
           <Checkbox
             checked={
               table.getIsAllPageRowsSelected() ||
-              (table.getIsSomePageRowsSelected() && "indeterminate")
+              // v9: "some" includes "all", hence the second check
+              (table.getIsSomePageRowsSelected() &&
+                !table.getIsAllPageRowsSelected() &&
+                "indeterminate")
             }
             onCheckedChange={(v) => table.toggleAllPageRowsSelected(!!v)}
             aria-label="Select all rows on this page"
@@ -291,20 +329,22 @@ const SurveyPointsTable: React.FC<SurveyPointsTableProps> = ({
     [allColumns, hasSpeed],
   );
 
-  const table = useReactTable({
+  const table = useTable({
+    features,
     data: rows,
     columns,
     state: { rowSelection, globalFilter, columnVisibility, sorting },
     enableRowSelection: true,
+    // v8's default: the filter box searches text and number columns only
+    getColumnCanGlobalFilter: (column) => {
+      const value = rows[0]?.[column.id as keyof Row];
+      return typeof value === "string" || typeof value === "number";
+    },
     onRowSelectionChange: setRowSelection,
     onColumnVisibilityChange: setColumnVisibility,
     onGlobalFilterChange: setGlobalFilter,
     onSortingChange: setSorting,
-    getCoreRowModel: getCoreRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    initialState: { pagination: { pageSize: 25 } },
+    initialState: { pagination: { pageIndex: 0, pageSize: 25 } },
   });
 
   const selectedPoints = useMemo(
@@ -446,10 +486,7 @@ const SurveyPointsTable: React.FC<SurveyPointsTableProps> = ({
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id} className="hover:bg-transparent">
                 {headerGroup.headers.map((header) => {
-                  const align = (
-                    header.column.columnDef.meta as
-                      { align?: string } | undefined
-                  )?.align;
+                  const align = header.column.columnDef.meta?.align;
                   const canSort = header.column.getCanSort();
                   return (
                     <TableHead
@@ -503,10 +540,7 @@ const SurveyPointsTable: React.FC<SurveyPointsTableProps> = ({
                   )}
                 >
                   {row.getVisibleCells().map((cell) => {
-                    const align = (
-                      cell.column.columnDef.meta as
-                        { align?: string } | undefined
-                    )?.align;
+                    const align = cell.column.columnDef.meta?.align;
                     return (
                       <TableCell
                         key={cell.id}
@@ -558,7 +592,7 @@ const SurveyPointsTable: React.FC<SurveyPointsTableProps> = ({
       {table.getPageCount() > 1 && (
         <div className="flex items-center justify-end gap-2 text-sm">
           <span className="tabular text-muted-foreground">
-            Page {table.getState().pagination.pageIndex + 1} of{" "}
+            Page {table.state.pagination.pageIndex + 1} of{" "}
             {table.getPageCount()}
           </span>
           <Button
