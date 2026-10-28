@@ -74,9 +74,7 @@ export interface HeatmapRange {
 export type HeatmapProperty = keyof IperfTestProperty | "snr";
 
 export type HeatmapKey =
-  | "signalStrength"
-  | "snr"
-  | `${keyof IperfResults}-${keyof IperfTestProperty}`;
+  "signalStrength" | "snr" | `${keyof IperfResults}-${keyof IperfTestProperty}`;
 
 /** Saved bounds in display units: Mbps, ms, counts, signal percent or dB (SNR). */
 export type HeatmapScale = HeatmapRange & { enabled: boolean };
@@ -151,11 +149,7 @@ export interface MeasurementFields {
  * written (too late to cancel); "done": saved.
  */
 export type MeasurementState =
-  | "running"
-  | "saving"
-  | "done"
-  | "error"
-  | "cancelled";
+  "running" | "saving" | "done" | "error" | "cancelled";
 
 /**
  * MeasurementEvent - one server-sent event on /api/events, sent to every

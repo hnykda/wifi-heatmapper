@@ -319,7 +319,7 @@ export function parseNetshInterfaces(output: string): WifiResults {
   const lines = output.split("\n");
   let matchedLabels = 0;
   for (const line of lines) {
-    // eslint-disable-next-line prefer-const
+    // oxlint-disable-next-line prefer-const
     let [, key, val] = splitLine(line);
     if (key == "signalStrength") {
       val = val.replace(/%/g, ""); // remove all "%"

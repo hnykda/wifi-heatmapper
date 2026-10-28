@@ -28,6 +28,7 @@ export function Toaster() {
         const report =
           !action && props.variant === "destructive" ? (
             <ToastAction
+              key="report"
               altText="Report this problem"
               onClick={() => openReport(reportText(title, description))}
               data-testid="toast-report"

@@ -30,9 +30,14 @@ Node 22.12 or newer is required (CI, the Docker image and the desktop app use No
 | `npm run verify`     | Lint, type check and unit tests (what CI runs first)      |
 | `npm run e2e`        | Playwright end-to-end tests against a mock-mode server    |
 | `npm run e2e:ui`     | The same tests with Playwright's UI for debugging         |
-| `npm run lint`       | ESLint with auto-fix (Prettier runs through ESLint)       |
+| `npm run lint`       | oxlint with auto-fix, then Prettier formats the code      |
 | `npm run test:watch` | Vitest in watch mode                                      |
 | `npm run build`      | Production build (`npm start` serves it)                  |
+
+`npm run check` (the first part of `verify`) runs [oxlint](https://oxc.rs)
+with the rules in `.oxlintrc.json` and `prettier --check` on `src`,
+`__tests__` and `e2e`. Warnings, such as the React Compiler rules, don't
+fail it; errors do.
 
 The first `npm run e2e` needs a browser: `npx playwright install chromium`.
 The e2e server uses port 3100 and its own build directory, so it can run
