@@ -63,3 +63,7 @@ datas/media/*
 /desktop/.cache/
 /desktop/src-tauri/target/
 /desktop/src-tauri/gen/
+
+# website build (site/build.mjs)
+/_site/
+/site/node_modules/

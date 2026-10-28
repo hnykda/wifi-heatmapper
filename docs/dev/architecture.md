@@ -1,60 +1,24 @@
-# Theory of operation
+# Architecture
 
-**wifi-heatmapper** is a Next.js app that uses to a local backend server
-to measure both Wi-Fi signal strength and
-(optionally) TCP and UDP speeds to an `iperf3` server.
-Because the tests can be made
-at various locations within a site
-**wifi-heatmapper** can produce a heat map that shows
-where signal/throughput are high and low.
+How wifi-heatmapper is built, for people working on it. The user-facing
+version (which tools run on each system, what the signal percentage means,
+how the heat map is drawn) is [How it works](../guide/how-it-works.md);
+setup, commands and the test suites are in
+[CONTRIBUTING.md](../../CONTRIBUTING.md).
 
-## Development: Testing before a release
+wifi-heatmapper is a Next.js app with a local backend. The server runs the
+system's Wi-Fi tools (or `wifiScanner-mock.ts` with `WIFI_HEATMAPPER_MOCK=1`)
+and `iperf3`, parses their output, and stores one JSON file per floor plan in
+`data/surveys/` (images in `data/media/`; `WIFI_HEATMAPPER_DATA_DIR` moves
+both). The desktop app runs the same server; see
+[desktop-app.md](desktop-app.md).
 
-There are a number of tests to run before making
-a new **wifi-heatmapper** release.
-The entire code base should pass all tests with no warnings or errors.
-These include:
-
-* `npm run verify` - lint, type check and unit tests
-* `npm run build` - a production build
-* `npm run e2e` - Playwright end-to-end tests in mock mode
-
-See [CONTRIBUTING.md](../CONTRIBUTING.md) for details.
-
-## How wifi-heatmapper works
-
-To get information about the Wi-Fi signal and other parameters,
-the server backend invokes the commands below and parses the output.
-The results are stored as one JSON file per floor plan in `data/surveys/`
-(floor plan images are in `data/media/`).
-Set `WIFI_HEATMAPPER_DATA_DIR` to keep the data somewhere else.
-
-With `WIFI_HEATMAPPER_MOCK=1` (`npm run dev:mock`) none of the commands
-run: `wifiScanner-mock.ts` returns synthetic results instead.
-The Playwright end-to-end tests use this mode.
-
-## Platform-Specific Commands
-
-**wifi-heatmapper** runs the following CLI commands:
-they must be installed on your computer
-to make the measurements of Wi-Fi strength and throughput.
-
-| Platform | Commands          | Notes |
-| -------- | ----------------- | ----- |
-| macOS    | `wdutil`, `ioreg`, `system_profiler` | sudo password required for `wdutil` |
-| Windows  | `wlanapi.dll` (via koffi), `netsh` as a fallback | Part of the system  |
-| Linux    | `iw`, `nmcli` (optional) | `iw` might need to be installed. |
-| All | `iperf3` | See **iperf3** note below |
-
-**iperf3** must be installed locally to make TCP or UDP measurements.
-(If it is not installed, those measurements will be skipped.)
-A version greater than 3.17 is recommended for both server and client
-(ideally the same version, but that's not strictly necessary).
-The `iperf3` binary also must be available in `PATH`.
-For Windows you might have to set the path
-`set PATH=%PATH%;C:\path\to\iperf3`,
-e.g. use `set PATH=%PATH%;C:\iperf3` (or `setx` to make it permanent)
-before running `npm run dev`.
+Signal strength is stored both as RSSI (dBm) and as a percentage;
+`rssiToPercentage()` and `percentageToRSSI()` in _lib/utils.ts_ convert
+between them (-40 dBm = 100%, -100 dBm = 0%).
+[RSSI-Percentage.xlsx](RSSI-Percentage.xlsx) has the full table.
+Surveys from versions before 0.4.0 lived in the browser's localStorage;
+_lib/localStorageMigration.ts_ moves them to files once.
 
 ## Platform-specific `WifiActions`
 
@@ -86,21 +50,6 @@ a human readable error message suitable for display in the user interface.
   That constraint is unworkable: that effort has been abandonded for now._  
 * `getWifi()` Return the array with a single `WifiResults` with all the
   information for the current SSID.  
-
-## Running with higher LOG_LEVEL
-
-On **macOS or Linux**, use `LOG_LEVEL=level npm run dev`
-to control logging, where the `level` is
-0: silly, 1: trace, 2: debug, 3: info, 4: warn, 5: error, 6: fatal.
-Use this when submitting the bug reports.
-
-On **Windows**, use the `set...` command like this:
-
-```sh
-set LOG_LEVEL=level
-# echo %LOG_LEVEL% # optionally display the LOG_LEVEL
-npm run dev
-```
 
 ## Component Hierarchy
 
@@ -220,89 +169,6 @@ export type SSEMessageType = {
   remove the NewToast after several seconds.
 * `info` is a general message - ignored by NewToast
 
-## RSSI and Signal Strength
-
-The percentage signal strength (0-100%) is an intuitive measure
-of the Wi-Fi signal.
-Some OS utilities provide this value as a percentage, others provide "dBm".
-The `rssiToPercentage()` and `percentageToRSSI()` functions
-in _lib/utils.ts_ convert from one to the other.
-At the conclusion of each measurement, the code saves both values.
-
-wifi-heatmapper treats an RSSI of -40 dBm as 100% signal strength.
-This value is typically seen a couple feet from the access point.
-A 0% signal represents an RSSI of -100 dBm.
-(See the table below for conversion between % and dBm.)
-In practice:
-
-* Signal level values down to around 75% provide excellent service.
-  wifi-heatmapper colors any point in this range as green ("good").
-* Values between 75% and 50% provide acceptable service, with a
-  gradient from turquoise to blue (at 50%)
-* Any signal strength below 40% is too low for reliable service.
-  The color displayed in the heatmap
-  is correspondingly discouraging (yellow, red).
-
-This table shows readings both ways: RSSI (in dBm) <-> Signal strength (%).
-The **Drop in power** column is the decrease in power from
-a reference signal of one milliwatt (100% or -40 dBm).
-For more fine-grained calculations, see the
-[RSSI to Percentage](./RSSI-Percentage.xlsx)
-spreadsheet in _/docs_.
-
-| dBm | Percent |  | Percentage | dBm |  | Drop in power |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| -40 | 100% |  | 100% | -40 |  | 100.000000% |
-| -45 | 92% |  | 95% | -43 |  | 50.000000% |
-| -50 | 83% |  | 90% | -46 |  | 25.000000% |
-| -55 | 75% |  | 85% | -49 |  | 12.500000% |
-| -60 | 67% |  | 80% | -52 |  | 6.250000% |
-| -65 | 58% |  | 75% | -55 |  | 3.125000% |
-| -70 | 50% |  | 70% | -58 |  | 1.562500% |
-| -75 | 42% |  | 65% | -61 |  | 0.781250% |
-| -80 | 33% |  | 60% | -64 |  | 0.390625% |
-| -85 | 25% |  | 55% | -67 |  | 0.195313% |
-| -90 | 17% |  | 50% | -70 |  | 0.097656% |
-| -95 | 8% |  | 45% | -73 |  | 0.048828% |
-| -100 | 0% |  | 40% | -76 |  | 0.024414% |
-|  |  |  | 35% | -79 |  | 0.012207% |
-|  |  |  | 30% | -82 |  | 0.006104% |
-|  |  |  | 25% | -85 |  | 0.003052% |
-|  |  |  | 20% | -88 |  | 0.001526% |
-|  |  |  | 15% | -91 |  | 0.000763% |
-|  |  |  | 10% | -94 |  | 0.000381% |
-|  |  |  | 5% | -97 |  | 0.000191% |
-|  |  |  | 0% | -100 |  | 0.000095% |
-
-## What are the SSID and BSSID on macOS?
-
-In Windows 10 & 11 and in Linux (tested in Ubuntu 24.04),
-the APIs that retrieve signal strength also return the SSID and BSSID.
-
-That's not the case in macOS 15 (September 2024) and newer.
-In those newer macOS releases, Apple locks down those two values
-for security purposes, and the APIs return `<redacted>`.
-It appears the only way to get the BSSID value is to
-create a signed binary that acquires Location Access permissions
-from the user.
-This task is mentioned in the To-Do.md as a long-term project.
-
-There is a workaround for the SSID on macOS 15.
-The `system_profiler` call provides a list of _all_ the SSIDs
-"in the neighborhood" along with their signal strengths.
-The current SSID _IS_ available from the
-`spairport_current_network_information` property of the command's output.
-(The BSSID is still not available, though.)
-
-The `scanWifi()` function looks for the presence of the
-current SSID name from `system_profiler` and uses that name to
-replace `<redacted>` when returning measured the WifiResults.
-
-**BUT...** it gets worse with macOS 26 (released in September 2025).
-The `system_profiler` command returns `<redacted>` for both SSID and BSSID.
-There does not appear to be a way that a Javascript/Typescript
-program can return the actual values.
-
 ## Localization
 
 Windows reads Wi-Fi details from the Native Wifi API (`wlanapi.dll`, see
@@ -358,7 +224,7 @@ Heatmaps are rendered using WebGL.
 
 The rendering technique uses **Inverse Distance Weighted (IDW) interpolation**.
 For each pixel, nearby survey points within a defined
-[Radius](.#radius-slider-in-heatmaps) contribute values
+[Radius](#radius-slider-in-heatmaps) contribute values
 inversely proportional to their distance.
 Closer points have more influence, while farther ones contribute less.
 This creates a smooth, continuous surface representing signal
@@ -388,18 +254,3 @@ that incorporates a "distance" parameter for the background image.
 That may give a further hint about the size of the survey points.
 However, the current Radius algorithm works quite well.
 
-## Use of localStorage()
-
-**wifi-heatmapper** saves all the information associated with a particular
-floor plan image in localStorage() in an object named
-`wifi-heatmapper-floorplanImageName`.
-The name of the current floorplan is also saved
-in localStorage() in `wifi*heatmapper`.
-When the app is reloaded, the program retrieves that name, then loads the
-associated settings.
-
-The Settings pane allows the user to select from various floor plans
-that are saved in the _media_ folder on the server,
-and loads the saved settings when it is selected.
-(Uploading a new image creates a new `wifi-heatmapper...` object
-and sets the `wifi*heatmapper` string to that file name.)

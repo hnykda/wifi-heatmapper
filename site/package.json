@@ -1,0 +1,13 @@
+{
+  "name": "wifi-heatmapper-site",
+  "private": true,
+  "description": "Builds wifi-heatmapper.danielalder.cz from site/ and docs/guide. See README.md.",
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs ../_site",
+    "serve": "node build.mjs ../_site && node serve.mjs ../_site 8080"
+  },
+  "dependencies": {
+    "marked": "18.1.0"
+  }
+}

@@ -1,3 +1,9 @@
+---
+title: Installing the app
+description: Installers for macOS, Windows and Linux, the first launch of an unsigned app, Location access, and where your data is.
+order: 2
+---
+
 # Installing the app
 
 WiFi Heatmapper comes as a desktop app for macOS, Windows and Linux. It has
@@ -8,14 +14,8 @@ everything it needs built in: no Node.js, no terminal, no `npm`.
 > used on a real computer, and only on one Mac. See
 > [what has been tested](#what-has-been-tested) and please
 > [tell us how it went](#tell-us-how-it-went), good or bad.
-> If the app gives you trouble, [running from source](../README.md#run-from-source)
+> If the app gives you trouble, [running from source](run-from-source.md)
 > still works exactly as before.
-
-- [macOS](#macos)
-- [Windows](#windows)
-- [Linux](#linux)
-- [iperf3 for throughput tests](#iperf3-for-throughput-tests)
-- [What has been tested](#what-has-been-tested)
 
 ## macOS
 
@@ -153,7 +153,7 @@ Signal strength works out of the box. To also measure speed you need
 [iperf3](https://iperf.fr/iperf-download.php) on this computer and on a second
 computer on your network, ideally wired, running `iperf3 -s`. Homebrew and the
 `.deb` install it for you on this computer. See
-[measuring throughput](../README.md#measuring-throughput-with-iperf3-optional).
+[measuring speed with iperf3](throughput.md).
 
 ## What has been tested
 

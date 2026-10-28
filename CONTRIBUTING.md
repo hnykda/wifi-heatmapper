@@ -62,7 +62,9 @@ __tests__/              Vitest unit tests + fixtures of real command output
 e2e/                    Playwright tests
 assets/floorplans/      floor plans bundled with the app
 data/localization/      label tables for localized `netsh` output (Windows)
-docs/                   user docs, theory of operation, FAQ
+docs/guide/             the user guide, also published on the website
+docs/dev/               architecture, desktop app, to-do
+site/                   the website (wifi-heatmapper.danielalder.cz), built from docs/guide
 ```
 
 User data lives in `data/` (`surveys/*.json`, `media/*`). Set
@@ -93,7 +95,9 @@ test rather than a mock.
   The PR template asks for this. It is also how we filter out untested,
   auto-generated PRs.
 - Add a line to `CHANGELOG.md` under the unreleased version.
-- If you change something users see, update `docs/User_Interface.md`.
+- If you change something users see, update the page in `docs/guide/` that
+  describes it (usually `using-the-app.md`). The website is built from those
+  files on every push to `main`; see [site/README.md](site/README.md).
 
 ## Windows localization
 
@@ -104,7 +108,7 @@ keys (not the values), and add fixtures of your `netsh` output to
 
 ## Desktop app (development)
 
-The desktop app (see `docs/Desktop_App.md`) is the same server in a
+The desktop app (see `docs/dev/desktop-app.md`) is the same server in a
 [Tauri](https://tauri.app) window. Everything for it lives in `desktop/`,
 which has its own `package.json` so the root `npm ci` stays lean. You need
 [Rust](https://rustup.rs) (stable) on top of Node. On Linux (Debian/Ubuntu)
