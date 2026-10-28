@@ -328,7 +328,7 @@ function ModeOption({
         id={id}
         type="radio"
         name="measure-mode"
-        className="mt-0.5 h-4 w-4 shrink-0 accent-brand"
+        className="mt-0.5 h-4 w-4 shrink-0 accent-brand dark:[color-scheme:dark]"
         checked={checked}
         onChange={onSelect}
       />
