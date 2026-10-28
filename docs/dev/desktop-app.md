@@ -1,4 +1,4 @@
-# Desktop app plan
+# Desktop app
 
 Goal: people download an app for their OS from GitHub Releases and double-click
 it. No Node, no npm, no terminal. Builds are unsigned for now.
@@ -59,7 +59,7 @@ back to `wdutil` + sudo when it isn't. The helper path comes from an env var, so
   `npm run dev` picks it up.
 
 What we learned building it (details and log evidence in
-[`native/macos-wifi-helper/README.md`](../native/macos-wifi-helper/README.md)):
+[`native/macos-wifi-helper/README.md`](../../native/macos-wifi-helper/README.md)):
 
 - Running `WiFiHeatmapperHelper.app/Contents/MacOS/WiFiHeatmapperHelper`
   directly from node is enough. locationd registers the client under the

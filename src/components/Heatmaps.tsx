@@ -96,7 +96,7 @@ const singleMapTitles: Partial<Record<HeatmapProperty, string>> = {
 
 /**
  * Heatmaps - renders one heat map per selected metric/property
- * (WebGL inverse-distance weighting, see docs/Theory_of_Operation.md).
+ * (WebGL inverse-distance weighting, see docs/dev/architecture.md).
  */
 export function Heatmaps() {
   const { settings, updateSettings } = useSettings();

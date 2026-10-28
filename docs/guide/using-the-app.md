@@ -1,4 +1,10 @@
-# User Interface
+---
+title: Using the app
+description: Every tab and setting: floor plans, measuring, heat maps and colour scales, survey points.
+order: 3
+---
+
+# Using the app
 
 wifi-heatmapper has four sections, shown as tabs in the header. The strip
 under the header always shows which floor plan you are working on, how many
@@ -12,7 +18,7 @@ workflow. "Got it" hides it for good; the About dialog can show it again.
 
 ## Settings
 
-![Settings](images/settings.png)
+![Settings](../images/settings.png)
 
 * **Floor plan** – the image you click on. Choose one of the bundled plans or
   upload a PNG, JPEG or WebP. Each floor plan keeps its own survey in
@@ -37,7 +43,7 @@ workflow. "Got it" hides it for good; the About dialog can show it again.
 
 ## Floor plan
 
-![Floor plan](images/floorplan.png)
+![Floor plan](../images/floorplan.png)
 
 Stand where you want to measure and click that spot. A pulsing dot marks the
 spot while the measurement runs; the panel in the corner shows progress and
@@ -56,7 +62,7 @@ In mock mode, "Add sample points" fills the plan with synthetic points.
 
 ## Heat maps
 
-![Heat maps](images/heatmaps.png)
+![Heat maps](../images/heatmaps.png)
 
 Tick the measurements you want to see. By default, signal strength uses a
 0–100% scale; other measurements run from 0 to each map's maximum.
@@ -92,7 +98,7 @@ a caption with the floor plan name, point count and date.
 
 ## Survey points
 
-![Survey points](images/points.png)
+![Survey points](../images/points.png)
 
 Every measurement in the survey. Sort by any column, show more columns
 (RSSI, channel, PHY mode, coordinates, and more), filter, switch points off,

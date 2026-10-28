@@ -14,6 +14,7 @@ import { showWelcomeAgain } from "./WelcomePanel";
 import { DialogClose } from "@/components/ui/dialog";
 
 const REPO = "https://github.com/hnykda/wifi-heatmapper";
+const SITE = "https://wifi-heatmapper.danielalder.cz";
 
 /**
  * About: what is running, where the data lives, where to get help.
@@ -83,7 +84,7 @@ export function AboutDialog() {
           . Read the{" "}
           <a
             className="prose-link"
-            href={`${REPO}/blob/main/docs/User_Interface.md`}
+            href={`${SITE}/docs/using-the-app`}
             target="_blank"
             rel="noreferrer"
           >
@@ -92,7 +93,7 @@ export function AboutDialog() {
           or the{" "}
           <a
             className="prose-link"
-            href={`${REPO}/blob/main/docs/FAQ.md`}
+            href={`${SITE}/docs/faq`}
             target="_blank"
             rel="noreferrer"
           >

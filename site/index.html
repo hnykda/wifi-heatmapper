@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wi-Fi Heatmapper: see where your Wi-Fi is weak</title>
+<meta name="description" content="Free, open-source desktop app for macOS, Windows and Linux. Walk around, click where you stand on your floor plan, and get heat maps of Wi-Fi signal strength and iperf3 throughput.">
+<link rel="canonical" href="https://wifi-heatmapper.danielalder.cz/">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" href="/img/favicon-32.png" type="image/png">
+<link rel="apple-touch-icon" href="/img/icon-192.png">
+<link rel="alternate" type="text/plain" href="/llms.txt" title="LLM-readable summary">
+<meta name="theme-color" content="#f6f7f9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#14161b" media="(prefers-color-scheme: dark)">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Wi-Fi Heatmapper">
+<meta property="og:description" content="See where your Wi-Fi is weak. A free desktop app that draws heat maps of signal strength and speed on your floor plan.">
+<meta property="og:url" content="https://wifi-heatmapper.danielalder.cz/">
+<meta property="og:image" content="https://wifi-heatmapper.danielalder.cz/img/og.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="stylesheet" href="/style.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Wi-Fi Heatmapper",
+  "alternateName": "wifi-heatmapper",
+  "description": "Desktop app that measures Wi-Fi signal strength and iperf3 throughput where you stand and draws heat maps of the results on your floor plan.",
+  "applicationCategory": "UtilitiesApplication",
+  "operatingSystem": "macOS, Windows, Linux",
+  "softwareVersion": "{{VERSION}}",
+  "license": "https://opensource.org/licenses/MIT",
+  "isAccessibleForFree": true,
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+  "url": "https://wifi-heatmapper.danielalder.cz/",
+  "downloadUrl": "https://github.com/hnykda/wifi-heatmapper/releases/latest",
+  "codeRepository": "https://github.com/hnykda/wifi-heatmapper",
+  "screenshot": "https://wifi-heatmapper.danielalder.cz/img/heatmaps.webp",
+  "author": { "@type": "Person", "name": "Daniel Alder", "url": "https://danielalder.cz" }
+}
+</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+{{HEADER}}
+
+<main id="main">
+
+<section class="hero wrap" aria-labelledby="hero-title">
+  <div class="hero__copy">
+    <h1 id="hero-title">See where your Wi-Fi is weak.</h1>
+    <p class="lede">
+      Walk around with your laptop and click where you stand on a floor plan.
+      Wi-Fi Heatmapper measures the signal, and the speed if you like, right there.
+      A few rooms later you have a heat map of your home or office.
+    </p>
+    <div class="cta">
+      <a class="button" id="dl-primary" href="https://github.com/hnykda/wifi-heatmapper/releases/latest">Download</a>
+      <a class="button button--quiet" href="#download" id="dl-other">Other systems</a>
+    </div>
+    <p class="fineprint" id="dl-note">
+      Free and open source. macOS, Windows and Linux. Version {{VERSION}}.
+    </p>
+  </div>
+
+  <figure class="demo" aria-labelledby="demo-caption">
+    <div class="demo__plan" id="demo" role="application" aria-label="Interactive example floor plan. Click a spot to take a measurement there.">
+      <canvas id="demo-heat" aria-hidden="true"></canvas>
+      <svg id="demo-svg" viewBox="0 0 100 62" preserveAspectRatio="none" aria-hidden="true"></svg>
+    </div>
+    <figcaption id="demo-caption">
+      <span>Try it: click any room to measure it. The router is in the living room.</span>
+      <button type="button" class="linkish" id="demo-reset">Start over</button>
+    </figcaption>
+  </figure>
+</section>
+
+<section class="wrap screenshot" aria-label="Screenshot">
+  <figure>
+    <div class="shot__frame">
+      <img src="/img/heatmaps.webp" width="1280" height="860" loading="lazy"
+        alt="The Heat maps tab: signal strength and TCP download heat maps over a house and garage, mostly green near the house and yellow toward the garage.">
+    </div>
+    <figcaption>The real app. Green is good; yellow and red are where you need another access point.</figcaption>
+  </figure>
+</section>
+
+<section id="features" class="section wrap" aria-labelledby="features-title">
+  <div class="section__head">
+    <h2 id="features-title">What it does</h2>
+    <p>Answers the question “is it the Wi-Fi?” for every room, with numbers you can compare.</p>
+  </div>
+  <dl class="features">
+    <div>
+      <dt>Signal strength everywhere</dt>
+      <dd>Each spot records the signal in dBm and percent, plus the access point, channel, band and PHY mode it was connected to.</dd>
+    </div>
+    <div>
+      <dt>Real speed, not just bars</dt>
+      <dd>Point it at an <a href="https://iperf.fr">iperf3</a> server on your network and every spot also gets TCP and UDP throughput in both directions, jitter and lost packets.</dd>
+    </div>
+    <div>
+      <dt>Before and after</dt>
+      <dd>Fix the colour scale of each map, then survey again after moving the router or adding a mesh node. Same colours, same numbers.</dd>
+    </div>
+    <div>
+      <dt>Any floor plan</dt>
+      <dd>Upload an architect’s drawing, a screenshot from the map, or a phone photo of a pencil sketch. It does not need to be to scale.</dd>
+    </div>
+    <div>
+      <dt>Access points by name</dt>
+      <dd>Call <code>aa:bb:cc:dd:ee:*</code> “Upstairs mesh” and every band of that node shows up under one name in the table and export.</dd>
+    </div>
+    <div>
+      <dt>Stays on your computer</dt>
+      <dd>No account, no cloud, works offline. Surveys are plain JSON files. Export points as CSV and maps as PNG with a legend.</dd>
+    </div>
+  </dl>
+</section>
+
+<section id="how" class="section wrap" aria-labelledby="how-title">
+  <div class="section__head">
+    <h2 id="how-title">How it works</h2>
+    <p>A survey of a flat takes about ten minutes.</p>
+  </div>
+  <ol class="steps">
+    <li>
+      <h3>Pick a floor plan</h3>
+      <p>Use the bundled example or upload your own image in Settings. Each floor plan keeps its own survey.</p>
+    </li>
+    <li>
+      <h3>Click where you stand</h3>
+      <p>The app reads the Wi-Fi signal (and runs iperf3, if set up) and drops a coloured dot on that spot.</p>
+    </li>
+    <li>
+      <h3>Cover every room</h3>
+      <p>One or two spots per room, more in big ones and near the edges. Switch off or delete any odd reading.</p>
+    </li>
+    <li>
+      <h3>Read the heat maps</h3>
+      <p>Drag the radius until the dots merge into one surface, then download the maps you need.</p>
+    </li>
+  </ol>
+  <figure class="shot shot--small">
+    <div class="shot__frame">
+      <img src="/img/floorplan.webp" width="1280" height="860" loading="lazy"
+        alt="The Floor plan tab: survey points on the plan, each a coloured dot labelled with its signal percentage.">
+    </div>
+    <figcaption>Each dot is one measurement, labelled with its signal strength.</figcaption>
+  </figure>
+  <div class="under-hood">
+    <h3>Under the hood</h3>
+    <p>
+      The app uses what your system already has: CoreWLAN on macOS (through a small helper, no password),
+      the Native Wifi API on Windows, and <code>iw</code> on Linux. Throughput comes from
+      <code>iperf3</code>. The heat map is inverse-distance weighting drawn with WebGL.
+      The details are on the
+      <a href="/docs/how-it-works">how it works</a> page.
+    </p>
+  </div>
+</section>
+
+<section id="download" class="section wrap" aria-labelledby="download-title">
+  <div class="section__head">
+    <h2 id="download-title">Download</h2>
+    <p>Version {{VERSION}}. Everything is built in, except iperf3 if you want to measure speed.</p>
+  </div>
+
+  <div class="downloads">
+    <div class="platform" data-os="mac">
+      <h3>macOS</h3>
+      <p class="req">macOS 11 or later</p>
+      <ul>
+        <li><a href="https://github.com/hnykda/wifi-heatmapper/releases/download/v{{VERSION}}/WiFi.Heatmapper_{{VERSION}}_aarch64.dmg">Apple silicon (.dmg)</a></li>
+        <li><a href="https://github.com/hnykda/wifi-heatmapper/releases/download/v{{VERSION}}/WiFi.Heatmapper_{{VERSION}}_x64.dmg">Intel (.dmg)</a></li>
+      </ul>
+      <p class="or">Or with Homebrew, which installs iperf3 too:</p>
+      <div class="cmd">
+        <code>brew install --cask hnykda/tap/wifi-heatmapper</code>
+        <button type="button" class="copy" data-copy="brew install --cask hnykda/tap/wifi-heatmapper">Copy</button>
+      </div>
+    </div>
+    <div class="platform" data-os="win">
+      <h3>Windows</h3>
+      <p class="req">Windows 10 or 11, x64</p>
+      <ul>
+        <li><a href="https://github.com/hnykda/wifi-heatmapper/releases/download/v{{VERSION}}/WiFi.Heatmapper_{{VERSION}}_x64-setup.exe">Installer for you (.exe)</a></li>
+        <li><a href="https://github.com/hnykda/wifi-heatmapper/releases/download/v{{VERSION}}/WiFi.Heatmapper_{{VERSION}}_x64_en-US.msi">Installer for all users (.msi)</a></li>
+      </ul>
+    </div>
+    <div class="platform" data-os="linux">
+      <h3>Linux</h3>
+      <p class="req">x64 and ARM64, including Raspberry Pi</p>
+      <ul>
+        <li><a href="https://github.com/hnykda/wifi-heatmapper/releases/download/v{{VERSION}}/WiFi.Heatmapper_{{VERSION}}_amd64.deb">Debian, Ubuntu (x64 .deb)</a></li>
+        <li><a href="https://github.com/hnykda/wifi-heatmapper/releases/download/v{{VERSION}}/WiFi.Heatmapper_{{VERSION}}_arm64.deb">Debian, Raspberry Pi OS (ARM64 .deb)</a></li>
+        <li><a href="https://github.com/hnykda/wifi-heatmapper/releases/download/v{{VERSION}}/WiFi.Heatmapper_{{VERSION}}_amd64.AppImage">Any distribution (x64 AppImage)</a></li>
+        <li><a href="https://github.com/hnykda/wifi-heatmapper/releases/download/v{{VERSION}}/WiFi.Heatmapper_{{VERSION}}_aarch64.AppImage">Any distribution (ARM64 AppImage)</a></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="notes">
+    <p>
+      <strong>The apps are not signed</strong>, so macOS and Windows warn you the first time you open them.
+      The <a href="/docs/install">install guide</a>
+      shows the two clicks it takes on each system, where your data is kept, and
+      <a href="/docs/install#what-has-been-tested">what has been tested</a> so far.
+    </p>
+    <p>
+      <strong>Rather run it from source?</strong> With Node.js 20 or newer:
+    </p>
+    <pre class="code"><code>git clone https://github.com/hnykda/wifi-heatmapper.git
+cd wifi-heatmapper
+npm install
+npm run dev        # then open http://localhost:3000</code></pre>
+    <p>
+      There is also a <a href="/docs/run-from-source#docker-linux-hosts-only">Docker image</a> for Linux hosts,
+      and <code>npm run dev:mock</code> to try the app with made-up measurements on any machine.
+      All files are on the <a href="https://github.com/hnykda/wifi-heatmapper/releases">releases page</a>.
+    </p>
+  </div>
+</section>
+
+<section id="docs" class="section wrap" aria-labelledby="docs-title">
+  <div class="section__head">
+    <h2 id="docs-title">Documentation</h2>
+    <p>The same pages live in the repository as Markdown, so they change together with the code.</p>
+  </div>
+  <ul class="doclist">
+{{DOCS_LIST}}
+    <li><a href="/llms.txt">llms.txt</a><span>A plain-text map of the docs for AI assistants. <a href="/llms-full.txt">llms-full.txt</a> has every page in one file.</span></li>
+  </ul>
+</section>
+
+<section id="contribute" class="section wrap support" aria-labelledby="contribute-title">
+  <div class="section__head">
+    <h2 id="contribute-title">Free, and open to help</h2>
+    <p>
+      Wi-Fi Heatmapper is MIT licensed: no ads, no accounts, no paid tier.
+      If it saved you an afternoon of guessing where to put the router, a star helps others find it.
+    </p>
+  </div>
+  <div class="cta">
+    <a class="button" href="https://github.com/hnykda/wifi-heatmapper">Star on GitHub</a>
+  </div>
+  <ul class="help">
+    <li>
+      <h3>Tell us how it went</h3>
+      <p>The desktop apps are young. Even “it just worked” helps: open a
+        <a href="https://github.com/hnykda/wifi-heatmapper/issues/new?template=desktop-app-report.md">desktop app report</a>
+        with your system and what you tried.</p>
+    </li>
+    <li>
+      <h3>Report a problem</h3>
+      <p><a href="https://github.com/hnykda/wifi-heatmapper/issues/new/choose">Open an issue</a> with the details from the
+        app’s About dialog (the “i” in the header) and a log if you have one.</p>
+    </li>
+    <li>
+      <h3>Send a pull request</h3>
+      <p>Start with <a href="https://github.com/hnykda/wifi-heatmapper/blob/main/CONTRIBUTING.md">CONTRIBUTING.md</a> or a
+        <a href="https://github.com/hnykda/wifi-heatmapper/issues?q=is%3Aissue%20state%3Aopen%20label%3A%22good%20first%20issue%22">good first issue</a>.
+        Mock mode runs the whole app without Wi-Fi, so any machine will do.</p>
+    </li>
+  </ul>
+</section>
+
+</main>
+
+{{FOOTER}}
+
+<script src="/main.js" defer></script>
+</body>
+</html>

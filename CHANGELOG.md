@@ -75,7 +75,7 @@ _This section follows the precepts of [Keep a Changelog](https://keepachangelog.
 * **Desktop apps** for macOS (Apple silicon and Intel), Windows and Linux
   (x64 and ARM64), built by GitHub Actions for every release. No Node.js or
   terminal needed; data lives in the system's app-data folder. Early builds:
-  see [docs/Install.md](docs/Install.md) for install steps and what has been
+  see [docs/guide/install.md](docs/guide/install.md) for install steps and what has been
   tested. Mac users can also `brew install --cask hnykda/tap/wifi-heatmapper`.
 * **macOS without sudo**: a small helper reads the Wi-Fi signal through
   CoreWLAN, and with Location access also the network name that `wdutil` now
@@ -232,7 +232,7 @@ floor plans uploaded to `public/media` are copied to `data/media` on first start
 * The `setWifi()` function now throws an error for all platforms.
   This function is no longer implemented (it was a hold-over) from
   the `scan-wifi` branch that had too many constraints.
-  See [Theory of Operations](./docs/Theory_of_Operation.md#what-are-the-ssid-and-bssid-on-macos?) for more info.
+  See [Theory of Operations](./docs/guide/how-it-works.md#network-names-on-macos) for more info.
 * ~~Updated _wifiScanner-macos.ts_ to use `system_profiler` to retrieve
   the name of the current SSID.~~
   macOS 26 (September 2025) now hides both SSID and BSSID
@@ -357,7 +357,7 @@ floor plans uploaded to `public/media` are copied to `data/media` on first start
   files for easier maintenance
 * [Theory of Operation.md](./docs/Theory of Operation.md) has many
   notes that discuss how this code works
-* [To-Do.md](./docs/To-Do.md) shows outstanding questions and errors.
+* [To-Do.md](./docs/dev/to-do.md) shows outstanding questions and errors.
 
 ## Version 0.1.0 - 2025-01-25
 

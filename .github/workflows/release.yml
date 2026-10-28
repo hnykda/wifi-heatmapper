@@ -1,6 +1,6 @@
 name: Release
 
-# Builds the desktop app (desktop/, see docs/Desktop_App.md) for every
+# Builds the desktop app (desktop/, see docs/dev/desktop-app.md) for every
 # platform in the matrix and attaches the installers to a DRAFT GitHub release.
 # Nothing is published until someone reviews the draft and clicks Publish.
 on:
@@ -218,9 +218,9 @@ jobs:
             **Early builds.** The desktop apps are new. They are built and
             started automatically, but so far only the macOS app has been used
             on a real computer.
-            [What has been tested](https://github.com/hnykda/wifi-heatmapper/blob/main/docs/Install.md#what-has-been-tested)
+            [What has been tested](https://wifi-heatmapper.danielalder.cz/docs/install#what-has-been-tested)
             · [Tell us how it went](https://github.com/hnykda/wifi-heatmapper/issues/new?template=desktop-app-report.md)
-            · [Install guide](https://github.com/hnykda/wifi-heatmapper/blob/main/docs/Install.md)
+            · [Install guide](https://wifi-heatmapper.danielalder.cz/docs/install)
 
             **These builds are not signed.** Your computer will warn you the
             first time you open the app.

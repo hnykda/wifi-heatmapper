@@ -20,6 +20,7 @@ and draws heat maps on a floor plan. Runs on macOS, Windows, Linux (+Docker).
 - `src/components/GlobalSettings.tsx` owns all client state for the current survey and debounces writes to `/api/settings`. Mutate through `updateSettings` / `surveyPointActions` only.
 - `src/components/layout/AppShell.tsx` is the header + tabs; the active tab is in the URL hash.
 - Floor plan images are served by `/api/media/[name]`, never from `/public`, so `next start` works.
+- `docs/guide/*.md` is the user guide and the single source for the website: `site/build.mjs` renders it to wifi-heatmapper.danielalder.cz/docs/<slug> (GitHub Pages, `.github/workflows/site.yml`) and generates `llms.txt` / `llms-full.txt` from it. Developer docs are in `docs/dev/`. See `site/README.md`.
 
 ## Conventions
 
@@ -28,4 +29,5 @@ and draws heat maps on a floor plan. Runs on macOS, Windows, Linux (+Docker).
 - Route handlers export only HTTP methods and `dynamic`; put constants elsewhere (Next's type check rejects other exports).
 - UI copy: sentence case, plain verbs, no jargon. Tokens live in `globals.css`; use `brand` for interactive accents, never raw colors. The heat map gradient is the only loud color.
 - `data-testid` attributes are the e2e contract; keep them when refactoring.
+- A user-visible change updates the matching `docs/guide/` page in the same PR. Link between guide pages with relative `.md` links; the site build rewrites them.
 - Do not add Google Fonts or other network-loaded assets: the app must work offline.
