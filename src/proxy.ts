@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { checkApiRequest } from "@/lib/request-guard";
 
 // Refuse API requests from other web sites (see request-guard.ts)
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const reason = checkApiRequest(
     {
       method: request.method,

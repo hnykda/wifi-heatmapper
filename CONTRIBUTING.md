@@ -48,6 +48,21 @@ so when running e2e in two checkouts at once give each its own port:
 Set `LOG_LEVEL=2` (debug) or `LOG_LEVEL=1` (trace) to see every command the
 server runs and its output. Bug reports should include that log.
 
+### Working with a coding agent
+
+`CLAUDE.md` holds the project instructions for agents; `AGENTS.md` points to
+it and carries a block that `next dev` keeps up to date, telling agents to
+read the Next.js docs bundled in `node_modules/next/dist/docs/` (commit it if
+`next dev` changes it).
+
+`.mcp.json` registers [`next-devtools-mcp`](https://www.npmjs.com/package/next-devtools-mcp)
+for Claude Code and other MCP clients that read it. It connects to the
+`/_next/mcp` endpoint of a running `npm run dev` / `npm run dev:mock` and
+gives the agent the dev server's errors, routes, logs and compile results
+(without a full `npm run build`). It only exists in `next dev`. This is a
+tool for working on the code and has nothing to do with the app's own MCP
+server in `src/mcp/` (for users, see [docs/guide/mcp.md](docs/guide/mcp.md)).
+
 ## Where things are
 
 ```

@@ -16,7 +16,7 @@ WiFi Heatmapper.app / .exe / .AppImage
     ├── server-entry.mjs      exits when the shell goes away, then loads server.js
     ├── mcp-server.mjs        optional MCP server for AI agents (docs/guide/mcp.md)
     ├── server.js, .next-desktop/, node_modules/
-    │                         Next's `output: "standalone"` build
+    │                         Next's `output: "standalone"` build (webpack, see build-server.mjs)
     ├── public/, assets/, data/localization/
     └── helpers/              macOS: WiFiHeatmapperHelper.app (the Wi-Fi reader)
 ```
