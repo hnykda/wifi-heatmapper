@@ -50,11 +50,14 @@ export async function GET(req: NextRequest) {
     writer.close().catch(() => {});
   }
 
-  // Cleanup on client disconnect
-  req.signal.addEventListener("abort", () => {
+  // A client that goes away is normal: stop sending, drop the listener.
+  // It may have gone already, before this handler got here.
+  const onDisconnect = () => {
     close();
     logger.debug("SSE client disconnected");
-  });
+  };
+  if (req.signal.aborted) onDisconnect();
+  else req.signal.addEventListener("abort", onDisconnect, { once: true });
 
   return new Response(stream.readable, {
     headers: {

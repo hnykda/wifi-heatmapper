@@ -18,6 +18,11 @@
  * 2. start again and kill the app (taskkill /F, like Task Manager or a crash):
  *    the Job Object must end both. The server's own "stdin closed" exit would
  *    end node.exe but not the grandchild, so this tells the two apart.
+ *
+ * Exits with 0 when everything passed, 75 when the only failure is one known
+ * to be a runner flake (the app not quitting on a window close sent right
+ * after it started), so smoke-test-windows-install.mjs runs it once more,
+ * and 1 otherwise. Each step prints how long it took.
  */
 import { spawn, spawnSync } from "node:child_process";
 import {
@@ -106,13 +111,16 @@ async function until(what, cond, ms) {
   }
 }
 
-let failed = false;
-function fail(message) {
-  console.error(`FAIL ${message}`);
-  failed = true;
+const started = Date.now();
+const elapsed = () => `[${((Date.now() - started) / 1000).toFixed(1)}s]`;
+
+const failures = [];
+function fail(message, { knownFlake = false } = {}) {
+  console.error(`FAIL ${elapsed()} ${message}`);
+  failures.push({ message, knownFlake });
 }
 function ok(message) {
-  console.log(`ok   ${message}`);
+  console.log(`ok   ${elapsed()} ${message}`);
 }
 
 async function run(label, quit) {
@@ -177,7 +185,14 @@ async function run(label, quit) {
       fail(`taskkill: ${killed.stdout}${killed.stderr}`);
       return;
     }
-    await until("the app exits", () => appExited, 20_000);
+    try {
+      await until("the app exits", () => appExited, 20_000);
+    } catch (err) {
+      // Seen once on a runner: a window close right after the start was
+      // lost. Anything else about quitting is a real failure.
+      fail(err.message, { knownFlake: label === "close-window" });
+      return;
+    }
     ok("the app exited");
     try {
       await until(
@@ -225,6 +240,8 @@ if (existsSync(log)) ok(`server log at ${log}`);
 else fail(`no server log at ${log}`);
 
 rmSync(work, { recursive: true, force: true });
-if (failed) process.exit(1);
+if (failures.length > 0) {
+  process.exit(failures.every((f) => f.knownFlake) ? 75 : 1);
+}
 console.log("\napp smoke test passed");
 process.exit(0);

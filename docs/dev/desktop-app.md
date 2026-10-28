@@ -184,7 +184,8 @@ Done in part 3. Where it differs from the shape above:
 - **CI:** the server bundle smoke test runs on `windows-latest` as well, and
   the release workflow installs both installers on the runner, starts the
   app, and checks that a window close and a `taskkill /F` leave no node.exe
-  or child behind (`desktop/smoke-test-app.mjs`).
+  or child behind (`desktop/smoke-test-windows-install.mjs` and
+  `desktop/smoke-test-app.mjs`).
 
 ## Releases
 
