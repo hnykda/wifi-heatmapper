@@ -30,7 +30,7 @@ export function HelpMenu({ tab }: { tab: string }) {
             aria-label="Help"
             title="Help"
             data-testid="help-button"
-            className="fixed bottom-4 right-4 z-30 inline-flex [body:has([data-testid=measurement-panel])_&]:hidden h-9 w-9 items-center justify-center rounded-full border bg-popover text-muted-foreground shadow-float transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="fixed bottom-4 right-4 z-30 inline-flex [body:has([data-testid=measurement-panel])_&]:hidden h-9 w-9 items-center justify-center rounded-full border bg-popover text-muted-foreground shadow-float transition-colors hover:text-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
           >
             <CircleHelp className="h-4 w-4" />
           </button>

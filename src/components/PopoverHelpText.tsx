@@ -12,7 +12,7 @@ export const PopoverHelper = ({ text }: { text: string }) => {
       <PopoverTrigger
         type="button"
         aria-label="More information"
-        className="inline-flex h-5 w-5 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="inline-flex h-5 w-5 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
       >
         <Info className="h-3.5 w-3.5" />
       </PopoverTrigger>

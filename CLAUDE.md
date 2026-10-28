@@ -1,6 +1,6 @@
 # wifi-heatmapper
 
-Next.js 16 (app router, React 19, Tailwind 3, shadcn/Radix) desktop-style web
+Next.js 16 (app router, React 19, Tailwind 4, shadcn/Radix) desktop-style web
 app that measures Wi-Fi signal + iperf3 throughput on the machine it runs on
 and draws heat maps on a floor plan. Runs on macOS, Windows, Linux (+Docker).
 

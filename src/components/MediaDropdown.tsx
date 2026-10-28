@@ -102,7 +102,7 @@ export default function FloorplanPicker({
           <DropdownMenu.Content
             align="start"
             sideOffset={4}
-            className="z-50 w-[var(--radix-dropdown-menu-trigger-width)] min-w-[16rem] rounded-md border bg-popover p-1 text-popover-foreground shadow-float"
+            className="z-50 w-(--radix-dropdown-menu-trigger-width) min-w-[16rem] rounded-md border bg-popover p-1 text-popover-foreground shadow-float"
           >
             {files.length > 6 && (
               <div className="p-1 pb-2">
@@ -127,8 +127,8 @@ export default function FloorplanPicker({
                 <DropdownMenu.Item
                   key={item}
                   className={cn(
-                    "flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none",
-                    "data-[highlighted]:bg-accent",
+                    "flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden",
+                    "data-highlighted:bg-accent",
                     item === value && "font-medium",
                   )}
                   onSelect={() => onChange(item)}
@@ -148,7 +148,7 @@ export default function FloorplanPicker({
 
             <DropdownMenu.Item
               onSelect={() => fileInputRef.current?.click()}
-              className="flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none data-[highlighted]:bg-accent"
+              className="flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden data-highlighted:bg-accent"
             >
               <ImagePlus className="h-4 w-4 shrink-0 text-muted-foreground" />
               Upload an image

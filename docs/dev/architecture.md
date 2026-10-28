@@ -83,7 +83,9 @@ This is a fairly standard Next.js project:
 * `page.tsx` renders `AppShell`
 * `instrumentation.ts` runs `initServer()` once when the server starts
 * `api` folder contains the routes
-* `globals.css` holds the design tokens (light and dark) and Tailwind
+* `globals.css` holds the design tokens (light and dark) and the Tailwind 4
+  setup: `@theme inline` maps the tokens to utilities (there is no
+  tailwind.config)
 
 `AppShell` (in `components/layout/`) draws the header with the four tabs
 and the survey summary strip, and renders:

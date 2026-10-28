@@ -13,7 +13,7 @@ const HeatmapImage: React.FC<{
       <button
         type="button"
         onClick={onClick}
-        className="block w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="block w-full focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
         aria-label={`Enlarge ${alt}`}
       >
         <img src={src} alt={alt} className="block w-full" />
