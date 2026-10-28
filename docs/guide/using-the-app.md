@@ -203,8 +203,11 @@ Every measurement in the survey. Sort by any column, show more columns
 switch points off, delete a selection, or export everything: **Export CSV**
 for a spreadsheet, **Export JSON** for the whole survey (points and
 settings) exactly as the app saves it. The
-**Name** column shows each point's name; click it to rename the point,
-the same way as in its details. The CSV has it in the `label` column. The
+**Name** column shows each point's name (its id, such as `Point_3`, until
+you name it; the id column is under **Columns**); click it to rename the
+point, the same way as in its details. Each access point gets its own
+colour in the **Access point** column and in a point's details, so points
+on the same access point are easy to spot. The CSV has it in the `label` column. The
 download and upload columns appear once a point has a speed reading.
 A test that did not run shows as "—" (an empty cell in the CSV); a test
 that ran and got nothing through shows as 0, a real dead spot.

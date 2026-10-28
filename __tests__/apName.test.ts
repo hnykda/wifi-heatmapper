@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  AP_HUES,
+  apHues,
+  apKeyFor,
   apNameFor,
   formatApPattern,
   isValidApPattern,
@@ -90,5 +93,34 @@ describe("formatApPattern", () => {
     expect(formatApPattern("9e05d696e830")).toBe("9E-05-D6-96-E8-30");
     expect(formatApPattern("9e:05:d6:96:e8:*")).toBe("9E-05-D6-96-E8-*");
     expect(formatApPattern("9e05d*")).toBe("9E-05-D-*");
+  });
+});
+
+describe("apHues", () => {
+  const mapping: ApMapping[] = [
+    { apName: "Hall", macAddress: "aa:bb:cc:dd:ee:*" },
+  ];
+
+  it("gives each access point its own hue, the same one for every point", () => {
+    const hues = apHues(
+      ["aabbccddee01", "AA-BB-CC-DD-EE-02", "112233445566", "112233445566"],
+      mapping,
+    );
+    // both Hall BSSIDs are one access point; sorted keys: BSSID, then Hall
+    expect([...hues.keys()]).toEqual(["112233445566", "Hall"]);
+    expect(hues.get("112233445566")).toBe(AP_HUES[0]);
+    expect(hues.get(apKeyFor("aabbccddee02", mapping))).toBe(AP_HUES[1]);
+  });
+
+  it("doesn't depend on the order of the points, and cycles", () => {
+    const many = Array.from(
+      { length: AP_HUES.length + 1 },
+      (_, i) => `0000000000${i.toString(16).padStart(2, "0")}`,
+    );
+    const a = apHues(many, []);
+    const b = apHues([...many].reverse(), []);
+    expect([...a]).toEqual([...b]);
+    expect(a.get(many.at(-1)!)).toBe(AP_HUES[0]);
+    expect(apHues([undefined, ""], []).size).toBe(0);
   });
 });

@@ -62,3 +62,31 @@ export function apNameFor(
   }
   return best?.apName;
 }
+
+/** Muted hues the access point chips cycle through: green, blue, amber, violet, … */
+export const AP_HUES = [150, 205, 32, 270, 345, 180, 55, 230];
+
+/** What identifies an access point: its name, else its BSSID. */
+export function apKeyFor(
+  bssid: string | undefined,
+  apMapping: ApMapping[] | undefined,
+): string {
+  return (
+    apNameFor(bssid, apMapping) ?? (bssid ? normalizeMacAddress(bssid) : "")
+  );
+}
+
+/**
+ * A hue per access point seen in a survey, so the same access point has
+ * the same colour everywhere. Sorted, so the colours don't change when the
+ * table is sorted or a point is added for an access point already seen.
+ */
+export function apHues(
+  bssids: (string | undefined)[],
+  apMapping: ApMapping[] | undefined,
+): Map<string, number> {
+  const keys = [
+    ...new Set(bssids.map((b) => apKeyFor(b, apMapping)).filter(Boolean)),
+  ].sort();
+  return new Map(keys.map((k, i) => [k, AP_HUES[i % AP_HUES.length]]));
+}

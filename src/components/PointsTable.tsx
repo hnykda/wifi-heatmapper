@@ -63,7 +63,8 @@ import {
   snrOf,
   validNoise,
 } from "@/lib/utils";
-import { apNameFor } from "@/lib/apName";
+import { apHues, apKeyFor, apNameFor } from "@/lib/apName";
+import { ApChip } from "./ApChip";
 import { hasSpeedData } from "@/lib/measurement-mode";
 import { surveyPointsToCsv, downloadText } from "@/lib/exportCsv";
 import { ExportSurveyButton } from "./ExportSurveyButton";
@@ -96,7 +97,7 @@ const features = tableFeatures({
 
 type Row = {
   id: string;
-  label: string; // "" when the point has no name
+  label: string; // the name, or the id when the point has none
   x: number;
   y: number;
   ssid: string;
@@ -152,6 +153,8 @@ const SurveyPointsTable: React.FC<SurveyPointsTableProps> = ({
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnVisibility, setColumnVisibility] =
     useState<ColumnVisibilityState>({
+      // the point's id: the Name column shows it until a point is named
+      id: false,
       rssi: false,
       noise: false,
       snr: false,
@@ -167,10 +170,16 @@ const SurveyPointsTable: React.FC<SurveyPointsTableProps> = ({
       udpUploadMbps: false,
     });
 
+  const hues = apHues(
+    data.map((p) => p.wifiData.bssid),
+    apMapping,
+  );
+
   const rows: Row[] = data.map((point) => ({
     origPoint: point,
     id: point.id,
-    label: point.label ?? "",
+    // sorts and filters by what the Name column shows
+    label: point.label || point.id,
     x: point.x,
     y: point.y,
     ssid: point.wifiData.ssid,
@@ -288,15 +297,18 @@ const SurveyPointsTable: React.FC<SurveyPointsTableProps> = ({
       accessorKey: "accessPoint",
       header: "Access point",
       meta: { align: "left" },
-      cell: ({ row }) =>
-        row.original.accessPoint ||
-        (row.original.bssid ? (
-          <span className="font-mono text-xs text-muted-foreground">
-            {formatMacAddress(row.original.bssid)}
-          </span>
-        ) : (
-          ""
-        )),
+      cell: ({ row }) => {
+        const { accessPoint, bssid } = row.original;
+        if (!accessPoint && !bssid) return "";
+        return (
+          <ApChip
+            hue={hues.get(apKeyFor(bssid, apMapping))}
+            mono={!accessPoint}
+          >
+            {accessPoint || formatMacAddress(bssid)}
+          </ApChip>
+        );
+      },
     },
     { accessorKey: "ssid", header: "Network", meta: { align: "left" } },
     {

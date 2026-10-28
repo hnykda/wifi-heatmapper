@@ -6,6 +6,14 @@ _This section follows the precepts of [Keep a Changelog](https://keepachangelog.
 
 ### Added
 
+* **Zoom and pan on the floor plan** and on an enlarged heat map. Use the
+  buttons in the corner, ctrl/cmd + scroll or a trackpad pinch (zooms at
+  the cursor), or + / - / 0 with the plan focused; drag to move around.
+  A drag never takes a measurement. The plan now fits the window, so a
+  tall one no longer runs off the screen.
+* **Access points are colour-coded.** In the points table and a point's
+  details, each access point is a small tag in its own muted colour, the
+  same everywhere in the survey.
 * **Export JSON.** The Points tab has **Export JSON** next to **Export
   CSV**, and Settings has **Download** next to where the survey is saved:
   both download the whole survey (points and settings) as the app saves it.
@@ -21,15 +29,15 @@ _This section follows the precepts of [Keep a Changelog](https://keepachangelog.
 * **Speed tests run 5 seconds each by default**, up from 1: a connection
   takes a second or two to reach full speed, so one-second tests read low
   and jump around. Existing surveys keep their setting.
+* **The points table hides the Point (id) column** by default: the Name
+  column shows the id until a point is named. **Columns** brings it back.
 * **Colour scales on the Heat maps tab are folded away** until you open
   them.
 * **"Last measured" shows the time** (or the date and time) instead of
   "just now", which never updated.
-
 * **No more usage counts notice.** The banner at the top of the app the
   first time it runs is gone. **Settings > Usage counts** has the switch at
   the top, with **Why** and **What's sent** folded underneath.
-
 * **Usage counts send less.** A `Measurement` event now carries only
   `speed_test` (`on` or `off`: whether the survey runs iperf3 speed tests)
   instead of `mode` and `speed_ok`, so it no longer says whether a speed
