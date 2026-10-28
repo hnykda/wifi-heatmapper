@@ -8,8 +8,11 @@ import { defineConfig, devices } from "@playwright/test";
  * Locally:   npm run e2e          (starts `next dev` on :3100 for you)
  * In CI:     npm run e2e:build && CI=1 npm run e2e   (uses `next start`)
  * The e2e server builds into .next-e2e, so it can run next to `npm run dev`.
+ * E2E_PORT picks another port (default 3100), e.g. for parallel checkouts:
+ * a server already on the port is reused, so two checkouts sharing one
+ * would test each other's code.
  */
-const PORT = 3100;
+const PORT = Number(process.env.E2E_PORT || 3100);
 const baseURL = `http://localhost:${PORT}`;
 
 export default defineConfig({
@@ -30,11 +33,15 @@ export default defineConfig({
   projects: [
     {
       name: "chromium",
-      use: { ...devices["Desktop Chrome"], viewport: { width: 1280, height: 900 } },
+      use: {
+        ...devices["Desktop Chrome"],
+        viewport: { width: 1280, height: 900 },
+      },
     },
   ],
   webServer: {
-    command: process.env.CI ? "npm run e2e:serve:prod" : "npm run e2e:serve:dev",
+    // The scripts default to -p 3100; a later -p wins
+    command: `npm run ${process.env.CI ? "e2e:serve:prod" : "e2e:serve:dev"} -- -p ${PORT}`,
     url: `${baseURL}/api/status`,
     reuseExistingServer: !process.env.CI,
     timeout: 180_000,
