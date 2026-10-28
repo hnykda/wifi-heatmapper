@@ -119,8 +119,10 @@ test("points can be inspected, ignored and deleted from the plan", async ({
 });
 
 test("sample points fill the plan in mock mode", async ({ page }) => {
-  await uploadFloorplan(page);
+  const name = await uploadFloorplan(page);
   await gotoTab(page, "floorplan");
   await page.getByTestId("add-sample-points").click();
   await expect(page.getByTestId("summary-points")).toContainText("24");
+  // All 24 are added in one tick; every one of them must reach the file.
+  await readSurvey(page, name, (s) => s.surveyPoints.length === 24);
 });
