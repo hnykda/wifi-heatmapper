@@ -2,6 +2,14 @@
 
 _This section follows the precepts of [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) so that future readers can understand the state and evolution of the project._
 
+## Unreleased
+
+### Fixed
+
+* Windows: each Wi-Fi reading no longer waits about 5 seconds before it is
+  read on English, German, French, Spanish and Italian systems. The app was
+  waiting for a "State" line that only the Chinese table recognised.
+
 ## Version 0.7.0 - 2026-10-27
 
 ### Added

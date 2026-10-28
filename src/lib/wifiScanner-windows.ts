@@ -174,15 +174,13 @@ export class WindowsWifiActions implements WifiActions {
       reason: "",
     };
     let stdout: string = "";
-    // Wait (up to ~5 s) for the adapter to report a state line. If the
+    // Wait (up to ~5 s) for the adapter to report its signal. If the
     // output is in a language we have no localization table for, the
     // line never matches: fall through and let parseNetshInterfaces()
     // explain the problem instead of waiting forever.
     for (let attempt = 0; attempt < 25; attempt++) {
       stdout = await netsh("wlan show interfaces");
-      const lines = stdout.split("\n");
-      const state = lines.filter((line) => splitLine(line)[1] == "state");
-      if (state.length > 0) break;
+      if (netshInterfacesReady(stdout)) break;
       await delay(200);
     }
     const parsed = parseNetshInterfaces(stdout);
@@ -346,6 +344,19 @@ export function parseNetshNetworks(text: string): WifiResults[] {
  * @param line - a "label" separated by a ":" followed by a value
  * @returns array of strings: [label, key, value] may be ["", "",""] if no ":"
  */
+/**
+ * netshInterfacesReady() - true once `netsh wlan show interfaces` output can
+ * be parsed: it has a signal line (every localization table maps one, while
+ * only some map the "State" label), or it is the location-permission notice,
+ * which retrying won't change.
+ */
+export function netshInterfacesReady(output: string): boolean {
+  if (needsLocationPermission(output)) return true;
+  return output
+    .split("\n")
+    .some((line) => splitLine(line)[1] == "signalStrength");
+}
+
 export function splitLine(line: string): string[] {
   const pos = line.indexOf(":");
   if (pos == -1) return ["", "", ""]; // no ":"? return empty values
