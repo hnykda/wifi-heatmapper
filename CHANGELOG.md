@@ -74,6 +74,16 @@ _This section follows the precepts of [Keep a Changelog](https://keepachangelog.
   a point has speed data. The UI says "speed", "download / upload" and
   "fixed rate (UDP)" instead of throughput and TCP/UDP.
 
+* **The server takes the measurement and saves the point.** Closing or
+  reloading the page mid-measurement no longer loses it, and every open
+  page of the survey shows the progress. Cancel stops at once, even in the
+  middle of a speed test (it stops iperf3), and a cancelled measurement is
+  never saved. One measurement runs at a time; starting another meanwhile
+  says so. `POST /api/start-task?action=start` now takes the survey and
+  the spot and returns a job id; see docs/dev/architecture.md.
+* The sudo password is checked once per password, not before every
+  measurement.
+
 * **Windows reads Wi-Fi details from the Native Wifi API** (`wlanapi.dll`,
   through koffi) instead of parsing `netsh` output, so it works in any
   display language and stores the real RSSI in dBm. 6 GHz networks are
@@ -95,6 +105,9 @@ _This section follows the precepts of [Keep a Changelog](https://keepachangelog.
 * A speed test server given as `host:port` is checked on that port (it
   was silently skipped), and IPv6 addresses work: `[fe80::1]:5201` or a
   bare address (#109).
+* Cancelling a measurement and clicking another spot could save the first
+  spot's numbers at the second spot, and a second tab took the progress
+  away from the first. Each measurement is now its own job on the server.
 * The measurement panel's title says "Could not measure" on errors
   instead of staying at "Starting".
 * The settings API never returns a sudo password, even from an old or

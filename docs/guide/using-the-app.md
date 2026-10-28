@@ -83,6 +83,13 @@ not measured (signal only)"; with speed it shows download / upload and the
 fixed-rate (UDP) results as they come in. When it finishes, the dot is
 coloured by signal strength and labelled with the percentage.
 
+The app's server takes the measurement and saves the point, so closing or
+reloading the page while it runs doesn't lose it: open the app again and
+the point is there (a page opened meanwhile shows the progress too).
+Cancel stops at once, even in the middle of a speed test, and nothing is
+saved. One measurement runs at a time; other open pages of the same survey
+show its progress.
+
 If the survey measures speed but the speed test could not run (iperf3 not
 installed, no server, server not answering), the point is still saved: the
 panel says **Saved without speed**, gives the reason and stays open until you

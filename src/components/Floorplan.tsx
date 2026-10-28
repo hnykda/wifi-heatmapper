@@ -18,17 +18,10 @@ import {
   getDefaultWifiResults,
   getDefaultIperfResults,
   percentageToRssi,
-  delay,
 } from "@/lib/utils";
-import { SurveyPoint, SurveyResult } from "@/lib/types";
-import { getLogger } from "@/lib/logger";
+import { SurveyPoint } from "@/lib/types";
+import { useMeasurement } from "@/hooks/useMeasurement";
 import { cn } from "@/lib/utils";
-
-const logger = getLogger("Floorplan");
-
-/** Give up waiting for a measurement after this long. */
-const MEASUREMENT_TIMEOUT_MS = 10 * 60 * 1000;
-const POLL_INTERVAL_MS = 700;
 
 type XY = { x: number; y: number };
 
@@ -49,8 +42,13 @@ function markerSizes(imageWidth: number, scale: number) {
 }
 
 export default function ClickableFloorplan() {
-  const { settings, updateSettings, surveyPointActions, loading } =
-    useSettings();
+  const {
+    settings,
+    updateSettings,
+    surveyPointActions,
+    loading,
+    reloadSettings,
+  } = useSettings();
   const status = useAppStatus();
 
   const [image, setImage] = useState<HTMLImageElement | null>(null);
@@ -66,11 +64,17 @@ export default function ClickableFloorplan() {
     [settings.surveyPoints, selectedId],
   );
 
-  const [pending, setPending] = useState<XY | null>(null); // image coords
-  const [panelOpen, setPanelOpen] = useState(false);
-  const [measureError, setMeasureError] = useState<string | null>(null);
-  const abortRef = useRef<AbortController | null>(null);
-  const measuring = pending !== null;
+  // The server measures and saves the point; reload the survey to show it
+  const measurement = useMeasurement(
+    settings.floorplanImageName,
+    reloadSettings,
+  );
+  const { measuring } = measurement;
+  // the spot being measured on this plan, in image coords
+  const pending: XY | null =
+    measuring && measurement.job?.survey === settings.floorplanImageName
+      ? measurement.job
+      : null;
 
   /* ---------- image ---------- */
 
@@ -204,87 +208,6 @@ export default function ClickableFloorplan() {
     return best;
   };
 
-  /* ---------- measuring ---------- */
-
-  const startMeasurement = useCallback(async () => {
-    if (!pending) return;
-    const controller = new AbortController();
-    abortRef.current = controller;
-    const { signal } = controller;
-    const x = Math.round(pending.x);
-    const y = Math.round(pending.y);
-
-    try {
-      const res = await fetch("/api/start-task?action=start", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          settings: {
-            measureSpeed: settings.measureSpeed,
-            iperfServerAdrs: settings.iperfServerAdrs,
-            testDuration: settings.testDuration,
-            sudoerPassword: settings.sudoerPassword,
-            iperfCommands: settings.iperfCommands,
-          },
-        }),
-        signal,
-      });
-      if (!res.ok) throw new Error(`The server answered ${res.status}.`);
-
-      const deadline = Date.now() + MEASUREMENT_TIMEOUT_MS;
-      let result: SurveyResult = { state: "pending" };
-      while (!signal.aborted && Date.now() < deadline) {
-        await delay(POLL_INTERVAL_MS);
-        try {
-          const r = await fetch("/api/start-task?action=results", { signal });
-          if (!r.ok) throw new Error(`HTTP ${r.status}`);
-          result = await r.json();
-        } catch (err) {
-          if (signal.aborted) return;
-          logger.debug(`results poll failed: ${err}`);
-          continue;
-        }
-        if (result.state !== "pending") break;
-      }
-      if (signal.aborted) return;
-
-      if (result.state === "pending") {
-        throw new Error("The measurement did not finish in time.");
-      }
-      if (result.state === "error") {
-        throw new Error(result.explanation ?? "The measurement failed.");
-      }
-      const data = result.results;
-      if (!data?.wifiData || !data?.iperfData) {
-        throw new Error("The measurement returned no data.");
-      }
-      surveyPointActions.add({
-        wifiData: data.wifiData,
-        iperfData: data.iperfData,
-        x,
-        y,
-        timestamp: Date.now(),
-        isEnabled: true,
-        id: "", // assigned by the store
-      });
-      setPending(null);
-    } catch (err) {
-      if (signal.aborted) return;
-      setPending(null);
-      setMeasureError(err instanceof Error ? err.message : String(err));
-    }
-  }, [pending, settings, surveyPointActions]);
-
-  const cancelMeasurement = () => {
-    abortRef.current?.abort();
-    setPending(null);
-  };
-
-  const closePanel = useCallback(() => {
-    setPanelOpen(false);
-    setMeasureError(null);
-  }, []);
-
   /* ---------- interaction ---------- */
 
   const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -300,9 +223,13 @@ export default function ClickableFloorplan() {
       return;
     }
     if (measuring) return; // one at a time
-    setMeasureError(null);
-    setPending(pt);
-    setPanelOpen(true);
+    void measurement.start(Math.round(pt.x), Math.round(pt.y), {
+      measureSpeed: settings.measureSpeed,
+      iperfServerAdrs: settings.iperfServerAdrs,
+      testDuration: settings.testDuration,
+      sudoerPassword: settings.sudoerPassword,
+      iperfCommands: settings.iperfCommands,
+    });
   };
 
   const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -472,12 +399,15 @@ export default function ClickableFloorplan() {
         </div>
       </div>
 
-      {panelOpen && (
+      {measurement.phase !== "idle" && (
         <MeasurementPanel
-          onReady={startMeasurement}
-          onClose={closePanel}
-          onCancel={cancelMeasurement}
-          error={measureError}
+          phase={measurement.phase}
+          header={measurement.header}
+          fields={measurement.fields}
+          warning={measurement.warning}
+          message={measurement.message}
+          onClose={measurement.dismiss}
+          onCancel={measurement.cancel}
           measureSpeed={settings.measureSpeed}
         />
       )}

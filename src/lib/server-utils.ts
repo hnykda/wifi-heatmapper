@@ -1,7 +1,8 @@
 "use server";
-import { exec, ExecOptions, spawn } from "child_process";
+import { exec, ExecOptions } from "child_process";
 import { getLogger } from "./logger";
 import { hideSudoPassword } from "./redact";
+import { abortError } from "./abort";
 const logger = getLogger("server-utils");
 
 /**
@@ -19,12 +20,16 @@ const logger = getLogger("server-utils");
  *    is set to the result, and the reject() function is called
  * The caller can use catch() to handle a non-zero error return
  *
+ * Pass `signal` to stop the command: aborting it kills the child process
+ * and rejects with an AbortError.
+ *
  * @param command to execute
  * @returns { stdout , stderr }
  */
 
 export const execAsync = async (
   command: string,
+  { signal }: { signal?: AbortSignal } = {},
 ): Promise<{ stdout: string; stderr: string }> => {
   const options: ExecOptions = {
     // @ts-expect-error // "shell" is the name of the shell program, but prop must be boolean
@@ -32,6 +37,7 @@ export const execAsync = async (
     // Windows: never open a console window for cmd.exe/netsh/iperf3 (the
     // desktop app runs node without one). No effect elsewhere.
     windowsHide: true,
+    signal,
   };
 
   // `echo <password> | sudo -S ...` must never reach a log or the UI
@@ -58,32 +64,22 @@ export const execAsync = async (
 };
 
 /**
- * runDetached(cmd, [args])
- *   Use this function to start a process but ignore its return
- *   and simply use some other effect to know when it's complete
- * Setting shell: true (below) allows you to use shell syntax,
- *   so the command can be exactly as you type it
- *   (and args can be empty/missing)
- *
- * @param command - command to run
- * @param args array of arguments to pass along
- */
-export async function runDetached(command: string, args: string[] = []) {
-  const subprocess = spawn(command, args, {
-    detached: true,
-    stdio: "ignore", // Don't keep stdio open
-    shell: true, // Needed if you're using shell syntax
-    windowsHide: true, // a detached process would otherwise get a console window
-  });
-
-  subprocess.unref(); // Allow parent to exit independently
-}
-
-/**
  * delay a given number of milliseconds
  * @param ms:number - number of milliseconds to delay
+ * @param signal - rejects with an AbortError as soon as it is aborted
  * @returns Promise<void>
  */
-export async function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+export async function delay(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) return reject(abortError(signal));
+    const onAbort = () => {
+      clearTimeout(timer);
+      reject(abortError(signal!));
+    };
+    const timer = setTimeout(() => {
+      signal?.removeEventListener("abort", onAbort);
+      resolve();
+    }, ms);
+    signal?.addEventListener("abort", onAbort, { once: true });
+  });
 }

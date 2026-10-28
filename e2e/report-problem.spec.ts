@@ -70,8 +70,32 @@ test("a measurement error can be reported from the panel", async ({ page }) => {
   await uploadFloorplan(page);
   // the mock never fails, so make the result an error
   const problem = "Wi-Fi is turned off";
-  await page.route("**/api/start-task?action=results", (route) =>
-    route.fulfill({ json: { state: "error", explanation: problem } }),
+  const jobId = "fake-job";
+  await page.route(
+    (url) =>
+      url.pathname === "/api/start-task" &&
+      url.searchParams.get("action") === "start",
+    (route) => route.fulfill({ json: { jobId } }),
+  );
+  await page.route(
+    (url) =>
+      url.pathname === "/api/start-task" &&
+      url.searchParams.get("id") === jobId,
+    (route) =>
+      route.fulfill({
+        json: {
+          id: jobId,
+          state: "error",
+          error: problem,
+          progress: {
+            type: "done",
+            jobId,
+            state: "error",
+            header: "Error",
+            status: problem,
+          },
+        },
+      }),
   );
   await measureInTheMiddle(page);
 

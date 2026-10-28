@@ -9,22 +9,21 @@ import { beforeEach, describe, expect, test, vi } from "vitest";
 import fs from "fs";
 import path from "path";
 import type {
+  MeasurementEvent,
   PartialHeatmapSettings,
   WifiActions,
   WifiResults,
 } from "../src/lib/types";
-import type { SSEMessageType } from "../src/app/api/events/route";
 import { defaultIperfCommands } from "../src/lib/iperfUtils";
 import { getDefaultWifiResults } from "../src/lib/utils";
 
 const scanner = vi.hoisted(() => ({
   preflightSettings: vi.fn(),
-  checkIperfServer: vi.fn(),
   scanWifi: vi.fn(),
-  setWifi: vi.fn(),
   getWifi: vi.fn(),
 }));
-const sse = vi.hoisted(() => ({ messages: [] as SSEMessageType[] }));
+const server = vi.hoisted(() => ({ checkIperfServer: vi.fn() }));
+const sse = vi.hoisted(() => ({ messages: [] as MeasurementEvent[] }));
 
 vi.mock("../src/lib/wifiScanner", () => ({
   createWifiActions: async () => scanner,
@@ -32,11 +31,10 @@ vi.mock("../src/lib/wifiScanner", () => ({
 vi.mock("../src/lib/server-utils", () => ({
   execAsync: vi.fn(),
   delay: vi.fn(async () => {}),
-  runDetached: vi.fn(),
 }));
-vi.mock("../src/lib/server-globals", () => ({
-  getCancelFlag: () => false,
-  sendSSEMessage: (msg: SSEMessageType) => sse.messages.push(msg),
+vi.mock("../src/lib/iperf-server-check", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../src/lib/iperf-server-check")>()),
+  checkIperfServer: server.checkIperfServer,
 }));
 vi.mock("../src/lib/app-info", () => ({ isMockMode: () => false }));
 vi.mock("is-docker", () => ({ default: vi.fn(() => false) }));
@@ -47,7 +45,11 @@ vi.mock("../src/lib/macos-helper", () => ({
 }));
 
 const { execAsync } = await import("../src/lib/server-utils");
-const { runSurveyTests } = await import("../src/lib/iperfRunner");
+const runner = await import("../src/lib/iperfRunner");
+const runSurveyTests = (settings: PartialHeatmapSettings) =>
+  runner.runSurveyTests(settings, {
+    emit: (msg) => sse.messages.push(msg),
+  });
 const { IPERF3_MISSING } = await import("../src/lib/speed-test");
 const mockExec = vi.mocked(execAsync);
 
@@ -90,8 +92,7 @@ beforeEach(() => {
   iperfInstalled = true;
   iperfRun = () => ({ stdout: iperfJson, stderr: "" });
   scanner.preflightSettings.mockResolvedValue({ SSIDs: [], reason: "" });
-  scanner.checkIperfServer.mockResolvedValue({ SSIDs: [], reason: "" });
-  scanner.scanWifi.mockResolvedValue({ SSIDs: [wifi], reason: "" });
+  server.checkIperfServer.mockResolvedValue({ SSIDs: [], reason: "" });
   scanner.getWifi.mockResolvedValue({ SSIDs: [wifi], reason: "" });
   mockExec.mockReset();
   mockExec.mockImplementation(async (command: string) => {
@@ -106,7 +107,8 @@ beforeEach(() => {
 });
 
 const iperfRuns = () => commands.filter((c) => c.startsWith("iperf3 -c"));
-const done = () => sse.messages.filter((m) => m.type === "done").at(-1)!;
+// the last progress event: the job turns it into "done" once saved
+const done = () => sse.messages.at(-1)!;
 
 describe("signal only", () => {
   test.each([
@@ -125,11 +127,12 @@ describe("signal only", () => {
       expect(result.wifiData?.signalStrength).toBe(70);
       expect(result.iperfData?.tcpDownload.bitsPerSecond).toBe(0);
       expect(commands).toEqual([]);
-      expect(scanner.checkIperfServer).not.toHaveBeenCalled();
+      expect(server.checkIperfServer).not.toHaveBeenCalled();
       expect(done()).toMatchObject({
-        header: "Measurement complete",
+        type: "update",
         fields: { mode: "signal", tcp: "Off", udp: "Off" },
       });
+      expect(result.fields).toEqual(done().fields);
       expect(done().warning).toBeUndefined();
     },
   );
@@ -164,16 +167,15 @@ describe("signal and speed", () => {
     expect(result.iperfData?.tcpDownload.bitsPerSecond).toBe(0);
     expect(result.warning).toBe(IPERF3_MISSING);
     expect(iperfRuns()).toEqual([]);
-    expect(scanner.checkIperfServer).not.toHaveBeenCalled();
+    expect(server.checkIperfServer).not.toHaveBeenCalled();
     expect(done()).toMatchObject({
-      header: "Saved without speed",
       warning: IPERF3_MISSING,
       fields: { mode: "speed", tcp: "Skipped", udp: "Skipped" },
     });
   });
 
   test("server unreachable: the signal is saved with the scanner's reason", async () => {
-    scanner.checkIperfServer.mockResolvedValue({
+    server.checkIperfServer.mockResolvedValue({
       SSIDs: [],
       reason: "Can't reach the speed test server at 10.0.0.2:5201.",
     });
@@ -191,7 +193,7 @@ describe("signal and speed", () => {
       expect(result.wifiData).not.toBeNull();
       expect(result.warning).toMatch(/speed test server/);
       expect(commands).toEqual([]);
-      expect(scanner.checkIperfServer).not.toHaveBeenCalled();
+      expect(server.checkIperfServer).not.toHaveBeenCalled();
     },
   );
 
@@ -212,6 +214,32 @@ describe("signal and speed", () => {
     expect(result.warning).toMatch(/the server is busy running a test/);
     // the UDP upload is not attempted after the download failed
     expect(iperfRuns()).toHaveLength(3);
+  });
+
+  test("a cancel kills the running iperf3 and stops at once", async () => {
+    const controller = new AbortController();
+    let signalSeen: AbortSignal | undefined;
+    mockExec.mockImplementation(async (command: string, options) => {
+      if (command === "iperf3 --version") {
+        return { stdout: "iperf 3.18", stderr: "" };
+      }
+      // like exec with a signal: the child is killed and the call rejects
+      signalSeen = options?.signal;
+      return new Promise((_, reject) =>
+        options?.signal?.addEventListener("abort", () =>
+          reject(Object.assign(new Error("killed"), { name: "AbortError" })),
+        ),
+      );
+    });
+    const running = runner.runSurveyTests(speed("10.0.0.2"), {
+      signal: controller.signal,
+    });
+    await vi.waitFor(() => expect(signalSeen).toBeDefined());
+    controller.abort();
+    await expect(running).rejects.toThrow(/killed/);
+    expect(signalSeen).toBe(controller.signal);
+    // no further tests or readings after the cancel
+    expect(scanner.getWifi).toHaveBeenCalledTimes(1);
   });
 
   test("a Wi-Fi preflight error still stops the measurement", async () => {

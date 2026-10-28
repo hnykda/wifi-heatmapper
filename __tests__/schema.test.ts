@@ -289,10 +289,23 @@ describe("request bodies (strict)", () => {
       sudoerPassword: "",
       iperfCommands: defaultIperfCommands,
     };
-    expect(startTaskSchema.parse({ settings })).toEqual({ settings });
+    const spot = { survey: "a.png", x: 10, y: 20 };
+    expect(startTaskSchema.parse({ ...spot, settings })).toEqual({
+      ...spot,
+      settings,
+    });
     expect(startTaskSchema.safeParse({}).success).toBe(false);
+    // the spot is required: the server saves the point there
+    expect(startTaskSchema.safeParse({ settings }).success).toBe(false);
+    expect(
+      startTaskSchema.safeParse({ ...spot, survey: " ", settings }).success,
+    ).toBe(false);
+    expect(
+      startTaskSchema.safeParse({ ...spot, x: -1, settings }).success,
+    ).toBe(false);
     expect(
       startTaskSchema.safeParse({
+        ...spot,
         settings: { ...settings, testDuration: "1" },
       }).success,
     ).toBe(false);

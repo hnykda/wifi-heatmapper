@@ -137,23 +137,57 @@ export interface MacosHelperStatus {
   error?: string;
 }
 
-/**
- * SurveyResults - returned from runSurveyTests()
- */
-export interface SurveyResults {
-  wifiData: WifiResults;
-  iperfData: IperfResults;
+/** What the progress panel shows while measuring. */
+export interface MeasurementFields {
+  strength: string; // "78%" or "-"
+  tcp: string; // "312.10 / 280.55 Mbps", "Skipped" or "Off"
+  udp: string;
+  // "signal": the survey measures signal only; "speed": signal and speed
+  mode?: "signal" | "speed";
 }
 
 /**
- * TaskStatus - status of the wifi survey process
+ * A measurement job's state. "saving": measured, the point is being
+ * written (too late to cancel); "done": saved.
  */
-type TaskStatus = "pending" | "done" | "error";
-export interface SurveyResult {
-  state: TaskStatus; // mimics states of Promise()
-  results?: SurveyResults; // if "done", has the wifiData and iperfData
-  explanation?: string; // if "error", this is the string to display
-  warning?: string; // if "done": saved, but the speed test was skipped
+export type MeasurementState =
+  | "running"
+  | "saving"
+  | "done"
+  | "error"
+  | "cancelled";
+
+/**
+ * MeasurementEvent - one server-sent event on /api/events, sent to every
+ * open tab. Measurement events carry the job they belong to.
+ */
+export interface MeasurementEvent {
+  type: "ready" | "update" | "done" | "heartbeat";
+  jobId?: string;
+  survey?: string; // the floor plan the job measures for
+  x?: number;
+  y?: number;
+  header: string;
+  status: string; // human readable, multi-line
+  fields?: MeasurementFields;
+  // set when the reading is saved without speed although the survey wants it
+  warning?: string;
+  state?: MeasurementState; // set on "done"
+  pointId?: string; // "done" and saved: the new point's id
+}
+
+/** GET /api/start-task?action=status&id=<job id> */
+export interface MeasurementJobStatus {
+  id: string;
+  survey: string;
+  x: number;
+  y: number;
+  state: MeasurementState;
+  startedAt: string; // ISO time
+  progress: MeasurementEvent | null; // the latest event
+  pointId?: string; // done: the saved point
+  warning?: string; // done: saved without speed, and why
+  error?: string; // error: why there is no point
 }
 
 export type ScannerSettings = {
@@ -180,14 +214,12 @@ export interface WifiScanResults {
 }
 
 export interface WifiActions {
-  preflightSettings(settings: PartialHeatmapSettings): Promise<WifiScanResults>; // returns error message
-  checkIperfServer(settings: PartialHeatmapSettings): Promise<WifiScanResults>; // returns error message
-  scanWifi(settings: PartialHeatmapSettings): Promise<WifiScanResults>; // return sorted list of nearby SSIDs
-  setWifi(
-    settings: PartialHeatmapSettings,
-    bestSSID: WifiResults, // the results with the strongest signal strength
-  ): Promise<WifiScanResults>; // associate with the named ssid
-  getWifi(settings: PartialHeatmapSettings): Promise<WifiScanResults>; // the the current values
+  /** can the Wi-Fi be read? "" or a reason to show */
+  preflightSettings(settings: PartialHeatmapSettings): Promise<WifiScanResults>;
+  /** nearby networks, sorted by signal strength (not used while measuring) */
+  scanWifi(settings: PartialHeatmapSettings): Promise<WifiScanResults>;
+  /** the current connection, as one WifiResults */
+  getWifi(settings: PartialHeatmapSettings): Promise<WifiScanResults>;
 }
 
 /**

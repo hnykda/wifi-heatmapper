@@ -6,8 +6,8 @@
  * touches the data directory.
  *
  * Step two (not built yet) adds measuring: a tool that POSTs
- * /api/start-task?action=start, follows /api/start-task?action=results and
- * adds the point to the survey. It will need its own confirmation story,
+ * /api/start-task?action=start with the survey and the spot, and follows
+ * the job (action=status&id=...); the app saves the point itself. It will need its own confirmation story,
  * because it runs iperf3 (and maybe sudo) on this machine. Keep read-only
  * tools free of side effects so they stay safe to call without asking.
  */

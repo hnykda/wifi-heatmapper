@@ -5,8 +5,8 @@ import {
   WifiActions,
   SPAirPortRoot,
 } from "./types";
-import { execAsync, delay } from "./server-utils";
-import { checkIperfServerReachable } from "./iperf-server-check";
+import { checkSudoPassword } from "./sudo";
+import { execAsync } from "./server-utils";
 import {
   rssiToPercentage,
   isValidMacAddress,
@@ -97,11 +97,9 @@ export class MacOSWifiActions implements WifiActions {
     }
 
     // check that the sudo password is actually correct
-    // execAsync() throws if there is an error
+    // (once per password value, see sudo.ts)
     else {
-      try {
-        await execAsync(`echo ${settings.sudoerPassword} | sudo -S ls`);
-      } catch {
+      if (!(await checkSudoPassword(settings.sudoerPassword))) {
         reason = "Please enter a valid sudo password.";
       }
     }
@@ -109,17 +107,6 @@ export class MacOSWifiActions implements WifiActions {
     // fill in the reason and return it
     response.reason = reason;
     return response;
-  }
-
-  /**
-   * checkIperfServer() - test if an iperf3 server is available at the address
-   * @param settings includes the iperfServerAddress
-   * @returns empty array of SSIDs, plus "" or error string
-   */
-  async checkIperfServer(
-    settings: PartialHeatmapSettings,
-  ): Promise<WifiScanResults> {
-    return checkIperfServerReachable(settings);
   }
 
   /**
@@ -205,60 +192,6 @@ export class MacOSWifiActions implements WifiActions {
       response.reason = `Cannot get wifi info: ${err}"`;
     }
     return response; // WifiScanResults which is array of WifiResults and error code
-  }
-
-  /**
-   * setWifi(settings, newWifiSettings) - associate with the named SSID
-   *
-   * @param settings - same as always
-   * @param newWifiSettings - .ssid has the new SSID to associate with
-   * @returns either:
-   *    WifiScanResults
-   *    or throw("reason explaining the error")
-   */
-  async setWifi(
-    settings: PartialHeatmapSettings,
-    newWifiSettings: WifiResults,
-  ): Promise<WifiScanResults> {
-    //
-    // NOT IMPLEMENTED - DON'T USE THIS FUNCTION
-    throw "wifi-heatmapper does not implement setWifi()";
-
-    const response: WifiScanResults = {
-      SSIDs: [],
-      reason: "",
-    };
-    return response;
-
-    let netInfo: WifiResults;
-
-    if (!newWifiSettings) {
-      throw `setWifi error: Empty SSID "${JSON.stringify(newWifiSettings)}`;
-    }
-
-    // `networksetup -setairportnetwork ${this.nameOfWifi} ${newWifiSettings.ssid}`
-    const { stdout, stderr } = await execAsync(
-      `networksetup -setairportnetwork ${this.nameOfWifi} ${newWifiSettings.ssid}`,
-    );
-    if (stdout != "" || stderr != "") {
-      throw stdout + stderr;
-    }
-
-    const start = Date.now();
-    const timeout = 40_000; // 40 seconds
-    while (true) {
-      if (Date.now() > start + timeout) {
-        throw `Can't set wifi to "${newWifiSettings.ssid}": Timed out after ${timeout / 1000} seconds`;
-      }
-      netInfo = await getWdutilResults(settings);
-      // console.log(`wdutils: SSID: ${netInfo.ssid} txRate: ${netInfo.txRate}`);
-      if (netInfo.txRate != 0) {
-        netInfo.ssid = newWifiSettings.ssid;
-        response.SSIDs.push(netInfo);
-        return response;
-      }
-      await delay(200);
-    }
   }
 
   /**

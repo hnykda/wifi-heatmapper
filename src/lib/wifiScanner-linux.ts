@@ -4,8 +4,8 @@ import {
   WifiScanResults,
   WifiActions,
 } from "./types";
+import { checkSudoPassword } from "./sudo";
 import { execAsync } from "./server-utils";
-import { checkIperfServerReachable } from "./iperf-server-check";
 import {
   channelToBand,
   getDefaultWifiResults,
@@ -59,16 +59,6 @@ export class LinuxWifiActions implements WifiActions {
       missingTools.push("iw");
     }
 
-    // nmcli only supplies the network list (the SSID in the progress
-    // header), so systems without NetworkManager (iwd, systemd-networkd)
-    // can still measure.
-    try {
-      await execAsync("which nmcli");
-      logger.info("  ✓ nmcli found");
-    } catch {
-      logger.warn("  ✗ nmcli not found (optional: only lists nearby networks)");
-    }
-
     if (missingTools.length > 0) {
       reason = `Missing required tools: ${missingTools.join(", ")}. Install them with your package manager (e.g., apt install iw).`;
       logger.error(reason);
@@ -87,11 +77,9 @@ export class LinuxWifiActions implements WifiActions {
       }
 
       // check that the sudo password is actually correct
-      // execAsync() throws if there is an error
+      // (once per password value, see sudo.ts)
       else {
-        try {
-          await execAsync(`echo ${settings.sudoerPassword} | sudo -S ls`);
-        } catch {
+        if (!(await checkSudoPassword(settings.sudoerPassword))) {
           reason = "Please enter a valid sudo password.";
         }
       }
@@ -99,17 +87,6 @@ export class LinuxWifiActions implements WifiActions {
     // fill in the reason and return it
     response.reason = reason;
     return response;
-  }
-
-  /**
-   * checkIperfServer() - test if an iperf3 server is available at the address
-   * @param settings includes the iperfServerAddress
-   * @returns empty array of SSIDs, plus "" or error string
-   */
-  async checkIperfServer(
-    settings: PartialHeatmapSettings,
-  ): Promise<WifiScanResults> {
-    return checkIperfServerReachable(settings);
   }
 
   /**
@@ -133,29 +110,6 @@ export class LinuxWifiActions implements WifiActions {
       response.reason = `Cannot get wifi info: ${err}`;
     }
     return response; // WifiScanResults which is array of WifiResults and error code
-  }
-
-  /**
-   * setWifi(settings, newWifiSettings) - associate with the named SSID
-   * @param settings - same as always
-   * @param newWifiSettings - .ssid has the new SSID to associate with
-   * @returns either:
-   *    WifiScanResults
-   *    or throw("reason explaining the error")
-   */
-  async setWifi(
-    _settings: PartialHeatmapSettings,
-    _newWifiSettings: WifiResults,
-  ): Promise<WifiScanResults> {
-    //
-    // NOT IMPLEMENTED - DON'T USE THIS FUNCTION
-    throw "wifi-heatmapper does not implement setWifi()";
-
-    const response: WifiScanResults = {
-      SSIDs: [],
-      reason: "",
-    };
-    return response;
   }
 
   /**

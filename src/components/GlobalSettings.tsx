@@ -17,6 +17,7 @@ import {
   migrateLocalStorageToFiles,
 } from "../lib/localStorageMigration";
 import { toast } from "./ui/use-toast";
+import { onMeasurementEvent } from "../lib/measurement-events";
 import {
   HeatmapSettings,
   NewSurveyPoint,
@@ -296,6 +297,17 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       flushDraft();
     };
   }, [flushDraft]);
+
+  // A point the server saved from a measurement (in any tab): show it
+  useEffect(
+    () =>
+      onMeasurementEvent((event) => {
+        if (event.type !== "done" || !event.pointId) return;
+        if (event.survey !== nameRef.current) return;
+        enqueue({ kind: "load", name: event.survey });
+      }),
+    [enqueue],
+  );
 
   // Load the survey (and migrate on first run)
   useEffect(() => {

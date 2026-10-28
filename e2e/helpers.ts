@@ -98,14 +98,23 @@ export async function gotoTab(
   await page.getByTestId(`tab-${tab}`).click();
 }
 
-/** Click an empty spot on the floor plan and wait for the mock measurement. */
-export async function measureAt(page: Page, fx: number, fy: number) {
+/**
+ * Click an empty spot on the floor plan and wait for the mock measurement
+ * (or, with wait: false, only until it is running).
+ */
+export async function measureAt(
+  page: Page,
+  fx: number,
+  fy: number,
+  { wait = true }: { wait?: boolean } = {},
+) {
   const canvas = page.getByTestId("floorplan-canvas");
   await expect(canvas).toBeVisible();
   const box = (await canvas.boundingBox())!;
   await canvas.click({ position: { x: box.width * fx, y: box.height * fy } });
   const panel = page.getByTestId("measurement-panel");
   await expect(panel).toHaveAttribute("data-phase", "running");
+  if (!wait) return;
   await expect(panel).toHaveAttribute("data-phase", "done", {
     timeout: 30_000,
   });
