@@ -317,6 +317,23 @@ test.describe("with sample points", () => {
     await expect(rows).toHaveCount(6); // Point_2, Point_20..24
     await page.getByLabel("Filter points").fill("");
 
+    // sort by point name: ascending, then descending
+    const pointHeader = page
+      .getByTestId("points-table")
+      .getByRole("button", { name: "Point", exact: true });
+    await pointHeader.click();
+    await expect(rows.first()).toContainText("Point_1");
+    await pointHeader.click();
+    await expect(rows.first()).toContainText("Point_24");
+
+    // show a hidden column
+    await page.getByRole("button", { name: "Columns" }).click();
+    await page.getByRole("menuitemcheckbox", { name: "Signal dBm" }).click();
+    await page.keyboard.press("Escape");
+    await expect(
+      page.getByTestId("points-table").getByText("Signal dBm"),
+    ).toBeVisible();
+
     // export
     const download = page.waitForEvent("download");
     await page.getByTestId("export-csv").click();
