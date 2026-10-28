@@ -56,8 +56,8 @@ workflow. "Got it" hides it for good; the About dialog can show it again.
   * **Test connection** and the checklist under it – whether iperf3 is
     installed on this computer and whether the server answers, plus a
     reminder to wire the server to the router.
-  * **Test duration** – seconds per test, 3 by default. One second is
-    quicker but gives jumpier numbers.
+  * **Test duration** – seconds per test, 5 by default. Below 3 the
+    numbers read low and jump around.
   * **Advanced: iperf3 options** – extra iperf3 options for each test,
     separated by spaces, such as `-P 4` (four parallel streams). The app
     sets the server, port, duration, download/upload and TCP/UDP itself; the

@@ -87,10 +87,10 @@ extra iperf3 options, which is safe on most networks. If your UDP results sit at
 100 Mbps, the connection can do more: raise the cap under **Advanced:
 iperf3 options**, for example to `-b 500M`.
 
-**Test duration** sets the seconds per test, 3 by default, so a spot takes
-about 15 seconds in all. One second (about 6 to 10 seconds a spot) is
-quicker, but a connection takes a moment to reach full speed, so short
-tests read low and vary more. Longer tests give steadier numbers. Extra iperf3 options per test (for example `-P 4` for
+**Test duration** sets the seconds per test, 5 by default, so a spot takes
+about 25 seconds in all. A connection takes a second or two to reach full
+speed, so shorter tests read low and vary more: 3 seconds is the least
+that gives useful numbers, and longer tests are steadier still. Extra iperf3 options per test (for example `-P 4` for
 parallel streams, or the UDP cap) go under **Advanced: iperf3 options** in
 Settings; the server, port and duration come from the settings above.
 

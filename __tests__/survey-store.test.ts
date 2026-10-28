@@ -206,7 +206,7 @@ describe("survey-store", () => {
       expect(saved).toMatchObject({
         measureSpeed: false,
         iperfServerAdrs: "",
-        testDuration: 3,
+        testDuration: 5,
       });
       expect(saved.meta?.speedSettingsFrom).toBeUndefined();
     });

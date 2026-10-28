@@ -12,10 +12,9 @@ _This section follows the precepts of [Keep a Changelog](https://keepachangelog.
 
 ### Changed
 
-* **Speed tests run 3 seconds each by default**, up from 1: a connection
-  takes a moment to reach full speed, so one-second tests read low and
-  jump around. A spot now takes about 15 seconds. Existing surveys keep
-  their setting.
+* **Speed tests run 5 seconds each by default**, up from 1: a connection
+  takes a second or two to reach full speed, so one-second tests read low
+  and jump around. Existing surveys keep their setting.
 * **Colour scales on the Heat maps tab are folded away** until you open
   them.
 * **"Last measured" shows the time** (or the date and time) instead of
