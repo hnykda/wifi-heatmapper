@@ -10,7 +10,14 @@
  * saved file with `meta` (app version, OS, timestamp).
  */
 import { NextRequest, NextResponse } from "next/server";
-import { readFile, writeFile, mkdir, readdir, unlink } from "fs/promises";
+import {
+  readFile,
+  writeFile,
+  mkdir,
+  readdir,
+  rename,
+  unlink,
+} from "fs/promises";
 import path from "path";
 import { sanitizeFilename } from "@/lib/utils";
 import { getSurveysDir } from "@/lib/server-paths";
@@ -101,10 +108,14 @@ export async function POST(request: NextRequest) {
     };
 
     const filePath = getSurveyPath(settings.floorplanImageName);
+    // Write a temp file and rename it over the survey, so a crash or two
+    // overlapping saves can never leave half a JSON file behind.
+    const tmpPath = `${filePath}.${process.pid}.${Date.now()}.tmp`;
     await writeFile(
-      filePath,
+      tmpPath,
       JSON.stringify({ ...safeSettings, meta }, null, 2),
     );
+    await rename(tmpPath, filePath);
 
     return NextResponse.json({ status: "success", path: filePath });
   } catch (err) {

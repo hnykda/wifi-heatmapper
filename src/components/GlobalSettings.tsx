@@ -126,6 +126,12 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const latestRef = useRef<HeatmapSettings>(settings);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dirtyRef = useRef(false);
+  // Saves run one after another: overlapping POSTs can finish in any order,
+  // and the last to land would win even if it carried older settings. Each
+  // save takes its snapshot when flushed, so switching floor plans while one
+  // is queued still writes the old plan's settings to the old file.
+  // (writeSettingsToFile() never rejects, so the chain never breaks.)
+  const saveQueue = useRef<Promise<void>>(Promise.resolve());
 
   const flushSave = useCallback(() => {
     if (saveTimer.current) {
@@ -134,7 +140,10 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     }
     if (dirtyRef.current && latestRef.current.floorplanImageName) {
       dirtyRef.current = false;
-      void writeSettingsToFile(latestRef.current);
+      const snapshot = latestRef.current;
+      saveQueue.current = saveQueue.current.then(() =>
+        writeSettingsToFile(snapshot),
+      );
     }
   }, []);
 
@@ -191,7 +200,9 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         const defaults = getDefaults(floorPlanToLoad);
         latestRef.current = defaults;
         setSettings(defaults);
-        void writeSettingsToFile(defaults);
+        saveQueue.current = saveQueue.current.then(() =>
+          writeSettingsToFile(defaults),
+        );
       }
       setLoading(false);
     }
@@ -220,13 +231,13 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       updater: (prev: HeatmapSettings) => HeatmapSettings,
       { immediate = false } = {},
     ) => {
-      setSettings((prev) => {
-        const next = updater(prev);
-        latestRef.current = next;
-        return next;
-      });
+      // latestRef, not a setSettings updater, is the source of truth: React
+      // defers updaters when several changes land in one tick, so the write
+      // below would otherwise see stale settings and drop all but the first.
+      const next = updater(latestRef.current);
+      latestRef.current = next;
+      setSettings(next);
       if (immediate) {
-        // setSettings ran synchronously above, so latestRef is current
         dirtyRef.current = true;
         flushSave();
       } else {
