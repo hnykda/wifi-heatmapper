@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  iperfOptionsProblem,
-  isSafeIperfServer,
+  isUsableIperfServer,
   pickSafeSettings,
   SAFE_SETTING_KEYS,
   SettingsPatchError,
@@ -96,7 +95,7 @@ describe("validateSettingsPatch", () => {
     expect(errors[1]).toMatch(/surveyPoints can't be changed/);
   });
 
-  it("refuses shell syntax in the iperf3 server and commands", () => {
+  it("takes the server only if the speed test can use it", () => {
     for (const bad of [
       "a;b",
       "$(id)",
@@ -104,32 +103,52 @@ describe("validateSettingsPatch", () => {
       "a|b",
       "x:0",
       "x:70000",
-      "",
+      "-c",
+      "999.1.1.1",
     ]) {
-      expect(isSafeIperfServer(bad), bad).toBe(false);
-    }
-    for (const good of ["localhost", "192.168.1.10", "nas.local:5201", "a"]) {
-      expect(isSafeIperfServer(good), good).toBe(true);
-    }
-    for (const bad of [
-      [";", "rm", "-rf", "~"],
-      [">", "/tmp/x"],
-      ["`id`"],
-      ["a b"],
-    ]) {
-      expect(iperfOptionsProblem(bad), bad.join(" ")).toMatch(
-        /not a plain iperf3 argument/,
+      expect(isUsableIperfServer(bad), bad).toBe(false);
+      expect(validateSettingsPatch({ iperfServerAdrs: bad }), bad).toHaveLength(
+        1,
       );
     }
+    for (const good of [
+      "",
+      "localhost",
+      "192.168.1.10",
+      "nas.local:5201",
+      "a",
+      "fe80::1%en0",
+      "[2001:db8::1]:5300",
+    ]) {
+      expect(isUsableIperfServer(good), good).toBe(true);
+    }
+  });
+
+  it("checks iperf3 options with the app's own rules", () => {
+    // no shell is involved, so any argument the app takes is fine
+    for (const args of [
+      ["--title", "a; b"],
+      ["--logfile", "/tmp/x y.log"],
+      ["-b", "100M"],
+      ...Object.values(defaultIperfCommands),
+    ]) {
+      expect(
+        validateSettingsPatch({ iperfCommands: { tcpUpload: args } }),
+        args.join(" "),
+      ).toEqual([]);
+    }
     // the options the app sets itself
-    expect(iperfOptionsProblem(["-c", "10.0.0.1"])).toMatch(/-c/);
-    expect(iperfOptionsProblem(["-J"])).toMatch(/-J/);
     expect(
       validateSettingsPatch({ iperfCommands: { tcpUpload: ["-u"] } }).join(),
     ).toMatch(/iperfCommands.tcpUpload sets -u/);
-    for (const args of Object.values(defaultIperfCommands)) {
-      expect(iperfOptionsProblem(args), args.join(" ")).toBeNull();
-    }
+    expect(
+      validateSettingsPatch({
+        iperfCommands: { tcpDownload: ["-c", "10.0.0.1"] },
+      }).join(),
+    ).toMatch(/-c/);
+    expect(
+      validateSettingsPatch({ iperfCommands: { udpUpload: ["a\nb"] } }).join(),
+    ).toMatch(/line break/);
     // an old command template is not accepted any more
     expect(
       validateSettingsPatch({

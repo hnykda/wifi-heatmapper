@@ -183,7 +183,9 @@ function toPatch(changes: Partial<HeatmapSettings>): {
  * the whole updated survey, which replaces the local copy. Operations are
  * sent one after another, so they reach the server in the order they were
  * made; settings changes are debounced (sliders, typing) and merged into
- * one patch. The sudo password never leaves the browser.
+ * one patch. The sudo password is never saved: it goes with each
+ * measurement, and to the server's memory (PUT /api/sudo-password) for
+ * measurements an AI agent starts.
  */
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<HeatmapSettings>(getDefaults(""));
@@ -202,6 +204,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   // Its name; answers for any other survey are not shown
   const nameRef = useRef("");
   const sudoRef = useRef("");
+  const sudoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Sent or queued, not answered yet (applied on top of serverRef)
   const pendingRef = useRef<Op[]>([]);
   // The debounced settings patch, not queued yet
@@ -356,7 +359,15 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
           ? newSettings(current())
           : newSettings;
       const { patch, sudoerPassword } = toPatch(changes);
-      if (sudoerPassword !== undefined) sudoRef.current = sudoerPassword;
+      if (sudoerPassword !== undefined && sudoerPassword !== sudoRef.current) {
+        sudoRef.current = sudoerPassword;
+        // the server holds it in memory for measurements an agent starts
+        if (sudoTimer.current) clearTimeout(sudoTimer.current);
+        sudoTimer.current = setTimeout(
+          () => void api.shareSudoPassword(sudoRef.current),
+          SAVE_DEBOUNCE_MS,
+        );
+      }
       const name = nameRef.current;
       if (name && Object.keys(patch).length > 0) {
         const draft = draftRef.current;

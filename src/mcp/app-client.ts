@@ -4,11 +4,15 @@
  * The MCP server never reads or writes the data directory itself. Everything
  * goes through the running app, so the app stays the one owner of its files
  * (src/lib/server-paths.ts) and of the measurement process.
+ *
+ * It never sends, receives or keeps the sudo password: a measurement it
+ * starts uses the one the person typed in the app (src/lib/sudo-session.ts).
  */
 import type {
   AppStatus,
   HeatmapSettings,
   MacosHelperStatus,
+  MeasurementJobStatus,
   SettingsPatch,
 } from "../lib/types";
 import type { DiagnosticsReport } from "../lib/diagnostics";
@@ -16,6 +20,18 @@ import type { CopyPart } from "../lib/survey-ops";
 
 export const DEFAULT_APP_URL = "http://localhost:3000";
 export const ALLOW_REMOTE_ENV = "WIFI_HEATMAPPER_MCP_ALLOW_REMOTE";
+
+/** The speed settings a measurement is started with (never a password). */
+export interface MeasurementSettings {
+  measureSpeed: boolean;
+  iperfServerAdrs: string;
+  testDuration: number;
+  iperfCommands: Record<string, string[]>;
+}
+
+export type StartAnswer =
+  | { started: true; job: MeasurementJobStatus }
+  | { started: false; running: MeasurementJobStatus; error: string };
 
 /** A survey file as the app returns it, minus anything secret. */
 export type StoredSurvey = Omit<HeatmapSettings, "sudoerPassword">;
@@ -25,6 +41,8 @@ export class AppRequestError extends Error {
   constructor(
     message: string,
     readonly status: number,
+    /** the parsed JSON answer, if there was one */
+    readonly body?: unknown,
   ) {
     super(message);
   }
@@ -141,7 +159,7 @@ export class AppClient {
         body && typeof body === "object" && "error" in body
           ? String((body as { error: unknown }).error)
           : `HTTP ${res.status}`;
-      throw new AppRequestError(message, res.status);
+      throw new AppRequestError(message, res.status, body);
     }
     return body as T;
   }
@@ -227,5 +245,73 @@ export class AppClient {
       method: "POST",
     });
     return stripSecrets(saved);
+  }
+
+  /**
+   * Start measuring at a spot (POST /api/start-task?action=start). The app
+   * answers 409 with the running job while another one measures.
+   */
+  async startMeasurement(
+    survey: string,
+    x: number,
+    y: number,
+    settings: MeasurementSettings,
+  ): Promise<StartAnswer> {
+    try {
+      const body = await this.json<{ job: MeasurementJobStatus }>(
+        "api/start-task?action=start",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ survey, x, y, settings }),
+        },
+      );
+      return { started: true, job: body.job };
+    } catch (err) {
+      if (err instanceof AppRequestError && err.status === 409 && err.body) {
+        const running = (err.body as { job?: MeasurementJobStatus }).job;
+        if (running) return { started: false, running, error: err.message };
+      }
+      throw err;
+    }
+  }
+
+  /** One job, or null if the app doesn't know it (any more). */
+  async measurement(id: string): Promise<MeasurementJobStatus | null> {
+    try {
+      return await this.json<MeasurementJobStatus>(
+        `api/start-task?action=status&id=${encodeURIComponent(id)}`,
+      );
+    } catch (err) {
+      if (err instanceof AppRequestError && err.status === 404) return null;
+      throw err;
+    }
+  }
+
+  /** Stop this job (and no other); true if it was stopped. */
+  async stopMeasurement(id: string): Promise<boolean> {
+    const body = await this.json<{ stopped: boolean }>(
+      "api/start-task?action=stop",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jobId: id }),
+      },
+    );
+    return body.stopped === true;
+  }
+
+  /**
+   * Does the app hold a sudo password typed in its Settings? Only yes or
+   * no ever comes back; null for an app too old to say.
+   */
+  async sudoPasswordHeld(): Promise<boolean | null> {
+    try {
+      const body = await this.json<{ held?: unknown }>("api/sudo-password");
+      return typeof body.held === "boolean" ? body.held : null;
+    } catch (err) {
+      if (err instanceof AppRequestError && err.status === 404) return null;
+      throw err;
+    }
   }
 }

@@ -10,6 +10,8 @@
  *   POST   /api/surveys/<name>/points     add a point
  *   PATCH  /api/surveys/<name>/points/<id> change a point
  *   DELETE /api/surveys/<name>/points     delete points
+ *   PUT    /api/sudo-password             the sudo password, held in the
+ *                                         server's memory (sudo-session.ts)
  *
  * Each function throws SurveyApiError when the server refuses.
  */
@@ -86,6 +88,19 @@ export function copySettings(
 }
 
 /** Names of the stored surveys (floor plans that have one). */
+/**
+ * Give the server the sudo password ("" forgets it), so measurements an AI
+ * agent starts can read Wi-Fi too. Memory only on the server, never saved
+ * or returned. Best effort: a failure only matters for those.
+ */
+export async function shareSudoPassword(password: string): Promise<void> {
+  await fetch("/api/sudo-password", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ password }),
+  }).catch(() => {});
+}
+
 export async function listSurveys(): Promise<string[]> {
   const response = await fetch("/api/settings?list=true");
   if (!response.ok) {

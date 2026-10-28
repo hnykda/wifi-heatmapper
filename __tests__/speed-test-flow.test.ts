@@ -217,14 +217,11 @@ describe("signal and speed", () => {
     expect(iperfRuns()).toHaveLength(3);
   });
 
-  test("a server with shell syntax reaches iperf3 as one argument", async () => {
-    await runSurveyTests(speed("x; touch /tmp/pwned"));
-    const calls = mockExec.mock.calls.filter(([, args]) => args?.[0] === "-c");
-    expect(calls).toHaveLength(4);
-    for (const [file, args] of calls) {
-      expect(file).toBe("iperf3"); // no shell in between
-      expect(args?.[1]).toBe("x; touch /tmp/pwned");
-    }
+  test("a server that isn't a host name or address never reaches iperf3", async () => {
+    const result = await runSurveyTests(speed("x; touch /tmp/pwned"));
+    expect(iperfRuns()).toHaveLength(0);
+    expect(result.warning).toMatch(/is not a valid speed test server address/);
+    expect(result.wifiData?.signalStrength).toBe(70); // the signal still is
   });
 
   test("iperf3 gets the server as one argument, with the survey's extra options", async () => {

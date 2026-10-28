@@ -13,11 +13,16 @@ import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js"
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { getDefaultIperfResults, getDefaultWifiResults } from "@/lib/utils";
 import { defaultIperfCommands } from "@/lib/iperfUtils";
-import type { IperfResults, SettingsPatch } from "@/lib/types";
+import type {
+  IperfResults,
+  MeasurementJobStatus,
+  SettingsPatch,
+} from "@/lib/types";
 import {
   copySettingsQuerySchema,
   parseSurveyFile,
   settingsPatchSchema,
+  startTaskSchema,
 } from "@/lib/schema";
 import { applySettingsPatch, copySettings } from "@/lib/survey-ops";
 import { defaultSurvey } from "@/lib/survey-defaults";
@@ -86,6 +91,64 @@ function fakeReport(q: URLSearchParams) {
 let app: Server;
 let url: string;
 
+/**
+ * The fake app's measurement jobs, like lib/measurement-job.ts: one at a
+ * time, "Starting" until the preflight has passed, the point saved by the
+ * server. `outcome` decides how the next job ends.
+ */
+type Outcome = "done" | "noSpeed" | "sudo" | "slow";
+let outcome: Outcome = "done";
+const jobs = new Map<string, MeasurementJobStatus>();
+let current: MeasurementJobStatus | null = null;
+const startBodies: Record<string, unknown>[] = [];
+let sudoHeld = false;
+
+function startJob(survey: string, x: number, y: number) {
+  const job: MeasurementJobStatus = {
+    id: `job${jobs.size + 1}`,
+    survey,
+    x,
+    y,
+    state: "running",
+    startedAt: new Date().toISOString(),
+    progress: { type: "update", header: "Starting", status: "" },
+  };
+  jobs.set(job.id, job);
+  current = job;
+  const how = outcome;
+  const step = (ms: number, fn: () => void) =>
+    setTimeout(() => job.state === "running" && fn(), ms);
+  if (how === "sudo") {
+    step(100, () => {
+      job.state = "error";
+      job.error =
+        "Please set sudo password. It is required on macOS unless you build the Wi-Fi helper (npm run build:macos-helper).";
+    });
+    return job;
+  }
+  step(100, () => {
+    job.progress = { type: "update", header: "Measuring Wi-Fi", status: "" };
+  });
+  if (how === "slow") return job;
+  step(800, () => {
+    const f = files[survey] as {
+      surveyPoints: unknown[];
+      nextPointNum: number;
+    };
+    const id = `Point_${f.nextPointNum++}`;
+    f.surveyPoints.push({
+      ...surveyPoint(id, x, y, 64, how === "noSpeed" ? 0 : 250),
+    });
+    job.state = "done";
+    job.pointId = id;
+    if (how === "noSpeed") {
+      job.warning =
+        "Can't reach the speed test server at 192.168.1.10:5201. Check that iperf3 -s is running there.";
+    }
+  });
+  return job;
+}
+
 function body(req: IncomingMessage): Promise<string> {
   return new Promise((ok) => {
     let data = "";
@@ -146,6 +209,42 @@ beforeAll(async () => {
         desktopApp: false,
         macosHelper: null,
       });
+    }
+    if (u.pathname === "/api/sudo-password" && req.method === "GET") {
+      return send(200, { held: sudoHeld });
+    }
+    if (u.pathname === "/api/start-task") {
+      const action = u.searchParams.get("action");
+      if (action === "start" && req.method === "POST") {
+        const raw = JSON.parse(await body(req));
+        startBodies.push(raw);
+        const parsed = startTaskSchema.safeParse(raw);
+        if (!parsed.success) return send(400, { error: "Invalid request" });
+        if (current && current.state === "running") {
+          return send(409, {
+            error: "A measurement is already running. Wait for it to finish.",
+            jobId: current.id,
+            job: current,
+          });
+        }
+        const { survey, x, y } = parsed.data;
+        const job = startJob(survey, x, y);
+        return send(200, { jobId: job.id, job });
+      }
+      if (action === "stop" && req.method === "POST") {
+        const { jobId } = JSON.parse(await body(req));
+        const job = current;
+        if (!job || job.state !== "running" || job.id !== jobId) {
+          return send(200, { stopped: false });
+        }
+        job.state = "cancelled";
+        job.error = "Measurement cancelled";
+        return send(200, { stopped: true });
+      }
+      if (action === "status") {
+        const job = jobs.get(u.searchParams.get("id") ?? "");
+        return job ? send(200, job) : send(404, { error: "No measurement" });
+      }
     }
     if (u.pathname === "/api/diagnostics") {
       diagnosticsQueries.push(u.searchParams);
@@ -231,9 +330,11 @@ describe("MCP server over stdio against a fake app", () => {
   }, 30_000);
   afterAll(async () => client?.close());
 
-  it("lists the step-one tools and prompts", async () => {
-    const tools = (await client.listTools()).tools.map((t) => t.name).sort();
+  it("lists the tools and prompts", async () => {
+    const listed = (await client.listTools()).tools;
+    const tools = listed.map((t) => t.name).sort();
     expect(tools).toEqual([
+      "cancel_measurement",
       "check_setup",
       "copy_settings",
       "get_heatmap_grid",
@@ -241,14 +342,37 @@ describe("MCP server over stdio against a fake app", () => {
       "get_survey",
       "list_surveys",
       "report_problem",
+      "start_measurement",
       "update_settings",
+      "wait_for_measurement",
     ]);
+    // measuring is a side effect: clients ask the person first
+    for (const name of ["start_measurement", "cancel_measurement"]) {
+      expect(listed.find((t) => t.name === name)?.annotations).toMatchObject({
+        readOnlyHint: false,
+        destructiveHint: false,
+      });
+    }
+    expect(
+      listed.find((t) => t.name === "wait_for_measurement")?.annotations
+        ?.readOnlyHint,
+    ).toBe(true);
     const prompts = (await client.listPrompts()).prompts.map((p) => p.name);
     expect(prompts.sort()).toEqual([
       "analyse_survey",
       "compare_surveys",
       "plan_survey",
+      "survey_walkthrough",
     ]);
+    const walk = await client.getPrompt({
+      name: "survey_walkthrough",
+      arguments: { name: "Home.png", rooms: "kitchen, office" },
+    });
+    const walkText = walk.messages[0].content;
+    expect(walkText.type === "text" && walkText.text).toMatch(
+      /confirm before every start_measurement/,
+    );
+    expect(walkText.type === "text" && walkText.text).toContain("kitchen");
     const p = await client.getPrompt({
       name: "analyse_survey",
       arguments: { name: "Home.png" },
@@ -487,7 +611,7 @@ describe("MCP server over stdio against a fake app", () => {
     });
   });
 
-  it("copy_settings refuses a missing source and speed settings with shell syntax", async () => {
+  it("copy_settings refuses a missing source, and copies any speed settings the app accepts", async () => {
     const count = copies.length;
     const missing = (await client.callTool({
       name: "copy_settings",
@@ -504,25 +628,175 @@ describe("MCP server over stdio against a fake app", () => {
         tcpDownload: ["--title", "a; rm -rf ~"],
       },
     };
-    const refused = (await client.callTool({
-      name: "copy_settings",
-      arguments: { from: "Odd.png", to: "Empty.png" },
-    })) as CallToolResult;
-    expect(refused.isError).toBe(true);
-    expect(JSON.stringify(refused.content)).toMatch(
-      /Nothing was changed.*tcpDownload/,
-    );
-    expect(copies.length).toBe(count);
-
-    // without the speed settings it may copy the rest
+    // no shell is involved, so these are just iperf3 arguments
     json(
       await client.callTool({
         name: "copy_settings",
-        arguments: { from: "Odd.png", to: "Empty.png", parts: ["apNames"] },
+        arguments: { from: "Odd.png", to: "Empty.png" },
       }),
     );
     expect(copies.length).toBe(count + 1);
+    expect(
+      (files["Empty.png"] as { iperfCommands: Record<string, string[]> })
+        .iperfCommands.tcpDownload,
+    ).toEqual(["--title", "a; rm -rf ~"]);
     delete files["Odd.png"];
+  });
+});
+
+describe("measuring over MCP against a fake app", () => {
+  let client: Client;
+  beforeAll(async () => {
+    client = await connect({ WIFI_HEATMAPPER_URL: url });
+  }, 30_000);
+  afterAll(async () => client?.close());
+
+  const call = (name: string, args: Record<string, unknown>) =>
+    client.callTool({ name, arguments: args }) as Promise<CallToolResult>;
+  const text = (r: CallToolResult) =>
+    r.content[0].type === "text" ? r.content[0].text : "";
+
+  it("starts a measurement, waits for it and returns the saved point", async () => {
+    outcome = "done";
+    const before = (files["Home.png"].surveyPoints as unknown[]).length;
+    const started = json(
+      await call("start_measurement", { survey: "Home.png", x: 200.4, y: 150 }),
+    );
+    expect(started).toMatchObject({
+      survey: "Home.png",
+      x: 200,
+      y: 150,
+      state: "running",
+      speedTest: "on",
+    });
+    // the speed settings of the survey, and never a password
+    const sent = startBodies.at(-1)!;
+    expect(sent).not.toHaveProperty("settings.sudoerPassword");
+    expect(sent.settings).toMatchObject({
+      measureSpeed: true,
+      iperfServerAdrs: "192.168.1.10",
+    });
+
+    const done = json(
+      await call("wait_for_measurement", {
+        jobId: started.jobId,
+        timeoutSeconds: 10,
+      }),
+    );
+    expect(done).toMatchObject({
+      jobId: started.jobId,
+      state: "done",
+      pointId: `Point_${before + 1}`,
+      point: { x: 200, y: 150, signalPercent: 64, tcpDownload: { mbps: 250 } },
+    });
+    expect(done.summary).toMatch(/^Signal 64% \(-60 dBm\) from Hall/);
+    expect(done.savedWithoutSpeed).toBeUndefined();
+    expect((files["Home.png"].surveyPoints as unknown[]).length).toBe(
+      before + 1,
+    );
+  });
+
+  it("says when a point was saved without speed", async () => {
+    outcome = "noSpeed";
+    const started = json(
+      await call("start_measurement", { survey: "Home.png", x: 50, y: 50 }),
+    );
+    const done = json(
+      await call("wait_for_measurement", { jobId: started.jobId }),
+    );
+    expect(done.savedWithoutSpeed).toMatch(
+      /^Saved without speed: Can't reach the speed test server/,
+    );
+    expect(done.point.tcpDownload).toBeNull();
+  });
+
+  it("refuses a spot outside the floor plan", async () => {
+    const count = startBodies.length;
+    const r = await call("start_measurement", {
+      survey: "Home.png",
+      x: 401,
+      y: 10,
+    });
+    expect(r.isError).toBe(true);
+    expect(text(r)).toMatch(/outside the floor plan, which is 400 x 200/);
+    expect(startBodies.length).toBe(count);
+  });
+
+  it("runs one at a time (409), and cancels only the job named", async () => {
+    outcome = "slow";
+    const started = json(
+      await call("start_measurement", { survey: "Home.png", x: 10, y: 10 }),
+    );
+    const busy = await call("start_measurement", {
+      survey: "Home.png",
+      x: 20,
+      y: 20,
+    });
+    expect(busy.isError).toBe(true);
+    expect(text(busy)).toMatch(
+      new RegExp(`already running \\(job ${started.jobId}.*cancel_measurement`),
+    );
+
+    const still = json(
+      await call("wait_for_measurement", {
+        jobId: started.jobId,
+        timeoutSeconds: 0,
+      }),
+    );
+    expect(still).toMatchObject({
+      state: "running",
+      progress: { step: "Measuring Wi-Fi" },
+    });
+
+    const cancelled = json(
+      await call("cancel_measurement", { jobId: started.jobId }),
+    );
+    expect(cancelled).toMatchObject({ cancelled: true });
+    const after = json(
+      await call("wait_for_measurement", { jobId: started.jobId }),
+    );
+    expect(after).toMatchObject({ state: "cancelled" });
+    const again = json(
+      await call("cancel_measurement", { jobId: started.jobId }),
+    );
+    expect(again).toMatchObject({ cancelled: false, state: "cancelled" });
+  });
+
+  it("asks for the sudo password in the app, never in chat", async () => {
+    outcome = "sudo";
+    const r = await call("start_measurement", {
+      survey: "Home.png",
+      x: 30,
+      y: 30,
+    });
+    expect(r.isError).toBe(true);
+    const body = JSON.parse(text(r));
+    expect(body).toMatchObject({
+      state: "error",
+      sudoPasswordNeeded: true,
+      reason:
+        "This computer needs the sudo password to read Wi-Fi. Enter it once in the app's Settings (it stays in memory), then try again.",
+    });
+    expect(body.note).toMatch(/Don't ask for the password in chat/);
+    // nothing in the tools takes a password
+    const tools = (await client.listTools()).tools;
+    expect(JSON.stringify(tools.map((t) => t.inputSchema))).not.toMatch(
+      /password/i,
+    );
+
+    const setup = json(await call("check_setup", {}));
+    expect(setup.sudoPasswordHeld).toBe(false);
+    sudoHeld = true;
+    expect(json(await call("check_setup", {})).sudoPasswordHeld).toBe(true);
+    sudoHeld = false;
+  });
+
+  it("says when a job is unknown", async () => {
+    for (const name of ["wait_for_measurement", "cancel_measurement"]) {
+      const r = await call(name, { jobId: "nope" });
+      expect(r.isError, name).toBe(true);
+      expect(text(r)).toMatch(/doesn't know measurement "nope"/);
+    }
   });
 });
 

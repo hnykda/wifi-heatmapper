@@ -42,8 +42,20 @@ export function planSurveyPrompt(name?: string): string {
 2. Suggest how many points and how far apart: roughly one point every 2 to 3 metres (or one or two per room), denser near walls, doorways and where coverage is expected to drop, plus a point near each access point. Use get_survey on an existing survey to see its floor plan size in pixels.
 3. Where to stand: at the marked spot, holding the laptop as it is normally used, the same height each time, not blocking it with your body; wait for each measurement to finish before moving.
 4. Throughput: run \`iperf3 -s\` on a computer that is wired to the router (not on Wi-Fi), and set its address with update_settings (iperfServerAdrs, measureSpeed true). Keep test duration short (1 to 3 s) for a survey. measureSpeed false measures signal only.
-5. Remind the person that they take the measurements by clicking the floor plan in the app; this assistant can't walk around or measure.
+5. Measuring: the person carries the laptop. They can click each spot on the floor plan in the app, or you can guide them spot by spot and start each measurement (the survey_walkthrough prompt).
 Keep it short and practical.`;
+}
+
+export function surveyWalkthroughPrompt(name: string, rooms?: string): string {
+  const roomHint = rooms ? ` Rooms the person mentioned: ${rooms}.` : "";
+  return `Guide me through measuring the Wi-Fi survey "${name}" with wifi-heatmapper. I carry the laptop; you start the measurements.${roomHint}
+
+1. Call check_setup with name "${name}" and get_survey for "${name}". Fix problems first. If a sudo password is needed, tell me to type it in the app's Settings; never ask for it here.
+2. Plan the spots in floor-plan pixels (origin top left, inside the plan's width and height): a rough grid about 2 to 3 m apart, or one or two per room, skipping spots that already have a point. With existing points, call get_heatmap_grid (signalStrength) and add spots where cells are null (unmeasured) or weak. I can't see pixels: describe each spot by room or landmark and ask me to correct you; I may also pick the spots.
+3. For each spot: say where to go ("Go to the kitchen, put the laptop where you'd use it, tell me when you're there"). Wait for me to confirm before every start_measurement; never start one I haven't confirmed. Then wait_for_measurement and tell me the result in plain words (signal %, and speed if measured; mention "Saved without speed" and its reason). If it fails, say why and what to do; don't retry on your own.
+4. One at a time. If I say stop, call cancel_measurement. If the app tab is open on this floor plan, I can watch the map fill in.
+5. At the end, summarise weak areas briefly and offer analyse_survey.
+Keep each message short.`;
 }
 
 export function registerPrompts(server: McpServer): void {
@@ -84,5 +96,24 @@ export function registerPrompts(server: McpServer): void {
       },
     },
     ({ name }) => user(planSurveyPrompt(name)),
+  );
+
+  server.registerPrompt(
+    "survey_walkthrough",
+    {
+      title: "Walk through a survey",
+      description:
+        "The agent guides you spot by spot while you carry the laptop, and measures after you confirm each spot",
+      argsSchema: {
+        name: z.string().describe("Floor plan name (list_surveys)"),
+        rooms: z
+          .string()
+          .optional()
+          .describe(
+            "Rooms to cover, e.g. 'kitchen, office, bedroom' (optional)",
+          ),
+      },
+    },
+    ({ name, rooms }) => user(surveyWalkthroughPrompt(name, rooms)),
   );
 }

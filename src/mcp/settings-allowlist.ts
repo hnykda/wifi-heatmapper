@@ -6,21 +6,21 @@
  * gradient, ...) is out of reach of update_settings, and the sudo password
  * is never read or written.
  *
- * Validation is stricter than the Settings tab for the two values that end
- * up in the iperf3 command (the server and the extra iperf3 options): no
- * shell is involved any more, but an agent may only set a plain
- * host[:port] and plain arguments. Anything fancier is set by a person in
- * the app.
+ * The rules are the app's own: no shell is involved (iperf3 gets one
+ * argument per value) and the extra iperf3 options are checked by the
+ * app's schema. The one addition: the server must be one the speed test
+ * can use (parseServerAddress), so a typo is refused instead of saved.
  */
 import { z } from "zod";
 import { settingsPatchSchema, surveyFileSchema } from "../lib/schema";
-import { defaultIperfCommands, iperfArgsProblem } from "../lib/iperfUtils";
+import { defaultIperfCommands } from "../lib/iperfUtils";
 import type { SettingsPatch } from "../lib/types";
 import { normalizeMacAddress } from "../lib/utils";
 import { isValidApPattern } from "../lib/apName";
 import {
   isLegacySignalOnlyServer,
   migrateMeasurementMode,
+  parseServerAddress,
 } from "../lib/measurement-mode";
 
 export const SAFE_SETTING_KEYS = [
@@ -54,67 +54,29 @@ export function pickSafeSettings(survey: unknown): SafeSettings {
 export const TEST_DURATION_RANGE = { min: 1, max: 60 };
 export const RADIUS_RANGE = { min: 1, max: 10_000 };
 
-/** "localhost" (signal only, unless measureSpeed says otherwise), or a host name / IPv4 address with an optional port. */
-export function isSafeIperfServer(value: string): boolean {
-  const m =
-    /^([A-Za-z0-9](?:[A-Za-z0-9.-]{0,252}[A-Za-z0-9])?)(?::(\d{1,5}))?$/.exec(
-      value,
-    );
-  if (!m) return false;
-  if (m[2] !== undefined) {
-    const port = Number(m[2]);
-    if (port < 1 || port > 65535) return false;
-  }
-  return true;
+/** "", "localhost" (both signal only, unless measureSpeed says otherwise), or what the speed test can use: a host name, IPv4 or IPv6 address, with an optional port. */
+export function isUsableIperfServer(value: string): boolean {
+  return isLegacySignalOnlyServer(value) || parseServerAddress(value) !== null;
 }
-
-const PLAIN_ARG = /^[A-Za-z0-9._:=/@%+,-]+$/;
-
-/**
- * Extra iperf3 options with only plain arguments (letters, digits and
- * ._:=/@%+,-), none of the options the app sets itself (-c, -p, -t, -R,
- * -u, -J).
- */
-export function iperfOptionsProblem(args: readonly string[]): string | null {
-  for (const arg of args) {
-    if (!PLAIN_ARG.test(arg)) {
-      return `has ${JSON.stringify(arg)}, which is not a plain iperf3 argument`;
-    }
-  }
-  return iperfArgsProblem(args);
-}
-
-const safeOptions = z.array(z.string()).superRefine((args, ctx) => {
-  const problem = iperfOptionsProblem(args);
-  if (problem) ctx.addIssue({ code: "custom", message: problem });
-});
 
 const shape = settingsPatchSchema.shape;
 
 /**
  * What update_settings accepts: the app's settings patch for the
- * allow-listed keys, with the stricter checks above. Every field is
+ * allow-listed keys (plus a usable server address). Every field is
  * optional; apMapping replaces the list, iperfCommands and heatmapRanges
  * change only what is given (null removes a map's scale).
  */
 export const mcpSettingsPatchSchema = z.strictObject({
   measureSpeed: shape.measureSpeed.unwrap().optional(),
-  iperfServerAdrs: z
-    .string()
-    .trim()
-    .refine(isSafeIperfServer, {
-      error: `must be "localhost" (signal only) or a host name or IPv4 address with an optional port, e.g. 192.168.1.10 or 192.168.1.10:5201`,
+  iperfServerAdrs: shape.iperfServerAdrs
+    .unwrap()
+    .refine(isUsableIperfServer, {
+      error: `must be a host name or IP address with an optional port, e.g. 192.168.1.10, nas.local:5201 or [fe80::1]:5201 ("localhost" or "" for signal only)`,
     })
     .optional(),
   testDuration: shape.testDuration.unwrap().optional(),
-  iperfCommands: z
-    .strictObject({
-      tcpDownload: safeOptions.optional(),
-      tcpUpload: safeOptions.optional(),
-      udpDownload: safeOptions.optional(),
-      udpUpload: safeOptions.optional(),
-    })
-    .optional(),
+  iperfCommands: shape.iperfCommands,
   apMapping: z
     .array(
       z.object({
@@ -209,25 +171,4 @@ export function toSettingsPatch(patch: unknown): SettingsPatch {
     body.measureSpeed = !isLegacySignalOnlyServer(body.iperfServerAdrs);
   }
   return body;
-}
-
-/**
- * Why copy_settings may not copy a survey's speed settings ([] if it may):
- * the same checks update_settings makes on the server and the extra
- * iperf3 options. An empty server (signal only) is fine.
- */
-export function unsafeSpeedSettings(survey: {
-  iperfServerAdrs?: string;
-  iperfCommands?: Record<string, readonly string[]>;
-}): string[] {
-  const problems: string[] = [];
-  const server = (survey.iperfServerAdrs ?? "").trim();
-  if (server && !isSafeIperfServer(server)) {
-    problems.push("have a server that is not a plain host name or address");
-  }
-  for (const [test, args] of Object.entries(survey.iperfCommands ?? {})) {
-    const problem = iperfOptionsProblem(args);
-    if (problem) problems.push(`have ${test} iperf3 options that ${problem}`);
-  }
-  return problems;
 }

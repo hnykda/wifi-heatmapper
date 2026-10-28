@@ -2,14 +2,13 @@
  * server.ts - the wifi-heatmapper MCP server: tools and prompts.
  *
  * Step one: read surveys, help with setup, interpret results.
+ * Step two: measure, with a person carrying the laptop (measure.ts):
+ * start_measurement, wait_for_measurement, cancel_measurement. They run
+ * commands on this machine, so they are marked as not read-only and the
+ * client asks the person before each one.
  * Every tool goes through AppClient (the app's HTTP API); nothing here
- * touches the data directory.
- *
- * Step two (not built yet) adds measuring: a tool that POSTs
- * /api/start-task?action=start with the survey and the spot, and follows
- * the job (action=status&id=...); the app saves the point itself. It will need its own confirmation story,
- * because it runs iperf3 (and maybe sudo) on this machine. Keep read-only
- * tools free of side effects so they stay safe to call without asking.
+ * touches the data directory or the sudo password. Keep read-only tools
+ * free of side effects so they stay safe to call without asking.
  */
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
@@ -43,10 +42,18 @@ import {
   SAFE_SETTING_KEYS,
   SettingsPatchError,
   toSettingsPatch,
-  unsafeSpeedSettings,
 } from "./settings-allowlist";
 import { DEFAULT_THRESHOLDS, describePoint, summarizeSurvey } from "./survey";
 import { registerPrompts } from "./prompts";
+import {
+  describeJob,
+  isFinished,
+  measurementSettings,
+  nearbyPoint,
+  pastPreflight,
+  positionProblem,
+  waitForJob,
+} from "./measure";
 
 const metricTitles: Record<MeasurementTestType, string> = {
   signalStrength: "Signal strength",
@@ -129,7 +136,9 @@ export function createMcpServer(client: AppClient, version: string): McpServer {
         "signal strength and iperf3 throughput measured at points on a floor plan. " +
         "Start with list_surveys, then get_survey for the numbers and get_heatmap_grid " +
         "for a coarse map. Coordinates are floor-plan image pixels, origin top left. " +
-        "This server cannot take measurements, see the rendered heat map images, or handle the sudo password. " +
+        "It can take measurements with a person carrying the laptop: agree on the spot with them, ask them to go there and " +
+        "confirm before every start_measurement, then wait_for_measurement; one at a time (survey_walkthrough guides this). " +
+        "It cannot see the rendered heat map images or handle the sudo password: never ask for it in chat, the person types it in the app's Settings. " +
         "If something looks like a bug in the app rather than a Wi-Fi problem (an error message, impossible readings " +
         "such as 0% signal or -100 dBm at every point or channel 0, no noise readings on macOS, Windows falling back " +
         "from the WLAN API to netsh), suggest reporting it and call report_problem: it returns a redacted summary and a " +
@@ -348,7 +357,7 @@ export function createMcpServer(client: AppClient, version: string): McpServer {
           .string()
           .optional()
           .describe(
-            'iperf3 server, e.g. "192.168.1.10" or "192.168.1.10:5201". Without measureSpeed, "localhost" turns speed tests off and any other server turns them on',
+            'iperf3 server: a host name or IP address with an optional port, e.g. "192.168.1.10", "nas.local:5201" or "[fe80::1]:5201". Without measureSpeed, "localhost" turns speed tests off and any other server turns them on',
           ),
         testDuration: z
           .number()
@@ -364,7 +373,7 @@ export function createMcpServer(client: AppClient, version: string): McpServer {
           })
           .optional()
           .describe(
-            'Extra iperf3 options per test, one argument per item, e.g. ["-b", "100M"] or ["-P", "4"]. The app sets the server, port, duration, -R, -u and -J itself; plain arguments only',
+            'Extra iperf3 options per test, one argument per item, e.g. ["-b", "100M"] or ["-P", "4"]. The app sets the server, port, duration, -R, -u and -J itself. No shell is involved',
           ),
         apMapping: z
           .array(z.object({ apName: z.string(), macAddress: z.string() }))
@@ -463,18 +472,7 @@ export function createMcpServer(client: AppClient, version: string): McpServer {
     (args) =>
       guarded(async () => {
         const parts = [...new Set(args.parts ?? (["speed"] as CopyPart[]))];
-        const source = await loadSurvey(client, args.from);
-        if (parts.includes("speed")) {
-          // the same rule as update_settings: what reaches a command must
-          // be plain, or a person copies it in the app
-          const problems = unsafeSpeedSettings(source);
-          if (problems.length) {
-            return fail(
-              `Nothing was changed: the speed settings of "${args.from}" ${problems.join("; ")}. ` +
-                `Copy them in the app (Settings, Copy settings from…), or leave out "speed".`,
-            );
-          }
-        }
+        await loadSurvey(client, args.from); // a clear error if it's missing
         const before = await client.survey(args.to);
         const saved = await client.copySettings(args.from, args.to, parts);
         const was = before ? pickSafeSettings(before) : null;
@@ -500,8 +498,8 @@ export function createMcpServer(client: AppClient, version: string): McpServer {
       title: "Check setup",
       description:
         "What the app can tell without measuring: app version and OS, mock mode, whether iperf3 is installed, " +
-        "the macOS Wi-Fi helper and Location access, and (with a survey name) whether throughput tests are set up. " +
-        "Says what can only be checked by taking a measurement in the app.",
+        "the macOS Wi-Fi helper and Location access, whether the app holds a sudo password (yes or no, never the password), " +
+        "and (with a survey name) whether throughput tests are set up. Says what only a measurement can check.",
       inputSchema: { name: nameArg.optional() },
       annotations: { readOnlyHint: true, openWorldHint: false },
     },
@@ -658,6 +656,185 @@ export function createMcpServer(client: AppClient, version: string): McpServer {
                 note: `The report is too long for the link, which carries only the summary. Give the person the link and the full text below to paste where the issue says "${PASTE_HINT}". Nothing has been sent.`,
                 fullDiagnostics: report.text,
               }),
+        });
+      }),
+  );
+
+  server.registerTool(
+    "start_measurement",
+    {
+      title: "Start a measurement",
+      description:
+        "Measure Wi-Fi (and speed, if the survey has it on) at a spot on the floor plan, where the person is holding the laptop now, " +
+        "and save it as a new point. Runs commands on this computer (Wi-Fi tools, iperf3). " +
+        "Only after the person has confirmed they are at that spot and ready. One at a time. " +
+        "Returns the job id; then call wait_for_measurement.",
+      inputSchema: {
+        survey: nameArg,
+        x: z
+          .number()
+          .describe("Floor-plan pixels from the left (0 to the plan's width)"),
+        y: z
+          .number()
+          .describe("Floor-plan pixels from the top (0 to the plan's height)"),
+      },
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: false,
+      },
+    },
+    (args) =>
+      guarded(async () => {
+        const survey = await loadSurvey(client, args.survey);
+        const x = Math.round(args.x);
+        const y = Math.round(args.y);
+        const problem = positionProblem(x, y, survey.dimensions);
+        if (problem) return fail(`Nothing was measured. ${problem}`);
+        // the name the page uses, so an open tab follows the job
+        const name = survey.floorplanImageName || args.survey;
+        const answer = await client.startMeasurement(
+          name,
+          x,
+          y,
+          measurementSettings(survey),
+        );
+        if (!answer.started) {
+          const r = answer.running;
+          return fail(
+            `A measurement is already running (job ${r.id}, ${r.survey} at (${r.x}, ${r.y}), ${r.state}). ` +
+              `Only one runs at a time. Wait for it with wait_for_measurement, or cancel it with cancel_measurement if the person agrees.`,
+          );
+        }
+        // The first step checks that Wi-Fi can be read (and the sudo
+        // password): wait for it, so a failure there is reported at once
+        const job =
+          (await waitForJob(client, answer.job.id, {
+            timeoutMs: 5000,
+            pollMs: 250,
+            until: pastPreflight,
+          })) ?? answer.job;
+        if (isFinished(job)) {
+          const { isError, value } = await describeJob(client, job);
+          return isError ? { ...ok(value), isError: true } : ok(value);
+        }
+        const near = nearbyPoint(survey, x, y);
+        return ok({
+          jobId: job.id,
+          survey: name,
+          x,
+          y,
+          state: job.state,
+          speedTest: measuresSpeed(survey) ? "on" : "off (signal only)",
+          ...(near
+            ? {
+                note: `${near.id} is ${near.distancePixels} px away; this adds another point next to it.`,
+              }
+            : {}),
+          next: "Call wait_for_measurement with this jobId. Ask the person to keep the laptop still until it is done.",
+        });
+      }),
+  );
+
+  server.registerTool(
+    "wait_for_measurement",
+    {
+      title: "Wait for a measurement",
+      description:
+        "Wait (up to timeoutSeconds) for a measurement to finish, and return the saved point described like get_survey's points, " +
+        "with a one-line summary, 'Saved without speed: <reason>' if the speed test was skipped, or why it failed. " +
+        "timeoutSeconds 0 only checks. If it is still running when the time is up, call it again.",
+      inputSchema: {
+        jobId: z.string().min(1).describe("From start_measurement"),
+        timeoutSeconds: z
+          .number()
+          .min(0)
+          .max(300)
+          .default(45)
+          .describe(
+            "How long to wait, 0 to 300 seconds (default 45; many clients give up on a call after 60)",
+          ),
+      },
+      annotations: { readOnlyHint: true, openWorldHint: false },
+    },
+    (args, extra) =>
+      guarded(async () => {
+        const progressToken = extra._meta?.progressToken;
+        let step = 0;
+        const job = await waitForJob(client, args.jobId, {
+          timeoutMs: (args.timeoutSeconds ?? 45) * 1000,
+          signal: extra.signal,
+          onProgress: (j) => {
+            if (progressToken === undefined || !j.progress) return;
+            void extra
+              .sendNotification({
+                method: "notifications/progress",
+                params: {
+                  progressToken,
+                  progress: ++step,
+                  message: [j.progress.header, j.progress.status]
+                    .filter(Boolean)
+                    .join(": "),
+                },
+              })
+              .catch(() => {});
+          },
+        });
+        if (!job) {
+          return fail(
+            `The app doesn't know measurement "${args.jobId}". It keeps the last 20, and forgets them when it restarts.`,
+          );
+        }
+        const { isError, value } = await describeJob(client, job);
+        return isError ? { ...ok(value), isError: true } : ok(value);
+      }),
+  );
+
+  server.registerTool(
+    "cancel_measurement",
+    {
+      title: "Cancel a measurement",
+      description:
+        "Stop a running measurement at once (its iperf3 too). Nothing is saved for it. Only stops the job named.",
+      inputSchema: {
+        jobId: z.string().min(1).describe("From start_measurement"),
+      },
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
+    },
+    (args) =>
+      guarded(async () => {
+        if (await client.stopMeasurement(args.jobId)) {
+          return ok({
+            jobId: args.jobId,
+            cancelled: true,
+            note: "Stopped. Nothing was saved for it.",
+          });
+        }
+        const job = await client.measurement(args.jobId);
+        if (!job) {
+          return fail(`The app doesn't know measurement "${args.jobId}".`);
+        }
+        const why =
+          job.state === "done"
+            ? `It had already finished and was saved as ${job.pointId}.`
+            : job.state === "saving"
+              ? "It has finished measuring and is being saved; it can't be stopped now."
+              : job.state === "cancelled"
+                ? "It was already cancelled."
+                : job.state === "error"
+                  ? `It had already failed: ${job.error}`
+                  : "It could not be stopped.";
+        return ok({
+          jobId: args.jobId,
+          cancelled: false,
+          state: job.state,
+          note: why,
         });
       }),
   );
