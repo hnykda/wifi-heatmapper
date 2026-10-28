@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 240" width="520" height="240" role="img" aria-labelledby="t d">
+<title id="t">From points to a heat map</title>
+<desc id="d">Coloured dots, one per measurement, appear on a floor plan: green near the router, blue and yellow further away, orange in the far corner. Then the colours spread out from each dot and blend into one continuous heat map.</desc>
+<defs>
+  <clipPath id="plan"><rect x="16" y="16" width="400" height="208" rx="3"/></clipPath>
+  <filter id="blend" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="22"/></filter>
+  <linearGradient id="scale" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#18d34a"/>
+    <stop offset="0.3" stop-color="#14d6d0"/>
+    <stop offset="0.5" stop-color="#2440ff"/>
+    <stop offset="0.56" stop-color="#f2e200"/>
+    <stop offset="1" stop-color="#ef2a1a"/>
+  </linearGradient>
+</defs>
+<style>
+  svg { --bg: #f6f7f9; --surface: #ffffff; --ink: #181c25; --muted: #5a6272; --wall: #2a2f3a; --floor: #fbfbfc; }
+  @media (prefers-color-scheme: dark) {
+    svg { --bg: #14161b; --surface: #1c1f26; --ink: #e7e9ee; --muted: #9aa2b1; --wall: #d9dce3; --floor: #1f222a; }
+  }
+  text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; }
+  .card { fill: var(--bg); }
+  .floor { fill: var(--floor); }
+  .wall { fill: none; stroke: var(--wall); stroke-width: 3; stroke-linecap: square; }
+  .heat { opacity: 0.8; }
+  .dot { stroke: var(--surface); stroke-width: 2; }
+  .pct { font-size: 10px; font-weight: 700; fill: var(--ink); paint-order: stroke; stroke: var(--floor); stroke-width: 3px; }
+  .label { font-size: 10px; fill: var(--muted); }
+  .router rect { fill: var(--surface); stroke: var(--ink); stroke-width: 1.6; }
+  .router path { fill: none; stroke: var(--ink); stroke-width: 1.6; stroke-linecap: round; }
+
+  /* Static picture (also the reduced-motion version): dots and the blended map. */
+  @media (prefers-reduced-motion: no-preference) {
+    .p { transform-box: fill-box; transform-origin: center; animation: pop 8s ease-out infinite; }
+    .p:nth-of-type(2) { animation-delay: 0.15s; }
+    .p:nth-of-type(3) { animation-delay: 0.3s; }
+    .p:nth-of-type(4) { animation-delay: 0.45s; }
+    .p:nth-of-type(5) { animation-delay: 0.6s; }
+    .p:nth-of-type(6) { animation-delay: 0.75s; }
+    .p:nth-of-type(7) { animation-delay: 0.9s; }
+    .p:nth-of-type(8) { animation-delay: 1.05s; }
+    .heat { animation: blend 8s ease-in-out infinite; }
+    .blob { transform-box: fill-box; transform-origin: center; animation: grow 8s ease-in-out infinite; }
+  }
+  @keyframes pop { 0% { opacity: 0; transform: scale(0); } 4% { opacity: 1; transform: scale(1.15); } 6%, 92% { opacity: 1; transform: scale(1); } 98%, 100% { opacity: 0; transform: scale(1); } }
+  @keyframes blend { 0%, 30% { opacity: 0; } 55%, 90% { opacity: 0.8; } 98%, 100% { opacity: 0; } }
+  @keyframes grow { 0%, 30% { transform: scale(0.2); } 60%, 100% { transform: scale(1); } }
+</style>
+
+<rect class="card" x="0" y="0" width="520" height="240" rx="12"/>
+<rect class="floor" x="16" y="16" width="400" height="208" rx="3"/>
+
+<!-- the blended heat map: each point's colour, spread out and mixed -->
+<g clip-path="url(#plan)">
+  <g class="heat" filter="url(#blend)">
+    <circle class="blob" cx="60" cy="110" r="70" fill="#18d34a"/>
+    <circle class="blob" cx="140" cy="60" r="62" fill="#22d64e"/>
+    <circle class="blob" cx="140" cy="175" r="60" fill="#1fd68a"/>
+    <circle class="blob" cx="58" cy="196" r="54" fill="#18d6b0"/>
+    <circle class="blob" cx="262" cy="70" r="62" fill="#14c8e6"/>
+    <circle class="blob" cx="370" cy="66" r="58" fill="#2c4cff"/>
+    <circle class="blob" cx="268" cy="182" r="58" fill="#f2dc00"/>
+    <circle class="blob" cx="382" cy="190" r="56" fill="#f05a1a"/>
+  </g>
+</g>
+
+<path class="wall" d="M16 16h400v208H16z M210 16v84 M210 140v84 M210 128h90 M340 128h76"/>
+<g class="router" transform="translate(84 50)">
+  <rect x="-11" y="-5" width="22" height="10" rx="2"/>
+  <path d="M-7 -5v-7 M7 -5v-7"/>
+</g>
+<text class="label" x="68" y="54" text-anchor="end">router</text>
+
+<!-- one dot per measurement -->
+<g>
+  <g class="p"><circle class="dot" cx="60" cy="110" r="7" fill="#18d34a"/><text class="pct" x="60" y="130" text-anchor="middle">92%</text></g>
+  <g class="p"><circle class="dot" cx="140" cy="60" r="7" fill="#22d64e"/><text class="pct" x="140" y="80" text-anchor="middle">85%</text></g>
+  <g class="p"><circle class="dot" cx="140" cy="175" r="7" fill="#1fd68a"/><text class="pct" x="140" y="195" text-anchor="middle">74%</text></g>
+  <g class="p"><circle class="dot" cx="58" cy="196" r="7" fill="#18d6b0"/><text class="pct" x="58" y="216" text-anchor="middle">68%</text></g>
+  <g class="p"><circle class="dot" cx="262" cy="70" r="7" fill="#14c8e6"/><text class="pct" x="262" y="90" text-anchor="middle">60%</text></g>
+  <g class="p"><circle class="dot" cx="370" cy="66" r="7" fill="#2c4cff"/><text class="pct" x="370" y="86" text-anchor="middle">50%</text></g>
+  <g class="p"><circle class="dot" cx="268" cy="182" r="7" fill="#f2dc00"/><text class="pct" x="268" y="202" text-anchor="middle">44%</text></g>
+  <g class="p"><circle class="dot" cx="382" cy="190" r="7" fill="#f05a1a"/><text class="pct" x="382" y="210" text-anchor="middle">24%</text></g>
+</g>
+
+<!-- legend -->
+<rect x="446" y="34" width="14" height="172" rx="3" fill="url(#scale)"/>
+<text class="label" x="468" y="44">strong</text>
+<text class="label" x="468" y="124">fair</text>
+<text class="label" x="468" y="204">weak</text>
+</svg>

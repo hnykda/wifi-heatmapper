@@ -7,7 +7,8 @@ export, floor plan deletion and captions on downloaded heat maps;
 those items were removed from the lists below.
 
 Open pull requests worth finishing: #64 (editable SSID/BSSID/point
-label), #85 (Win32 WLAN API on Windows instead of parsing `netsh`).
+label). #85 (the Windows WLAN API instead of parsing `netsh`) landed in
+0.8.0.
 
 ## Feature and Behavior Improvements
 

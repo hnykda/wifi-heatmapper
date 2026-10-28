@@ -74,6 +74,14 @@ h1, h2, h3 { font-family: var(--display); line-height: 1.15; margin: 0; }
   .site-header nav a:not(.nav-gh):not([href$="#download"]):not([href^="/docs"]) { display: none; }
   .site-header nav { gap: 16px; }
 }
+/* Phones: the name and three links don't fit in 375 px; keep Download and Docs */
+@media (max-width: 480px) {
+  .site-header__inner { gap: 12px; }
+  .brand { gap: 8px; font-size: 16px; min-width: 0; }
+  .brand span { overflow: hidden; text-overflow: ellipsis; }
+  .site-header nav { gap: 14px; flex-shrink: 0; }
+  .site-header nav .nav-gh { display: none; }
+}
 
 /* Buttons */
 .cta { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
@@ -170,6 +178,19 @@ section[id] { scroll-margin-top: 76px; }
 .mode__art { display: block; width: 100%; height: auto; }
 .mode figcaption { font-size: 15px; color: var(--muted); margin-top: 10px; }
 .mode figcaption strong { color: var(--ink); }
+.how-art { margin-bottom: 48px; }
+.how-art .mode__art { aspect-ratio: 520 / 240; border-radius: 6px; }
+
+/* Survey with an AI agent */
+.agent { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 40px; align-items: start; max-width: 960px; }
+@media (max-width: 760px) { .agent { grid-template-columns: 1fr; gap: 28px; } }
+.chat { background: var(--surface); border: 1px solid var(--rule); border-radius: var(--radius); padding: 18px; display: grid; gap: 10px; margin: 0; font-size: 15px; }
+.chat p { margin: 0; padding: 10px 14px; border-radius: 12px; max-width: 90%; }
+.chat span { display: block; font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 2px; }
+.chat__you { justify-self: end; background: var(--brand-soft); }
+.chat__agent { justify-self: start; background: var(--bg); border: 1px solid var(--rule); }
+.agent__list { list-style: none; padding: 0; margin: 0; display: grid; gap: 16px; color: var(--muted); font-size: 16px; }
+.agent__list strong { color: var(--ink); }
 
 .m-floor { fill: var(--plan-floor); }
 .m-wall { fill: none; stroke: var(--plan-wall); stroke-width: 2.5; stroke-linecap: square; }
@@ -314,6 +335,7 @@ section[id] { scroll-margin-top: 76px; }
 .prose img { border: 1px solid var(--rule); border-radius: var(--radius); margin: 1.5em 0; box-shadow: var(--shadow); }
 .prose pre { background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; padding: 14px 16px; overflow-x: auto; font-size: 14px; line-height: 1.55; }
 .prose pre code { background: none; padding: 0; font-size: inherit; }
+.prose :not(pre) > code { overflow-wrap: anywhere; }
 .prose blockquote { margin: 1.5em 0; padding: 12px 18px; border-left: 3px solid var(--brand); background: var(--brand-soft); border-radius: 0 8px 8px 0; }
 .prose blockquote p:last-child { margin-bottom: 0; }
 .table-wrap { overflow-x: auto; margin: 0 0 1.4em; }

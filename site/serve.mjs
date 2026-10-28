@@ -6,7 +6,7 @@ import path from "node:path";
 
 const dir = path.resolve(process.argv[2] || "_site");
 const port = Number(process.argv[3] || 8080);
-const types = { ".html": "text/html", ".css": "text/css", ".js": "text/javascript", ".txt": "text/plain", ".md": "text/markdown", ".xml": "application/xml", ".png": "image/png", ".jpg": "image/jpeg", ".webp": "image/webp", ".ico": "image/x-icon" };
+const types = { ".html": "text/html", ".css": "text/css", ".js": "text/javascript", ".txt": "text/plain", ".md": "text/markdown", ".xml": "application/xml", ".png": "image/png", ".jpg": "image/jpeg", ".webp": "image/webp", ".ico": "image/x-icon", ".svg": "image/svg+xml" };
 
 async function find(p) {
   for (const c of [p, `${p}.html`, path.join(p, "index.html")]) {

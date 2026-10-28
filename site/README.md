@@ -40,6 +40,14 @@ exist. Heading anchors match GitHub's, so `#anchors` work in both places.
 Developer documentation (`docs/dev/`, `CONTRIBUTING.md`) stays on GitHub and is
 linked from `llms.txt`.
 
+The "how it works" illustrations are SVG files in `docs/images/`
+(`one-measurement.svg`, `points-to-heatmap.svg`), shown by both the guide and
+the landing page. Each carries its own `<style>`: light and dark colours via
+`prefers-color-scheme`, and animation only under
+`prefers-reduced-motion: no-preference`, so the plain file is the static
+picture. GitHub renders them from `![...](../images/....svg)`. Keep them free of
+external fonts and images.
+
 ## Build and preview
 
 ```bash

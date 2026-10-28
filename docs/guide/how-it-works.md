@@ -12,11 +12,18 @@ server reads the Wi-Fi signal with the tools your system already has, runs
 the speed tests with iperf3 if the survey measures speed, and saves the point
 to the survey file.
 
+![One measurement: the laptop at a spot on the floor plan reads the Wi-Fi signal from the router, optionally runs a speed test against a second computer wired to the router, and a coloured dot appears on that spot](../images/one-measurement.svg)
+
 Each measurement reads the Wi-Fi signal three times (before, between and
 after the speed tests, if any) and stores the average. Whether the speed
 test can run (iperf3 installed, server set and answering) is checked the
 same way on every system; if it can't, the signal is saved without speed
 and the app says why.
+
+The app's server runs the measurement and saves the point itself, so
+closing or reloading the browser tab meanwhile doesn't lose it, and Cancel
+stops it at once. Nothing runs through a shell: the speed test server and
+iperf3 options you type reach iperf3 as plain arguments, never as a command.
 
 ## Where the readings come from
 
@@ -26,6 +33,14 @@ and the app says why.
 | Windows | Native Wifi API (`wlanapi.dll`) | Part of Windows, works in any display language. `netsh` is the fallback. On Windows 11 24H2 and later, Location services must be on. |
 | Linux | `iw` | `nmcli` is optional and only lists nearby networks. Uses the first connected managed Wi-Fi interface. |
 | All | `iperf3` | Only for speed tests. See [measuring speed](throughput.md). |
+
+Where the system reports it, each point also stores the **noise** level in
+dBm: macOS does, and so do Linux drivers that print noise in
+`iw dev <interface> survey dump` (many do; Intel's often don't). Windows
+doesn't. The signal-to-noise ratio is the signal minus the noise, in dB:
+the higher the better. As a rule of thumb, 25 dB and more is good, and
+below about 15 dB a connection struggles even when the signal looks strong. The **Signal-to-noise ratio** heat map uses
+only the points that have it.
 
 ## Signal strength in percent and dBm
 
@@ -56,6 +71,8 @@ one thirtieth of the power at 100%. The colour stops are editable under
 **Heat map colours** in Settings.
 
 ## How the heat map is drawn
+
+![From points to a heat map: coloured dots, one per measurement, spread out and blend into one continuous map, green near the router and yellow to red far from it](../images/points-to-heatmap.svg)
 
 The heat map uses inverse distance weighting: each pixel takes a weighted
 average of the survey points around it, and closer points weigh more. Points

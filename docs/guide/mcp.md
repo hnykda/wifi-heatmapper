@@ -8,69 +8,64 @@ order: 8
 
 wifi-heatmapper comes with an optional [MCP](https://modelcontextprotocol.io)
 server. With it, an AI agent such as Claude Code or Claude Desktop can read
-your surveys, help you set up a survey, guide you through measuring it
-while you carry the laptop, and explain the results: where the dead zones
-are, which access point covers which rooms, and whether slow throughput
-comes from weak signal or from something else.
+your surveys, explain them, help you set up a new one, and guide you through
+measuring it while you carry the laptop.
 
-It is a small program the agent starts on your computer. It talks to the
-running app over the app's own local HTTP API, the same one the browser
-uses. It never reads or writes the app's files directly.
+## What an agent can and can't do
+
+**It can:**
+
+- **read** your floor plans and surveys: every point's position, signal (%
+  and dBm), noise and signal-to-noise ratio where measured, network, access
+  point and speed results;
+- **analyse** them: dead zones, weak rooms, which access point covers which
+  rooms, and whether slow speed comes from weak signal or something else;
+- **plan** a survey: how many spots, how far apart, where to fill gaps;
+- **set up** a survey: signal only or signal and speed, the speed test
+  server, test duration, extra iperf3 options, access point names and the
+  heat map look;
+- **copy settings** from one survey to another, for example to set up the
+  second floor like the first;
+- **measure with you carrying the laptop**: it tells you where to go, waits
+  until you say you're there, measures, and tells you the result in plain
+  words (see [Taking measurements](#taking-measurements));
+- **report a problem**: it prepares the same redacted report as the app's
+  **Report a problem** button and gives you a GitHub link to open yourself.
+
+**It can't:**
+
+- **walk around.** You carry the laptop; the agent asks before every
+  measurement.
+- **see the heat map images.** The app draws them in your browser, so the
+  agent gets a numeric grid computed the same way instead.
+- **handle the sudo password.** No tool takes or returns it. Where one is
+  needed you type it in the app's Settings (see
+  [The sudo password](#the-sudo-password)); never paste it into the chat.
+- **work when the app isn't running.** It talks to the running app; start
+  the app first.
+- **delete anything** or change existing points or floor plans. A
+  measurement only adds a point.
+
+## How it fits together
+
+The MCP server is a small program your AI client starts on your computer.
+It talks to the running app over the app's own local HTTP API, the same one
+the browser uses, and never reads or writes the app's files directly.
 
 ```
 AI agent  --stdio-->  MCP server  --HTTP, this computer only-->  wifi-heatmapper app
 ```
 
-## What an agent can and cannot do
-
-**It can:**
-
-- list your floor plans and surveys;
-- read every point of a survey: position, signal strength (% and dBm),
-  network name and BSSID, access point name, iperf3 results, and whether the
-  point is switched on;
-- summarise a survey: min, median and max of each metric, dead-zone, weak
-  and slow points, and which access points were seen at how many points;
-- get a coarse numeric heat map (a grid of numbers) of any metric;
-- check what it can of your setup: is iperf3 installed, is the macOS Wi-Fi
-  helper there and allowed Location access, are throughput tests set up;
-- change a short list of settings: iperf3 server, test duration, iperf3
-  commands, access point names, heat spot radius, opacity and fixed colour
-  scales;
-- copy settings from one survey to another (speed settings, access point
-  names, heat map look), for example to set up a second floor plan like the
-  first;
-- prepare a bug report when something looks like a bug in the app rather
-  than weak Wi-Fi: it gives you a summary and a prefilled GitHub issue link
-  to open yourself. It never posts anything;
-- **take measurements, with you carrying the laptop.** It tells you where
-  to go, waits until you say you're there, measures at that spot on the
-  floor plan, and tells you the result. See
-  [Taking measurements](#taking-measurements).
-
-**It cannot:**
-
-- **Walk around.** You carry the laptop to each spot; the agent asks before
-  every measurement.
-- **See the heat map images.** The app draws them in your browser with
-  WebGL, so there is no image on the server to hand over. The agent gets a
-  numeric grid computed the same way instead.
-- **Handle the sudo password.** It is never sent to the agent and can't be
-  set by it. Where one is needed, type it in the app's Settings tab; see
-  [The sudo password](#the-sudo-password).
-- **Work when the app isn't running.** Start the app first.
-- **Change anything else**, such as existing survey points, floor plans or
-  the colour gradient (other than copying one from another survey), or
-  delete anything. A measurement only adds a point.
-
 ## Setup
 
-You need the app running, and Node.js 20 or newer to run the MCP server
-(the desktop app brings its own).
+Three steps: start the app, find the two paths below, and add them to your
+AI client. The MCP server needs Node.js 20 or newer; the desktop app brings
+its own.
 
-### From source
+### 1. Find the paths
 
-Build the MCP server once (and again after you update the app):
+**From source.** Build the MCP server once, and again after you update the
+app, then start the app:
 
 ```bash
 cd wifi-heatmapper
@@ -78,19 +73,14 @@ npm run mcp:build      # writes dist/mcp/wifi-heatmapper-mcp.mjs
 npm run dev            # in another terminal: the app on http://localhost:3000
 ```
 
-The server is `dist/mcp/wifi-heatmapper-mcp.mjs`, a single file with no
-dependencies. Use its absolute path below. `npm run --silent mcp` builds and
-starts it in one go; keep `--silent`, because npm's own output on stdout would
-break the protocol.
+The command is `node`, the argument is the absolute path of
+`dist/mcp/wifi-heatmapper-mcp.mjs` (one file, no dependencies), and the app
+is at `http://localhost:3000`. If the app runs on another port, set
+`WIFI_HEATMAPPER_URL`, for example `http://localhost:3100`.
 
-If the app runs on another port, set `WIFI_HEATMAPPER_URL`, for example
-`http://localhost:3100`.
+**Desktop app.** It ships the MCP server and the Node.js to run it:
 
-### Desktop app
-
-The desktop app ships the MCP server and the Node.js to run it:
-
-| System | Node | MCP server |
+| System | Command (Node) | Argument (MCP server) |
 | --- | --- | --- |
 | macOS | `/Applications/WiFi Heatmapper.app/Contents/Resources/server/node` | `/Applications/WiFi Heatmapper.app/Contents/Resources/server/mcp-server.mjs` |
 | Windows (setup `.exe`) | `%LOCALAPPDATA%\WiFi Heatmapper\server\node.exe` | `%LOCALAPPDATA%\WiFi Heatmapper\server\mcp-server.mjs` |
@@ -100,8 +90,8 @@ The desktop app ships the MCP server and the Node.js to run it:
 The AppImage mounts itself at a different path on every start, so there is
 no stable path to point an agent at. Use the `.deb` or run from source.
 
-**The port.** The desktop app picks a free port each time it starts, so the
-agent can't know it. Give the app a fixed port with the
+**The desktop app's port.** The desktop app picks a free port each time it
+starts, so the agent can't know it. Give the app a fixed port with the
 `WIFI_HEATMAPPER_PORT` environment variable, and use the same port in
 `WIFI_HEATMAPPER_URL`. The examples use 3917:
 
@@ -116,7 +106,9 @@ agent can't know it. Give the app a fixed port with the
 Use `http://127.0.0.1:3917` as the URL: the desktop app listens on 127.0.0.1
 only.
 
-### Claude Code
+### 2. Add it to your client
+
+#### Claude Code
 
 From source:
 
@@ -135,10 +127,11 @@ claude mcp add wifi-heatmapper \
      "/Applications/WiFi Heatmapper.app/Contents/Resources/server/mcp-server.mjs"
 ```
 
-Add `-s user` to make it available in every project. Check it with
+On Windows or Linux, use the two paths from the table the same way. Add
+`-s user` to make it available in every project. Check it with
 `claude mcp list`, or `/mcp` inside Claude Code.
 
-### Claude Desktop
+#### Claude Desktop
 
 Edit `claude_desktop_config.json` (Settings, Developer, Edit config; on
 macOS it is in `~/Library/Application Support/Claude/`, on Windows in
@@ -158,6 +151,20 @@ From source:
 }
 ```
 
+Desktop app on macOS:
+
+```json
+{
+  "mcpServers": {
+    "wifi-heatmapper": {
+      "command": "/Applications/WiFi Heatmapper.app/Contents/Resources/server/node",
+      "args": ["/Applications/WiFi Heatmapper.app/Contents/Resources/server/mcp-server.mjs"],
+      "env": { "WIFI_HEATMAPPER_URL": "http://127.0.0.1:3917" }
+    }
+  }
+}
+```
+
 Desktop app on Windows (setup `.exe`; replace `you` with your user name):
 
 ```json
@@ -172,20 +179,171 @@ Desktop app on Windows (setup `.exe`; replace `you` with your user name):
 }
 ```
 
-On macOS, use the two paths from the table above in `command` and `args`.
 Claude Desktop does not expand `~` or `%LOCALAPPDATA%`, so write paths out
 in full. If `node` is not found, give its full path (`which node`).
 
-### Any other MCP client
+#### Any other MCP client
 
 It is a standard stdio server:
 
-- **command:** `node` (or the desktop app's bundled node)
-- **arguments:** the path to `wifi-heatmapper-mcp.mjs` (or `mcp-server.mjs`)
+- **command:** `node`, or the desktop app's bundled Node from the table;
+- **arguments:** the path to `wifi-heatmapper-mcp.mjs` (from source) or
+  `mcp-server.mjs` (desktop app);
 - **environment:** `WIFI_HEATMAPPER_URL`, if the app is not on
-  `http://localhost:3000`
+  `http://localhost:3000`.
 
 `node wifi-heatmapper-mcp.mjs --help` prints the options and exits.
+`npm run --silent mcp` builds and starts it in one go; keep `--silent`,
+because npm's own output on stdout would break the protocol.
+
+### 3. Try it
+
+Ask "List my wifi-heatmapper surveys". The agent should call
+`list_surveys` and name your floor plans. If it can't reach the app, see
+[Troubleshooting](#troubleshooting).
+
+## An example
+
+```
+You:    Let's measure the ground floor. I have the laptop.
+Agent:  (check_setup, get_survey "Ground floor.png": 1100 x 700 px, 3 points,
+        all in the living room; get_heatmap_grid shows nothing measured in
+        the east half.)
+        Speed tests are on (server 192.168.1.10). Let's fill the east half
+        first: 6 spots, about 3 m apart. First, the kitchen: on the plan
+        that's the room top right, around (900, 150). Go there, hold the
+        laptop where you'd use it, and tell me when you're there.
+You:    I'm by the kitchen counter.
+Agent:  (start_measurement {"survey":"Ground floor.png","x":900,"y":150};
+        your client asks you to allow it. Then wait_for_measurement.)
+        Kitchen: signal 48% (-74 dBm) from "Hall AP", 5 GHz; download
+        180 Mbps, upload 95 Mbps. Weak but usable. Next: the hallway by
+        the front door, around (700, 400). Tell me when you're there.
+You:    There.
+Agent:  (start_measurement, wait_for_measurement)
+        Hallway: 22% (-86 dBm), saved without speed: the speed test server
+        did not answer. That's a dead zone. Next: the study, around
+        (1000, 550).
+You:    Stop, someone needs the laptop.
+Agent:  (cancel_measurement if one is running.) Stopped; nothing more was
+        saved. You have 5 points; when you're back, we'll do the study and
+        the bathroom, and then I can explain the map (analyse_survey).
+```
+
+You can also just ask, for example "Which rooms have weak Wi-Fi in my
+Home.png survey, and where should I put a second access point?"
+
+## Taking measurements
+
+The agent can measure, but it can't walk: you carry the laptop. A
+measurement is the same one you get by clicking the floor plan in the app,
+started by the agent at a position it names in floor-plan pixels.
+
+1. The agent proposes a spot ("the kitchen, by the window") and you go
+   there with the laptop, holding it where you'd use it. You can also pick
+   the spots yourself.
+2. You say you're there. Your MCP client asks you to allow
+   `start_measurement` (keep that on).
+3. The app measures, exactly as for a click: signal, and speed if the
+   survey has speed tests on. Keep the laptop still.
+4. The server saves the point. The agent reads it back with
+   `wait_for_measurement` and tells you the result in plain words, then
+   moves on.
+
+**Watch the map fill in as you go.** Keep the app open on that floor plan
+in a browser tab (on the Floor plan tab). It shows each measurement the
+agent starts live, with the same progress panel as your own clicks, and
+the new point when it's saved. Nothing to set up: every open tab follows
+the measurement the server is running.
+
+### You stay in control
+
+- **You confirm every measurement.** `start_measurement` and
+  `cancel_measurement` are marked as tools that change something
+  (`readOnlyHint: false`), so MCP clients ask before running them. The
+  agent is also told to wait for you to say you're at the spot. A
+  measurement runs commands on this computer (the Wi-Fi tools, iperf3), the
+  same ones a click runs, with the survey's settings.
+- **One at a time.** The app runs one measurement at a time. While one
+  runs, `start_measurement` is refused with the running job's id, and a
+  click in the app waits too.
+- **Cancel any time.** Say stop, or press Cancel in the app's progress
+  panel. `cancel_measurement` only stops the job it names, kills a running
+  iperf3 at once and saves nothing. A measurement that is already being
+  saved can't be stopped.
+- A measurement only adds a point. It never changes or deletes others; you
+  can switch a point off or delete it in the app.
+
+### The measurement tools
+
+`start_measurement(survey, x, y)`: `x` and `y` are floor-plan pixels
+(origin top left), checked against the floor plan's size (a spot off the
+plan is refused). It sends the survey's own speed settings, never a
+password, and waits a few seconds for the first step (can Wi-Fi be read,
+is a sudo password needed) so a problem there is reported at once.
+Otherwise it returns the job id:
+
+```
+> start_measurement {"survey":"Home.png","x":400,"y":250}
+{"jobId":"sMOPDKsyE6","survey":"Home.png","x":400,"y":250,"state":"running",
+ "speedTest":"on","next":"Call wait_for_measurement with this jobId. ..."}
+```
+
+`wait_for_measurement(jobId, timeoutSeconds)` waits up to `timeoutSeconds`
+(default 45, at most 300; `0` only checks) and returns the saved point
+described the way `get_survey` describes points, with a one-line summary:
+
+```
+> wait_for_measurement {"jobId":"sMOPDKsyE6"}
+{"jobId":"sMOPDKsyE6","state":"done","pointId":"Point_1",
+ "summary":"Signal 81% (-51 dBm) from Demo Network, channel 44 (5 GHz); download 650.86 Mbps, upload 488.99 Mbps.",
+ "point":{"id":"Point_1","x":400,"y":250,"signalPercent":81,"rssiDbm":-51, ...}}
+```
+
+If the speed test was skipped (iperf3 missing, server unreachable), the
+point is still saved and the answer says `"savedWithoutSpeed": "Saved
+without speed: <reason>"`. If the measurement failed, it says why
+(`"state": "error", "reason": ...`) and nothing was saved. If it is still
+running when the time is up, it answers `"state": "running"` with the
+current step, and the agent calls it again. Many clients give up on a tool
+call after 60 seconds, hence the default of 45.
+
+`cancel_measurement(jobId)` stops that job. If it had already finished,
+the answer says so (and which point was saved).
+
+### The sudo password
+
+On most computers no password is needed and measuring just works:
+
+| System | Password? |
+| --- | --- |
+| macOS with the Wi-Fi helper (the desktop app, or `npm run build:macos-helper`) | No |
+| macOS without the helper (`wdutil`) | Yes |
+| Linux, when `iw` reads the connection as a normal user (most desktops) | No |
+| Linux, when `iw` is refused | Yes |
+| Windows | No |
+| Docker | No (the container runs as root) |
+| Mock mode | No |
+
+Where one is needed, the agent can't ask you for it and you shouldn't give
+it in chat: no tool takes it. Instead, the measurement stops at its first
+step and the agent tells you:
+
+> This computer needs the sudo password to read Wi-Fi. Enter it once in
+> the app's Settings (it stays in memory), then try again.
+
+Type it in the app's Settings tab. The app's server then holds it **in
+memory only, for as long as the app runs**: it is never written to a file
+or a log, never returned by any API (`GET /api/sudo-password` only says
+whether one is held), and gone when the app restarts. It is only ever given
+to `sudo` on its standard input, for the app's own Wi-Fi commands
+(`wdutil info`, `iw dev <interface> link`). Measurements you start by
+clicking use it too, so after a page reload you don't have to type it
+again. Emptying the field forgets it. If the password is wrong, the agent
+says so and you correct it in Settings.
+
+`check_setup` says whether the app holds one (`sudoPasswordHeld`), and on
+macOS whether the Wi-Fi helper makes it unnecessary.
 
 ## Tools
 
@@ -216,14 +374,17 @@ Each point looks like this (shortened):
   "id": "Point_7", "x": 922, "y": 92, "enabled": true,
   "measuredAt": "2026-10-28T08:20:26.571Z",
   "ssid": "Demo Network", "bssid": "9e05d696e830", "apName": null,
-  "signalPercent": 29, "rssiDbm": -83, "channel": 44, "bandGHz": 5,
+  "signalPercent": 29, "rssiDbm": -83, "noiseDbm": -92, "snrDb": 9,
+  "channel": 44, "bandGHz": 5,
   "tcpDownload": { "mbps": 75.69, "retransmits": 0 },
   "tcpUpload": { "mbps": 58.87, "retransmits": 0 },
   "udpDownload": null, "udpUpload": null
 }
 ```
 
-A test is `null` when it did not run (no iperf3 server, or it failed). UDP
+`noiseDbm` and `snrDb` are `null` where the system reports no noise
+(Windows, some Linux drivers). A test is `null` when it did not run (signal
+only, no iperf3 server, or it failed). UDP
 results have `mbps`, `jitterMs`, `lostPackets` and `packetsReceived`.
 
 The summary only uses points that are switched on, like the heat maps:
@@ -356,146 +517,6 @@ rather than a Wi-Fi problem: an error, impossible readings (0% or -100 dBm
 everywhere, channel 0), no noise readings on macOS, or Windows falling back
 from the WLAN API to `netsh`.
 
-## Taking measurements
-
-The agent can measure, but it can't walk: you carry the laptop. A
-measurement is the same one you get by clicking the floor plan in the app,
-started by the agent at a position it names in floor-plan pixels.
-
-1. The agent proposes a spot ("the kitchen, by the window") and you go
-   there with the laptop, holding it where you'd use it. You can also pick
-   the spots yourself.
-2. You say you're there. Your MCP client asks you to allow
-   `start_measurement` (keep that on).
-3. The app measures, exactly as for a click: signal, and speed if the
-   survey has speed tests on. Keep the laptop still.
-4. The server saves the point. The agent reads it back with
-   `wait_for_measurement` and tells you the result in plain words, then
-   moves on.
-
-**Watch the map fill in as you go.** Keep the app open on that floor plan
-in a browser tab (on the Floor plan tab). It shows each measurement the
-agent starts live, with the same progress panel as your own clicks, and
-the new point when it's saved. Nothing to set up: every open tab follows
-the measurement the server is running.
-
-### Safety
-
-- **You confirm every measurement.** `start_measurement` and
-  `cancel_measurement` are marked as tools that change something
-  (`readOnlyHint: false`), so MCP clients ask before running them. The
-  agent is also told to wait for you to say you're at the spot. A
-  measurement runs commands on this computer (the Wi-Fi tools, iperf3), the
-  same ones a click runs, with the survey's settings.
-- **One at a time.** The app runs one measurement at a time. While one
-  runs, `start_measurement` is refused with the running job's id, and a
-  click in the app waits too.
-- **Cancel any time.** Say stop, or press Cancel in the app's progress
-  panel. `cancel_measurement` only stops the job it names, kills a running
-  iperf3 at once and saves nothing. A measurement that is already being
-  saved can't be stopped.
-- A measurement only adds a point. It never changes or deletes others; you
-  can switch a point off or delete it in the app.
-
-### The tools
-
-`start_measurement(survey, x, y)`: `x` and `y` are floor-plan pixels
-(origin top left), checked against the floor plan's size (a spot off the
-plan is refused). It sends the survey's own speed settings, never a
-password, and waits a few seconds for the first step (can Wi-Fi be read,
-is a sudo password needed) so a problem there is reported at once.
-Otherwise it returns the job id:
-
-```
-> start_measurement {"survey":"Home.png","x":400,"y":250}
-{"jobId":"sMOPDKsyE6","survey":"Home.png","x":400,"y":250,"state":"running",
- "speedTest":"on","next":"Call wait_for_measurement with this jobId. ..."}
-```
-
-`wait_for_measurement(jobId, timeoutSeconds)` waits up to `timeoutSeconds`
-(default 45, at most 300; `0` only checks) and returns the saved point
-described the way `get_survey` describes points, with a one-line summary:
-
-```
-> wait_for_measurement {"jobId":"sMOPDKsyE6"}
-{"jobId":"sMOPDKsyE6","state":"done","pointId":"Point_1",
- "summary":"Signal 81% (-51 dBm) from Demo Network, channel 44 (5 GHz); download 650.86 Mbps, upload 488.99 Mbps.",
- "point":{"id":"Point_1","x":400,"y":250,"signalPercent":81,"rssiDbm":-51, ...}}
-```
-
-If the speed test was skipped (iperf3 missing, server unreachable), the
-point is still saved and the answer says `"savedWithoutSpeed": "Saved
-without speed: <reason>"`. If the measurement failed, it says why
-(`"state": "error", "reason": ...`) and nothing was saved. If it is still
-running when the time is up, it answers `"state": "running"` with the
-current step, and the agent calls it again. Many clients give up on a tool
-call after 60 seconds, hence the default of 45.
-
-`cancel_measurement(jobId)` stops that job. If it had already finished,
-the answer says so (and which point was saved).
-
-### The sudo password
-
-On most computers no password is needed and measuring just works:
-
-| System | Password? |
-| --- | --- |
-| macOS with the Wi-Fi helper (the desktop app, or `npm run build:macos-helper`) | No |
-| macOS without the helper (`wdutil`) | Yes |
-| Linux, when `iw` reads the connection as a normal user (most desktops) | No |
-| Linux, when `iw` is refused | Yes |
-| Windows | No |
-| Docker | No (the container runs as root) |
-| Mock mode | No |
-
-Where one is needed, the agent can't ask you for it and you shouldn't give
-it in chat: no tool takes it. Instead, the measurement stops at its first
-step and the agent tells you:
-
-> This computer needs the sudo password to read Wi-Fi. Enter it once in
-> the app's Settings (it stays in memory), then try again.
-
-Type it in the app's Settings tab. The app's server then holds it **in
-memory only, for as long as the app runs**: it is never written to a file
-or a log, never returned by any API (`GET /api/sudo-password` only says
-whether one is held), and gone when the app restarts. It is only ever given
-to `sudo` on its standard input, for the app's own Wi-Fi commands
-(`wdutil info`, `iw dev <interface> link`). Measurements you start by
-clicking use it too, so after a page reload you don't have to type it
-again. Emptying the field forgets it. If the password is wrong, the agent
-says so and you correct it in Settings.
-
-`check_setup` says whether the app holds one (`sudoPasswordHeld`), and on
-macOS whether the Wi-Fi helper makes it unnecessary.
-
-### An example
-
-```
-You:    Let's measure the ground floor. I have the laptop.
-Agent:  (check_setup, get_survey "Ground floor.png": 1100 x 700 px, 3 points,
-        all in the living room; get_heatmap_grid shows nothing measured in
-        the east half.)
-        Speed tests are on (server 192.168.1.10). Let's fill the east half
-        first: 6 spots, about 3 m apart. First, the kitchen: on the plan
-        that's the room top right, around (900, 150). Go there, hold the
-        laptop where you'd use it, and tell me when you're there.
-You:    I'm by the kitchen counter.
-Agent:  (start_measurement {"survey":"Ground floor.png","x":900,"y":150};
-        your client asks you to allow it. Then wait_for_measurement.)
-        Kitchen: signal 48% (-74 dBm) from "Hall AP", 5 GHz; download
-        180 Mbps, upload 95 Mbps. Weak but usable. Next: the hallway by
-        the front door, around (700, 400). Tell me when you're there.
-You:    There.
-Agent:  (start_measurement, wait_for_measurement)
-        Hallway: 22% (-86 dBm), saved without speed: the speed test server
-        did not answer. That's a dead zone. Next: the study, around
-        (1000, 550).
-You:    Stop, someone needs the laptop.
-Agent:  (cancel_measurement if one is running.) Stopped; nothing more was
-        saved. You have 5 points; when you're back, we'll do the study and
-        the bathroom, and then I can explain the map (analyse_survey).
-```
-
 ## Prompts
 
 Prompts are ready-made requests your MCP client offers (in Claude Code, type
@@ -508,10 +529,7 @@ Prompts are ready-made requests your MCP client offers (in Claude Code, type
 | `plan_survey` | `name` (optional) | How many points and how far apart, where to stand, and how to set up the iperf3 server. |
 | `survey_walkthrough` | `name`, `rooms` (optional) | The agent guides you spot by spot while you carry the laptop: it plans the spots (filling gaps and weak areas from `get_heatmap_grid`), asks you to go to each, waits for you to confirm, measures and tells you the result. |
 
-You can also just ask, for example "Which rooms have weak Wi-Fi in my
-Home.png survey, and where should I put a second access point?"
-
-## Security
+## Safety model
 
 - **This computer only.** The MCP server refuses any app address other than
   `localhost`, `127.0.0.1` or `::1`. The app runs commands on the machine it
@@ -532,6 +550,10 @@ Home.png survey, and where should I put a second access point?"
 - **Sends nothing.** The MCP server talks only to the app on this computer.
   It has no [usage counts](privacy.md) of its own and no tool that reads or
   changes the app's.
+- **Other web sites can't use it.** The app refuses API requests that come
+  from another web site open in your browser, or that are addressed to a
+  name other than a local one. Tools on this computer, such as the MCP
+  server, are allowed.
 - The app's HTTP API has no login, like the rest of the app. Anything on
   this computer that can reach the port can use it, with or without MCP.
 
@@ -539,11 +561,11 @@ Home.png survey, and where should I put a second access point?"
 
 **"Can't reach wifi-heatmapper at http://localhost:3000. Is the app running?"**
 Start the app (`npm run dev`, or open the desktop app). If it runs on
-another port, set `WIFI_HEATMAPPER_URL`. For the desktop app, see "The
-port" above.
+another port, set `WIFI_HEATMAPPER_URL`. For the desktop app, see
+[the desktop app's port](#1-find-the-paths).
 
 **"Refusing to talk to ..."** `WIFI_HEATMAPPER_URL` points at another
-computer. See Security.
+computer. See [Safety model](#safety-model).
 
 **"Unexpected answer ... not JSON"** Something else is listening on that
 port. Check the URL in your browser: it should show wifi-heatmapper.
@@ -566,8 +588,9 @@ and forgets them when it restarts. Check the survey with `get_survey`.
 **The open tab doesn't show the agent's measurement.** It follows
 measurements for the floor plan it shows: open the same floor plan.
 
-**The agent's settings change disappeared.** The app was open on that floor
-plan and saved its own copy. Reload the page, then make the change again.
+**The open tab doesn't show the agent's settings change.** The change is
+saved; the page picks it up after its next save of that survey, or when you
+reload it. Each change is saved on its own, so the page never undoes it.
 
 **The grid is all `null`, or has few numbers.** The survey has few points
 or a small radius. Each point only reaches as far as the radius (shown in
