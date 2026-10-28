@@ -52,6 +52,7 @@ import {
 import {
   ApMapping,
   Gradient,
+  IperfTestProperty,
   SurveyPoint,
   SurveyPointActions,
 } from "@/lib/types";
@@ -108,10 +109,11 @@ type Row = {
   phyMode: string;
   channelWidth: number;
   band: string;
-  tcpDownloadMbps: number;
-  tcpUploadMbps: number;
-  udpDownloadMbps: number;
-  udpUploadMbps: number;
+  // null: that test did not run (0 is a measured 0 Mbps)
+  tcpDownloadMbps: number | null;
+  tcpUploadMbps: number | null;
+  udpDownloadMbps: number | null;
+  udpUploadMbps: number | null;
   timestamp: number;
   isEnabled: boolean;
   origPoint: SurveyPoint;
@@ -123,8 +125,9 @@ interface SurveyPointsTableProps {
   apMapping: ApMapping[];
 }
 
-const toMbps = (bps: number) => Math.round((bps / 1_000_000) * 100) / 100;
-const mbps = (v: number) => (v === 0 ? "" : v.toFixed(2));
+const toMbps = (test: IperfTestProperty | null) =>
+  test ? Math.round((test.bitsPerSecond / 1_000_000) * 100) / 100 : null;
+const mbps = (v: number | null) => (v === null ? "—" : v.toFixed(2));
 
 const SPEED_COLUMNS = new Set([
   "tcpDownloadMbps",
@@ -180,10 +183,10 @@ const SurveyPointsTable: React.FC<SurveyPointsTableProps> = ({
     phyMode: point.wifiData.phyMode,
     channelWidth: point.wifiData.channelWidth,
     band: point.wifiData.band ? `${point.wifiData.band} GHz` : "",
-    tcpDownloadMbps: toMbps(point.iperfData.tcpDownload.bitsPerSecond),
-    tcpUploadMbps: toMbps(point.iperfData.tcpUpload.bitsPerSecond),
-    udpDownloadMbps: toMbps(point.iperfData.udpDownload.bitsPerSecond),
-    udpUploadMbps: toMbps(point.iperfData.udpUpload.bitsPerSecond),
+    tcpDownloadMbps: toMbps(point.iperfData.tcpDownload),
+    tcpUploadMbps: toMbps(point.iperfData.tcpUpload),
+    udpDownloadMbps: toMbps(point.iperfData.udpDownload),
+    udpUploadMbps: toMbps(point.iperfData.udpUpload),
     timestamp: point.timestamp,
     isEnabled: point.isEnabled,
   }));
@@ -260,7 +263,11 @@ const SurveyPointsTable: React.FC<SurveyPointsTableProps> = ({
       cell: ({ getValue }) => getValue<number | null>() ?? "—",
     },
     { accessorKey: "band", header: "Band" },
-    { accessorKey: "channel", header: "Channel" },
+    {
+      accessorKey: "channel",
+      header: "Channel",
+      cell: ({ getValue }) => getValue<number>() || "—", // 0: not reported
+    },
     {
       accessorKey: "accessPoint",
       header: "Access point",
@@ -279,27 +286,35 @@ const SurveyPointsTable: React.FC<SurveyPointsTableProps> = ({
     {
       accessorKey: "tcpDownloadMbps",
       header: "Download Mbps",
-      cell: ({ getValue }) => mbps(getValue<number>()),
+      cell: ({ getValue }) => mbps(getValue<number | null>()),
     },
     {
       accessorKey: "tcpUploadMbps",
       header: "Upload Mbps",
-      cell: ({ getValue }) => mbps(getValue<number>()),
+      cell: ({ getValue }) => mbps(getValue<number | null>()),
     },
     {
       accessorKey: "udpDownloadMbps",
       header: "UDP download Mbps",
-      cell: ({ getValue }) => mbps(getValue<number>()),
+      cell: ({ getValue }) => mbps(getValue<number | null>()),
     },
     {
       accessorKey: "udpUploadMbps",
       header: "UDP upload Mbps",
-      cell: ({ getValue }) => mbps(getValue<number>()),
+      cell: ({ getValue }) => mbps(getValue<number | null>()),
     },
     { accessorKey: "security", header: "Security", meta: { align: "left" } },
-    { accessorKey: "txRate", header: "TX rate" },
+    {
+      accessorKey: "txRate",
+      header: "TX rate",
+      cell: ({ getValue }) => getValue<number>() || "—", // 0: not reported
+    },
     { accessorKey: "phyMode", header: "Wi-Fi standard" },
-    { accessorKey: "channelWidth", header: "Width MHz" },
+    {
+      accessorKey: "channelWidth",
+      header: "Width MHz",
+      cell: ({ getValue }) => getValue<number>() || "—", // 0: not reported
+    },
     { accessorKey: "x", header: "X" },
     { accessorKey: "y", header: "Y" },
     {

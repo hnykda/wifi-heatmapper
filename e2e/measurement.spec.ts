@@ -43,7 +43,7 @@ test("clicking the floor plan takes a measurement and stores it", async ({
   expect(p.y).toBeCloseTo(500 * 0.4, -1);
   // signal only by default: no speed
   expect(survey.measureSpeed).toBe(false);
-  expect(p.iperfData.tcpDownload.bitsPerSecond).toBe(0);
+  expect(p.iperfData.tcpDownload).toBeNull();
 });
 
 test("with signal and speed, speed is measured too", async ({ page }) => {
@@ -99,7 +99,7 @@ test("an unreachable speed test server still records the signal, with a warning"
     (s) => s.surveyPoints.length === 1,
   );
   expect(survey.surveyPoints[0].wifiData.signalStrength).toBeGreaterThan(0);
-  expect(survey.surveyPoints[0].iperfData.tcpDownload.bitsPerSecond).toBe(0);
+  expect(survey.surveyPoints[0].iperfData.tcpDownload).toBeNull();
 });
 
 test("a speed survey without a server warns before measuring", async ({

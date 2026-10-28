@@ -12,7 +12,11 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import * as store from "@/lib/survey-store";
 import { addPoint } from "@/lib/survey-ops";
-import { getDefaultIperfResults, getDefaultWifiResults } from "@/lib/utils";
+import {
+  getDefaultIperfResults,
+  getDefaultWifiResults,
+  iperfTestResult,
+} from "@/lib/utils";
 
 const dataDir = mkdtempSync(join(tmpdir(), "wifi-heatmapper-store-"));
 const surveysDir = join(dataDir, "surveys");
@@ -51,7 +55,7 @@ describe("survey-store", () => {
     }));
     expect(saved.testDuration).toBe(4);
     expect(saved.floorplanImageName).toBe("a.png");
-    expect(saved.meta).toMatchObject({ schemaVersion: 1 });
+    expect(saved.meta).toMatchObject({ schemaVersion: 2 });
     expect(onDisk("a.png")).toEqual(JSON.parse(JSON.stringify(saved)));
     expect(await store.read("a.png")).toEqual(saved);
     expect(await store.list()).toEqual(["a.png"]);
@@ -68,6 +72,38 @@ describe("survey-store", () => {
     expect(readFileSync(join(surveysDir, "old.png.json"), "utf-8")).not.toMatch(
       /sudoerPassword|pw/,
     );
+  });
+
+  it("saves an old file's zeros as null and keeps a new real 0 Mbps", async () => {
+    mkdirSync(surveysDir, { recursive: true });
+    writeFileSync(
+      join(surveysDir, "Home.png.json"),
+      readFileSync(
+        join(__dirname, "data", "surveys", "v0.8-mixed-zeros.json"),
+        "utf-8",
+      ),
+    );
+    await store.mutate("Home.png", (s) =>
+      addPoint(s, {
+        ...newPoint(),
+        iperfData: {
+          ...getDefaultIperfResults(),
+          tcpDownload: iperfTestResult(0),
+        },
+      }),
+    );
+    // twice: the second save must not touch what the first one wrote
+    await store.mutate("Home.png", (s) => ({ ...s, testDuration: 2 }));
+    const file = onDisk("Home.png");
+    expect(file.meta.schemaVersion).toBe(2);
+    const tests = file.surveyPoints.map(
+      (p: { iperfData: Record<string, { bitsPerSecond: number } | null> }) =>
+        p.iperfData,
+    );
+    expect(tests[1].tcpDownload.bitsPerSecond).toBe(150e6); // ran
+    expect(tests[1].tcpUpload).toBeNull(); // saved as zeros by 0.8
+    expect(tests[3].tcpDownload.bitsPerSecond).toBe(0); // a real 0
+    expect(tests[3].udpDownload).toBeNull();
   });
 
   it("loses no update when many changes to one file overlap", async () => {

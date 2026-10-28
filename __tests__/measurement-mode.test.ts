@@ -6,7 +6,7 @@ import {
   migrateMeasurementMode,
   parseServerAddress,
 } from "../src/lib/measurement-mode";
-import { getDefaultIperfResults } from "../src/lib/utils";
+import { getDefaultIperfResults, iperfTestResult } from "../src/lib/utils";
 import { parseSurveyFile, settingsPatchSchema } from "../src/lib/schema";
 import { applySettingsPatch } from "../src/lib/survey-ops";
 import { defaultSurvey } from "../src/lib/survey-defaults";
@@ -192,13 +192,19 @@ describe("measureSpeed in PATCH /api/settings", () => {
 });
 
 describe("hasSpeedData", () => {
-  it("is false for the zeros stored when speed was not measured", () => {
+  it("is false when no test ran (all null)", () => {
     expect(hasSpeedData({ iperfData: getDefaultIperfResults() })).toBe(false);
   });
 
   it("is true when any test ran", () => {
     const iperfData = getDefaultIperfResults();
-    iperfData.udpUpload = { ...iperfData.udpUpload, bitsPerSecond: 1e6 };
+    iperfData.udpUpload = iperfTestResult(1e6);
+    expect(hasSpeedData({ iperfData })).toBe(true);
+  });
+
+  it("is true for a test that ran and measured 0 Mbps (a dead spot)", () => {
+    const iperfData = getDefaultIperfResults();
+    iperfData.tcpDownload = iperfTestResult(0);
     expect(hasSpeedData({ iperfData })).toBe(true);
   });
 });

@@ -121,8 +121,26 @@ The server owns the survey files. Two pieces do the work:
     `iperfData` (before 0.4), the image URL derived from the name,
     only valid fixed colour scales kept (`normalizeHeatmapRanges`), and
     `measureSpeed` for files without it (`migrateMeasurementMode()`:
-    a `localhost` or empty server is signal only, any other is speed).
+    a `localhost` or empty server is signal only, any other is speed),
+    and speed tests that did not run (`migrateUnmeasuredTests()`, below).
     Unknown keys, a sudo password among them, are dropped.
+  * **Not measured is `null`, not 0.** Each of a point's four speed tests
+    (`iperfData.tcpDownload` ... `udpUpload`) is `null` when it did not
+    run: signal only, iperf3 missing, server unreachable, or a test that
+    failed (the ones before it are kept). A test that ran and got nothing
+    through is `bitsPerSecond: 0`, a real dead spot, and is shown, mapped
+    and exported as 0. Files before schema version 2 (`meta.schemaVersion`,
+    0.8 and older) stored tests that did not run as zeros; on load, a test
+    whose `bitsPerSecond` is 0 and whose retransmits, jitter and packet
+    counts are all 0, null or missing becomes `null` (its `signalStrength`
+    is a copy of the Wi-Fi reading and is not looked at). Tests with real
+    values are kept, and files of version 2 are not touched, so the
+    migration is idempotent. `mutate()` stamps the current `meta` before
+    it parses `fn`'s result again, so a new point's 0 Mbps is never read
+    as an old file's zeros. Wi-Fi values that are never really 0 (channel,
+    band, width, TX rate) keep 0 for "not reported" in the file; the table,
+    CSV and MCP show them as empty or `null`. Noise is `null` when the
+    system reports none.
   * Request bodies are **strict** (`settingsPatchSchema`,
     `addPointSchema`, `pointPatchSchema`, `deletePointsSchema`,
     `startTaskSchema`): an unknown key or a bad value is a 400 and nothing

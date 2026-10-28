@@ -1,15 +1,24 @@
 import { apNameFor } from "./apName";
-import { ApMapping, SurveyPoint } from "./types";
+import { ApMapping, IperfTestProperty, SurveyPoint } from "./types";
 import { snrOf, validNoise } from "./utils";
 
-const toMbps = (bps: number) => Math.round((bps / 1_000_000) * 100) / 100;
+/** Mbps of a test, or "" (an empty cell) when it did not run. */
+const toMbps = (test: IperfTestProperty | null) =>
+  test ? Math.round((test.bitsPerSecond / 1_000_000) * 100) / 100 : "";
+
+/** Channel, band, width and TX rate are never really 0: 0 means unknown. */
+const known = (n: number) => (n ? n : "");
 
 function csvCell(v: unknown): string {
   const s = v === null || v === undefined ? "" : String(v);
   return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
-/** Survey points as CSV text, one row per point. */
+/**
+ * Survey points as CSV text, one row per point. A value that was not
+ * measured (a speed test that did not run, no noise reading) is an empty
+ * cell; a measured 0 Mbps is 0.
+ */
 export function surveyPointsToCsv(
   points: SurveyPoint[],
   apMapping: ApMapping[],
@@ -56,18 +65,18 @@ export function surveyPointsToCsv(
       w.ssid,
       w.bssid,
       ap,
-      w.channel,
-      w.band,
-      w.channelWidth,
-      w.txRate,
+      known(w.channel),
+      known(w.band),
+      known(w.channelWidth),
+      known(w.txRate),
       w.phyMode,
       w.security,
-      toMbps(i.tcpDownload.bitsPerSecond),
-      toMbps(i.tcpUpload.bitsPerSecond),
-      toMbps(i.udpDownload.bitsPerSecond),
-      toMbps(i.udpUpload.bitsPerSecond),
-      i.udpDownload.jitterMs ?? "",
-      i.udpDownload.lostPackets ?? "",
+      toMbps(i.tcpDownload),
+      toMbps(i.tcpUpload),
+      toMbps(i.udpDownload),
+      toMbps(i.udpUpload),
+      i.udpDownload?.jitterMs ?? "",
+      i.udpDownload?.lostPackets ?? "",
       new Date(p.timestamp).toISOString(),
     ]
       .map(csvCell)

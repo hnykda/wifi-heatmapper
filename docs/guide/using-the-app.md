@@ -169,3 +169,5 @@ Every measurement in the survey. Sort by any column, show more columns
 (signal in dBm, channel, Wi-Fi standard, coordinates, and more), filter,
 switch points off, delete a selection, or export everything as CSV. The
 download and upload columns appear once a point has a speed reading.
+A test that did not run shows as "—" (an empty cell in the CSV); a test
+that ran and got nothing through shows as 0, a real dead spot.

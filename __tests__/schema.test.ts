@@ -5,12 +5,16 @@ import {
   addPointSchema,
   deletePointsSchema,
   describeIssues,
+  migrateUnmeasuredTests,
   parseSurveyFile,
   pointPatchSchema,
   settingsPatchSchema,
   startTaskSchema,
+  SURVEY_SCHEMA_VERSION,
   surveyImportSchema,
 } from "@/lib/schema";
+import { hasSpeedData } from "@/lib/measurement-mode";
+import type { IperfResults } from "@/lib/types";
 import { defaultSurvey } from "@/lib/survey-defaults";
 import {
   addPoint,
@@ -21,7 +25,11 @@ import {
   updatePoint,
 } from "@/lib/survey-ops";
 import { defaultIperfCommands } from "@/lib/iperfUtils";
-import { getDefaultIperfResults, getDefaultWifiResults } from "@/lib/utils";
+import {
+  getDefaultIperfResults,
+  getDefaultWifiResults,
+  iperfTestResult,
+} from "@/lib/utils";
 import { clearLogBuffer, recentLogLines } from "@/lib/logger";
 
 const fixture = (name: string) =>
@@ -71,9 +79,19 @@ describe("reading survey files (lenient)", () => {
     const raw = fixture("v0.3-iperfResults.json");
     const survey = parseSurveyFile(raw, "Home.png");
     expect(survey.surveyPoints).toHaveLength(2);
-    for (const [i, p] of survey.surveyPoints.entries()) {
-      const old = (raw.surveyPoints as Record<string, unknown>[])[i];
-      expect(p.iperfData).toEqual(old.iperfResults);
+    const old = (raw.surveyPoints as Record<string, unknown>[]).map(
+      (p) => p.iperfResults,
+    );
+    // measured tests are kept as they were
+    expect(survey.surveyPoints[0].iperfData).toEqual(old[0]);
+    // tests saved as zeros (not run) read as null
+    expect(survey.surveyPoints[1].iperfData).toEqual({
+      tcpDownload: null,
+      tcpUpload: null,
+      udpDownload: null,
+      udpUpload: null,
+    });
+    for (const p of survey.surveyPoints) {
       expect(p).not.toHaveProperty("iperfResults");
     }
     expect(survey.surveyPoints[1].isEnabled).toBe(false);
@@ -118,15 +136,18 @@ describe("reading survey files (lenient)", () => {
       strongestSSID: null,
     });
     expect(p1.wifiData.noise).toBeUndefined();
-    expect(p1.iperfData.tcpDownload.bitsPerSecond).toBe(0);
-    expect(p5.wifiData.noise).toBe(-92);
-    expect(p5.iperfData.tcpDownload.bitsPerSecond).toBe(500e6);
-    expect(p5.iperfData.tcpUpload.bitsPerSecond).toBe(0);
-    expect(p5.iperfData.udpDownload).toMatchObject({
-      bitsPerSecond: 0,
-      jitterMs: null,
+    // unusable speed data: not measured (null), never a made-up 0 Mbps
+    expect(p1.iperfData).toEqual({
+      tcpDownload: null,
+      tcpUpload: null,
+      udpDownload: null,
+      udpUpload: null,
     });
-    expect(p5.iperfData.udpUpload.packetsReceived).toBe(7000);
+    expect(p5.wifiData.noise).toBe(-92);
+    expect(p5.iperfData.tcpDownload?.bitsPerSecond).toBe(500e6);
+    expect(p5.iperfData.tcpUpload).toBeNull(); // "lost"
+    expect(p5.iperfData.udpDownload).toBeNull(); // bitsPerSecond "fast"
+    expect(p5.iperfData.udpUpload?.packetsReceived).toBe(7000);
 
     // each bad setting falls back on its own
     expect(survey.floorplanImageName).toBe("Office.png");
@@ -427,5 +448,95 @@ describe("iperf3 commands from before 0.8", () => {
     expect(load({ tcpUpload: ["-P", "4"] }).tcpUpload).toEqual(["-P", "4"]);
     // ...unless they set what the app sets
     expect(load({ tcpUpload: ["-c", "evil"] }).tcpUpload).toEqual([]);
+  });
+});
+
+describe("speed tests that did not run (schema version 2)", () => {
+  const NONE = {
+    tcpDownload: null,
+    tcpUpload: null,
+    udpDownload: null,
+    udpUpload: null,
+  };
+  const iperf = (survey: ReturnType<typeof parseSurveyFile>) =>
+    survey.surveyPoints.map((p) => p.iperfData);
+  /** What the store does: save with the current meta, read it back. */
+  const saveAndRead = (survey: ReturnType<typeof parseSurveyFile>) =>
+    parseSurveyFile(
+      JSON.parse(
+        JSON.stringify({
+          ...survey,
+          meta: { ...survey.meta, schemaVersion: SURVEY_SCHEMA_VERSION },
+        }),
+      ),
+      "Home.png",
+    );
+
+  it("reads an old file's zeros as not measured", () => {
+    const survey = parseSurveyFile(
+      fixture("v0.8-not-measured-zeros.json"),
+      "Home.png",
+    );
+    expect(iperf(survey)).toEqual([NONE, NONE]);
+    expect(survey.surveyPoints.map(hasSpeedData)).toEqual([false, false]);
+  });
+
+  it("keeps the tests that ran in a mixed old file", () => {
+    const raw = fixture("v0.8-mixed-zeros.json");
+    const stored = (raw.surveyPoints as { iperfData: IperfResults }[]).map(
+      (p) => p.iperfData,
+    );
+    const [all, midway, packets] = iperf(parseSurveyFile(raw, "Home.png"));
+    // real values, including 0 lost packets, are untouched
+    expect(all).toEqual(stored[0]);
+    // iperf3 failed after the download: the download is kept
+    expect(midway).toEqual({ ...NONE, tcpDownload: stored[1].tcpDownload });
+    // 0 bit/s with other values is not "all zero": kept as measured
+    expect(packets).toEqual({ ...NONE, udpDownload: stored[2].udpDownload });
+  });
+
+  it("leaves a new file alone: null stays null, a real 0 Mbps stays 0", () => {
+    const raw = fixture("v0.9-not-measured-null.json");
+    const survey = parseSurveyFile(raw, "Home.png");
+    expect(survey.surveyPoints).toEqual(raw.surveyPoints);
+    const deadSpot = survey.surveyPoints[1];
+    expect(deadSpot.iperfData.tcpDownload?.bitsPerSecond).toBe(0);
+    expect(hasSpeedData(deadSpot)).toBe(true);
+  });
+
+  it.each([
+    "v0.8-not-measured-zeros.json",
+    "v0.8-mixed-zeros.json",
+    "v0.9-not-measured-null.json",
+  ])("is idempotent: %s reads the same after a save", (name) => {
+    const once = parseSurveyFile(fixture(name), "Home.png");
+    expect(migrateUnmeasuredTests(once)).toEqual(once);
+    expect(iperf(saveAndRead(once))).toEqual(iperf(once));
+    expect(iperf(saveAndRead(saveAndRead(once)))).toEqual(iperf(once));
+  });
+
+  it("keeps a real 0 Mbps added to a migrated old file", () => {
+    const old = parseSurveyFile(
+      fixture("v0.8-not-measured-zeros.json"),
+      "Home.png",
+    );
+    const withDeadSpot = addPoint(old, {
+      ...point(""),
+      iperfData: { ...NONE, tcpDownload: iperfTestResult(0) },
+    });
+    const reread = saveAndRead(withDeadSpot);
+    expect(reread.surveyPoints[2].iperfData.tcpDownload?.bitsPerSecond).toBe(0);
+    expect(reread.surveyPoints[0].iperfData).toEqual(NONE);
+  });
+
+  it("takes null tests in a new point; an unusable test is null", () => {
+    const body = { ...point(""), iperfData: { ...NONE } };
+    expect(addPointSchema.parse(body).iperfData).toEqual(NONE);
+    expect(
+      addPointSchema.parse({
+        ...body,
+        iperfData: { ...NONE, tcpUpload: { bitsPerSecond: "fast" } },
+      }).iperfData.tcpUpload,
+    ).toBeNull();
   });
 });

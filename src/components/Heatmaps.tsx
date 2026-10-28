@@ -161,7 +161,7 @@ export function Heatmaps() {
         return snrOf(point.wifiData);
       }
       const test = point.iperfData?.[metric];
-      if (!test || test.bitsPerSecond === 0) return null; // test not run
+      if (!test) return null; // test not run (a measured 0 is a value)
       const v =
         property && property !== "snr" ? test[property] : test.bitsPerSecond;
       return typeof v === "number" && Number.isFinite(v) ? v : null;

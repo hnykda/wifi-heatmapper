@@ -384,7 +384,10 @@ Each point looks like this (shortened):
 
 `noiseDbm` and `snrDb` are `null` where the system reports no noise
 (Windows, some Linux drivers). A test is `null` when it did not run (signal
-only, no iperf3 server, or it failed). UDP
+only, no iperf3 server, or it failed); a test that ran and got nothing
+through is `{ "mbps": 0 }`, a dead spot. `channel`, `bandGHz`,
+`channelWidthMHz` and `txRateMbps` are `null` where the system did not
+report them. UDP
 results have `mbps`, `jitterMs`, `lostPackets` and `packetsReceived`.
 
 The summary only uses points that are switched on, like the heat maps:

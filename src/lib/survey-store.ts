@@ -34,13 +34,17 @@ import {
 import os from "os";
 import path from "path";
 import { APP_VERSION, describeOS } from "./app-info";
-import { parseSurveyFile, SurveyDocument } from "./schema";
+import {
+  parseSurveyFile,
+  SURVEY_SCHEMA_VERSION,
+  SurveyDocument,
+} from "./schema";
 import { defaultSurvey } from "./survey-defaults";
 import { copySettings, CopyPart, samePart } from "./survey-ops";
 import { getSurveysDir } from "./server-paths";
 import { sanitizeFilename } from "./utils";
 
-export const SURVEY_SCHEMA_VERSION = 1;
+export { SURVEY_SCHEMA_VERSION };
 
 /** The file couldn't be read as a survey (not JSON, not an object). */
 export class SurveyFileError extends Error {}
@@ -153,13 +157,7 @@ export function mutate(
         : { survey: defaultSurvey(floorPlan) };
     const current = existing ?? created!.survey;
     const changed = await fn(current);
-    // parse again: drops anything that isn't part of a survey (a password)
-    const next = parseSurveyFile(
-      changed as unknown as Record<string, unknown>,
-      floorPlan,
-      sameFile,
-    );
-    next.meta = {
+    const meta: SurveyDocument["meta"] = {
       schemaVersion: SURVEY_SCHEMA_VERSION,
       appVersion: APP_VERSION,
       platform: os.platform(),
@@ -169,6 +167,15 @@ export function mutate(
         ? { speedSettingsFrom: created.speedSettingsFrom }
         : {}),
     };
+    // parse again: drops anything that isn't part of a survey (a password).
+    // With the current meta: what fn returns is already in today's format,
+    // so the old-file migrations must not run on it again (a new point's
+    // real 0 Mbps would read as "not measured").
+    const next = parseSurveyFile(
+      { ...changed, meta } as unknown as Record<string, unknown>,
+      floorPlan,
+      sameFile,
+    );
     await write(floorPlan, next);
     return next;
   });

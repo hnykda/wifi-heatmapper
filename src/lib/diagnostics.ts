@@ -61,6 +61,8 @@ export interface DiagnosticsInput {
   survey: {
     name: string;
     points: number;
+    /** points with at least one speed test that ran (a 0 Mbps one counts) */
+    speedPoints?: number;
     speedTests: boolean;
     iperfServer: string;
     testDuration: number;
@@ -145,7 +147,12 @@ export function buildDiagnostics(
         ? `Signal and speed (server ${survey.iperfServer || "not set"}, ${survey.testDuration} s)`
         : "Signal only",
     ]);
-    lines.push(["Survey points", String(survey.points)]);
+    lines.push([
+      "Survey points",
+      survey.speedTests && survey.speedPoints !== undefined
+        ? `${survey.points} (${survey.speedPoints} with speed)`
+        : String(survey.points),
+    ]);
   } else {
     lines.push(["Measuring", "unknown (no survey open)"]);
   }

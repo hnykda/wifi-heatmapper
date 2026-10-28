@@ -253,11 +253,12 @@ export function extractIperfResults(
   // For all tests with older iPerf (Ubuntu), we want to use sum.bits_per_second
   const bitsPerSecond = isNewVersion
     ? isUdp
-      ? end.sum?.bits_per_second || 0
+      ? end.sum?.bits_per_second
       : end.sum_received!.bits_per_second
-    : end.sum?.bits_per_second || 0;
+    : end.sum?.bits_per_second;
 
-  if (!bitsPerSecond) {
+  // 0 is a result (nothing got through: a dead spot); missing is not
+  if (typeof bitsPerSecond !== "number" || !Number.isFinite(bitsPerSecond)) {
     throw new Error(
       "No bits per second found in iperf results. This is fatal.",
     );
@@ -272,10 +273,10 @@ export function extractIperfResults(
     retransmits,
 
     // UDP metrics - only relevant for UDP tests
-    // These fields will be null for TCP tests
-    jitterMs: isUdp ? end.sum?.jitter_ms || null : null,
-    lostPackets: isUdp ? end.sum?.lost_packets || null : null,
-    packetsReceived: isUdp ? end.sum?.packets || null : null,
+    // These fields will be null for TCP tests (0 lost packets is a value)
+    jitterMs: isUdp ? (end.sum?.jitter_ms ?? null) : null,
+    lostPackets: isUdp ? (end.sum?.lost_packets ?? null) : null,
+    packetsReceived: isUdp ? (end.sum?.packets ?? null) : null,
     signalStrength: 0,
   };
 }
@@ -337,20 +338,28 @@ export function channelToBand(channel: number): number {
   return channel <= 14 ? 2.4 : 5;
 }
 
-export const emptyIperfTestProperty: IperfTestProperty = {
-  bitsPerSecond: 0,
-  retransmits: 0,
-  jitterMs: 0,
-  lostPackets: 0,
-  packetsReceived: 0,
-  signalStrength: 0,
-};
-
+/** A point's speed tests before any has run: all null (not measured). */
 export function getDefaultIperfResults(): IperfResults {
   return {
-    tcpDownload: emptyIperfTestProperty,
-    tcpUpload: emptyIperfTestProperty,
-    udpDownload: emptyIperfTestProperty,
-    udpUpload: emptyIperfTestProperty,
+    tcpDownload: null,
+    tcpUpload: null,
+    udpDownload: null,
+    udpUpload: null,
+  };
+}
+
+/** A speed test that ran, with the values iperf3 gave (the rest unknown). */
+export function iperfTestResult(
+  bitsPerSecond: number,
+  values: Partial<Omit<IperfTestProperty, "bitsPerSecond">> = {},
+): IperfTestProperty {
+  return {
+    bitsPerSecond,
+    retransmits: 0,
+    jitterMs: null,
+    lostPackets: null,
+    packetsReceived: null,
+    signalStrength: 0,
+    ...values,
   };
 }

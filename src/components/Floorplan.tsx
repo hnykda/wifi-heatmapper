@@ -11,6 +11,7 @@ import { getColorAt, objectToRGBAString } from "@/lib/utils-gradient";
 import {
   getDefaultWifiResults,
   getDefaultIperfResults,
+  iperfTestResult,
   percentageToRssi,
 } from "@/lib/utils";
 import { Gradient, SurveyPoint } from "@/lib/types";
@@ -298,15 +299,12 @@ export default function ClickableFloorplan() {
           channel: 44,
           band: 5,
         };
-        const iperfData = getDefaultIperfResults();
+        // TCP only: the UDP tests stay null (not measured)
         const q = strength / 100;
-        iperfData.tcpDownload = {
-          ...iperfData.tcpDownload,
-          bitsPerSecond: Math.round(900e6 * q * q),
-        };
-        iperfData.tcpUpload = {
-          ...iperfData.tcpUpload,
-          bitsPerSecond: Math.round(700e6 * q * q),
+        const iperfData = {
+          ...getDefaultIperfResults(),
+          tcpDownload: iperfTestResult(Math.round(900e6 * q * q)),
+          tcpUpload: iperfTestResult(Math.round(700e6 * q * q)),
         };
         surveyPointActions.add({
           wifiData,

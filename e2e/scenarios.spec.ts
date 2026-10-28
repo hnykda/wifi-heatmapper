@@ -169,8 +169,8 @@ test("iperf3 missing: the signal is saved without speed", async ({
   );
   const point = survey.surveyPoints[0];
   expect(point.wifiData.signalStrength).toBeGreaterThan(0);
-  expect(point.iperfData.tcpDownload.bitsPerSecond).toBe(0);
-  expect(point.iperfData.udpUpload.bitsPerSecond).toBe(0);
+  expect(point.iperfData.tcpDownload).toBeNull();
+  expect(point.iperfData.udpUpload).toBeNull();
 });
 
 test("speed test server unreachable: the signal is saved without speed", async ({
@@ -190,7 +190,7 @@ test("speed test server unreachable: the signal is saved without speed", async (
     name,
     (s) => s.surveyPoints.length === 1,
   );
-  expect(survey.surveyPoints[0].iperfData.tcpDownload.bitsPerSecond).toBe(0);
+  expect(survey.surveyPoints[0].iperfData.tcpDownload).toBeNull();
 });
 
 test("iperf3 failing midway: what was measured is kept, with a warning", async ({
@@ -211,11 +211,40 @@ test("iperf3 failing midway: what was measured is kept, with a warning", async (
     (s) => s.surveyPoints.length === 1,
   );
   const { iperfData, wifiData } = survey.surveyPoints[0];
-  // the download ran, the upload failed, the rest was skipped
+  // the download ran, the upload failed, the rest was skipped: not measured
   expect(iperfData.tcpDownload.bitsPerSecond).toBeGreaterThan(0);
-  expect(iperfData.tcpUpload.bitsPerSecond).toBe(0);
-  expect(iperfData.udpDownload.bitsPerSecond).toBe(0);
+  expect(iperfData.tcpUpload).toBeNull();
+  expect(iperfData.udpDownload).toBeNull();
+  expect(iperfData.udpUpload).toBeNull();
   expect(wifiData.signalStrength).toBeGreaterThan(0);
+
+  // the table shows the download and "—" for the tests that did not run,
+  // never 0 Mbps
+  const download = (iperfData.tcpDownload.bitsPerSecond / 1e6).toFixed(2);
+  await gotoTab(page, "points");
+  const table = page.getByTestId("points-table");
+  const row = page.getByTestId("points-row");
+  await expect(row).toHaveCount(1);
+  const header = await table.locator("thead th").allInnerTexts();
+  const cells = await row.locator("td").allInnerTexts();
+  const cell = (name: string) => cells[header.indexOf(name)]?.trim();
+  expect(cell("Download Mbps")).toBe(download);
+  expect(cell("Upload Mbps")).toBe("—");
+
+  // the CSV leaves the cells of the tests that did not run empty
+  const file = page.waitForEvent("download");
+  await page.getByTestId("export-csv").click();
+  const csv = Buffer.concat(
+    await (await (await file).createReadStream()).toArray(),
+  ).toString("utf8");
+  const [head, line] = csv.trim().split("\n");
+  const cols = head.split(",");
+  const values = line.split(",");
+  const csvCell = (name: string) => values[cols.indexOf(name)];
+  expect(Number(csvCell("tcp_download_mbps"))).toBeCloseTo(Number(download), 2);
+  expect(csvCell("tcp_upload_mbps")).toBe("");
+  expect(csvCell("udp_download_mbps")).toBe("");
+  expect(csvCell("udp_upload_mbps")).toBe("");
 });
 
 test("the report names the netsh fallback when the WLAN API failed", async ({

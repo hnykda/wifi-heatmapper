@@ -6,6 +6,7 @@ import os from "os";
 import { getAppStatus } from "./app-info";
 import { findOnPath } from "./server-utils";
 import * as surveyStore from "./survey-store";
+import { hasSpeedData } from "./measurement-mode";
 import { knownSecrets, recentLogLines } from "./logger";
 import { usageCountsSummary } from "./telemetry";
 import {
@@ -77,6 +78,7 @@ async function readSurvey(name: string): Promise<SurveyFacts | null> {
       survey: {
         name,
         points: points.length,
+        speedPoints: points.filter(hasSpeedData).length,
         speedTests: data.measureSpeed,
         iperfServer: data.iperfServerAdrs,
         testDuration: data.testDuration,
