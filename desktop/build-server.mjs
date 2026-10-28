@@ -162,9 +162,13 @@ async function officialNodeBinary(version) {
 // 1. Next's standalone build, from this checkout, every time (never "if
 // missing": a stale build next to a newer shell is a confusing bug).
 console.log("building the Next.js standalone server");
-// --no-lint: linting is `npm run check`'s job (CI runs it). On a Windows
-// checkout with core.autocrlf, prettier would fail every line on its CRLF.
-run("npx", ["next", "build", "--no-lint"], {
+// --webpack: Turbopack (Next 16's default) links serverExternalPackages into
+// <distDir>/node_modules/<pkg>-<hash> as a symlink to the traced copy, which
+// breaks the koffi pruning below and the bundle's no-symlink rule, and it
+// traces stray project files (src/, site/, desktop/*.json) into the output.
+// Webpack's standalone output is the shape this script expects. The Dockerfile
+// builds the same way. Linting is `npm run check`'s job (Next 16 never lints).
+run("npx", ["next", "build", "--webpack"], {
   cwd: repoRoot,
   env: {
     ...process.env,

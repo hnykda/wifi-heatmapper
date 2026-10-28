@@ -1,6 +1,6 @@
 # wifi-heatmapper
 
-Next.js 15 (app router, React 19, Tailwind 3, shadcn/Radix) desktop-style web
+Next.js 16 (app router, React 19, Tailwind 3, shadcn/Radix) desktop-style web
 app that measures Wi-Fi signal + iperf3 throughput on the machine it runs on
 and draws heat maps on a floor plan. Runs on macOS, Windows, Linux (+Docker).
 
@@ -10,6 +10,7 @@ and draws heat maps on a floor plan. Runs on macOS, Windows, Linux (+Docker).
 - `npm run verify` - lint + typecheck + unit tests. Must pass before a commit.
 - `npm run e2e` - Playwright against a mock-mode server on :3100 (data in `.e2e-data/`).
 - `npm run build` - production build; catches server/client boundary mistakes `dev` hides.
+- Next.js 16 differs from older training data: check `node_modules/next/dist/docs/` (see AGENTS.md). With a dev server running, the `next-devtools` MCP server in `.mcp.json` reports its compile errors, routes and logs.
 
 ## Layout
 
@@ -21,6 +22,8 @@ and draws heat maps on a floor plan. Runs on macOS, Windows, Linux (+Docker).
 - `src/components/GlobalSettings.tsx` holds the client's view of the current survey and sends those operations in order. Mutate through `updateSettings` / `surveyPointActions` only.
 - `src/components/layout/AppShell.tsx` is the header + tabs; the active tab is in the URL hash.
 - Floor plan images are served by `/api/media/[name]`, never from `/public`, so `next start` works.
+- `src/proxy.ts` (Next 16's name for middleware) refuses cross-site `/api` requests via `src/lib/request-guard.ts`.
+- The standalone builds (Docker, `desktop/build-server.mjs`) use `next build --webpack`: Turbopack symlinks the external `koffi` package in a way the packaging can't ship. Dev and `npm run build` use Turbopack.
 - `docs/guide/*.md` is the user guide and the single source for the website: `site/build.mjs` renders it to wifi-heatmapper.danielalder.cz/docs/<slug> (GitHub Pages, `.github/workflows/site.yml`) and generates `llms.txt` / `llms-full.txt` from it. Developer docs are in `docs/dev/`. See `site/README.md`.
 
 ## Conventions

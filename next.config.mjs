@@ -17,9 +17,6 @@ const nextConfig = {
   serverExternalPackages: ["koffi"],
   // The e2e scripts build into .next-e2e so they can run next to `npm run dev`.
   distDir: process.env.NEXT_DIST_DIR || ".next",
-  // Linting is `npm run check` (oxlint). Without this, next build would look
-  // for ESLint, and find one in a parent checkout of a git worktree.
-  eslint: { ignoreDuringBuilds: true },
 };
 
 export default nextConfig;
