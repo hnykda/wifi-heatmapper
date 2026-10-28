@@ -1,0 +1,22 @@
+Survey data from wlp0s20f3
+	frequency:			2412 MHz
+	noise:				-97 dBm
+	channel active time:		112 ms
+	channel busy time:		31 ms
+	channel receive time:		27 ms
+	channel transmit time:		0 ms
+Survey data from wlp0s20f3
+	frequency:			5180 MHz
+	noise:				-101 dBm
+	channel active time:		110 ms
+	channel busy time:		2 ms
+Survey data from wlp0s20f3
+	frequency:			5745 MHz [in use]
+	noise:				-92 dBm
+	channel active time:		1841553 ms
+	channel busy time:		214718 ms
+	channel receive time:		186511 ms
+	channel transmit time:		12345 ms
+Survey data from wlp0s20f3
+	frequency:			5765 MHz
+	noise:				-95 dBm

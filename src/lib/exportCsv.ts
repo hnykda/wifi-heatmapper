@@ -1,5 +1,6 @@
 import { apNameFor } from "./apName";
 import { ApMapping, SurveyPoint } from "./types";
+import { snrOf, validNoise } from "./utils";
 
 const toMbps = (bps: number) => Math.round((bps / 1_000_000) * 100) / 100;
 
@@ -20,6 +21,8 @@ export function surveyPointsToCsv(
     "y",
     "signal_percent",
     "rssi_dbm",
+    "noise_dbm",
+    "snr_db",
     "ssid",
     "bssid",
     "access_point",
@@ -48,6 +51,8 @@ export function surveyPointsToCsv(
       p.y,
       w.signalStrength,
       w.rssi,
+      validNoise(w.noise) ?? "",
+      snrOf(w) ?? "",
       w.ssid,
       w.bssid,
       ap,

@@ -1,7 +1,7 @@
 import React from "react";
 import { X, Trash2 } from "lucide-react";
 import { SurveyPoint, HeatmapSettings, SurveyPointActions } from "@/lib/types";
-import { formatMacAddress } from "@/lib/utils";
+import { formatMacAddress, snrOf, validNoise } from "@/lib/utils";
 import { apNameFor } from "@/lib/apName";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
@@ -35,6 +35,8 @@ const PopupDetails: React.FC<PopupDetailsProps> = ({
   });
 
   const mbps = (bps: number) => (bps / 1_000_000).toFixed(1);
+  const noise = validNoise(wifi.noise);
+  const snr = snrOf(wifi);
   const hasIperf =
     point.iperfData &&
     (point.iperfData.tcpDownload.bitsPerSecond > 0 ||
@@ -42,6 +44,8 @@ const PopupDetails: React.FC<PopupDetailsProps> = ({
 
   const rows: [string, React.ReactNode][] = [
     ["Signal", `${wifi.signalStrength}% (${wifi.rssi} dBm)`],
+    ["Noise", noise === null ? "—" : `${noise} dBm`],
+    ["Signal-to-noise", snr === null ? "—" : `${snr} dB`],
     ["Network", wifi.ssid || "not available"],
     [
       "Access point",

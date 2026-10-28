@@ -18,6 +18,7 @@ import {
   getDefaultWifiResults,
   normalizeMacAddress,
   rssiToPercentage,
+  validNoise,
 } from "./utils";
 
 /** One network as the helper reports it (interface or scan entry). */
@@ -131,6 +132,7 @@ export function helperNetworkToWifiResults(
     ssid: net.ssid ?? "",
     bssid: net.bssid ? normalizeMacAddress(net.bssid) : "",
     rssi,
+    noise: validNoise(net.noise),
     signalStrength: rssiToPercentage(rssi),
     channel: num(net.channel),
     band: num(net.band),
@@ -156,7 +158,7 @@ export function parseHelperInfo(input: string | object): HelperInfo {
     wifi: helperNetworkToWifiResults(iface, true),
     interfaceName: iface.name ?? "",
     associated: iface.powerOn !== false && associated,
-    noise: typeof iface.noise === "number" ? iface.noise : null,
+    noise: validNoise(iface.noise),
   };
 }
 

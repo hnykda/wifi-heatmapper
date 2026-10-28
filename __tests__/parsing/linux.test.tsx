@@ -7,6 +7,8 @@ import {
   splitColonDelimited,
   getCandidateSSIDs,
   iwLinkCommands,
+  iwDevCommands,
+  parseIwSurveyNoise,
 } from "../../src/lib/wifiScanner-linux";
 
 import fs from "fs";
@@ -263,5 +265,44 @@ test("iw link is tried without sudo first, with sudo only given a password", () 
   // Docker and Podman already run as root
   expect(iwLinkCommands("wlp1s0", "secret", true)).toStrictEqual([
     "iw dev wlp1s0 link",
+  ]);
+});
+
+describe("parseIwSurveyNoise", () => {
+  test("reads the noise of the channel in use, not of other channels", () => {
+    expect(parseIwSurveyNoise(iwFixture("linux-iw-survey-noise.txt"))).toBe(
+      -92,
+    );
+  });
+
+  test("returns null when the in-use channel has no noise line (e.g. iwlwifi)", () => {
+    expect(
+      parseIwSurveyNoise(iwFixture("linux-iw-survey-in-use-no-noise.txt")),
+    ).toBeNull();
+  });
+
+  test("returns null when no channel is marked in use", () => {
+    expect(
+      parseIwSurveyNoise(iwFixture("linux-iw-survey-no-in-use.txt")),
+    ).toBeNull();
+  });
+
+  test("returns null for empty output", () => {
+    expect(parseIwSurveyNoise("")).toBeNull();
+  });
+});
+
+test("iw survey dump is tried without sudo first, like iw link", () => {
+  expect(iwDevCommands("wlp1s0", "survey dump", "", false)).toStrictEqual([
+    "iw dev wlp1s0 survey dump",
+  ]);
+  expect(iwDevCommands("wlp1s0", "survey dump", "secret", false)).toStrictEqual(
+    [
+      "iw dev wlp1s0 survey dump",
+      'echo "secret" | sudo -S iw dev wlp1s0 survey dump',
+    ],
+  );
+  expect(iwDevCommands("wlp1s0", "survey dump", "secret", true)).toStrictEqual([
+    "iw dev wlp1s0 survey dump",
   ]);
 });

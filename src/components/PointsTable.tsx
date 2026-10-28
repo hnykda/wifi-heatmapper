@@ -44,7 +44,12 @@ import {
   SurveyPointActions,
 } from "@/lib/types";
 import { getColorAt, objectToRGBAString } from "@/lib/utils-gradient";
-import { formatMacAddress, rssiToPercentage } from "@/lib/utils";
+import {
+  formatMacAddress,
+  rssiToPercentage,
+  snrOf,
+  validNoise,
+} from "@/lib/utils";
 import { apNameFor } from "@/lib/apName";
 import { surveyPointsToCsv, downloadText } from "@/lib/exportCsv";
 import { AlertDialogModal } from "./AlertDialogModal";
@@ -59,6 +64,8 @@ type Row = {
   bssid: string;
   accessPoint: string;
   rssi: number;
+  noise: number | null;
+  snr: number | null;
   signalQuality: number;
   channel: number;
   security: string;
@@ -95,6 +102,8 @@ const SurveyPointsTable: React.FC<SurveyPointsTableProps> = ({
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({
     rssi: false,
+    noise: false,
+    snr: false,
     ssid: false,
     security: false,
     txRate: false,
@@ -118,6 +127,8 @@ const SurveyPointsTable: React.FC<SurveyPointsTableProps> = ({
         bssid: point.wifiData.bssid,
         accessPoint: apNameFor(point.wifiData.bssid, apMapping) ?? "",
         rssi: point.wifiData.rssi,
+        noise: validNoise(point.wifiData.noise),
+        snr: snrOf(point.wifiData),
         signalQuality:
           point.wifiData.signalStrength ||
           rssiToPercentage(point.wifiData.rssi),
@@ -196,6 +207,16 @@ const SurveyPointsTable: React.FC<SurveyPointsTableProps> = ({
         ),
       },
       { accessorKey: "rssi", header: "RSSI dBm" },
+      {
+        accessorKey: "noise",
+        header: "Noise dBm",
+        cell: ({ getValue }) => getValue<number | null>() ?? "—",
+      },
+      {
+        accessorKey: "snr",
+        header: "SNR dB",
+        cell: ({ getValue }) => getValue<number | null>() ?? "—",
+      },
       { accessorKey: "band", header: "Band" },
       { accessorKey: "channel", header: "Channel" },
       {

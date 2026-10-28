@@ -25,6 +25,7 @@ describe("macOS Wi-Fi helper: info", () => {
       ssid: "",
       bssid: "",
       rssi: -60,
+      noise: -78,
       signalStrength: 67,
       channel: 44,
       band: 5,
@@ -50,6 +51,7 @@ describe("macOS Wi-Fi helper: info", () => {
     expect(info.associated).toBe(false);
     expect(info.locationStatus).toBe("denied");
     expect(info.noise).toBeNull();
+    expect(info.wifi.noise).toBeNull();
     expect(info.wifi.rssi).toBe(0);
     expect(info.wifi.signalStrength).toBe(0);
     expect(info.wifi.channel).toBe(0);

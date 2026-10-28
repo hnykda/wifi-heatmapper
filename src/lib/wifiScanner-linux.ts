@@ -14,6 +14,7 @@ import {
   normalizeMacAddress,
   isValidMacAddress,
   rssiToPercentage,
+  validNoise,
 } from "./utils";
 import isDocker from "is-docker";
 import isPodman from "is-podman";
@@ -197,6 +198,7 @@ export class LinuxWifiActions implements WifiActions {
       logger.trace("IW output:", linkOutput);
       logger.trace("IW info:", infoOutput);
       const parsed = parseIwOutput(linkOutput, infoOutput);
+      parsed.noise = await readNoise(interfaceId, settings.sudoerPassword);
       logger.trace("Final WiFi data:", parsed);
       response.SSIDs.push(parsed);
     } catch (err) {
@@ -273,13 +275,39 @@ export function iwLinkCommands(
   pw: string,
   isRoot: boolean,
 ): string[] {
-  const command = `iw dev ${interfaceId} link`;
+  return iwDevCommands(interfaceId, "link", pw, isRoot);
+}
+
+/**
+ * iwDevCommands() - `iw dev <if> <subcommand>`, unprivileged first, then
+ * with sudo if a password was given (see iwLinkCommands).
+ */
+export function iwDevCommands(
+  interfaceId: string,
+  subcommand: string,
+  pw: string,
+  isRoot: boolean,
+): string[] {
+  const command = `iw dev ${interfaceId} ${subcommand}`;
   if (isRoot || !pw) return [command];
   return [command, `echo "${pw}" | sudo -S ${command}`];
 }
 
 async function iwDevLink(interfaceId: string, pw: string): Promise<string> {
-  const commands = iwLinkCommands(interfaceId, pw, isDocker() || isPodman());
+  return iwDevRun(interfaceId, "link", pw);
+}
+
+async function iwDevRun(
+  interfaceId: string,
+  subcommand: string,
+  pw: string,
+): Promise<string> {
+  const commands = iwDevCommands(
+    interfaceId,
+    subcommand,
+    pw,
+    isDocker() || isPodman(),
+  );
   let lastError: unknown;
   for (const command of commands) {
     try {
@@ -290,6 +318,38 @@ async function iwDevLink(interfaceId: string, pw: string): Promise<string> {
     }
   }
   throw lastError;
+}
+
+/**
+ * readNoise() - the noise floor of the channel in use, from
+ * `iw dev <if> survey dump`. Not every driver reports it (Intel iwlwifi
+ * often doesn't), and reading it must never fail a measurement, so any
+ * error just means "unknown" (null).
+ */
+async function readNoise(
+  interfaceId: string,
+  pw: string,
+): Promise<number | null> {
+  try {
+    return parseIwSurveyNoise(await iwDevRun(interfaceId, "survey dump", pw));
+  } catch (err) {
+    logger.debug(`iw survey dump failed, noise unknown: ${err}`);
+    return null;
+  }
+}
+
+/**
+ * parseIwSurveyNoise() - noise (dBm) of the channel marked "[in use]" in
+ * `iw dev <if> survey dump` output, or null if there is no in-use entry or
+ * it has no noise line.
+ */
+export function parseIwSurveyNoise(output: string): number | null {
+  for (const block of output.split(/^Survey data from /m)) {
+    if (!/frequency:.*\[in use\]/.test(block)) continue;
+    const match = block.match(/^\s*noise:\s*(-?\d+)\s*dBm/m);
+    return match ? validNoise(parseInt(match[1])) : null;
+  }
+  return null;
 }
 
 async function iwDevInfo(interfaceId: string): Promise<string> {

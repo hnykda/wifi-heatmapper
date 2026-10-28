@@ -20,6 +20,9 @@ const multipleManaged = fixture("linux-iw-dev-multiple-managed.txt");
 const linkCommand = "iw dev wlp0s20f3 link";
 const infoCommand = "iw dev wlp0s20f3 info";
 const sudoLinkCommand = 'echo "test-password" | sudo -S iw dev wlp0s20f3 link';
+const surveyCommand = "iw dev wlp0s20f3 survey dump";
+const sudoSurveyCommand =
+  'echo "test-password" | sudo -S iw dev wlp0s20f3 survey dump';
 const settings: PartialHeatmapSettings = {
   iperfServerAdrs: "localhost",
   testDuration: 5,
@@ -40,8 +43,14 @@ beforeEach(() => {
     ["iw dev", monitorFirst],
     [linkCommand, connectedLink],
     [infoCommand, connectedInfo],
+    [surveyCommand, fixture("linux-iw-survey-noise.txt")],
   ]);
   mockExec.mockImplementation(async (command) => {
+    // Noise is optional: a survey the test did not set up behaves like a
+    // driver that doesn't support it.
+    if (command.includes("survey dump") && !commands.has(command)) {
+      throw new Error("command failed: Operation not supported (-95)");
+    }
     if (!commands.has(command)) {
       unexpectedCommands.push(command);
       throw new Error(`Unexpected command: ${command}`);
@@ -58,7 +67,12 @@ afterEach(() => {
   expect(unexpectedCommands).toStrictEqual([]);
 });
 
+/** Commands run, without the optional noise survey (tested separately). */
 function calledCommands() {
+  return allCommands().filter((command) => !command.includes("survey dump"));
+}
+
+function allCommands() {
   return mockExec.mock.calls.map(([command]) => command);
 }
 
@@ -307,7 +321,7 @@ describe("LinuxWifiActions.getWifi", () => {
   test("rescans interfaces on the next read instead of using a stale adapter", async () => {
     const actions = new LinuxWifiActions();
     expectConnected(await actions.getWifi(settings));
-    const firstReadCallCount = mockExec.mock.calls.length;
+    const firstReadCallCount = calledCommands().length;
     commands.set("iw dev", multipleManaged);
     commands.set(
       "iw dev wlan0 link",
@@ -326,6 +340,57 @@ describe("LinuxWifiActions.getWifi", () => {
       "iw dev wlan0 link",
       "iw dev wlan0 info",
     ]);
+  });
+});
+
+describe("LinuxWifiActions.getWifi noise", () => {
+  test("reads noise from the survey after the link and info", async () => {
+    const result = await new LinuxWifiActions().getWifi(settings);
+    expectConnected(result);
+    expect(result.SSIDs[0].noise).toBe(-92);
+    expect(allCommands()).toStrictEqual([
+      "iw dev",
+      linkCommand,
+      infoCommand,
+      surveyCommand,
+    ]);
+  });
+
+  test("an in-use channel without noise gives null noise", async () => {
+    commands.set(surveyCommand, fixture("linux-iw-survey-in-use-no-noise.txt"));
+    const result = await new LinuxWifiActions().getWifi(settings);
+    expectConnected(result);
+    expect(result.SSIDs[0].noise).toBeNull();
+  });
+
+  test("a failing survey never fails the measurement", async () => {
+    commands.set(surveyCommand, new Error("Operation not supported"));
+    const result = await new LinuxWifiActions().getWifi(settings);
+    expectConnected(result);
+    expect(result.SSIDs[0].noise).toBeNull();
+    expect(allCommands().some((command) => command.includes("sudo"))).toBe(
+      false,
+    );
+  });
+
+  test("retries a failed survey with sudo only when a password is set", async () => {
+    commands.set(surveyCommand, new Error("Operation not permitted"));
+    commands.set(sudoSurveyCommand, fixture("linux-iw-survey-noise.txt"));
+    const result = await new LinuxWifiActions().getWifi(withPassword);
+    expectConnected(result);
+    expect(result.SSIDs[0].noise).toBe(-92);
+    expect(allCommands().slice(-2)).toStrictEqual([
+      surveyCommand,
+      sudoSurveyCommand,
+    ]);
+  });
+
+  test("a failed sudo survey still returns the reading", async () => {
+    commands.set(surveyCommand, new Error("Operation not permitted"));
+    commands.set(sudoSurveyCommand, new Error("sudo failed"));
+    const result = await new LinuxWifiActions().getWifi(withPassword);
+    expectConnected(result);
+    expect(result.SSIDs[0].noise).toBeNull();
   });
 });
 

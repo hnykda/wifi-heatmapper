@@ -16,11 +16,12 @@ import {
   testTypes,
   IperfTestProperty,
   HeatmapKey,
+  HeatmapProperty,
   HeatmapRange,
   HeatmapScale,
 } from "@/lib/types";
 import { getColorAt, objectToRGBAString } from "@/lib/utils-gradient";
-import { cn, metricFormatter, percentageToRssi } from "@/lib/utils";
+import { cn, metricFormatter, percentageToRssi, snrOf } from "@/lib/utils";
 import { getLogger } from "@/lib/logger";
 import createHeatmapWebGLRenderer from "@/app/webGL/renderers/mainRenderer";
 
@@ -40,6 +41,7 @@ const logger = getLogger("Heatmaps");
 
 const metricTitles: Record<MeasurementTestType, string> = {
   signalStrength: "Signal strength",
+  snr: "Signal-to-noise ratio",
   tcpDownload: "TCP download",
   tcpUpload: "TCP upload",
   udpDownload: "UDP download",
@@ -80,6 +82,18 @@ const getAvailableProperties = (
 
 type Rendered = { src: string | null; count: number };
 
+/** Signal strength and SNR are one map each, not one per iperf property. */
+const singleMapProperty: Partial<Record<MeasurementTestType, HeatmapProperty>> =
+  {
+    signalStrength: "signalStrength",
+    snr: "snr",
+  };
+
+const singleMapTitles: Partial<Record<HeatmapProperty, string>> = {
+  signalStrength: "Signal strength (%)",
+  snr: "Signal-to-noise ratio (dB)",
+};
+
 /**
  * Heatmaps - renders one heat map per selected metric/property
  * (WebGL inverse-distance weighting, see docs/Theory_of_Operation.md).
@@ -89,6 +103,11 @@ export function Heatmaps() {
   const points = settings.surveyPoints;
   const enabledPoints = useMemo(
     () => points.filter((p) => p.isEnabled),
+    [points],
+  );
+  // SNR needs a noise reading, which only some platforms report
+  const hasNoise = useMemo(
+    () => points.some((p) => snrOf(p.wifiData) !== null),
     [points],
   );
 
@@ -117,22 +136,27 @@ export function Heatmaps() {
     (
       point: SurveyPoint,
       metric: MeasurementTestType,
-      property?: keyof IperfTestProperty,
+      property?: HeatmapProperty,
     ): number | null => {
       if (metric === "signalStrength") {
         // the map is always drawn in %, the legend may show dBm
         return point.wifiData.signalStrength;
       }
+      if (metric === "snr") {
+        // only points that have both an RSSI and a noise reading
+        return snrOf(point.wifiData);
+      }
       const test = point.iperfData?.[metric];
       if (!test || test.bitsPerSecond === 0) return null; // test not run
-      const v = property ? test[property] : test.bitsPerSecond;
+      const v =
+        property && property !== "snr" ? test[property] : test.bitsPerSecond;
       return typeof v === "number" && Number.isFinite(v) ? v : null;
     },
     [],
   );
 
   const generateHeatmapData = useCallback(
-    (metric: MeasurementTestType, property?: keyof IperfTestProperty) =>
+    (metric: MeasurementTestType, property?: HeatmapProperty) =>
       enabledPoints
         .map((p) => {
           const value = getMetricValue(p, metric, property);
@@ -156,7 +180,7 @@ export function Heatmaps() {
       min: number,
       max: number,
       metric: MeasurementTestType,
-      property: keyof IperfTestProperty,
+      property: HeatmapProperty,
       fontPx: number,
     ) => {
       for (let i = 0; i < height; i++) {
@@ -204,7 +228,7 @@ export function Heatmaps() {
   const renderHeatmap = useCallback(
     async (
       metric: MeasurementTestType,
-      property: keyof IperfTestProperty,
+      property: HeatmapProperty,
       valueRange: HeatmapRange,
     ): Promise<Rendered> => {
       const W = settings.dimensions.width;
@@ -278,7 +302,9 @@ export function Heatmaps() {
       const title =
         metric === "signalStrength"
           ? `Signal strength (${asPercentage ? "%" : "dBm"})`
-          : `${metricTitles[metric]}, ${propertyTitles[property].toLowerCase()}`;
+          : property === "snr"
+            ? "Signal-to-noise ratio (dB)"
+            : `${metricTitles[metric]}, ${propertyTitles[property].toLowerCase()}`;
       ctx.fillStyle = "#14181f";
       ctx.font = `600 ${fontPx}px ui-sans-serif, system-ui, sans-serif`;
       ctx.textAlign = "left";
@@ -319,15 +345,17 @@ export function Heatmaps() {
     const list: {
       key: HeatmapKey;
       metric: MeasurementTestType;
-      property: keyof IperfTestProperty;
+      property: HeatmapProperty;
       title: string;
     }[] = [];
     for (const metric of selectedMetrics) {
-      if (metric === "signalStrength") {
+      const single = singleMapProperty[metric];
+      if (single) {
+        if (single === "snr" && !hasNoise) continue;
         list.push({
-          key: metric,
+          key: heatmapKey(metric, single),
           metric,
-          property: "signalStrength",
+          property: single,
           title: metricTitles[metric],
         });
       } else {
@@ -344,7 +372,7 @@ export function Heatmaps() {
       }
     }
     return list;
-  }, [selectedMetrics, selectedProperties]);
+  }, [selectedMetrics, selectedProperties, hasNoise]);
 
   // Keep in-flight results as well as completed maps, so editing one scale
   // doesn't restart unchanged maps while their background images load.
@@ -426,7 +454,7 @@ export function Heatmaps() {
       ),
     );
 
-  const anyIperfSelected = selectedMetrics.some((m) => m !== "signalStrength");
+  const anyIperfSelected = selectedMetrics.some((m) => !singleMapProperty[m]);
 
   const checkboxRow = (
     id: string,
@@ -434,13 +462,24 @@ export function Heatmaps() {
     checked: boolean,
     onChange: () => void,
     note?: string,
+    disabled = false,
   ) => (
     <label
       key={id}
       htmlFor={id}
-      className="flex cursor-pointer items-center gap-2.5 rounded-md py-1 text-sm"
+      className={cn(
+        "flex items-center gap-2.5 rounded-md py-1 text-sm",
+        disabled
+          ? "cursor-not-allowed text-muted-foreground"
+          : "cursor-pointer",
+      )}
     >
-      <Checkbox id={id} checked={checked} onCheckedChange={onChange} />
+      <Checkbox
+        id={id}
+        checked={checked}
+        onCheckedChange={onChange}
+        disabled={disabled}
+      />
       <span>{label}</span>
       {note && (
         <span className="ml-auto text-xs text-muted-foreground">{note}</span>
@@ -464,13 +503,25 @@ export function Heatmaps() {
         <aside className="space-y-6 lg:sticky lg:top-[7.5rem] lg:self-start">
           <div>
             <h2 className="mb-1.5 text-sm font-medium">Show</h2>
-            {Object.values(testTypes).map((metric) =>
-              checkboxRow(
+            {Object.values(testTypes).map((metric) => {
+              const unavailable = metric === "snr" && !hasNoise;
+              return checkboxRow(
                 `metric-${metric}`,
                 metricTitles[metric],
-                selectedMetrics.includes(metric),
+                selectedMetrics.includes(metric) && !unavailable,
                 () => toggleMetric(metric),
-              ),
+                undefined,
+                unavailable,
+              );
+            })}
+            {!hasNoise && points.length > 0 && (
+              <p
+                className="mt-1 text-xs text-muted-foreground"
+                data-testid="snr-unavailable"
+              >
+                Signal-to-noise ratio needs noise readings. macOS and some Linux
+                Wi-Fi drivers report them; Windows does not.
+              </p>
             )}
           </div>
 
@@ -507,14 +558,12 @@ export function Heatmaps() {
                       mapKey={w.key}
                       property={w.property}
                       title={
-                        w.property === "signalStrength"
-                          ? "Signal strength (%)"
-                          : propertyTitles[w.property]
+                        singleMapTitles[w.property] ??
+                        propertyTitles[w.property as keyof IperfTestProperty]
                       }
                       label={
-                        w.property === "signalStrength"
-                          ? "Signal strength (%)"
-                          : `${metricTitles[metric]} ${propertyTitles[w.property]}`
+                        singleMapTitles[w.property] ??
+                        `${metricTitles[metric]} ${propertyTitles[w.property as keyof IperfTestProperty]}`
                       }
                       scale={settings.heatmapRanges?.[w.key]}
                       automaticRange={toDisplayRange(
@@ -586,9 +635,11 @@ export function Heatmaps() {
                   body={
                     w.metric === "signalStrength"
                       ? "Could not render this map."
-                      : settings.iperfServerAdrs === "localhost"
-                        ? "Throughput tests are off. Set an iperf3 server in Settings to measure it."
-                        : "No points have this measurement yet."
+                      : w.metric === "snr"
+                        ? "None of the points in use has a noise reading."
+                        : settings.iperfServerAdrs === "localhost"
+                          ? "Throughput tests are off. Set an iperf3 server in Settings to measure it."
+                          : "No points have this measurement yet."
                   }
                 />
               );

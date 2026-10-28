@@ -14,6 +14,7 @@ import {
   channelToBand,
   bySignalStrength,
   getDefaultWifiResults,
+  validNoise,
 } from "./utils";
 import { getLogger } from "./logger";
 import { findMacosHelper, runMacosHelper } from "./macos-helper";
@@ -616,6 +617,10 @@ export function parseWdutilOutput(output: string): WifiResults {
             partialNetworkInfo.rssi,
           );
           break;
+        case "Noise":
+          // "0 dBm" when there is no signal
+          partialNetworkInfo.noise = validNoise(parseInt(value.split(" ")[0]));
+          break;
         case "Channel": {
           [
             partialNetworkInfo.band,
@@ -789,17 +794,22 @@ function parseChannelInfo(input: string): {
 
 /**
  * parseRSSI()
- * @param input - RSSI string from system_profiler
- * @returns an object with both rssi: and signalStrength: properties as strings
+ * @param input - "signal / noise" string from system_profiler,
+ *   e.g. "-39 dBm / -97 dBm"
+ * @returns rssi:, signalStrength: and noise: as strings (noise "" if absent)
  */
 function parseRSSI(input: string): {
   rssi: string;
   signalStrength: string;
+  noise: string;
 } {
-  const rssi = parseInt(input.split(" ")[0]);
+  const [signalPart, noisePart] = String(input).split("/");
+  const rssi = parseInt(signalPart);
+  const noise = validNoise(parseInt(noisePart ?? ""));
   return {
     rssi: String(rssi),
     signalStrength: String(rssiToPercentage(rssi)),
+    noise: noise === null ? "" : String(noise),
   };
 }
 
@@ -817,6 +827,7 @@ function convertToWifiResults(obj: object): WifiResults {
     security: sp.security,
     phyMode: sp.phyMode,
     rssi: Number(sp.rssi),
+    noise: sp.noise ? Number(sp.noise) : null,
     signalStrength: Number(sp.signalStrength),
     channel: Number(sp.channel),
     band: Number(sp.band),

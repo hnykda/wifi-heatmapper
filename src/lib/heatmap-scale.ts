@@ -1,5 +1,6 @@
 import {
   HeatmapKey,
+  HeatmapProperty,
   HeatmapRange,
   HeatmapRanges,
   HeatmapScale,
@@ -17,24 +18,26 @@ const mapProperties: Record<keyof IperfResults, (keyof IperfTestProperty)[]> = {
 
 export function heatmapKey(
   metric: MeasurementTestType,
-  property: keyof IperfTestProperty,
+  property: HeatmapProperty,
 ): HeatmapKey {
-  return metric === "signalStrength"
-    ? "signalStrength"
-    : `${metric}-${property}`;
+  if (metric === "signalStrength" || metric === "snr") return metric;
+  return `${metric}-${property as keyof IperfTestProperty}`;
 }
+
+/** Automatic SNR range in dB: 0 (unusable) to 50 (excellent). */
+export const SNR_RANGE: HeatmapRange = { min: 0, max: 50 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function rawFactor(property: keyof IperfTestProperty): number {
+function rawFactor(property: HeatmapProperty): number {
   return property === "bitsPerSecond" ? 1e6 : 1;
 }
 
 export function isValidHeatmapRange(
   range: unknown,
-  property: keyof IperfTestProperty,
+  property: HeatmapProperty,
 ): range is HeatmapRange {
   if (!isRecord(range)) return false;
   const { min, max } = range;
@@ -58,7 +61,7 @@ export function isValidHeatmapRange(
 
 /** Return raw measurement units for both the renderer and legend. */
 export function resolveHeatmapRange(
-  property: keyof IperfTestProperty,
+  property: HeatmapProperty,
   values: number[],
   scale?: HeatmapScale,
 ): HeatmapRange {
@@ -67,6 +70,7 @@ export function resolveHeatmapRange(
     return { min: scale.min * factor, max: scale.max * factor };
   }
   if (property === "signalStrength") return { min: 0, max: 100 };
+  if (property === "snr") return { ...SNR_RANGE };
   const max = values.reduce(
     (max, value) => (Number.isFinite(value) ? Math.max(max, value) : max),
     0,
@@ -76,7 +80,7 @@ export function resolveHeatmapRange(
 
 /** Convert an automatic raw range to the units used by scale controls. */
 export function toDisplayRange(
-  property: keyof IperfTestProperty,
+  property: HeatmapProperty,
   rawRange: HeatmapRange,
 ): HeatmapRange {
   const factor = rawFactor(property);
@@ -89,7 +93,7 @@ export function normalizeHeatmapRanges(input: unknown): HeatmapRanges {
   const ranges: HeatmapRanges = {};
   const readScale = (
     value: unknown,
-    property: keyof IperfTestProperty,
+    property: HeatmapProperty,
   ): HeatmapScale | undefined => {
     if (!isRecord(value) || !isValidHeatmapRange(value, property)) {
       return undefined;
@@ -103,6 +107,8 @@ export function normalizeHeatmapRanges(input: unknown): HeatmapRanges {
 
   const signal = readScale(input.signalStrength, "signalStrength");
   if (signal) ranges.signalStrength = signal;
+  const snr = readScale(input.snr, "snr");
+  if (snr) ranges.snr = snr;
   for (const metric of Object.keys(mapProperties) as (keyof IperfResults)[]) {
     for (const property of mapProperties[metric]) {
       const key = heatmapKey(metric, property);
