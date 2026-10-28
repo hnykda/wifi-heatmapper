@@ -36,10 +36,10 @@ import {
 } from "./app-client";
 import { checkSetup } from "./setup";
 import {
-  applySettingsPatch,
   pickSafeSettings,
   SAFE_SETTING_KEYS,
   SettingsPatchError,
+  toSettingsPatch,
 } from "./settings-allowlist";
 import { DEFAULT_THRESHOLDS, describePoint, summarizeSurvey } from "./survey";
 import { registerPrompts } from "./prompts";
@@ -325,7 +325,7 @@ export function createMcpServer(client: AppClient, version: string): McpServer {
       description:
         "Change allow-listed settings of a survey and save the survey file. Changes are real and apply to the next measurement. " +
         "Only the fields given change; apMapping replaces the whole list; heatmapRanges merges per map (null removes one). " +
-        "If the app is open on this floor plan, reload the page afterwards, or its next save overwrites the change.",
+        "Changes made in the app at the same time are kept.",
       inputSchema: {
         name: nameArg,
         iperfServerAdrs: z
@@ -393,11 +393,13 @@ export function createMcpServer(client: AppClient, version: string): McpServer {
             `Nothing to change: give at least one of ${SAFE_SETTING_KEYS.join(", ")}. Other settings, and the sudo password, can only be changed in the app.`,
           );
         }
+        const body = toSettingsPatch(changes);
         const survey = await loadSurvey(client, name);
         const before = pickSafeSettings(survey);
-        const next = applySettingsPatch(survey, changes);
-        await client.saveSurvey(next);
-        const after = pickSafeSettings(next);
+        // The app applies the patch to the file as it is now, so changes
+        // made in the meantime (in the app or by another agent) are kept.
+        const saved = await client.patchSettings(name, body);
+        const after = pickSafeSettings(saved);
         const changed = Object.keys(changes).filter(
           (k) =>
             JSON.stringify(before[k as keyof typeof before]) !==
@@ -408,7 +410,7 @@ export function createMcpServer(client: AppClient, version: string): McpServer {
           saved: true,
           changed,
           settings: after,
-          note: "If the app is open on this floor plan, reload the page so it shows the change and does not overwrite it.",
+          note: "If the app is open on this floor plan, it shows the change after its next save or a reload.",
         });
       }),
   );

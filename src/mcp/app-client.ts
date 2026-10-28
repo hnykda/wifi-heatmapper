@@ -9,6 +9,7 @@ import type {
   AppStatus,
   HeatmapSettings,
   MacosHelperStatus,
+  SettingsPatch,
 } from "../lib/types";
 
 export const DEFAULT_APP_URL = "http://localhost:3000";
@@ -175,12 +176,22 @@ export class AppClient {
     }
   }
 
-  /** Write a whole survey file (the app stamps `meta` and drops secrets). */
-  async saveSurvey(survey: StoredSurvey): Promise<void> {
-    await this.json("api/settings", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(stripSecrets(survey)),
-    });
+  /**
+   * Change settings of a survey (PATCH /api/settings). The app applies the
+   * patch to the file under its lock and returns the saved survey.
+   */
+  async patchSettings(
+    name: string,
+    patch: SettingsPatch,
+  ): Promise<StoredSurvey> {
+    const saved = await this.json<StoredSurvey>(
+      `api/settings?name=${encodeURIComponent(name)}`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(patch),
+      },
+    );
+    return stripSecrets(saved);
   }
 }

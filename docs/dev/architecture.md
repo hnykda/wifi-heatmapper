@@ -70,8 +70,8 @@ and the survey summary strip, and renders:
 * `Heatmaps` displays the computed heat maps
 * `PointsTable` displays and edits the points collected
 
-`SettingsProvider` (`GlobalSettings.tsx`) owns the current survey and
-writes it to `/api/settings` shortly after each change.
+`SettingsProvider` (`GlobalSettings.tsx`) holds the current survey for the
+UI; see [Survey files](#survey-files) for how changes reach the server.
 
 WebGL-based heatmap rendering lives in:
 
@@ -82,6 +82,49 @@ WebGL-based heatmap rendering lives in:
   * `textures/` – LUT gradient generator  
   * `utils/` – buffer setup, program linking, default config
 
+## Survey files
+
+The server owns the survey files. Two pieces do the work:
+
+* _lib/schema.ts_ has the Zod schemas, and the survey types in
+  _lib/types.ts_ are derived from them.
+  * `surveyFileSchema` reads a file **leniently**: a missing or damaged
+    field falls back to its default (`.catch()`), an unusable point or AP
+    entry is dropped, and the rest loads. All migrations happen here:
+    defaults for fields older versions didn't have, `iperfResults` ->
+    `iperfData` (before 0.4), the image URL derived from the name, and
+    only valid fixed colour scales kept (`normalizeHeatmapRanges`).
+    Unknown keys, a sudo password among them, are dropped.
+  * Request bodies are **strict** (`settingsPatchSchema`,
+    `addPointSchema`, `pointPatchSchema`, `deletePointsSchema`,
+    `startTaskSchema`): an unknown key or a bad value is a 400 and nothing
+    is written. The one exception is a point's `wifiData`/`iperfData`,
+    read like a file, so a scanner that leaves a field out on some system
+    still gets its measurement saved.
+* _lib/survey-store.ts_ is the only code that reads or writes
+  _data/surveys_. `mutate(name, fn)` reads the file, applies `fn` and
+  writes it, one call at a time per file (a promise chain kept on
+  `globalThis`, so every route bundle shares it). Writes go to a temp file
+  that is renamed over the survey, and are stamped with `meta` (app
+  version, OS, time). A file that isn't JSON is reported and left alone
+  rather than overwritten. The lock is per process: one data directory is
+  not meant to be shared by two servers.
+
+The changes themselves (_lib/survey-ops.ts_) are pure functions shared by
+the server and the browser: apply a settings patch (iperf3 commands and
+colour scales merge per key; `null` removes a scale), add, update and
+delete points.
+
+In the browser, `SettingsProvider` keeps the survey as the server last
+returned it plus the changes it hasn't answered yet, and shows that. Each
+change is sent as an operation, one after another so they arrive in order;
+the server answers with the whole survey, which replaces the local copy
+(unchanged parts keep their identity, so maps don't redraw). Settings
+changes are debounced and merged into one patch; point changes go at once.
+So two tabs, or the browser and the MCP server, can change one survey
+without losing each other's changes. The sudo password stays in the
+browser's memory and is only sent with a measurement.
+
 ## Routes in the Next app
 
 * _api/media/route.ts_: GET returns the list of floor plan images in
@@ -90,9 +133,15 @@ WebGL-based heatmap rendering lives in:
   Images are served through the API (not from _public/_) so uploads work
   with a production build.
 
-* _api/settings/route.ts_: reads, writes, lists and deletes the survey
-  files in _data/surveys_. The server stamps each saved file with
-  `meta` (app version, OS, time) and never writes the sudo password.
+* _api/settings/route.ts_: GET reads a survey (or lists them), PATCH
+  changes settings, DELETE removes the file. POST replaces a whole survey;
+  the app only uses it for the one-time localStorage migration, and it is
+  kept for older clients.
+  _api/surveys/[name]/points/route.ts_: POST adds a point (the server picks
+  its `Point_N` id), DELETE removes points by id.
+  _api/surveys/[name]/points/[id]/route.ts_: PATCH changes one point.
+  Every write returns the whole updated survey. See
+  [Survey files](#survey-files).
 
 * _api/status/route.ts_: version, OS, Node, iperf3 and mock-mode details.
   

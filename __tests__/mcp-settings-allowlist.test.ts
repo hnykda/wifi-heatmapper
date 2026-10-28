@@ -1,13 +1,15 @@
 import { describe, expect, it } from "vitest";
 import {
-  applySettingsPatch,
   iperfCommandProblem,
   isSafeIperfServer,
   pickSafeSettings,
   SAFE_SETTING_KEYS,
   SettingsPatchError,
+  toSettingsPatch,
   validateSettingsPatch,
 } from "@/mcp/settings-allowlist";
+import { applySettingsPatch as applyPatch } from "@/lib/survey-ops";
+import { parseSurveyFile } from "@/lib/schema";
 import { isLoopbackHost, resolveAppUrl, stripSecrets } from "@/mcp/app-client";
 import { defaultIperfCommands } from "@/lib/iperfUtils";
 import type { StoredSurvey } from "@/mcp/app-client";
@@ -144,16 +146,25 @@ describe("validateSettingsPatch", () => {
     expect(errors.join("\n")).toMatch(/apName must not be empty/);
     expect(errors.join("\n")).toMatch(/macAddress must be a MAC address/);
     expect(errors.join("\n")).toMatch(/tcpSideways is not a command/);
-    expect(errors.join("\n")).toMatch(/"bogus" is not a heat map/);
+    expect(errors.join("\n")).toMatch(/heatmapRanges.bogus is not a heat map/);
     expect(errors.join("\n")).toMatch(/heatmapRanges.signalStrength/);
     expect(errors.join("\n")).toMatch(/heatmapRanges.tcpUpload-bitsPerSecond/);
     expect(errors).toHaveLength(9);
   });
 });
 
-describe("applySettingsPatch", () => {
+/** What the app does with the patch: survey-ops on the stored survey. */
+function applySettingsPatch(survey: StoredSurvey, patch: unknown) {
+  const stored = parseSurveyFile(
+    survey as unknown as Record<string, unknown>,
+    survey.floorplanImageName,
+  );
+  return applyPatch(stored, toSettingsPatch(patch));
+}
+
+describe("toSettingsPatch + the app's merge", () => {
   it("merges only the given fields and keeps everything else", () => {
-    const next = applySettingsPatch(survey, {
+    const patch = toSettingsPatch({
       iperfServerAdrs: " 10.0.0.5 ",
       iperfCommands: { tcpDownload: "iperf3  -c {server}  -R -J" },
       heatmapRanges: {
@@ -161,6 +172,16 @@ describe("applySettingsPatch", () => {
         "udpUpload-bitsPerSecond": { min: 0, max: 100, enabled: false },
       },
     });
+    // only what was given goes to the app
+    expect(Object.keys(patch).sort()).toEqual([
+      "heatmapRanges",
+      "iperfCommands",
+      "iperfServerAdrs",
+    ]);
+    expect(patch.iperfCommands).toEqual({
+      tcpDownload: "iperf3 -c {server} -R -J",
+    });
+    const next = applySettingsPatch(survey, patch);
     expect(next.iperfServerAdrs).toBe("10.0.0.5");
     expect(next.iperfCommands).toEqual({
       ...defaultIperfCommands,
@@ -172,9 +193,8 @@ describe("applySettingsPatch", () => {
       "udpUpload-bitsPerSecond": { min: 0, max: 100, enabled: false },
     });
     // not in the patch: unchanged
-    expect(next.surveyPoints).toBe(survey.surveyPoints);
-    expect(next.apMapping).toBe(survey.apMapping);
-    expect(next.gradient).toBe(survey.gradient);
+    expect(next.apMapping).toEqual(survey.apMapping);
+    expect(next.gradient).toEqual(survey.gradient);
     expect(next.testDuration).toBe(1);
     expect(next.floorplanImageName).toBe("Home.png");
     expect("sudoerPassword" in next).toBe(false);
@@ -193,17 +213,15 @@ describe("applySettingsPatch", () => {
       { apName: "Mesh", macAddress: "1122334455*" },
     ]);
     expect(next.radiusDivider).toBe(100);
-    expect(
-      applySettingsPatch(next, { radiusDivider: null }).radiusDivider,
-    ).toBe(null);
+    expect(toSettingsPatch({ radiusDivider: null }).radiusDivider).toBe(null);
   });
 
-  it("throws with every problem and changes nothing", () => {
+  it("throws with every problem", () => {
     expect(() =>
-      applySettingsPatch(survey, { testDuration: 99, iperfServerAdrs: "a;b" }),
+      toSettingsPatch({ testDuration: 99, iperfServerAdrs: "a;b" }),
     ).toThrow(SettingsPatchError);
     try {
-      applySettingsPatch(survey, { testDuration: 99, iperfServerAdrs: "a;b" });
+      toSettingsPatch({ testDuration: 99, iperfServerAdrs: "a;b" });
     } catch (err) {
       expect((err as SettingsPatchError).problems).toHaveLength(2);
     }

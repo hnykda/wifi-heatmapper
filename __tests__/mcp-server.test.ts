@@ -13,7 +13,9 @@ import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js"
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { getDefaultIperfResults, getDefaultWifiResults } from "@/lib/utils";
 import { defaultIperfCommands } from "@/lib/iperfUtils";
-import type { IperfResults } from "@/lib/types";
+import type { IperfResults, SettingsPatch } from "@/lib/types";
+import { parseSurveyFile, settingsPatchSchema } from "@/lib/schema";
+import { applySettingsPatch } from "@/lib/survey-ops";
 
 const work = mkdtempSync(join(tmpdir(), "wifi-heatmapper-mcp-test-"));
 const bundle = join(work, "mcp-server.mjs");
@@ -49,7 +51,7 @@ function surveyPoint(
 }
 
 let files: Record<string, Record<string, unknown>>;
-const posts: Record<string, unknown>[] = [];
+const patches: SettingsPatch[] = [];
 let app: Server;
 let url: string;
 
@@ -124,11 +126,16 @@ beforeAll(async () => {
       const f = files[u.searchParams.get("name") ?? ""];
       return f ? send(200, f) : send(404, { error: "Survey not found" });
     }
-    if (u.pathname === "/api/settings" && req.method === "POST") {
-      const s = JSON.parse(await body(req));
-      posts.push(s);
-      files[s.floorplanImageName] = s;
-      return send(200, { status: "success" });
+    if (u.pathname === "/api/settings" && req.method === "PATCH") {
+      // what the real route does: strict body, merged into the stored file
+      const name = u.searchParams.get("name") ?? "";
+      const parsed = settingsPatchSchema.safeParse(JSON.parse(await body(req)));
+      if (!parsed.success) return send(400, { error: "Invalid request" });
+      patches.push(parsed.data);
+      const stored = parseSurveyFile(files[name], name);
+      const saved = applySettingsPatch(stored, parsed.data);
+      files[name] = saved;
+      return send(200, saved);
     }
     send(404, { error: "not here" });
   });
@@ -297,7 +304,12 @@ describe("MCP server over stdio against a fake app", () => {
       }),
     );
     expect(r.changed.sort()).toEqual(["heatmapRanges", "testDuration"]);
-    const saved = posts.at(-1)!;
+    // only the changes go to the app, which merges them into the file
+    expect(patches.at(-1)).toEqual({
+      testDuration: 3,
+      heatmapRanges: { signalStrength: { min: 0, max: 100, enabled: true } },
+    });
+    const saved = files["Home.png"] as Record<string, unknown>;
     expect(saved).not.toHaveProperty("sudoerPassword");
     expect(saved).toMatchObject({
       testDuration: 3,
@@ -306,15 +318,16 @@ describe("MCP server over stdio against a fake app", () => {
       heatmapRanges: { signalStrength: { min: 0, max: 100, enabled: true } },
     });
     expect((saved.surveyPoints as unknown[]).length).toBe(2);
+    expect(r.settings.testDuration).toBe(3);
 
-    const count = posts.length;
+    const count = patches.length;
     const refused = (await client.callTool({
       name: "update_settings",
       arguments: { name: "Home.png", iperfServerAdrs: "x; rm -rf ~" },
     })) as CallToolResult;
     expect(refused.isError).toBe(true);
     expect(JSON.stringify(refused.content)).toMatch(/Nothing was changed/);
-    expect(posts.length).toBe(count);
+    expect(patches.length).toBe(count);
   });
 });
 

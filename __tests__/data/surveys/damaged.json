@@ -1,0 +1,92 @@
+{
+  "surveyPoints": [
+    {
+      "x": 10,
+      "y": 20,
+      "id": "Point_1",
+      "timestamp": "yesterday",
+      "isEnabled": "yes",
+      "wifiData": {
+        "ssid": "Office",
+        "bssid": "aabbccddee01",
+        "rssi": -60,
+        "noise": "quiet",
+        "signalStrength": 66,
+        "channel": "thirty-six",
+        "band": 5
+      },
+      "iperfData": "not measured"
+    },
+    { "x": "left", "y": 20, "id": "Point_2" },
+    { "y": 20, "id": "Point_3" },
+    null,
+    "Point_4",
+    {
+      "x": 50,
+      "y": 60,
+      "id": "Point_5",
+      "timestamp": 1700000000000,
+      "isEnabled": true,
+      "wifiData": {
+        "ssid": "Office",
+        "bssid": "aabbccddee02",
+        "rssi": -48,
+        "noise": -92,
+        "signalStrength": 87,
+        "channel": 36,
+        "security": "WPA3",
+        "txRate": 1200,
+        "phyMode": "11ax",
+        "channelWidth": 80,
+        "band": 5,
+        "currentSSID": true,
+        "strongestSSID": null
+      },
+      "iperfData": {
+        "tcpDownload": {
+          "bitsPerSecond": 500000000,
+          "jitterMs": null,
+          "lostPackets": null,
+          "packetsReceived": null,
+          "signalStrength": 87
+        },
+        "tcpUpload": "lost",
+        "udpDownload": { "bitsPerSecond": "fast" },
+        "udpUpload": {
+          "bitsPerSecond": 90000000,
+          "jitterMs": 0.3,
+          "lostPackets": 1,
+          "packetsReceived": 7000,
+          "signalStrength": 87
+        }
+      }
+    }
+  ],
+  "floorplanImageName": 42,
+  "iperfServerAdrs": null,
+  "testDuration": "two",
+  "apMapping": [
+    { "apName": "Hall", "macAddress": "aabbccddee01" },
+    { "apName": 7 },
+    "Kitchen"
+  ],
+  "nextPointNum": 2.5,
+  "dimensions": { "width": "wide" },
+  "radiusDivider": "auto",
+  "maxOpacity": "0.7",
+  "blur": null,
+  "gradient": { "0": "red", "low": "blue", "2": "green", "1": 7 },
+  "heatmapRanges": {
+    "signalStrength": { "min": 90, "max": 10, "enabled": true },
+    "tcpDownload-bitsPerSecond": { "min": 0, "max": 400, "enabled": true },
+    "tcpUpload-bitsPerSecond": { "min": "bad", "max": 50, "enabled": true },
+    "udpDownload-jitterMs": { "min": 0, "max": 5 },
+    "made-up": { "min": 0, "max": 1, "enabled": true }
+  },
+  "iperfCommands": {
+    "tcpDownload": "iperf3 -c {server} -R -J",
+    "tcpUpload": 5
+  },
+  "meta": { "savedAt": 12 },
+  "someFutureField": true
+}
