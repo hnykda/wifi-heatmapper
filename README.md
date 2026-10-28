@@ -1,7 +1,7 @@
 # Wi-Fi Heatmapper
 
 **See where your Wi-Fi is weak.** Wi-Fi Heatmapper measures Wi-Fi signal
-strength, and optionally throughput with iperf3, where you stand, and draws
+strength, and optionally real speed, where you stand, and draws
 heat maps of the results on your floor plan. Walk around with a laptop, click
 where you are, and see which rooms need a mesh node or extender, and whether
 a slow connection is really the Wi-Fi's fault.
@@ -60,7 +60,7 @@ The guide lives in [`docs/guide`](docs/guide) and is published at
 - [Getting started](docs/guide/getting-started.md): install and your first survey
 - [Installing the app](docs/guide/install.md): per system, first launch, data and log paths
 - [Using the app](docs/guide/using-the-app.md): every tab and setting
-- [Measuring speed with iperf3](docs/guide/throughput.md)
+- [Measuring speed](docs/guide/throughput.md)
 - [How it works](docs/guide/how-it-works.md): readings per system, signal percent vs dBm, the heat map
 - [Running from source](docs/guide/run-from-source.md): Node.js, mock mode, Docker, logs
 - [AI agents (MCP)](docs/guide/mcp.md): let Claude or another agent read and explain your surveys
