@@ -168,6 +168,18 @@ The `/api/e2e/*` routes answer 404 unless the server runs with
 desktop app. If the fixtures report a 404, another server is on the e2e
 port: stop it or pick another `E2E_PORT`.
 
+**Wait for what your test started.** The app saves in the background
+(points one by one, settings after a short pause), so the screen is ahead
+of the file: wait with `readSurvey(page, name, until)` before reading,
+replacing or reloading. When a test ends, the `context` fixture flushes
+what the pages hold back and closes them only once their requests are
+answered. A request cut off halfway (a `page.reload()` in the middle of a
+save, say) makes `next dev` log an uncaught `Error: aborted`, and the run
+fails on any such error in the server's output: `e2e/serve.mjs` writes it
+to `.e2e-data/server.log` and `e2e/server-log.ts` checks it at the end.
+Before each test, the fixtures also check that the last test's pages left
+no `/api/events` stream open on the server.
+
 ## Pull requests
 
 - Keep a PR to one topic. Open an issue first for larger changes.
@@ -279,7 +291,9 @@ and `bundle/msi/*.msi` (per-machine). What differs from macOS:
 - `PATH` gets the winget, Scoop and Chocolatey tool folders added.
 - `node desktop/smoke-test-app.mjs <path to wifi-heatmapper.exe>` checks a
   built or installed app: server up, and no node.exe or child left after a
-  window close or a `taskkill /F` (release.yml runs it on both installers).
+  window close or a `taskkill /F`. release.yml runs it on both installers
+  with `desktop/smoke-test-windows-install.mjs` (installs, time limits, one
+  retry for a known runner flake).
 
 ```powershell
 $env:WIFI_HEATMAPPER_MOCK=1; & "desktop\src-tauri\target\release\wifi-heatmapper.exe"

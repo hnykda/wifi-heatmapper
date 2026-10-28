@@ -12,12 +12,14 @@ import { defineConfig, devices } from "@playwright/test";
  * E2E_PORT picks another port (default 3100), e.g. for parallel checkouts:
  * a server already on the port is reused, so two checkouts sharing one
  * would test each other's code.
+ * The run fails if the server it started logged an error (e2e/server-log.ts).
  */
 const PORT = Number(process.env.E2E_PORT || 3100);
 const baseURL = `http://localhost:${PORT}`;
 
 export default defineConfig({
   testDir: "./e2e",
+  globalSetup: "./e2e/server-log.ts",
   fullyParallel: false, // the app has one global measurement slot
   workers: 1,
   forbidOnly: !!process.env.CI,
@@ -41,8 +43,8 @@ export default defineConfig({
     },
   ],
   webServer: {
-    // The scripts default to -p 3100; a later -p wins
-    command: `npm run ${process.env.CI ? "e2e:serve:prod" : "e2e:serve:dev"} -- -p ${PORT}`,
+    // npm run e2e:serve:<mode>, its output also in .e2e-data/server.log
+    command: `node e2e/serve.mjs ${process.env.CI ? "prod" : "dev"} ${PORT}`,
     url: `${baseURL}/api/status`,
     reuseExistingServer: !process.env.CI,
     timeout: 180_000,

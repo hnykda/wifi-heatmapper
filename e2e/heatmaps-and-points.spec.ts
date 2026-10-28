@@ -9,6 +9,9 @@ test.describe("with sample points", () => {
     await gotoTab(page, "floorplan");
     await page.getByTestId("add-sample-points").click();
     await expect(page.getByTestId("summary-points")).toContainText("24");
+    // The summary counts points as they are queued; the page saves them one
+    // by one. Tests that read, replace or reload the survey need them all.
+    await readSurvey(page, name, (s) => s.surveyPoints.length === 24);
   });
 
   test("heat maps render for signal and speed", async ({ page }) => {
@@ -66,11 +69,7 @@ test.describe("with sample points", () => {
   test("signal-to-noise ratio is unavailable without noise readings", async ({
     page,
   }) => {
-    const survey = await readSurvey(
-      page,
-      name,
-      (s) => s.surveyPoints.length === 24,
-    );
+    const survey = await readSurvey(page, name);
     for (const point of survey.surveyPoints) delete point.wifiData.noise;
     const response = await page.request.post("/api/settings", { data: survey });
     expect(response.ok()).toBe(true);
@@ -267,11 +266,7 @@ test.describe("with sample points", () => {
   test("malformed saved ranges fall back without blanking maps", async ({
     page,
   }) => {
-    const survey = await readSurvey(
-      page,
-      name,
-      (s) => s.surveyPoints.length > 0,
-    );
+    const survey = await readSurvey(page, name);
     survey.heatmapRanges = {
       signalStrength: { min: 90, max: 10, enabled: true },
       "tcpDownload-bitsPerSecond": { min: 10, max: 10, enabled: true },
