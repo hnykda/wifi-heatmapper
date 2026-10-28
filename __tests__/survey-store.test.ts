@@ -158,10 +158,10 @@ describe("survey-store", () => {
       iperfServerAdrs: "192.168.1.10:5201",
       testDuration: 5,
       iperfCommands: {
-        tcpDownload: "iperf3 -c {server} -p {port} -t {duration} -R -J",
-        tcpUpload: "iperf3 -c {server} -p {port} -t {duration} -J",
-        udpDownload: "iperf3 -c {server} -p {port} -t {duration} -u -R -J",
-        udpUpload: "iperf3 -c {server} -p {port} -t {duration} -u -J",
+        tcpDownload: ["-P", "4"],
+        tcpUpload: ["-P", "4"],
+        udpDownload: ["-b", "500M"],
+        udpUpload: ["-b", "500M"],
       },
     };
 

@@ -32,7 +32,7 @@ export async function getAppStatus(): Promise<AppStatus> {
 async function buildAppStatus(): Promise<Omit<AppStatus, "macosHelper">> {
   let iperf3Version: string | null = null;
   try {
-    const { stdout } = await execAsync("iperf3 --version");
+    const { stdout } = await execAsync("iperf3", ["--version"]);
     iperf3Version = stdout.split("\n")[0].trim();
   } catch {
     iperf3Version = null;

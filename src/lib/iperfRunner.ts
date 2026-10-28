@@ -1,4 +1,4 @@
-"use server";
+import "server-only";
 import {
   PartialHeatmapSettings,
   IperfResults,
@@ -19,7 +19,7 @@ import {
 } from "./utils";
 import { createWifiActions } from "./wifiScanner";
 import { getLogger } from "./logger";
-import { defaultIperfCommands, buildIperfCommand } from "./iperfUtils";
+import { defaultIperfCommands, iperfArgs, IperfTest } from "./iperfUtils";
 import { isMockMode } from "./app-info";
 import { mockIperfResult } from "./wifiScanner-mock";
 import { parseServerAddress } from "./measurement-mode";
@@ -297,18 +297,18 @@ async function runSingleTest(
   if (!address) throw new Error(`Invalid speed test server "${server}"`);
   const port = address.port === null ? "" : String(address.port);
 
-  // Select the appropriate command template
-  let template: string;
-  if (testType === "TCP") {
-    template = isDownload ? iperfCommands.tcpDownload : iperfCommands.tcpUpload;
-  } else {
-    template = isDownload ? iperfCommands.udpDownload : iperfCommands.udpUpload;
-  }
-
-  const command = buildIperfCommand(template, address.host, port, duration);
-  logger.debug("Executing iperf command:", command);
+  const test: IperfTest = `${isUdp ? "udp" : "tcp"}${isDownload ? "Download" : "Upload"}`;
+  // One argument per value, no shell: the server name is passed as is
+  const args = iperfArgs(
+    test,
+    address.host,
+    port,
+    duration,
+    iperfCommands[test] ?? defaultIperfCommands[test],
+  );
+  logger.debug("Executing iperf3", args);
   // aborting the signal kills iperf3
-  const { stdout } = await execAsync(command, { signal });
+  const { stdout } = await execAsync("iperf3", args, { signal });
   const result = JSON.parse(stdout);
   logger.trace("Iperf JSON-parsed result:", result);
   const extracted = extractIperfResults(result, isUdp);

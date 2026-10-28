@@ -9,7 +9,6 @@ import {
   recentLogLines,
   rememberSecret,
 } from "../src/lib/logger";
-import { execAsync } from "../src/lib/server-utils";
 
 describe("the in-memory log buffer", () => {
   beforeEach(() => clearLogBuffer());
@@ -63,21 +62,4 @@ describe("the in-memory log buffer", () => {
     appendLogLine("z".repeat(10_000));
     expect(recentLogLines()[0].length).toBeLessThan(2100);
   });
-});
-
-describe("execAsync never exposes the sudo password", () => {
-  test.skipIf(process.platform === "win32")(
-    "in the error message and cmd of a failed command",
-    async () => {
-      // the shell exits before it reaches sudo
-      const err = await execAsync("exit 3; echo hunter2 | sudo -S true").catch(
-        (e) => e,
-      );
-      expect(err).toBeInstanceOf(Error);
-      expect(err.message).not.toContain("hunter2");
-      expect(err.message).toContain("echo <password> | sudo -S true");
-      expect(err.cmd).not.toContain("hunter2");
-      expect(String(err.stack)).not.toContain("hunter2");
-    },
-  );
 });

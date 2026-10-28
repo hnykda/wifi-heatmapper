@@ -7,14 +7,14 @@
  * is never read or written.
  *
  * Validation is stricter than the Settings tab for the two values that end
- * up in a shell command (the iperf3 server and the iperf3 command
- * templates): an agent may only set a plain host[:port] and plain iperf3
- * arguments, never shell syntax. Anything fancier is set by a person in the
- * app.
+ * up in the iperf3 command (the server and the extra iperf3 options): no
+ * shell is involved any more, but an agent may only set a plain
+ * host[:port] and plain arguments. Anything fancier is set by a person in
+ * the app.
  */
 import { z } from "zod";
 import { settingsPatchSchema, surveyFileSchema } from "../lib/schema";
-import { defaultIperfCommands } from "../lib/iperfUtils";
+import { defaultIperfCommands, iperfArgsProblem } from "../lib/iperfUtils";
 import type { SettingsPatch } from "../lib/types";
 import { normalizeMacAddress } from "../lib/utils";
 import { isValidApPattern } from "../lib/apName";
@@ -68,36 +68,26 @@ export function isSafeIperfServer(value: string): boolean {
   return true;
 }
 
-const PLACEHOLDER = /^\{(server|port|duration)\}$/;
 const PLAIN_ARG = /^[A-Za-z0-9._:=/@%+,-]+$/;
 
 /**
- * An iperf3 command template with only plain arguments: it starts with
- * iperf3, contains {server} and -J (the app parses iperf3's JSON), and has
- * no quotes, pipes, redirects, substitutions or other shell syntax.
+ * Extra iperf3 options with only plain arguments (letters, digits and
+ * ._:=/@%+,-), none of the options the app sets itself (-c, -p, -t, -R,
+ * -u, -J).
  */
-export function iperfCommandProblem(command: string): string | null {
-  const tokens = command.trim().split(/\s+/);
-  if (tokens[0] !== "iperf3") return "must start with iperf3";
-  for (const token of tokens.slice(1)) {
-    if (!PLACEHOLDER.test(token) && !PLAIN_ARG.test(token)) {
-      return `"${token}" is not allowed (only plain iperf3 arguments and {server}, {port}, {duration})`;
+export function iperfOptionsProblem(args: readonly string[]): string | null {
+  for (const arg of args) {
+    if (!PLAIN_ARG.test(arg)) {
+      return `has ${JSON.stringify(arg)}, which is not a plain iperf3 argument`;
     }
   }
-  if (!tokens.includes("{server}")) return "must contain {server}";
-  if (!tokens.includes("-J") && !tokens.includes("--json")) {
-    return "must contain -J (the app reads iperf3's JSON output)";
-  }
-  return null;
+  return iperfArgsProblem(args);
 }
 
-const safeCommand = z
-  .string()
-  .superRefine((command, ctx) => {
-    const problem = iperfCommandProblem(command);
-    if (problem) ctx.addIssue({ code: "custom", message: problem });
-  })
-  .transform((command) => command.trim().replace(/\s+/g, " "));
+const safeOptions = z.array(z.string()).superRefine((args, ctx) => {
+  const problem = iperfOptionsProblem(args);
+  if (problem) ctx.addIssue({ code: "custom", message: problem });
+});
 
 const shape = settingsPatchSchema.shape;
 
@@ -119,10 +109,10 @@ export const mcpSettingsPatchSchema = z.strictObject({
   testDuration: shape.testDuration.unwrap().optional(),
   iperfCommands: z
     .strictObject({
-      tcpDownload: safeCommand.optional(),
-      tcpUpload: safeCommand.optional(),
-      udpDownload: safeCommand.optional(),
-      udpUpload: safeCommand.optional(),
+      tcpDownload: safeOptions.optional(),
+      tcpUpload: safeOptions.optional(),
+      udpDownload: safeOptions.optional(),
+      udpUpload: safeOptions.optional(),
     })
     .optional(),
   apMapping: z
@@ -174,7 +164,7 @@ function describeProblems(error: z.ZodError): string[] {
     if (issue.code === "unrecognized_keys") {
       return issue.keys.map((key) => {
         if (field === "iperfCommands") {
-          return `iperfCommands.${key} is not a command. Allowed: ${Object.keys(defaultIperfCommands).join(", ")}.`;
+          return `iperfCommands.${key} is not a test. Allowed: ${Object.keys(defaultIperfCommands).join(", ")}.`;
         }
         if (issue.path.length)
           return `${issue.path.join(".")}.${key} is not allowed.`;
@@ -223,22 +213,21 @@ export function toSettingsPatch(patch: unknown): SettingsPatch {
 
 /**
  * Why copy_settings may not copy a survey's speed settings ([] if it may):
- * the same checks update_settings makes on the server and the iperf3
- * commands, since they end up in a shell command. An empty server (signal
- * only) is fine.
+ * the same checks update_settings makes on the server and the extra
+ * iperf3 options. An empty server (signal only) is fine.
  */
 export function unsafeSpeedSettings(survey: {
   iperfServerAdrs?: string;
-  iperfCommands?: Record<string, string>;
+  iperfCommands?: Record<string, readonly string[]>;
 }): string[] {
   const problems: string[] = [];
   const server = (survey.iperfServerAdrs ?? "").trim();
   if (server && !isSafeIperfServer(server)) {
     problems.push("have a server that is not a plain host name or address");
   }
-  for (const [test, command] of Object.entries(survey.iperfCommands ?? {})) {
-    const problem = iperfCommandProblem(command);
-    if (problem) problems.push(`have a ${test} command that ${problem}`);
+  for (const [test, args] of Object.entries(survey.iperfCommands ?? {})) {
+    const problem = iperfOptionsProblem(args);
+    if (problem) problems.push(`have ${test} iperf3 options that ${problem}`);
   }
   return problems;
 }

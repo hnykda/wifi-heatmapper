@@ -84,7 +84,7 @@
     "made-up": { "min": 0, "max": 1, "enabled": true }
   },
   "iperfCommands": {
-    "tcpDownload": "iperf3 -c {server} -R -J",
+    "tcpDownload": "iperf3 -c {server} {port} -t {duration} -R -P 3 -J",
     "tcpUpload": 5
   },
   "meta": { "savedAt": 12 },

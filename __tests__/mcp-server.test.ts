@@ -501,7 +501,7 @@ describe("MCP server over stdio against a fake app", () => {
       floorplanImageName: "Odd.png",
       iperfCommands: {
         ...defaultIperfCommands,
-        tcpDownload: "iperf3 -c {server} -J; rm -rf ~",
+        tcpDownload: ["--title", "a; rm -rf ~"],
       },
     };
     const refused = (await client.callTool({

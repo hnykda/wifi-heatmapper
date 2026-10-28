@@ -274,7 +274,7 @@ points, is kept as it is.
 | `measureSpeed` | `true` measures signal and speed (iperf3), `false` signal only |
 | `iperfServerAdrs` | the speed test server, `"192.168.1.10"` or `"nas.local:5201"`. Set without `measureSpeed`, `"localhost"` also turns speed off and any other server turns it on, as before |
 | `testDuration` | seconds per iperf3 test, 1 to 60 |
-| `iperfCommands` | any of `tcpDownload`, `tcpUpload`, `udpDownload`, `udpUpload`; the others are kept |
+| `iperfCommands` | extra iperf3 options for any of `tcpDownload`, `tcpUpload`, `udpDownload`, `udpUpload`, one argument per item, e.g. `{ "udpUpload": ["-b", "500M"] }`; the others are kept |
 | `apMapping` | the whole list of `{ "apName", "macAddress" }`; a MAC address may end in `*` to match every BSSID that starts with it |
 | `radiusDivider` | heat spot radius in floor-plan pixels, or `null` for automatic |
 | `maxOpacity`, `minOpacity` | 0 to 1 |
@@ -288,12 +288,13 @@ Example:
 {"saved":true,"changed":["testDuration","heatmapRanges"], ...}
 ```
 
-The iperf3 server and commands end up in a shell command when you measure,
-so the agent may only set plain values: a host name or IPv4 address with an
-optional port, and commands that start with `iperf3`, contain `{server}` and
-`-J`, and have no quotes, pipes, redirects or other shell syntax. Anything
-else is refused and nothing is saved. You can still type other commands in
-the app's Settings tab yourself.
+The iperf3 server and options end up in the iperf3 command when you
+measure. No shell is involved, but the agent may still only set plain
+values: a host name or IPv4 address with an optional port, and options made
+of letters, digits and `._:=/@%+,-`. Options the app sets itself (`-c`,
+`-p`, `-t`, `-R`, `-u`, `-J`) are refused. Anything else is refused and
+nothing is saved. You can still type other options in the app's Settings
+tab yourself.
 
 The app saves each change on its own (one setting, one point), so a change
 the agent makes while the app is open on that floor plan is kept. The page
@@ -306,7 +307,7 @@ Copies settings from the survey `from` into the survey `to`, as
 
 | Part | What is copied |
 | --- | --- |
-| `speed` (the default) | signal only or signal and speed, the iperf3 server, test duration and iperf3 commands |
+| `speed` (the default) | signal only or signal and speed, the iperf3 server, test duration and extra iperf3 options |
 | `apNames` | access point names |
 | `heatmapLook` | heat spot radius, opacity, blur, colour gradient and fixed colour scales |
 
@@ -320,7 +321,7 @@ changed.
 ```
 
 The same rule as for `update_settings` applies to the speed settings: if the
-source's server or iperf3 commands are not plain values (typed in the app),
+source's server or iperf3 options are not plain values (typed in the app),
 the agent can't copy them and nothing is saved. Copy them in the app
 instead, or leave out `speed`.
 

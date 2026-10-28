@@ -95,7 +95,8 @@ beforeEach(() => {
   server.checkIperfServer.mockResolvedValue({ SSIDs: [], reason: "" });
   scanner.getWifi.mockResolvedValue({ SSIDs: [wifi], reason: "" });
   mockExec.mockReset();
-  mockExec.mockImplementation(async (command: string) => {
+  mockExec.mockImplementation(async (file, args = []) => {
+    const command = [file, ...args].join(" ");
     commands.push(command);
     if (command === "iperf3 --version") {
       if (!iperfInstalled) throw new Error("iperf3: command not found");
@@ -216,10 +217,44 @@ describe("signal and speed", () => {
     expect(iperfRuns()).toHaveLength(3);
   });
 
+  test("a server with shell syntax reaches iperf3 as one argument", async () => {
+    await runSurveyTests(speed("x; touch /tmp/pwned"));
+    const calls = mockExec.mock.calls.filter(([, args]) => args?.[0] === "-c");
+    expect(calls).toHaveLength(4);
+    for (const [file, args] of calls) {
+      expect(file).toBe("iperf3"); // no shell in between
+      expect(args?.[1]).toBe("x; touch /tmp/pwned");
+    }
+  });
+
+  test("iperf3 gets the server as one argument, with the survey's extra options", async () => {
+    await runSurveyTests({
+      ...speed("nas.local"),
+      iperfCommands: { ...defaultIperfCommands, tcpUpload: ["-P", "4"] },
+    });
+    const calls = mockExec.mock.calls.filter(([, args]) => args?.[0] === "-c");
+    expect(calls).toHaveLength(4);
+    for (const [file, args] of calls) {
+      expect(file).toBe("iperf3");
+      expect(args?.[1]).toBe("nas.local");
+      expect(args?.at(-1)).toBe("-J");
+    }
+    expect(calls[1][1]).toEqual([
+      "-c",
+      "nas.local",
+      "-t",
+      "1",
+      "-P",
+      "4",
+      "-J",
+    ]);
+  });
+
   test("a cancel kills the running iperf3 and stops at once", async () => {
     const controller = new AbortController();
     let signalSeen: AbortSignal | undefined;
-    mockExec.mockImplementation(async (command: string, options) => {
+    mockExec.mockImplementation(async (file, args = [], options) => {
+      const command = [file, ...args].join(" ");
       if (command === "iperf3 --version") {
         return { stdout: "iperf 3.18", stderr: "" };
       }
@@ -288,7 +323,8 @@ describe.each([
       "server %j, iperf3 missing",
       async (address) => {
         iperfInstalled = false;
-        mockExec.mockImplementation(async (command: string) => {
+        mockExec.mockImplementation(async (file, args = []) => {
+          const command = [file, ...args].join(" ");
           commands.push(command);
           if (command.includes("iperf3")) throw new Error("not found");
           if (command === "which iw")
@@ -312,7 +348,7 @@ describe.each([
             };
           }
           // macOS without the helper checks the sudo password
-          if (command.includes("sudo -S ls")) return { stdout: "", stderr: "" };
+          if (file === "sudo") return { stdout: "", stderr: "" };
           throw new Error(`not found: ${command}`);
         });
         const actions = await make();

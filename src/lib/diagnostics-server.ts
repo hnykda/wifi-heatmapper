@@ -4,7 +4,7 @@
  */
 import os from "os";
 import { getAppStatus } from "./app-info";
-import { execAsync } from "./server-utils";
+import { findOnPath } from "./server-utils";
 import * as surveyStore from "./survey-store";
 import { knownSecrets, recentLogLines } from "./logger";
 import {
@@ -56,12 +56,7 @@ function expectedWifiMethod(status: AppStatus): string {
 }
 
 async function hasCommand(name: string): Promise<boolean> {
-  try {
-    await execAsync(`command -v ${name}`);
-    return true;
-  } catch {
-    return false;
-  }
+  return (await findOnPath(name)) !== null;
 }
 
 type SurveyFacts = {

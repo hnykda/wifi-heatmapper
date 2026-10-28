@@ -28,12 +28,19 @@
 import { z } from "zod";
 import { HEATMAP_KEYS, parseHeatmapKey } from "./heatmap-grid";
 import { isValidHeatmapRange } from "./heatmap-scale";
-import { defaultIperfCommands } from "./iperfUtils";
+import {
+  defaultIperfCommands,
+  iperfArgsProblem,
+  migrateIperfTemplate,
+} from "./iperfUtils";
+import { getLogger } from "./logger";
 import { defaultGradient, emptyWifiResults } from "./survey-defaults";
 import { mediaUrlFor } from "./media-url";
 import { migrateMeasurementMode } from "./measurement-mode";
 import { COPY_PART_NAMES, type CopyPart } from "./survey-ops";
 import type { Gradient, HeatmapKey, HeatmapRanges } from "./types";
+
+const logger = getLogger("schema");
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -158,18 +165,33 @@ export const apMappingSchema = z.object({
   macAddress: z.string(),
 });
 
+/** The extra iperf3 options of one test (see iperfUtils.ts). */
+const iperfExtraArgs = z.array(z.string()).superRefine((args, ctx) => {
+  const problem = iperfArgsProblem(args);
+  if (problem) ctx.addIssue({ code: "custom", message: problem });
+});
+
+/**
+ * The extra iperf3 options per test, as argument arrays. (Before 0.8 these
+ * were whole command templates run through a shell; the file key stayed.)
+ */
 export const iperfCommandsSchema = z.object({
-  tcpDownload: z.string(),
-  tcpUpload: z.string(),
-  udpDownload: z.string(),
-  udpUpload: z.string(),
+  tcpDownload: iperfExtraArgs,
+  tcpUpload: iperfExtraArgs,
+  udpDownload: iperfExtraArgs,
+  udpUpload: iperfExtraArgs,
 });
 
 const iperfCommandKeys = Object.keys(
   iperfCommandsSchema.shape,
 ) as (keyof typeof iperfCommandsSchema.shape)[];
 
-/** Missing or damaged commands fall back to the default one by one. */
+/**
+ * Missing or damaged options fall back to the default one by one. An old
+ * command template (a string) is read into its extra options; one that
+ * can't be (shell syntax, another program) falls back to the defaults,
+ * with a warning in the log.
+ */
 const iperfCommandsLenient = z
   .unknown()
   .optional()
@@ -178,7 +200,19 @@ const iperfCommandsLenient = z
       Object.fromEntries(
         iperfCommandKeys.map((key) => {
           const v = isRecord(value) ? value[key] : undefined;
-          return [key, typeof v === "string" ? v : defaultIperfCommands[key]];
+          if (typeof v === "string") {
+            const migrated = migrateIperfTemplate(v);
+            if (migrated.args) return [key, migrated.args];
+            logger.warn(
+              `The ${key} iperf3 command "${v}" can't be used any more because ${migrated.reason}; using the default options instead. Set extra options under Settings > Advanced.`,
+            );
+            return [key, [...defaultIperfCommands[key]]];
+          }
+          const parsed = iperfExtraArgs.safeParse(v);
+          return [
+            key,
+            parsed.success ? parsed.data : [...defaultIperfCommands[key]],
+          ];
         }),
       ) as z.output<typeof iperfCommandsSchema>,
   );

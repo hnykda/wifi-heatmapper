@@ -292,7 +292,7 @@ export function createMcpServer(client: AppClient, version: string): McpServer {
     {
       title: "Get settings",
       description:
-        "The settings of a survey that update_settings can change: iperf3 server, test duration, iperf3 commands, " +
+        "The settings of a survey that update_settings can change: iperf3 server, test duration, extra iperf3 options, " +
         "access point names, heat spot radius, opacity and fixed colour scales. The sudo password is never included.",
       inputSchema: { name: nameArg },
       annotations: { readOnlyHint: true, openWorldHint: false },
@@ -357,14 +357,14 @@ export function createMcpServer(client: AppClient, version: string): McpServer {
           .describe("Seconds per iperf3 test, 1 to 60"),
         iperfCommands: z
           .object({
-            tcpDownload: z.string().optional(),
-            tcpUpload: z.string().optional(),
-            udpDownload: z.string().optional(),
-            udpUpload: z.string().optional(),
+            tcpDownload: z.array(z.string()).optional(),
+            tcpUpload: z.array(z.string()).optional(),
+            udpDownload: z.array(z.string()).optional(),
+            udpUpload: z.array(z.string()).optional(),
           })
           .optional()
           .describe(
-            "iperf3 command templates with {server}, {port}, {duration}; plain arguments only, must include -J",
+            'Extra iperf3 options per test, one argument per item, e.g. ["-b", "100M"] or ["-P", "4"]. The app sets the server, port, duration, -R, -u and -J itself; plain arguments only',
           ),
         apMapping: z
           .array(z.object({ apName: z.string(), macAddress: z.string() }))
@@ -437,7 +437,7 @@ export function createMcpServer(client: AppClient, version: string): McpServer {
       title: "Copy settings",
       description:
         "Copy settings from one survey to another and save the target survey, e.g. to set up a second floor plan like the first. " +
-        "parts: speed (measure signal only or signal and speed, iperf3 server, test duration, iperf3 commands), " +
+        "parts: speed (measure signal only or signal and speed, iperf3 server, test duration, extra iperf3 options), " +
         "apNames (access point names), heatmapLook (heat spot radius, opacity, blur, colours, fixed colour scales). " +
         "Points, the floor plan, its size and the sudo password are never copied. Changes are real.",
       inputSchema: {
@@ -465,8 +465,8 @@ export function createMcpServer(client: AppClient, version: string): McpServer {
         const parts = [...new Set(args.parts ?? (["speed"] as CopyPart[]))];
         const source = await loadSurvey(client, args.from);
         if (parts.includes("speed")) {
-          // the same rule as update_settings: what ends up in a shell
-          // command must be plain, or a person copies it in the app
+          // the same rule as update_settings: what reaches a command must
+          // be plain, or a person copies it in the app
           const problems = unsafeSpeedSettings(source);
           if (problems.length) {
             return fail(

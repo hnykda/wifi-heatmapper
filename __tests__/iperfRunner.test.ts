@@ -7,7 +7,22 @@ import {
   percentageToRssi,
   snrOf,
 } from "../src/lib/utils";
-import { buildIperfCommand, defaultIperfCommands } from "../src/lib/iperfUtils";
+import {
+  defaultIperfCommands,
+  formatArgs,
+  iperfArgs,
+  iperfArgsProblem,
+  migrateIperfTemplate,
+  splitArgs,
+} from "../src/lib/iperfUtils";
+
+/** The command templates surveys stored before 0.8. */
+const OLD_DEFAULT_TEMPLATES = {
+  tcpDownload: "iperf3 -c {server} {port} -t {duration} -R -J",
+  tcpUpload: "iperf3 -c {server} {port} -t {duration} -J",
+  udpDownload: "iperf3 -c {server} {port} -t {duration} -R -u -b 100M -J",
+  udpUpload: "iperf3 -c {server} {port} -t {duration} -u -b 100M -J",
+};
 import fs from "fs";
 import path from "path";
 
@@ -113,65 +128,158 @@ describe("extractIperfResults", () => {
   });
 });
 
-describe("buildIperfCommand", () => {
-  it("should substitute server and duration placeholders", () => {
-    const result = buildIperfCommand(
-      "iperf3 -c {server} -t {duration} -J",
-      "192.168.1.1",
-      "",
-      5,
-    );
-    expect(result).toBe("iperf3 -c 192.168.1.1 -t 5 -J");
-  });
-
-  it("should substitute port placeholder when port is provided", () => {
-    const result = buildIperfCommand(
-      "iperf3 -c {server} {port} -t {duration} -J",
-      "192.168.1.1",
-      "5201",
-      5,
-    );
-    expect(result).toBe("iperf3 -c 192.168.1.1 -p 5201 -t 5 -J");
-  });
-
-  it("should remove port placeholder when port is empty", () => {
-    const result = buildIperfCommand(
-      "iperf3 -c {server} {port} -t {duration} -J",
-      "192.168.1.1",
-      "",
-      5,
-    );
-    expect(result).toBe("iperf3 -c 192.168.1.1 -t 5 -J");
-  });
-
-  it("should normalize multiple spaces to single space", () => {
-    const result = buildIperfCommand(
-      "iperf3  -c  {server}   {port}  -t {duration} -J",
-      "10.0.0.1",
-      "",
-      10,
-    );
-    expect(result).toBe("iperf3 -c 10.0.0.1 -t 10 -J");
-  });
-
-  it("should work with default TCP download command", () => {
-    const result = buildIperfCommand(
-      defaultIperfCommands.tcpDownload,
+describe("iperfArgs", () => {
+  it("builds the TCP download arguments, with the port when given", () => {
+    expect(iperfArgs("tcpDownload", "myserver.local", "5201", 3)).toEqual([
+      "-c",
       "myserver.local",
+      "-p",
       "5201",
-      3,
-    );
-    expect(result).toBe("iperf3 -c myserver.local -p 5201 -t 3 -R -J");
+      "-t",
+      "3",
+      "-R",
+      "-J",
+    ]);
   });
 
-  it("should work with default UDP upload command", () => {
-    const result = buildIperfCommand(
-      defaultIperfCommands.udpUpload,
+  it("leaves the port out when there is none", () => {
+    expect(iperfArgs("tcpUpload", "192.168.1.1", "", 5)).toEqual([
+      "-c",
+      "192.168.1.1",
+      "-t",
+      "5",
+      "-J",
+    ]);
+  });
+
+  it("adds -u and the default -b 100M for UDP", () => {
+    expect(iperfArgs("udpUpload", "10.0.0.5", "", 5)).toEqual([
+      "-c",
       "10.0.0.5",
-      "",
-      5,
-    );
-    expect(result).toBe("iperf3 -c 10.0.0.5 -t 5 -u -b 100M -J");
+      "-t",
+      "5",
+      "-u",
+      "-b",
+      "100M",
+      "-J",
+    ]);
+  });
+
+  it("puts extra options before -J", () => {
+    expect(
+      iperfArgs("udpDownload", "h", "", 1, ["-b", "500M", "-P", "2"]),
+    ).toEqual([
+      "-c",
+      "h",
+      "-t",
+      "1",
+      "-R",
+      "-u",
+      "-b",
+      "500M",
+      "-P",
+      "2",
+      "-J",
+    ]);
+  });
+
+  it("passes a server with shell syntax as one argument", () => {
+    const args = iperfArgs("tcpDownload", "x; touch /tmp/pwned", "", 1);
+    expect(args[1]).toBe("x; touch /tmp/pwned");
+    expect(args).toHaveLength(6);
+  });
+});
+
+describe("iperfArgsProblem", () => {
+  it.each([[[]], [["-P", "4"]], [["-b100M"]], [["--bitrate=1G", "-O", "1"]]])(
+    "accepts %j",
+    (args) => expect(iperfArgsProblem(args)).toBeNull(),
+  );
+  it.each([
+    [["-c", "other"], /-c/],
+    [["-R"], /-R/],
+    [["-uR"], /-u/],
+    [["--json"], /--json/],
+    [["--port=5202"], /--port/],
+    [["-t", "30"], /-t/],
+    [["a\nb"], /line break/],
+  ])("refuses %j", (args, problem) =>
+    expect(iperfArgsProblem(args)).toMatch(problem),
+  );
+});
+
+describe("splitArgs / formatArgs", () => {
+  it("splits on spaces and keeps quoted parts together", () => {
+    expect(splitArgs(`  -P 4   --title 'my test' -b"1"00M `)).toEqual([
+      "-P",
+      "4",
+      "--title",
+      "my test",
+      "-b100M",
+    ]);
+    expect(splitArgs("")).toEqual([]);
+    expect(splitArgs('""')).toEqual([""]);
+  });
+
+  it("expands nothing", () => {
+    expect(splitArgs("$HOME ; | `id`")).toEqual(["$HOME", ";", "|", "`id`"]);
+  });
+
+  it("refuses an unclosed quote", () => {
+    expect(splitArgs('--title "oops')).toBeNull();
+  });
+
+  it("round-trips", () => {
+    const args = ["-P", "4", "--title", "my test", 'say "hi"', ""];
+    expect(splitArgs(formatArgs(args))).toEqual(args);
+  });
+});
+
+describe("migrateIperfTemplate (command templates before 0.8)", () => {
+  it.each(Object.entries(OLD_DEFAULT_TEMPLATES))(
+    "the old default %s becomes the new default",
+    (test, template) => {
+      expect(migrateIperfTemplate(template)).toEqual({
+        args: defaultIperfCommands[test as keyof typeof defaultIperfCommands],
+      });
+    },
+  );
+
+  it("keeps extra options", () => {
+    expect(
+      migrateIperfTemplate(
+        "iperf3 -c {server} {port} -t {duration} -P 4 -O 1 -J",
+      ),
+    ).toEqual({ args: ["-P", "4", "-O", "1"] });
+    expect(
+      migrateIperfTemplate(
+        "/opt/homebrew/bin/iperf3 -c {server} -t {duration} -u -b 1G -J",
+      ),
+    ).toEqual({ args: ["-b", "1G"] });
+  });
+
+  it.each([
+    "iperf3 -c {server} -t {duration} -J; touch /tmp/pwned",
+    "iperf3 -c {server} -t {duration} -J | tee /tmp/log",
+    "iperf3 -c {server} -t {duration} -J > /tmp/out",
+    "iperf3 -c {server} -t $(cat /tmp/d) -J",
+    "iperf3 -c {server} -t {duration} --title 'a b' -J",
+    "iperf3 -c {server} -t {duration} -J && rm -rf ~",
+  ])("refuses shell syntax: %s", (template) => {
+    expect(migrateIperfTemplate(template)).toEqual({
+      args: null,
+      reason: "it contains shell syntax",
+    });
+  });
+
+  it.each([
+    ["curl -c {server}", /runs "curl"/],
+    ["iperf3 -c 10.0.0.2 -t {duration} -J", /no \{server\}|sets -c/],
+    ["iperf3 -c {server} -p 5300 -t {duration} -J", /sets -p 5300/],
+  ])("refuses %s", (template, reason) => {
+    const result = migrateIperfTemplate(template);
+    expect(result.args).toBeNull();
+    expect("reason" in result && result.reason).toMatch(reason);
   });
 });
 
