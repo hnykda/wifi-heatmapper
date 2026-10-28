@@ -42,9 +42,14 @@ export const execAsync = async (
 
   // `echo <password> | sudo -S ...` must never reach a log or the UI
   const shown = hideSudoPassword(command);
+  // Aborting kills the shell; `exec` makes the shell become the program,
+  // so the program itself is killed (dash, Linux's sh, would otherwise
+  // leave it running). Only stoppable commands (iperf3) pass a signal.
+  const run =
+    signal && process.platform !== "win32" ? `exec ${command}` : command;
   return new Promise((resolve, reject) => {
     logger.debug("Executing command:", shown);
-    exec(command, options, (error, stdout, stderr) => {
+    exec(run, options, (error, stdout, stderr) => {
       if (error) {
         // Node puts the whole command line in the message ("Command failed:
         // echo pw | sudo -S ...") and in `cmd`; callers show and log both.
