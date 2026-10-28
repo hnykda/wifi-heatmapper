@@ -126,7 +126,7 @@ describe("signal only", () => {
       expect(result.status).toBe("");
       expect(result.warning).toBeUndefined();
       expect(result.wifiData?.signalStrength).toBe(70);
-      expect(result.iperfData?.tcpDownload.bitsPerSecond).toBe(0);
+      expect(result.iperfData?.tcpDownload).toBeNull();
       expect(commands).toEqual([]);
       expect(server.checkIperfServer).not.toHaveBeenCalled();
       expect(done()).toMatchObject({
@@ -143,8 +143,8 @@ describe("signal and speed", () => {
   test("runs four tests against host:port and saves both", async () => {
     const result = await runSurveyTests(speed("nas.local:5300"));
     expect(result.warning).toBeUndefined();
-    expect(result.iperfData?.tcpDownload.bitsPerSecond).toBeGreaterThan(0);
-    expect(result.iperfData?.udpUpload.bitsPerSecond).toBeGreaterThan(0);
+    expect(result.iperfData?.tcpDownload?.bitsPerSecond).toBeGreaterThan(0);
+    expect(result.iperfData?.udpUpload?.bitsPerSecond).toBeGreaterThan(0);
     expect(iperfRuns()).toHaveLength(4);
     for (const c of iperfRuns())
       expect(c).toMatch(/^iperf3 -c nas\.local -p 5300 /);
@@ -165,7 +165,7 @@ describe("signal and speed", () => {
     const result = await runSurveyTests(speed("10.0.0.2"));
     expect(result.status).toBe("");
     expect(result.wifiData?.signalStrength).toBe(70);
-    expect(result.iperfData?.tcpDownload.bitsPerSecond).toBe(0);
+    expect(result.iperfData?.tcpDownload).toBeNull();
     expect(result.warning).toBe(IPERF3_MISSING);
     expect(iperfRuns()).toEqual([]);
     expect(server.checkIperfServer).not.toHaveBeenCalled();
@@ -210,8 +210,11 @@ describe("signal and speed", () => {
     const result = await runSurveyTests(speed("10.0.0.2"));
     expect(result.status).toBe("");
     expect(result.wifiData?.signalStrength).toBe(70);
-    expect(result.iperfData?.tcpDownload.bitsPerSecond).toBeGreaterThan(0);
-    expect(result.iperfData?.udpDownload.bitsPerSecond).toBe(0);
+    expect(result.iperfData?.tcpDownload?.bitsPerSecond).toBeGreaterThan(0);
+    // the TCP pair ran and is kept; the failed and skipped UDP tests are null
+    expect(result.iperfData?.tcpUpload?.bitsPerSecond).toBeGreaterThan(0);
+    expect(result.iperfData?.udpDownload).toBeNull();
+    expect(result.iperfData?.udpUpload).toBeNull();
     expect(result.warning).toMatch(/the server is busy running a test/);
     // the UDP upload is not attempted after the download failed
     expect(iperfRuns()).toHaveLength(3);

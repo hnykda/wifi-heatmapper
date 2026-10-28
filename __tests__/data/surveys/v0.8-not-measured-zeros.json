@@ -1,0 +1,139 @@
+{
+  "floorplanImageName": "Home.png",
+  "floorplanImagePath": "/api/media/Home.png",
+  "measureSpeed": false,
+  "iperfServerAdrs": "",
+  "testDuration": 1,
+  "apMapping": [],
+  "dimensions": {
+    "width": 400,
+    "height": 200
+  },
+  "radiusDivider": null,
+  "maxOpacity": 0.7,
+  "minOpacity": 0.2,
+  "blur": 0.99,
+  "heatmapRanges": {},
+  "nextPointNum": 3,
+  "surveyPoints": [
+    {
+      "x": 10,
+      "y": 50,
+      "id": "Point_1",
+      "wifiData": {
+        "ssid": "Home",
+        "bssid": "aabbccddee01",
+        "rssi": -60,
+        "noise": -92,
+        "signalStrength": 80,
+        "channel": 36,
+        "security": "WPA3",
+        "txRate": 866,
+        "phyMode": "11ax",
+        "channelWidth": 80,
+        "band": 5,
+        "currentSSID": true,
+        "strongestSSID": null
+      },
+      "iperfData": {
+        "tcpDownload": {
+          "bitsPerSecond": 0,
+          "retransmits": 0,
+          "jitterMs": 0,
+          "lostPackets": 0,
+          "packetsReceived": 0,
+          "signalStrength": 0
+        },
+        "tcpUpload": {
+          "bitsPerSecond": 0,
+          "retransmits": 0,
+          "jitterMs": 0,
+          "lostPackets": 0,
+          "packetsReceived": 0,
+          "signalStrength": 0
+        },
+        "udpDownload": {
+          "bitsPerSecond": 0,
+          "retransmits": 0,
+          "jitterMs": 0,
+          "lostPackets": 0,
+          "packetsReceived": 0,
+          "signalStrength": 0
+        },
+        "udpUpload": {
+          "bitsPerSecond": 0,
+          "retransmits": 0,
+          "jitterMs": 0,
+          "lostPackets": 0,
+          "packetsReceived": 0,
+          "signalStrength": 0
+        }
+      },
+      "timestamp": 1760000000002,
+      "isEnabled": true
+    },
+    {
+      "x": 90,
+      "y": 50,
+      "id": "Point_2",
+      "wifiData": {
+        "ssid": "Home",
+        "bssid": "aabbccddee01",
+        "rssi": -60,
+        "noise": -92,
+        "signalStrength": 40,
+        "channel": 36,
+        "security": "WPA3",
+        "txRate": 866,
+        "phyMode": "11ax",
+        "channelWidth": 80,
+        "band": 5,
+        "currentSSID": true,
+        "strongestSSID": null
+      },
+      "iperfData": {
+        "tcpDownload": {
+          "bitsPerSecond": 0,
+          "retransmits": 0,
+          "jitterMs": 0,
+          "lostPackets": 0,
+          "packetsReceived": 0,
+          "signalStrength": 0
+        },
+        "tcpUpload": {
+          "bitsPerSecond": 0,
+          "retransmits": 0,
+          "jitterMs": 0,
+          "lostPackets": 0,
+          "packetsReceived": 0,
+          "signalStrength": 0
+        },
+        "udpDownload": {
+          "bitsPerSecond": 0,
+          "retransmits": 0,
+          "jitterMs": 0,
+          "lostPackets": 0,
+          "packetsReceived": 0,
+          "signalStrength": 0
+        },
+        "udpUpload": {
+          "bitsPerSecond": 0,
+          "retransmits": 0,
+          "jitterMs": 0,
+          "lostPackets": 0,
+          "packetsReceived": 0,
+          "signalStrength": 0
+        }
+      },
+      "timestamp": 1760000000003,
+      "isEnabled": true
+    }
+  ],
+  "meta": {
+    "schemaVersion": 1,
+    "appVersion": "0.8.0",
+    "platform": "darwin",
+    "osName": "macOS 26",
+    "savedAt": "2026-10-01T12:00:00.000Z"
+  }
+}

@@ -24,7 +24,6 @@ Ideas for making the program better - in no particular order:
 * Use the `scanWifi()` information to add a `strongestSSID` WifiResults
   to the SurveyPoint to indicate that there is a stronger SSID
   in the neighborhood than the SSID currently being used
-* If no TCP tests, set iperfData to null in the SurveyPoint
 * Export `wifi-heatmapper-imagename` and the image itself to a saved file so it can be loaded later
 * (Maybe) During the FloorPlan measurement process, display the heatmap
   for wifi signal strength as a separate floating window.
@@ -127,7 +126,9 @@ Ideas for making the program better - in no particular order:
 * "No TCP (UDP) test" message should be on an opaque/partially transparent background [DONE]
 * Long file names should fit inside the dropdown [DONE]
 * It could be useful to change iperfRunner.ts to default to "null" results
-  for all its values, instead of zero. This indicates that no iperf3 test was run. [NOT DONE]
+  for all its values, instead of zero. This indicates that no iperf3 test was run.
+  [DONE in 0.9: each test that did not run is null, a measured 0 Mbps is 0,
+  and older files' zeros are read as null]
 * Test code from wifiScanner_windows should be moved to a separate \_test.ts file [DONE]
 * Make the app more user-friendly and informative (step by step wizard for the measurements) [DONE for now]
 * Add leaflet to make the maps interactive [NOT FOR NOW]

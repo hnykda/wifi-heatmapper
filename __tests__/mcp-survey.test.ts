@@ -5,7 +5,11 @@ import {
   stats,
   summarizeSurvey,
 } from "@/mcp/survey";
-import { getDefaultIperfResults, getDefaultWifiResults } from "@/lib/utils";
+import {
+  getDefaultIperfResults,
+  getDefaultWifiResults,
+  iperfTestResult,
+} from "@/lib/utils";
 import type { IperfResults, SurveyPoint } from "@/lib/types";
 
 function point(
@@ -14,16 +18,16 @@ function point(
   bssid: string,
   opts: { tcpDownMbps?: number; enabled?: boolean; channel?: number } = {},
 ): SurveyPoint {
-  const iperfData = JSON.parse(
-    JSON.stringify(getDefaultIperfResults()), // its four tests share one object
-  ) as IperfResults;
-  if (opts.tcpDownMbps) {
-    iperfData.tcpDownload.bitsPerSecond = opts.tcpDownMbps * 1e6;
-    iperfData.tcpDownload.retransmits = 2;
-    iperfData.udpDownload.bitsPerSecond = opts.tcpDownMbps * 0.9e6;
-    iperfData.udpDownload.jitterMs = 0.12345;
-    iperfData.udpDownload.lostPackets = 4;
-    iperfData.udpDownload.packetsReceived = 1000;
+  const iperfData: IperfResults = getDefaultIperfResults();
+  if (opts.tcpDownMbps !== undefined) {
+    iperfData.tcpDownload = iperfTestResult(opts.tcpDownMbps * 1e6, {
+      retransmits: 2,
+    });
+    iperfData.udpDownload = iperfTestResult(opts.tcpDownMbps * 0.9e6, {
+      jitterMs: 0.12345,
+      lostPackets: 4,
+      packetsReceived: 1000,
+    });
   }
   return {
     id,

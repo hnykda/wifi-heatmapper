@@ -8,7 +8,7 @@
  *
  * It mirrors the shader and Heatmaps.tsx:
  * - only enabled points; for throughput maps only points where that test ran
- *   (bitsPerSecond > 0) and the value is a finite number;
+ *   (not null; a measured 0 counts) and the value is a finite number;
  * - inverse-distance weighting with power 3;
  * - a point contributes only within the influence radius (in floor-plan
  *   pixels): settings.radiusDivider, or the automatic radius from
@@ -109,7 +109,7 @@ export function heatmapValue(
   }
   if (metric === "snr") return snrOf(point.wifiData);
   const test = point.iperfData?.[metric];
-  if (!test || test.bitsPerSecond === 0) return null; // test not run
+  if (!test) return null; // test not run (a measured 0 is a value)
   const v = test[property as keyof IperfTestProperty];
   return typeof v === "number" && Number.isFinite(v) ? v : null;
 }

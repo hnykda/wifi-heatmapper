@@ -17,6 +17,10 @@ const round = (value: number, digits = 1) => {
   return Math.round(value * f) / f;
 };
 
+/** These Wi-Fi values are never really 0: a 0 (or missing) is unknown. */
+const known = (n: number | undefined) =>
+  typeof n === "number" && Number.isFinite(n) && n !== 0 ? n : null;
+
 export interface PointTest {
   mbps: number;
   jitterMs?: number | null;
@@ -40,13 +44,17 @@ export interface PointRecord {
   noiseDbm: number | null;
   /** RSSI minus noise, in dB */
   snrDb: number | null;
-  channel: number;
-  bandGHz: number;
-  channelWidthMHz: number;
-  txRateMbps: number;
+  /** channel, band, width and TX rate: null where the system did not report it */
+  channel: number | null;
+  bandGHz: number | null;
+  channelWidthMHz: number | null;
+  txRateMbps: number | null;
   phyMode: string;
   security: string;
-  /** null when that test did not run (no iperf3 server, or it failed). */
+  /**
+   * null when that test did not run (signal only, no iperf3 server, or it
+   * failed). A test that ran and got nothing through is { mbps: 0 }.
+   */
   tcpDownload: PointTest | null;
   tcpUpload: PointTest | null;
   udpDownload: PointTest | null;
@@ -54,10 +62,10 @@ export interface PointRecord {
 }
 
 function describeTest(
-  test: IperfTestProperty | undefined,
+  test: IperfTestProperty | null | undefined,
   kind: "tcp" | "udp",
 ): PointTest | null {
-  if (!test || !test.bitsPerSecond) return null;
+  if (!test) return null; // did not run; a measured 0 Mbps is { mbps: 0 }
   const out: PointTest = { mbps: round(test.bitsPerSecond / 1e6, 2) };
   if (kind === "tcp") {
     if (typeof test.retransmits === "number") {
@@ -94,10 +102,10 @@ export function describePoint(
     rssiDbm: w.rssi,
     noiseDbm: validNoise(w.noise),
     snrDb: snrOf(w),
-    channel: w.channel,
-    bandGHz: w.band,
-    channelWidthMHz: w.channelWidth,
-    txRateMbps: w.txRate,
+    channel: known(w.channel),
+    bandGHz: known(w.band),
+    channelWidthMHz: known(w.channelWidth),
+    txRateMbps: known(w.txRate),
     phyMode: w.phyMode ?? "",
     security: w.security ?? "",
     tcpDownload: describeTest(iperf.tcpDownload, "tcp"),
@@ -213,7 +221,7 @@ export interface AccessPointSeen {
   bssid: string;
   apName: string | null;
   ssid: string;
-  bandGHz: number;
+  bandGHz: number | null;
   channels: number[];
   points: number;
   medianSignalPercent: number | null;
@@ -264,7 +272,11 @@ export function summarizeSurvey(
       apName: pts[0].apName,
       ssid: pts[0].ssid,
       bandGHz: pts[0].bandGHz,
-      channels: [...new Set(pts.map((p) => p.channel))].sort((a, b) => a - b),
+      channels: [
+        ...new Set(
+          pts.map((p) => p.channel).filter((c): c is number => c !== null),
+        ),
+      ].sort((a, b) => a - b),
       points: pts.length,
       medianSignalPercent:
         stats(

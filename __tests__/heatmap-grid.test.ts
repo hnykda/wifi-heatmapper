@@ -9,7 +9,11 @@ import {
   toDisplayUnits,
 } from "@/lib/heatmap-grid";
 import { calculateRadiusByBoundingBox } from "@/lib/radiusCalculations";
-import { getDefaultIperfResults, getDefaultWifiResults } from "@/lib/utils";
+import {
+  getDefaultIperfResults,
+  getDefaultWifiResults,
+  iperfTestResult,
+} from "@/lib/utils";
 import type { IperfResults, SurveyPoint } from "@/lib/types";
 
 function point(
@@ -17,14 +21,16 @@ function point(
   x: number,
   y: number,
   signal: number,
-  tcpDownMbps = 0,
+  tcpDownMbps: number | null = null, // null: the test did not run
   isEnabled = true,
 ): SurveyPoint {
-  const iperfData = JSON.parse(
-    JSON.stringify(getDefaultIperfResults()), // its four tests share one object
-  ) as IperfResults;
-  iperfData.tcpDownload.bitsPerSecond = tcpDownMbps * 1e6;
-  iperfData.tcpDownload.retransmits = 3;
+  const iperfData: IperfResults = {
+    ...getDefaultIperfResults(),
+    tcpDownload:
+      tcpDownMbps === null
+        ? null
+        : iperfTestResult(tcpDownMbps * 1e6, { retransmits: 3 }),
+  };
   return {
     id,
     x,
@@ -121,21 +127,23 @@ describe("computeHeatmapGrid", () => {
 describe("heatmapPoints and influenceRadius (mirror Heatmaps.tsx)", () => {
   const points = [
     point("a", 0, 0, 80, 300),
-    point("b", 100, 0, 40, 0), // throughput not measured
+    point("b", 100, 0, 40), // throughput not measured
     point("c", 0, 100, 60, 120),
     point("d", 100, 100, 10, 50, false), // disabled
+    point("e", 50, 50, 20, 0), // measured: nothing got through
   ];
 
   it("uses enabled points; throughput only where the test ran", () => {
     expect(heatmapPoints(points, "signalStrength").map((p) => p.value)).toEqual(
-      [80, 40, 60],
+      [80, 40, 60, 20],
     );
+    // a measured 0 Mbps is mapped as 0, not left out like "b"
     expect(
       heatmapPoints(points, "tcpDownload-bitsPerSecond").map((p) => p.value),
-    ).toEqual([300e6, 120e6]);
+    ).toEqual([300e6, 120e6, 0]);
     expect(
       heatmapPoints(points, "tcpDownload-retransmits").map((p) => p.value),
-    ).toEqual([3, 3]);
+    ).toEqual([3, 3, 3]);
   });
 
   it("uses the saved radius or the automatic one over enabled points", () => {

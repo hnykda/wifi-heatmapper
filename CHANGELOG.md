@@ -2,6 +2,19 @@
 
 _This section follows the precepts of [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) so that future readers can understand the state and evolution of the project._
 
+## Unreleased
+
+### Fixed
+
+* **Points without a speed test no longer show as 0 Mbps.** A test that
+  did not run (signal only, no server, or the speed test failed partway)
+  is now stored as "not measured" and shows as "—" in the table, an empty
+  cell in the CSV and `null` over MCP, and is left out of the speed maps.
+  A test that ran and got nothing through now shows and maps as 0 Mbps,
+  a real dead spot, instead of "not measured". Surveys saved by 0.8 and
+  older are read the same way: their zeros become "not measured", real
+  results are kept.
+
 ## Version 0.8.0 - 2026-10-28
 
 **Before you update:** the macOS desktop app now needs **macOS 13.5

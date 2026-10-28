@@ -7,7 +7,7 @@
  * meant "signal only". Surveys now store `measureSpeed`; files without it
  * are migrated by migrateMeasurementMode().
  */
-import type { IperfTestProperty, SurveyPoint } from "./types";
+import type { SurveyPoint } from "./types";
 
 /** The iperf3 server port when the address doesn't name one. */
 export const DEFAULT_IPERF_PORT = 5201;
@@ -151,19 +151,12 @@ export function formatServerAddress({ host, port }: ServerAddress): string {
   return `${h}:${port ?? DEFAULT_IPERF_PORT}`;
 }
 
-const ran = (t: IperfTestProperty | undefined) => !!t && t.bitsPerSecond > 0;
-
 /**
- * Did this point get a speed reading? Unmeasured tests are stored as
- * zeros, so any non-zero result counts.
+ * Did this point get a speed reading? A test that did not run is null;
+ * any test that ran counts, even one that measured 0 Mbps.
  */
 export function hasSpeedData(point: Pick<SurveyPoint, "iperfData">): boolean {
   const d = point.iperfData;
   if (!d) return false;
-  return (
-    ran(d.tcpDownload) ||
-    ran(d.tcpUpload) ||
-    ran(d.udpDownload) ||
-    ran(d.udpUpload)
-  );
+  return !!d.tcpDownload || !!d.tcpUpload || !!d.udpDownload || !!d.udpUpload;
 }

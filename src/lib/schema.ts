@@ -20,7 +20,9 @@
  * The measurement payload of a point (wifiData, iperfData) is read leniently
  * in both cases: it comes from this server's own scanners, which leave a
  * field out on some systems, and losing a measurement over a missing
- * txRate would be worse than storing 0.
+ * txRate would be worse than storing 0. A speed test that did not run is
+ * null (files before schema version 2 stored zeros; parseSurveyFile()
+ * reads those as null).
  *
  * The sudo password is not part of any schema here: it is never stored, and
  * parsing drops it like any other unknown key.
@@ -63,8 +65,12 @@ const finite = z.number(); // Zod 4 refuses NaN and Infinity
 
 /* ---------- measurements ---------- */
 
+/**
+ * One speed test that ran. Without a usable bitsPerSecond it isn't one
+ * (the test becomes null); the other values fall back one by one.
+ */
 export const iperfTestPropertySchema = z.object({
-  bitsPerSecond: finite.catch(0),
+  bitsPerSecond: finite, // 0 is a real result: nothing got through
   retransmits: finite.optional().catch(undefined),
   // null: the test does not report it (TCP has no jitter) or it is unknown
   jitterMs: finite.nullable().catch(null),
@@ -73,21 +79,43 @@ export const iperfTestPropertySchema = z.object({
   signalStrength: finite.catch(0),
 });
 
-const emptyIperfTest = (): z.output<typeof iperfTestPropertySchema> => ({
-  bitsPerSecond: 0,
-  retransmits: 0,
-  jitterMs: 0,
-  lostPackets: 0,
-  packetsReceived: 0,
-  signalStrength: 0,
+/** A test, or null when it did not run (or is unusable). */
+const iperfTestOrNull = iperfTestPropertySchema.nullable().catch(null);
+
+/** The four speed tests of a point; null for each one that did not run. */
+export const iperfResultsSchema = z.object({
+  tcpDownload: iperfTestOrNull,
+  tcpUpload: iperfTestOrNull,
+  udpDownload: iperfTestOrNull,
+  udpUpload: iperfTestOrNull,
 });
 
-export const iperfResultsSchema = z.object({
-  tcpDownload: iperfTestPropertySchema.catch(emptyIperfTest),
-  tcpUpload: iperfTestPropertySchema.catch(emptyIperfTest),
-  udpDownload: iperfTestPropertySchema.catch(emptyIperfTest),
-  udpUpload: iperfTestPropertySchema.catch(emptyIperfTest),
-});
+const IPERF_TESTS = [
+  "tcpDownload",
+  "tcpUpload",
+  "udpDownload",
+  "udpUpload",
+] as const;
+
+/**
+ * Did this stored test not run? Before schema version 2 a test that did
+ * not run was saved as zeros: bitsPerSecond 0 and nothing else measured.
+ * signalStrength is not looked at: it is the Wi-Fi reading copied in
+ * (0.3 stored the signal there even for tests that did not run). A test
+ * with any other value is kept, and so is any test in a newer file, where
+ * 0 Mbps is a real result.
+ */
+function savedAsZeros(test: z.output<typeof iperfTestPropertySchema>) {
+  const nothing = (v: number | null | undefined) =>
+    v === 0 || v === null || v === undefined;
+  return (
+    test.bitsPerSecond === 0 &&
+    nothing(test.retransmits) &&
+    nothing(test.jitterMs) &&
+    nothing(test.lostPackets) &&
+    nothing(test.packetsReceived)
+  );
+}
 
 /** The results of a Wi-Fi reading. */
 export interface WifiResults {
@@ -152,7 +180,7 @@ export const surveyPointSchema = z.preprocess(
     y: pointFields.y,
     id: z.string().min(1),
     wifiData: pointFields.wifiData.catch(emptyWifiResults),
-    iperfData: pointFields.iperfData.catch(() => iperfResultsSchema.parse({})),
+    iperfData: pointFields.iperfData.catch(() => iperfResultsSchema.parse({})), // all null
     timestamp: pointFields.timestamp.catch(0),
     isEnabled: pointFields.isEnabled.catch(true),
   }),
@@ -360,6 +388,36 @@ export type SurveyDocument = Omit<
 > & { measureSpeed: boolean };
 
 /**
+ * The version of the survey file format, stamped into `meta` on each save
+ * (survey-store.ts). 2 (after 0.8): a speed test that did not run is null, not
+ * zeros.
+ */
+export const SURVEY_SCHEMA_VERSION = 2;
+
+/**
+ * Files before schema version 2 stored a speed test that did not run as
+ * zeros; read those as null (savedAsZeros()). Tests with real values are
+ * kept. Newer files are left alone, so a real 0 Mbps stays 0, and running
+ * it twice changes nothing.
+ */
+export function migrateUnmeasuredTests<
+  T extends Pick<z.output<typeof surveyFileSchema>, "surveyPoints" | "meta">,
+>(survey: T): T {
+  if ((survey.meta?.schemaVersion ?? 0) >= 2) return survey;
+  return {
+    ...survey,
+    surveyPoints: survey.surveyPoints.map((point) => {
+      const iperfData = { ...point.iperfData };
+      for (const key of IPERF_TESTS) {
+        const test = iperfData[key];
+        if (test && savedAsZeros(test)) iperfData[key] = null;
+      }
+      return { ...point, iperfData };
+    }),
+  };
+}
+
+/**
  * parseSurveyFile() - whatever is in a survey file, as a complete survey for
  * that floor plan. The floor plan name and image URL come from the name the
  * survey was asked for (older files stored a /media/... path that is no
@@ -370,7 +428,9 @@ export function parseSurveyFile(
   floorPlan: string,
   sameFile: (a: string, b: string) => boolean = (a, b) => a === b,
 ): SurveyDocument {
-  const survey = migrateMeasurementMode(surveyFileSchema.parse(raw));
+  const survey = migrateMeasurementMode(
+    migrateUnmeasuredTests(surveyFileSchema.parse(raw)),
+  );
   const name =
     survey.floorplanImageName && sameFile(survey.floorplanImageName, floorPlan)
       ? survey.floorplanImageName

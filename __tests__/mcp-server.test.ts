@@ -11,7 +11,11 @@ import { join } from "node:path";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { getDefaultIperfResults, getDefaultWifiResults } from "@/lib/utils";
+import {
+  getDefaultIperfResults,
+  getDefaultWifiResults,
+  iperfTestResult,
+} from "@/lib/utils";
 import { defaultIperfCommands } from "@/lib/iperfUtils";
 import type {
   IperfResults,
@@ -35,12 +39,12 @@ function surveyPoint(
   x: number,
   y: number,
   signal: number,
-  mbps: number,
+  mbps: number | null, // null: no speed test
 ) {
-  const iperfData = JSON.parse(
-    JSON.stringify(getDefaultIperfResults()), // its four tests share one object
-  ) as IperfResults;
-  iperfData.tcpDownload.bitsPerSecond = mbps * 1e6;
+  const iperfData: IperfResults = {
+    ...getDefaultIperfResults(),
+    tcpDownload: mbps === null ? null : iperfTestResult(mbps * 1e6),
+  };
   return {
     id,
     x,
@@ -137,7 +141,7 @@ function startJob(survey: string, x: number, y: number) {
     };
     const id = `Point_${f.nextPointNum++}`;
     f.surveyPoints.push({
-      ...surveyPoint(id, x, y, 64, how === "noSpeed" ? 0 : 250),
+      ...surveyPoint(id, x, y, 64, how === "noSpeed" ? null : 250),
     });
     job.state = "done";
     job.pointId = id;
