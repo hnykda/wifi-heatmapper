@@ -17,7 +17,7 @@ WiFi Heatmapper.app / .exe / .AppImage
     ├── mcp-server.mjs        optional MCP server for AI agents (docs/guide/mcp.md)
     ├── server.js, .next-desktop/, node_modules/
     │                         Next's `output: "standalone"` build (webpack, see build-server.mjs)
-    ├── public/, assets/, data/localization/
+    ├── public/, assets/
     └── helpers/              macOS: WiFiHeatmapperHelper.app (the Wi-Fi reader)
 ```
 

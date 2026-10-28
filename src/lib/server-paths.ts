@@ -11,7 +11,7 @@
  * Set WIFI_HEATMAPPER_DATA_DIR to move the whole directory (used by the
  * e2e tests so they never touch a developer's real surveys).
  *
- * Files that ship with the app (bundled floor plans, localization tables) are
+ * Files that ship with the app (the bundled floor plans) are
  * read from the resources dir: the repo checkout (process.cwd()) normally, or
  * WIFI_HEATMAPPER_RESOURCES_DIR, which the desktop app sets to its bundled,
  * read-only server directory. Nothing is ever written there.
@@ -55,10 +55,6 @@ export function getBundledFloorplansDir(): string {
 /** Versions before 0.5.0 stored uploads here; they are migrated on start. */
 export function getLegacyMediaDir(): string {
   return path.join(process.cwd(), "public", "media");
-}
-
-export function getLocalizationDir(): string {
-  return path.join(getResourcesDir(), "data", "localization");
 }
 
 export const MACOS_HELPER_APP = "WiFiHeatmapperHelper.app";
