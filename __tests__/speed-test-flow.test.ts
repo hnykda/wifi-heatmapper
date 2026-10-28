@@ -304,7 +304,7 @@ describe.each([
   [
     "Windows",
     async () =>
-      new (await import("../src/lib/wifiScanner-windows")).NetshWifiActions(),
+      new (await import("../src/lib/wifiScanner-windows")).WindowsWifiActions(),
   ],
   [
     "macOS",

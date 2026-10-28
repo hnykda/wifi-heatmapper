@@ -629,13 +629,17 @@ export const usageCountsPatchSchema = z.strictObject({
 
 /* ---------- e2e test scenarios (mock-scenario.ts) ---------- */
 
-/** How the mock reports reading Wi-Fi, as the real scanners name it. */
+/**
+ * How the mock reports reading Wi-Fi, as the real scanners name it.
+ * wlan-api-error: reading fails the way Windows does when koffi cannot load
+ * wlanapi.dll.
+ */
 export const MOCK_WIFI_METHODS = [
   "mock",
   "macos-helper",
   "wdutil",
   "wlan-api",
-  "netsh-fallback",
+  "wlan-api-error",
   "iw",
   "iw-sudo",
 ] as const;

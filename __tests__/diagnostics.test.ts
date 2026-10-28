@@ -119,7 +119,7 @@ describe("buildDiagnostics", () => {
   test("before any reading, says what it will try", () => {
     const r = buildDiagnostics(
       input({
-        wifi: { method: null, expected: "Windows WLAN API, netsh if it fails" },
+        wifi: { method: null, expected: "Windows WLAN API" },
         lastMeasurement: null,
         survey: null,
         iperf3Version: null,
@@ -127,9 +127,7 @@ describe("buildDiagnostics", () => {
       context,
       { hideNetwork: true },
     );
-    expect(r.wifiMethod).toBe(
-      "not read yet (expected: Windows WLAN API, netsh if it fails)",
-    );
+    expect(r.wifiMethod).toBe("not read yet (expected: Windows WLAN API)");
     expect(r.summary).toContain("Last measurement: none since the app started");
     expect(r.summary).toContain("Measuring: unknown (no survey open)");
     expect(r.summary).toContain("iperf3: not installed");
