@@ -39,6 +39,18 @@ _This section follows the precepts of [Keep a Changelog](https://keepachangelog.
 
 ### Changed
 
+* **Signal only or signal and speed is now an explicit choice** (#109).
+  Settings has a "What to measure" option per survey, instead of "leave
+  the iperf3 server at localhost". Existing surveys keep what they did:
+  `localhost` or an empty server becomes signal only, any other server
+  signal and speed. New surveys start with signal only. The speed server,
+  test duration and iperf3 commands (now under "Advanced") only show for
+  speed, with a setup checklist and a "Test connection" button. The header
+  strip, the measurement panel, the heat maps and the points table all say
+  which mode the survey is in, and speed maps and columns stay hidden until
+  a point has speed data. The UI says "speed", "download / upload" and
+  "fixed rate (UDP)" instead of throughput and TCP/UDP.
+
 * **Windows reads Wi-Fi details from the Native Wifi API** (`wlanapi.dll`,
   through koffi) instead of parsing `netsh` output, so it works in any
   display language and stores the real RSSI in dBm. 6 GHz networks are
@@ -51,6 +63,17 @@ _This section follows the precepts of [Keep a Changelog](https://keepachangelog.
 
 ### Fixed
 
+* A missing iperf3, a missing or unreachable speed test server, or a failed
+  iperf3 run no longer stops a measurement or loses it. The signal reading
+  is saved and the panel says "Saved without speed" with the reason, the
+  same on macOS, Windows and Linux. Before, macOS and Linux refused to
+  measure without iperf3, Windows lost the reading, and an empty server
+  blocked every measurement (#109).
+* A speed test server given as `host:port` is checked on that port (it
+  was silently skipped), and IPv6 addresses work: `[fe80::1]:5201` or a
+  bare address (#109).
+* The measurement panel's title says "Could not measure" on errors
+  instead of staying at "Starting".
 * The settings API never returns a sudo password, even from an old or
   hand-edited survey file.
 * Windows: each Wi-Fi reading no longer waits about 5 seconds before it is

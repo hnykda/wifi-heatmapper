@@ -51,7 +51,8 @@ describe("pickSafeSettings", () => {
   it("fills in the app's defaults for old files", () => {
     const safe = pickSafeSettings({ floorplanImageName: "x.png" });
     expect(safe).toMatchObject({
-      iperfServerAdrs: "localhost",
+      measureSpeed: false,
+      iperfServerAdrs: "",
       testDuration: 1,
       iperfCommands: defaultIperfCommands,
       apMapping: [],
@@ -177,6 +178,7 @@ describe("toSettingsPatch + the app's merge", () => {
       "heatmapRanges",
       "iperfCommands",
       "iperfServerAdrs",
+      "measureSpeed", // follows the server when not given
     ]);
     expect(patch.iperfCommands).toEqual({
       tcpDownload: "iperf3 -c {server} -R -J",
@@ -214,6 +216,34 @@ describe("toSettingsPatch + the app's merge", () => {
     ]);
     expect(next.radiusDivider).toBe(100);
     expect(toSettingsPatch({ radiusDivider: null }).radiusDivider).toBe(null);
+  });
+
+  it("sets what to measure explicitly, or from the server like the app's migration", () => {
+    // the fixture is an old file: localhost, no measureSpeed
+    expect(pickSafeSettings(survey).measureSpeed).toBe(false);
+    expect(applySettingsPatch(survey, { radiusDivider: 50 }).measureSpeed).toBe(
+      false,
+    );
+    expect(
+      applySettingsPatch(survey, { iperfServerAdrs: "10.0.0.5" }).measureSpeed,
+    ).toBe(true);
+    const on = applySettingsPatch(survey, { measureSpeed: true });
+    expect(on.measureSpeed).toBe(true);
+    expect(on.iperfServerAdrs).toBe("localhost");
+    expect(
+      applySettingsPatch(on, { iperfServerAdrs: "localhost" }).measureSpeed,
+    ).toBe(false);
+    expect(
+      applySettingsPatch(survey, {
+        iperfServerAdrs: "10.0.0.5",
+        measureSpeed: false,
+      }).measureSpeed,
+    ).toBe(false);
+    expect(
+      validateSettingsPatch({ measureSpeed: "yes" as unknown as boolean }),
+    ).toEqual([
+      "measureSpeed must be true (signal and speed) or false (signal only).",
+    ]);
   });
 
   it("throws with every problem", () => {

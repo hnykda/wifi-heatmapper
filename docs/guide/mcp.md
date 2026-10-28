@@ -262,7 +262,8 @@ points, is kept as it is.
 
 | Field | Value |
 | --- | --- |
-| `iperfServerAdrs` | `"192.168.1.10"`, `"nas.local:5201"`, or `"localhost"` to turn throughput tests off |
+| `measureSpeed` | `true` measures signal and speed (iperf3), `false` signal only |
+| `iperfServerAdrs` | the speed test server, `"192.168.1.10"` or `"nas.local:5201"`. Set without `measureSpeed`, `"localhost"` also turns speed off and any other server turns it on, as before |
 | `testDuration` | seconds per iperf3 test, 1 to 60 |
 | `iperfCommands` | any of `tcpDownload`, `tcpUpload`, `udpDownload`, `udpUpload`; the others are kept |
 | `apMapping` | the whole list of `{ "apName", "macAddress" }`; a MAC address may end in `*` to match every BSSID that starts with it |

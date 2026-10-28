@@ -11,6 +11,8 @@
   --brand-soft: #efecfc;
   --plan-wall: #2a2f3a;
   --plan-floor: #fbfbfc;
+  --good: #1f9d5a;
+  --bad: #d8453a;
   --shadow: 0 1px 2px rgb(20 24 35 / 0.06), 0 8px 24px -12px rgb(20 24 35 / 0.18);
   --radius: 10px;
   --sans: -apple-system, BlinkMacSystemFont, "Segoe UI Variable Text", "Segoe UI", system-ui, "Helvetica Neue", Arial, sans-serif;
@@ -30,6 +32,8 @@
     --brand-soft: #2a2640;
     --plan-wall: #d9dce3;
     --plan-floor: #1f222a;
+    --good: #3ccf7f;
+    --bad: #f06a5e;
     --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 10px 30px -14px rgb(0 0 0 / 0.7);
   }
 }
@@ -158,6 +162,83 @@ section[id] { scroll-margin-top: 76px; }
 .under-hood h3 { font-size: 18px; font-weight: 600; }
 .under-hood p { color: var(--muted); margin: 8px 0 0; font-size: 16px; }
 
+/* Signal only vs signal and speed: two small animated diagrams + table */
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.modes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; max-width: 880px; }
+@media (max-width: 760px) { .modes { grid-template-columns: 1fr; } }
+.mode { margin: 0; background: var(--surface); border: 1px solid var(--rule); border-radius: var(--radius); padding: 14px 14px 16px; }
+.mode__art { display: block; width: 100%; height: auto; }
+.mode figcaption { font-size: 15px; color: var(--muted); margin-top: 10px; }
+.mode figcaption strong { color: var(--ink); }
+
+.m-floor { fill: var(--plan-floor); }
+.m-wall { fill: none; stroke: var(--plan-wall); stroke-width: 2.5; stroke-linecap: square; }
+.m-router rect, .m-laptop rect, .m-server rect { fill: var(--surface); stroke: var(--ink); stroke-width: 1.6; }
+.m-laptop path { fill: var(--ink); stroke: var(--ink); stroke-width: 1; stroke-linejoin: round; }
+.m-router path, .m-server path { fill: none; stroke: var(--ink); stroke-width: 1.6; stroke-linecap: round; }
+.m-router rect { fill: var(--brand-soft); }
+.m-wave { fill: none; stroke: var(--brand); stroke-width: 2; stroke-linecap: round; }
+.m-air { fill: none; stroke: var(--brand); stroke-width: 1.6; stroke-dasharray: 2 4; stroke-linecap: round; }
+.m-cable { fill: none; stroke: var(--ink); stroke-width: 2.5; stroke-linejoin: round; }
+.m-label { font: 500 10px var(--sans); fill: var(--muted); }
+.m-dot { stroke: var(--surface); stroke-width: 2; }
+.m-dot--good { fill: var(--good); }
+.m-dot--bad { fill: var(--bad); }
+.m-packet { fill: var(--brand); }
+.m-track { fill: var(--rule); }
+.m-fill { fill: var(--brand); transform-box: fill-box; transform-origin: left center; }
+
+/* Static end state (also the reduced-motion version): laptop in the far
+   room, both dots shown, bars full, no packet. */
+.m-laptop--walk { transform: translate(196px, 92px); }
+.m-packet { opacity: 0; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .m-wave { animation: m-wave 2.4s ease-out infinite; }
+  .m-wave--2 { animation-delay: 0.3s; }
+  .m-wave--3 { animation-delay: 0.6s; }
+  .m-laptop--walk { animation: m-walk 6s ease-in-out infinite; }
+  .m-dot { transform-box: fill-box; transform-origin: center; }
+  .m-dot--good { animation: m-dot-good 6s ease-out infinite; }
+  .m-dot--bad { animation: m-dot-bad 6s ease-out infinite; }
+  .m-packet { animation: m-packet 6s ease-in-out infinite; }
+  .m-fill--up { animation: m-fill-up 6s linear infinite; }
+  .m-fill--down { animation: m-fill-down 6s linear infinite; }
+}
+@keyframes m-wave { 0% { opacity: 0.15; } 30% { opacity: 1; } 100% { opacity: 0.15; } }
+@keyframes m-walk {
+  0%, 8% { transform: translate(100px, 92px); }
+  42%, 50% { transform: translate(100px, 92px); }
+  70%, 92% { transform: translate(196px, 92px); }
+  100% { transform: translate(100px, 92px); }
+}
+@keyframes m-dot-good { 0%, 14% { transform: scale(0); } 20%, 94% { transform: scale(1); } 100% { transform: scale(0); } }
+@keyframes m-dot-bad { 0%, 72% { transform: scale(0); } 78%, 94% { transform: scale(1); } 100% { transform: scale(0); } }
+@keyframes m-packet {
+  0% { opacity: 0; transform: translate(48px, 58px); }
+  4% { opacity: 1; transform: translate(48px, 58px); }
+  18% { transform: translate(122px, 46px); }
+  32% { transform: translate(188px, 46px); }
+  42% { opacity: 1; transform: translate(188px, 58px); }
+  46%, 50% { opacity: 0; transform: translate(188px, 58px); }
+  54% { opacity: 1; transform: translate(188px, 58px); }
+  64% { transform: translate(188px, 46px); }
+  78% { transform: translate(122px, 46px); }
+  92% { opacity: 1; transform: translate(48px, 58px); }
+  96%, 100% { opacity: 0; transform: translate(48px, 58px); }
+}
+@keyframes m-fill-up { 0%, 4% { transform: scaleX(0); } 42%, 96% { transform: scaleX(1); } 100% { transform: scaleX(0); } }
+@keyframes m-fill-down { 0%, 54% { transform: scaleX(0); } 92%, 96% { transform: scaleX(1); } 100% { transform: scaleX(0); } }
+
+.modes + .compare-wrap { max-width: 880px; margin: 32px 0 0; }
+.compare { border-collapse: collapse; width: 100%; font-size: 15px; }
+@media (max-width: 560px) { .compare { font-size: 14px; } .compare tbody tr th { white-space: normal; } }
+.compare th, .compare td { text-align: left; vertical-align: top; padding: 10px 14px 10px 0; border-bottom: 1px solid var(--rule); }
+.compare thead th { font-weight: 600; border-bottom-color: var(--ink); }
+.compare tbody th { font-weight: 600; white-space: nowrap; }
+.compare td { color: var(--muted); }
+.modes__more { font-size: 16px; color: var(--muted); margin: 16px 0 0; }
+
 /* Downloads */
 .downloads { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
 .platform { background: var(--surface); border: 1px solid var(--rule); border-radius: var(--radius); padding: 22px 22px 18px; }
@@ -170,7 +251,7 @@ section[id] { scroll-margin-top: 76px; }
 .cmd { display: flex; align-items: center; gap: 8px; background: var(--bg); border: 1px solid var(--rule); border-radius: 8px; padding: 8px 8px 8px 12px; }
 .cmd code { font-size: 12.5px; overflow-x: auto; white-space: nowrap; flex: 1; min-width: 0; }
 .copy { font: 600 13px var(--sans); color: var(--ink); background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; padding: 4px 10px; cursor: pointer; }
-@media (max-width: 900px) { .downloads { grid-template-columns: 1fr; } }
+@media (max-width: 900px) { .downloads { grid-template-columns: minmax(0, 1fr); } }
 
 .notes { max-width: 720px; margin-top: 36px; color: var(--muted); font-size: 16px; }
 .notes strong { color: var(--ink); }

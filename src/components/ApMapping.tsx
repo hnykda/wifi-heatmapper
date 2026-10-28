@@ -102,7 +102,7 @@ export default function EditableApMapping({ apMapping, onSave }: Props) {
         </div>
       ))}
       <p className="text-xs text-muted-foreground">
-        End a MAC address with * to match every BSSID that starts with it.
+        End a MAC address with * to match every address that starts with it.
       </p>
       <Button
         type="button"

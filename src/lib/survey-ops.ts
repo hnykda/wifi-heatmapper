@@ -15,6 +15,7 @@ import type {
 
 /** The settings PATCH /api/settings can change (settingsPatchSchema). */
 export const SETTINGS_PATCH_KEYS = [
+  "measureSpeed",
   "iperfServerAdrs",
   "testDuration",
   "apMapping",

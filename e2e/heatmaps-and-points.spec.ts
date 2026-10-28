@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { uploadFloorplan, gotoTab, readSurvey } from "./helpers";
+import { uploadFloorplan, gotoTab, readSurvey, measureAt } from "./helpers";
 
 test.describe("with sample points", () => {
   let name: string;
@@ -11,7 +11,7 @@ test.describe("with sample points", () => {
     await expect(page.getByTestId("summary-points")).toContainText("24");
   });
 
-  test("heat maps render for signal and throughput", async ({ page }) => {
+  test("heat maps render for signal and speed", async ({ page }) => {
     await gotoTab(page, "heatmaps");
     const signal = page.getByTestId("heatmap-signalStrength").locator("img");
     await expect(signal).toBeVisible({ timeout: 30_000 });
@@ -20,7 +20,7 @@ test.describe("with sample points", () => {
       "24 points",
     );
 
-    await page.getByLabel("TCP download").click();
+    await page.getByLabel("Download speed").click();
     const tcp = page
       .getByTestId("heatmap-tcpDownload-bitsPerSecond")
       .locator("img");
@@ -91,7 +91,7 @@ test.describe("with sample points", () => {
     page,
   }) => {
     await gotoTab(page, "heatmaps");
-    await page.getByLabel("TCP download", { exact: true }).click();
+    await page.getByLabel("Download speed", { exact: true }).click();
     const image = page
       .getByTestId("heatmap-tcpDownload-bitsPerSecond")
       .locator("img");
@@ -126,12 +126,8 @@ test.describe("with sample points", () => {
       maximum / 1e6,
     );
     expect(await mapPixels()).toBe(original);
-    await scale
-      .getByLabel("TCP download Throughput (Mbps) lower value")
-      .fill("50");
-    await scale
-      .getByLabel("TCP download Throughput (Mbps) upper value")
-      .fill("500");
+    await scale.getByLabel("Download speed (Mbps) lower value").fill("50");
+    await scale.getByLabel("Download speed (Mbps) upper value").fill("500");
 
     await readSurvey(
       page,
@@ -142,9 +138,7 @@ test.describe("with sample points", () => {
     );
     await expect.poll(mapPixels).not.toBe(original);
 
-    await scale
-      .getByLabel("TCP download Throughput (Mbps) upper value")
-      .fill("10");
+    await scale.getByLabel("Download speed (Mbps) upper value").fill("10");
     await expect(scale.getByRole("alert")).toBeVisible();
     // Wait beyond both the input debounce and settings-save debounce.
     await page.waitForTimeout(800);
@@ -154,9 +148,7 @@ test.describe("with sample points", () => {
       max: 500,
       enabled: true,
     });
-    await scale
-      .getByLabel("TCP download Throughput (Mbps) upper value")
-      .fill("");
+    await scale.getByLabel("Download speed (Mbps) upper value").fill("");
     await expect(scale.getByRole("alert")).toBeVisible();
     await page.waitForTimeout(800);
     const afterEmpty = await readSurvey(page, name);
@@ -172,13 +164,13 @@ test.describe("with sample points", () => {
     await page.getByRole("menuitem", { name }).click();
     await expect(page.getByTestId("summary-floorplan")).toContainText(name);
     await gotoTab(page, "heatmaps");
-    await page.getByLabel("TCP download", { exact: true }).click();
+    await page.getByLabel("Download speed", { exact: true }).click();
     await expect(scale.getByRole("switch")).toBeChecked();
     await expect(
-      scale.getByLabel("TCP download Throughput (Mbps) lower value"),
+      scale.getByLabel("Download speed (Mbps) lower value"),
     ).toHaveValue("50");
     await expect(
-      scale.getByLabel("TCP download Throughput (Mbps) upper value"),
+      scale.getByLabel("Download speed (Mbps) upper value"),
     ).toHaveValue("500");
     await scale.getByRole("switch").click();
     await readSurvey(
@@ -192,14 +184,14 @@ test.describe("with sample points", () => {
     await page.getByRole("menuitem", { name }).click();
     await expect(page.getByTestId("summary-floorplan")).toContainText(name);
     await gotoTab(page, "heatmaps");
-    await page.getByLabel("TCP download", { exact: true }).click();
+    await page.getByLabel("Download speed", { exact: true }).click();
     await expect(scale.getByRole("switch")).not.toBeChecked();
     await scale.getByRole("switch").click();
     await expect(
-      scale.getByLabel("TCP download Throughput (Mbps) lower value"),
+      scale.getByLabel("Download speed (Mbps) lower value"),
     ).toHaveValue("50");
     await expect(
-      scale.getByLabel("TCP download Throughput (Mbps) upper value"),
+      scale.getByLabel("Download speed (Mbps) upper value"),
     ).toHaveValue("500");
   });
 
@@ -207,8 +199,8 @@ test.describe("with sample points", () => {
     page,
   }) => {
     await gotoTab(page, "heatmaps");
-    await page.getByLabel("TCP download", { exact: true }).click();
-    await page.getByLabel("TCP upload", { exact: true }).click();
+    await page.getByLabel("Download speed", { exact: true }).click();
+    await page.getByLabel("Upload speed", { exact: true }).click();
     for (const key of [
       "signalStrength",
       "tcpDownload-bitsPerSecond",
@@ -223,10 +215,8 @@ test.describe("with sample points", () => {
     await tcp.getByRole("switch").click();
     await udp.getByRole("switch").click();
     // Both controls commit before the debounced survey save.
-    await tcp
-      .getByLabel("TCP download Throughput (Mbps) upper value")
-      .fill("900");
-    await udp.getByLabel("TCP upload Throughput (Mbps) upper value").fill("50");
+    await tcp.getByLabel("Download speed (Mbps) upper value").fill("900");
+    await udp.getByLabel("Upload speed (Mbps) upper value").fill("50");
     await readSurvey(
       page,
       name,
@@ -253,7 +243,7 @@ test.describe("with sample points", () => {
         },
       });
     });
-    const upper = tcp.getByLabel("TCP download Throughput (Mbps) upper value");
+    const upper = tcp.getByLabel("Download speed (Mbps) upper value");
     await upper.fill("");
     await upper.pressSequentially("500", { delay: 70 });
     expect(
@@ -295,8 +285,8 @@ test.describe("with sample points", () => {
     await page.getByRole("menuitem", { name }).click();
     await expect(page.getByTestId("summary-floorplan")).toContainText(name);
     await gotoTab(page, "heatmaps");
-    await page.getByLabel("TCP download", { exact: true }).click();
-    await page.getByLabel("TCP upload", { exact: true }).click();
+    await page.getByLabel("Download speed", { exact: true }).click();
+    await page.getByLabel("Upload speed", { exact: true }).click();
     for (const key of [
       "signalStrength",
       "tcpDownload-bitsPerSecond",
@@ -350,4 +340,26 @@ test.describe("with sample points", () => {
 
     await readSurvey(page, name, (s) => s.surveyPoints.length === 0);
   });
+});
+
+test("a signal-only survey hides speed maps and columns", async ({ page }) => {
+  await uploadFloorplan(page);
+  await gotoTab(page, "floorplan");
+  await measureAt(page, 0.3, 0.3);
+  await gotoTab(page, "heatmaps");
+  await expect(
+    page.getByTestId("heatmap-signalStrength").locator("img"),
+  ).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByTestId("speed-maps-off")).toContainText(
+    "measures signal only",
+  );
+  await expect(page.getByLabel("Download speed", { exact: true })).toHaveCount(
+    0,
+  );
+  await gotoTab(page, "points");
+  await expect(page.getByTestId("points-row")).toHaveCount(1);
+  await expect(page.getByTestId("speed-columns-off")).toBeVisible();
+  await expect(
+    page.getByTestId("points-table").getByText("Download Mbps"),
+  ).toHaveCount(0);
 });

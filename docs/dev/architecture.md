@@ -92,8 +92,10 @@ The server owns the survey files. Two pieces do the work:
     field falls back to its default (`.catch()`), an unusable point or AP
     entry is dropped, and the rest loads. All migrations happen here:
     defaults for fields older versions didn't have, `iperfResults` ->
-    `iperfData` (before 0.4), the image URL derived from the name, and
-    only valid fixed colour scales kept (`normalizeHeatmapRanges`).
+    `iperfData` (before 0.4), the image URL derived from the name,
+    only valid fixed colour scales kept (`normalizeHeatmapRanges`), and
+    `measureSpeed` for files without it (`migrateMeasurementMode()`:
+    a `localhost` or empty server is signal only, any other is speed).
     Unknown keys, a sudo password among them, are dropped.
   * Request bodies are **strict** (`settingsPatchSchema`,
     `addPointSchema`, `pointPatchSchema`, `deletePointsSchema`,

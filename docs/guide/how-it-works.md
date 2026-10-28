@@ -9,10 +9,14 @@ order: 5
 The app is a small local web server with a browser interface. The desktop app
 is the same server in its own window. When you click the floor plan, the
 server reads the Wi-Fi signal with the tools your system already has, runs
-iperf3 if a server is set, and saves the point to the survey file.
+the speed tests with iperf3 if the survey measures speed, and saves the point
+to the survey file.
 
 Each measurement reads the Wi-Fi signal three times (before, between and
-after the TCP and UDP tests) and stores the average.
+after the speed tests, if any) and stores the average. Whether the speed
+test can run (iperf3 installed, server set and answering) is checked the
+same way on every system; if it can't, the signal is saved without speed
+and the app says why.
 
 ## Where the readings come from
 
@@ -21,7 +25,7 @@ after the TCP and UDP tests) and stores the average.
 | macOS | CoreWLAN, through the app's small Wi-Fi helper | No password. The helper needs Location access to see the network name. From source without the helper: `wdutil` (needs sudo), `ioreg` and `system_profiler`. |
 | Windows | Native Wifi API (`wlanapi.dll`) | Part of Windows, works in any display language. `netsh` is the fallback. On Windows 11 24H2 and later, Location services must be on. |
 | Linux | `iw` | `nmcli` is optional and only lists nearby networks. Uses the first connected managed Wi-Fi interface. |
-| All | `iperf3` | Only for speed tests. See [measuring speed with iperf3](throughput.md). |
+| All | `iperf3` | Only for speed tests. See [measuring speed](throughput.md). |
 
 ## Signal strength in percent and dBm
 

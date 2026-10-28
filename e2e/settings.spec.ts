@@ -1,5 +1,10 @@
 import { test, expect } from "@playwright/test";
-import { uploadFloorplan, readSurvey, makePng } from "./helpers";
+import {
+  uploadFloorplan,
+  readSurvey,
+  makePng,
+  useSpeedServer,
+} from "./helpers";
 
 test("uploading a floor plan creates its own survey file", async ({ page }) => {
   const name = await uploadFloorplan(page);
@@ -36,23 +41,93 @@ test("uploading a duplicate name is refused", async ({ page }) => {
 
 test("settings persist across reloads", async ({ page }) => {
   const name = await uploadFloorplan(page);
-  await page.getByLabel("iperf3 server").fill("192.168.1.10:5201");
+  await useSpeedServer(page, "192.168.1.10:5201");
   await page.getByLabel("Test duration (seconds)").fill("3");
   await expect(page.getByTestId("summary-iperf")).toContainText(
     "192.168.1.10:5201",
   );
 
   // the debounced save has to land before we leave
-  await readSurvey(page, name, (s) => s.testDuration === 3);
+  await readSurvey(
+    page,
+    name,
+    (s) => s.testDuration === 3 && s.measureSpeed === true,
+  );
 
   await page.reload();
   // the app opens the default floor plan; switch back to ours
   await page.getByTestId("floorplan-picker").click();
   await page.getByRole("menuitem", { name }).click();
-  await expect(page.getByLabel("iperf3 server")).toHaveValue(
+  await expect(page.getByLabel("Signal and speed")).toBeChecked();
+  await expect(page.getByLabel("Speed test server (uses iperf3)")).toHaveValue(
     "192.168.1.10:5201",
   );
   await expect(page.getByLabel("Test duration (seconds)")).toHaveValue("3");
+});
+
+test("signal only hides the speed settings", async ({ page }) => {
+  const name = await uploadFloorplan(page);
+  await expect(page.getByLabel("Signal only")).toBeChecked();
+  await expect(page.getByLabel("Speed test server (uses iperf3)")).toHaveCount(
+    0,
+  );
+  await expect(page.getByLabel("Test duration (seconds)")).toHaveCount(0);
+  await expect(page.getByTestId("speed-checklist")).toHaveCount(0);
+  await page.getByTestId("measure-mode-speed").click();
+  await expect(page.getByTestId("speed-checklist")).toBeVisible();
+  // the iperf3 commands are tucked away under Advanced
+  await expect(page.getByLabel("Download (TCP)")).toHaveCount(0);
+  await page.getByTestId("iperf-commands-toggle").click();
+  await expect(page.getByLabel("Download (TCP)")).toBeVisible();
+  await readSurvey(page, name, (s) => s.measureSpeed === true);
+});
+
+test("test connection checks the speed test server", async ({ page }) => {
+  await uploadFloorplan(page);
+  await useSpeedServer(page, "unreachable.local");
+  await expect(page.getByTestId("check-iperf3")).toHaveAttribute(
+    "data-state",
+    "ok",
+  );
+  await expect(page.getByTestId("check-server")).toHaveAttribute(
+    "data-state",
+    "unknown",
+  );
+  await page.getByTestId("speed-test-connection").click();
+  await expect(page.getByTestId("check-server")).toHaveAttribute(
+    "data-state",
+    "bad",
+  );
+  await expect(page.getByTestId("check-server")).toContainText(
+    "Can't reach the speed test server",
+  );
+  await page
+    .getByLabel("Speed test server (uses iperf3)")
+    .fill("[fe80::1]:5202");
+  await page.getByTestId("speed-test-connection").click();
+  await expect(page.getByTestId("check-server")).toHaveAttribute(
+    "data-state",
+    "ok",
+  );
+});
+
+test("an old survey with a server opens as signal and speed", async ({
+  page,
+}) => {
+  const name = await uploadFloorplan(page);
+  const survey = await readSurvey(page, name);
+  delete survey.measureSpeed;
+  survey.iperfServerAdrs = "10.0.0.2";
+  const res = await page.request.post("/api/settings", { data: survey });
+  expect(res.ok()).toBe(true);
+  await page.reload();
+  await page.getByTestId("floorplan-picker").click();
+  await page.getByRole("menuitem", { name }).click();
+  await expect(page.getByTestId("summary-floorplan")).toContainText(name);
+  await expect(page.getByLabel("Signal and speed")).toBeChecked();
+  await expect(page.getByTestId("summary-iperf")).toContainText(
+    "Signal and speed (10.0.0.2)",
+  );
 });
 
 test("deleting a floor plan removes it and its survey", async ({ page }) => {

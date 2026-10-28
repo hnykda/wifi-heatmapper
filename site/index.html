@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Wi-Fi Heatmapper: see where your Wi-Fi is weak</title>
-<meta name="description" content="Free, open-source desktop app for macOS, Windows and Linux. Walk around, click where you stand on your floor plan, and get heat maps of Wi-Fi signal strength and iperf3 throughput.">
+<meta name="description" content="Free, open-source desktop app for macOS, Windows and Linux. Walk around, click where you stand on your floor plan, and get heat maps of Wi-Fi signal strength, and optionally real speed.">
 <link rel="canonical" href="https://wifi-heatmapper.danielalder.cz/">
 <link rel="icon" href="/favicon.ico" sizes="any">
 <link rel="icon" href="/img/favicon-32.png" type="image/png">
@@ -14,7 +14,7 @@
 <meta name="theme-color" content="#14161b" media="(prefers-color-scheme: dark)">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Wi-Fi Heatmapper">
-<meta property="og:description" content="See where your Wi-Fi is weak. A free desktop app that draws heat maps of signal strength and speed on your floor plan.">
+<meta property="og:description" content="See where your Wi-Fi is weak. A free desktop app that draws heat maps of signal strength, and optionally real speed, on your floor plan.">
 <meta property="og:url" content="https://wifi-heatmapper.danielalder.cz/">
 <meta property="og:image" content="https://wifi-heatmapper.danielalder.cz/img/og.jpg">
 <meta name="twitter:card" content="summary_large_image">
@@ -25,7 +25,7 @@
   "@type": "SoftwareApplication",
   "name": "Wi-Fi Heatmapper",
   "alternateName": "wifi-heatmapper",
-  "description": "Desktop app that measures Wi-Fi signal strength and iperf3 throughput where you stand and draws heat maps of the results on your floor plan.",
+  "description": "Desktop app that measures Wi-Fi signal strength, and optionally real speed, where you stand and draws heat maps of the results on your floor plan.",
   "applicationCategory": "UtilitiesApplication",
   "operatingSystem": "macOS, Windows, Linux",
   "softwareVersion": "{{VERSION}}",
@@ -52,7 +52,7 @@
     <h1 id="hero-title">See where your Wi-Fi is weak.</h1>
     <p class="lede">
       Walk around with your laptop and click where you stand on a floor plan.
-      Wi-Fi Heatmapper measures the signal, and the speed if you like, right there.
+      Wi-Fi Heatmapper measures the signal strength there, and optionally the real speed.
       A few rooms later you have a heat map of your home or office.
     </p>
     <div class="cta">
@@ -98,7 +98,7 @@
     </div>
     <div>
       <dt>Real speed, not just bars</dt>
-      <dd>Point it at an <a href="https://iperf.fr">iperf3</a> server on your network and every spot also gets TCP and UDP throughput in both directions, jitter and lost packets.</dd>
+      <dd>Choose “Signal and speed” and every spot also gets its download and upload speed, measured against a second computer on your network with <a href="https://iperf.fr">iperf3</a>, plus jitter and lost packets.</dd>
     </div>
     <div>
       <dt>Before and after</dt>
@@ -119,6 +119,96 @@
   </dl>
 </section>
 
+<section id="modes" class="section wrap" aria-labelledby="modes-title">
+  <div class="section__head">
+    <h2 id="modes-title">Signal only, or signal and speed?</h2>
+    <p>Every survey measures the signal. Speed is optional: it needs a second computer, and tells you what you actually get. You choose per survey in Settings.</p>
+  </div>
+
+  <div class="modes">
+    <figure class="mode">
+      <svg class="mode__art mode__art--signal" viewBox="0 0 240 140" role="img" aria-labelledby="mode-signal-title mode-signal-desc">
+        <title id="mode-signal-title">Signal only</title>
+        <desc id="mode-signal-desc">A laptop on a floor plan reads the Wi-Fi signal from the router. Near the router the spot turns green; in the far room, behind a wall, it turns red.</desc>
+        <rect class="m-floor" x="8" y="8" width="224" height="124" rx="4"/>
+        <path class="m-wall" d="M8 8h224v124H8z M150 8v52 M150 84v48"/>
+        <g class="m-router" transform="translate(44 70)">
+          <rect x="-12" y="-5" width="24" height="10" rx="2"/>
+          <path d="M-7 -5v-7 M7 -5v-7"/>
+        </g>
+        <g class="m-waves" transform="translate(44 62)">
+          <path class="m-wave m-wave--1" d="M-10 -6a14 14 0 0 1 20 0"/>
+          <path class="m-wave m-wave--2" d="M-17 -12a24 24 0 0 1 34 0"/>
+          <path class="m-wave m-wave--3" d="M-24 -18a34 34 0 0 1 48 0"/>
+        </g>
+        <circle class="m-dot m-dot--good" cx="100" cy="100" r="6"/>
+        <circle class="m-dot m-dot--bad" cx="196" cy="100" r="6"/>
+        <g class="m-laptop m-laptop--walk">
+          <rect x="-11" y="-16" width="22" height="14" rx="1.5"/>
+          <path d="M-15 0h30l-3 -2h-24z"/>
+        </g>
+      </svg>
+      <figcaption>
+        <strong>Signal only.</strong> Click where you stand; the spot turns green or red. Nothing to set up.
+      </figcaption>
+    </figure>
+
+    <figure class="mode">
+      <svg class="mode__art mode__art--speed" viewBox="0 0 240 140" role="img" aria-labelledby="mode-speed-title mode-speed-desc">
+        <title id="mode-speed-title">Signal and speed</title>
+        <desc id="mode-speed-desc">A second computer is wired to the router with a cable. Test data goes from the laptop through the router to that computer (upload), then back (download), and a bar fills for each test.</desc>
+        <rect class="m-floor" x="8" y="8" width="224" height="124" rx="4"/>
+        <path class="m-air" d="M48 58 L112 46"/>
+        <path class="m-cable" d="M132 46 H188 V58"/>
+        <g class="m-laptop" transform="translate(40 70)">
+          <rect x="-11" y="-16" width="22" height="14" rx="1.5"/>
+          <path d="M-15 0h30l-3 -2h-24z"/>
+        </g>
+        <g class="m-router" transform="translate(122 46)">
+          <rect x="-12" y="-5" width="24" height="10" rx="2"/>
+          <path d="M-7 -5v-7 M7 -5v-7"/>
+        </g>
+        <g class="m-server" transform="translate(188 70)">
+          <rect x="-9" y="-12" width="18" height="24" rx="2"/>
+          <path d="M-5 -6h10 M-5 -1h10"/>
+        </g>
+        <text class="m-label" x="40" y="86" text-anchor="middle">laptop</text>
+        <text class="m-label" x="188" y="96" text-anchor="middle">server, wired</text>
+        <circle class="m-packet" cx="0" cy="0" r="4"/>
+        <g class="m-bars">
+          <text class="m-label" x="24" y="111">Upload</text>
+          <rect class="m-track" x="78" y="104" width="130" height="8" rx="4"/>
+          <rect class="m-fill m-fill--up" x="78" y="104" width="130" height="8" rx="4"/>
+          <text class="m-label" x="24" y="126">Download</text>
+          <rect class="m-track" x="78" y="119" width="130" height="8" rx="4"/>
+          <rect class="m-fill m-fill--down" x="78" y="119" width="130" height="8" rx="4"/>
+        </g>
+      </svg>
+      <figcaption>
+        <strong>Signal and speed.</strong> Test data goes to a second computer and back, so you see the speed you really get in each spot.
+      </figcaption>
+    </figure>
+  </div>
+
+  <div class="table-wrap compare-wrap">
+    <table class="compare">
+      <thead>
+        <tr><th scope="col"><span class="visually-hidden">Compared</span></th><th scope="col">Signal only</th><th scope="col">Signal and speed</th></tr>
+      </thead>
+      <tbody>
+        <tr><th scope="row">Setup</th><td>Nothing</td><td>iperf3 on two computers; one stays put, wired if possible</td></tr>
+        <tr><th scope="row">Time per spot</th><td>About 2 s</td><td>About 6–10 s</td></tr>
+        <tr><th scope="row">Tells you</th><td>Where coverage is weak</td><td>What speed you actually get; catches interference and slow links that look strong</td></tr>
+        <tr><th scope="row">Limits</th><td>Strong signal is not always fast</td><td>A server on Wi-Fi halves the result; the fixed-rate (UDP) test is capped at 100 Mbps by default</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="modes__more">
+    More in <a href="/docs/getting-started#signal-only-or-with-speed">getting started</a>
+    and <a href="/docs/throughput">measuring speed</a>.
+  </p>
+</section>
+
 <section id="how" class="section wrap" aria-labelledby="how-title">
   <div class="section__head">
     <h2 id="how-title">How it works</h2>
@@ -131,7 +221,7 @@
     </li>
     <li>
       <h3>Click where you stand</h3>
-      <p>The app reads the Wi-Fi signal (and runs iperf3, if set up) and drops a coloured dot on that spot.</p>
+      <p>The app reads the Wi-Fi signal (and tests the speed, if you chose to) and drops a coloured dot on that spot.</p>
     </li>
     <li>
       <h3>Cover every room</h3>
@@ -153,8 +243,8 @@
     <h3>Under the hood</h3>
     <p>
       The app uses what your system already has: CoreWLAN on macOS (through a small helper, no password),
-      the Native Wifi API on Windows, and <code>iw</code> on Linux. Throughput comes from
-      <code>iperf3</code>. The heat map is inverse-distance weighting drawn with WebGL.
+      the Native Wifi API on Windows, and <code>iw</code> on Linux. Speed (throughput, technically)
+      comes from <code>iperf3</code>. The heat map is inverse-distance weighting drawn with WebGL.
       The details are on the
       <a href="/docs/how-it-works">how it works</a> page.
     </p>

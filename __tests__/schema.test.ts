@@ -82,6 +82,8 @@ describe("reading survey files (lenient)", () => {
     // missing in the old file: defaults
     expect(survey.heatmapRanges).toEqual({});
     expect(survey.iperfCommands).toEqual(defaultIperfCommands);
+    // no measureSpeed in the old file: a real server means signal and speed
+    expect(survey.measureSpeed).toBe(true);
     // kept as they were
     expect(survey).toMatchObject({
       iperfServerAdrs: "192.168.1.10",
@@ -127,7 +129,8 @@ describe("reading survey files (lenient)", () => {
 
     // each bad setting falls back on its own
     expect(survey.floorplanImageName).toBe("Office.png");
-    expect(survey.iperfServerAdrs).toBe("localhost");
+    expect(survey.iperfServerAdrs).toBe("");
+    expect(survey.measureSpeed).toBe(false); // no usable server: signal only
     expect(survey.testDuration).toBe(1);
     expect(survey.nextPointNum).toBe(1);
     expect(survey.dimensions).toEqual(defaults.dimensions);

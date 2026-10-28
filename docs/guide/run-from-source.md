@@ -35,7 +35,7 @@ What else each system needs:
   optional and only lists nearby networks. If reading the signal needs root,
   Settings asks for your sudo password, which is kept in memory only.
 
-For speed tests, see [measuring speed with iperf3](throughput.md).
+For speed tests, see [measuring speed](throughput.md).
 
 ## Try it without any hardware
 

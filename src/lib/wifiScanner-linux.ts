@@ -26,10 +26,10 @@ export class LinuxWifiActions implements WifiActions {
   strongestSSID: WifiResults | null = null; // strongest SSID if not currentSSID
 
   /**
-   * preflightSettings - check whether the settings are "primed" to run a test
+   * preflightSettings - check whether the Wi-Fi can be read
+   * (the speed test is checked separately, in speed-test.ts)
    * Tests:
-   *   * iperfServerAdrs - non-empty
-   *   * testDuration - greater than zero
+   *   * iw is installed
    *   * sudoerPassword - correct if given; required only if iw refuses
    *     to read the link as a normal user
    *
@@ -71,28 +71,6 @@ export class LinuxWifiActions implements WifiActions {
     if (missingTools.length > 0) {
       reason = `Missing required tools: ${missingTools.join(", ")}. Install them with your package manager (e.g., apt install iw).`;
       logger.error(reason);
-    }
-
-    // check that iperf3 is really installed if it's needed
-    if (!reason && settings.iperfServerAdrs != "localhost") {
-      try {
-        await execAsync("iperf3 --version");
-        logger.info("  ✓ iperf3 found");
-      } catch {
-        reason =
-          "iperf3 not installed. Install it,\n or set the iperfServer to 'localhost'.";
-        logger.warn("  ✗ iperf3 not found");
-        logger.error(reason);
-      }
-    }
-    // test duration must be > 0 - otherwise iperf3 runs forever
-    if (!reason && settings.testDuration <= 0) {
-      reason = "Test duration must be greater than zero.";
-    }
-
-    // iperfServerAddress must not be empty or ""
-    if (!reason && !settings.iperfServerAdrs) {
-      reason = "Please set iperf3 server address";
     }
 
     // Linux may need a sudo password for `iw dev <if> link`. Docker doesn't,

@@ -65,6 +65,12 @@ export async function uploadFloorplan(
   return name;
 }
 
+/** Settings: switch this survey to "Signal and speed" and set the server. */
+export async function useSpeedServer(page: Page, server: string) {
+  await page.getByTestId("measure-mode-speed").click();
+  await page.getByLabel("Speed test server (uses iperf3)").fill(server);
+}
+
 export async function gotoTab(
   page: Page,
   tab: "settings" | "floorplan" | "heatmaps" | "points",

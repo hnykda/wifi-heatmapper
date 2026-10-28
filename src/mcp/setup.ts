@@ -8,6 +8,7 @@
  */
 import type { AppStatus, MacosHelperStatus } from "../lib/types";
 import type { AppClient } from "./app-client";
+import { measuresSpeed } from "../lib/measurement-mode";
 
 export interface SetupReport {
   app: {
@@ -52,7 +53,7 @@ export function assessSetup(
   const throughputOn = survey?.found && survey.throughputTests;
   if (!status.iperf3Version && !status.mockMode) {
     (throughputOn ? problems : notes).push(
-      "iperf3 is not installed on this computer, so throughput tests will fail. Install it, or set the iperf3 server to localhost to measure signal strength only.",
+      "iperf3 is not installed on this computer, so speed tests are skipped (the signal is still measured). Install it, or switch the survey to signal only (measureSpeed false).",
     );
   }
 
@@ -88,7 +89,7 @@ export function assessSetup(
   } else if (survey) {
     if (!survey.throughputTests) {
       notes.push(
-        "Throughput tests are off for this survey (iperf3 server is localhost): only signal strength is measured. Run `iperf3 -s` on another computer on the wired network and set its address.",
+        "This survey measures signal only (measureSpeed is false). To add speed, run `iperf3 -s` on another computer wired to the router, set its address and measureSpeed true.",
       );
     }
     if (survey.points === 0) notes.push("This survey has no points yet.");
@@ -121,7 +122,7 @@ export async function checkSetup(
       ? {
           name,
           found: true,
-          throughputTests: s.iperfServerAdrs !== "localhost",
+          throughputTests: measuresSpeed(s),
           iperfServer: s.iperfServerAdrs,
           testDuration: s.testDuration,
           points: s.surveyPoints?.length ?? 0,

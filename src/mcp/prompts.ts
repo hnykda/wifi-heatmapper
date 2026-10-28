@@ -40,7 +40,7 @@ export function planSurveyPrompt(name?: string): string {
 1. Call check_setup${name ? ` with name "${name}"` : ""} and list_surveys, and fix any problems first.
 2. Suggest how many points and how far apart: roughly one point every 2 to 3 metres (or one or two per room), denser near walls, doorways and where coverage is expected to drop, plus a point near each access point. Use get_survey on an existing survey to see its floor plan size in pixels.
 3. Where to stand: at the marked spot, holding the laptop as it is normally used, the same height each time, not blocking it with your body; wait for each measurement to finish before moving.
-4. Throughput: run \`iperf3 -s\` on a computer that is wired to the router (not on Wi-Fi), and set its address with update_settings (iperfServerAdrs). Keep test duration short (1 to 3 s) for a survey. "localhost" measures signal only.
+4. Throughput: run \`iperf3 -s\` on a computer that is wired to the router (not on Wi-Fi), and set its address with update_settings (iperfServerAdrs, measureSpeed true). Keep test duration short (1 to 3 s) for a survey. measureSpeed false measures signal only.
 5. Remind the person that they take the measurements by clicking the floor plan in the app; this assistant can't walk around or measure.
 Keep it short and practical.`;
 }

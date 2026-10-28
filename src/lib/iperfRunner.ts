@@ -21,6 +21,8 @@ import { getLogger } from "./logger";
 import { defaultIperfCommands, buildIperfCommand } from "./iperfUtils";
 import { isMockMode } from "./app-info";
 import { mockIperfResult } from "./wifiScanner-mock";
+import { parseServerAddress } from "./measurement-mode";
+import { planSpeedTest, speedTestFailedWarning } from "./speed-test";
 const logger = getLogger("iperfRunner");
 
 type TestType = "TCP" | "UDP";
@@ -30,7 +32,7 @@ const wifiActions = await createWifiActions();
 
 /**
  * The Wi-Fi association must not change while we measure, otherwise the
- * throughput numbers belong to a different access point than the signal.
+ * speed numbers belong to a different access point than the signal.
  */
 const wifiDataIsConsistent = (
   before: WifiResults,
@@ -55,22 +57,30 @@ function arrayAverage(arr: number[]): number {
   return Math.round(sum / arr.length);
 }
 
+const PENDING = "-/- Mbps";
+const OFF = "Off";
+const SKIPPED = "Skipped";
+
 // The measurement process updates these fields, which are
 // then combined into progress events for the browser.
 const displayStates = {
   type: "update",
   header: "In progress",
   strength: "-",
-  tcp: "-/- Mbps",
-  udp: "-/- Mbps",
+  tcp: PENDING,
+  udp: PENDING,
+  mode: "signal" as "signal" | "speed",
+  warning: "",
 };
 
-function resetDisplayStates() {
+function resetDisplayStates(mode: "signal" | "speed") {
   displayStates.type = "update";
   displayStates.header = "Measurement beginning";
   displayStates.strength = "-";
-  displayStates.tcp = "-/- Mbps";
-  displayStates.udp = "-/- Mbps";
+  displayStates.tcp = mode === "signal" ? OFF : PENDING;
+  displayStates.udp = mode === "signal" ? OFF : PENDING;
+  displayStates.mode = mode;
+  displayStates.warning = "";
 }
 
 /**
@@ -85,8 +95,14 @@ function getUpdatedMessage(): SSEMessageType {
   return {
     type: displayStates.type,
     header: displayStates.header,
-    status: `Signal strength: ${strength}\nTCP: ${displayStates.tcp}\nUDP: ${displayStates.udp}`,
-    fields: { strength, tcp: displayStates.tcp, udp: displayStates.udp },
+    status: `Signal strength: ${strength}\nSpeed: ${displayStates.tcp}\nUDP: ${displayStates.udp}`,
+    fields: {
+      strength,
+      tcp: displayStates.tcp,
+      udp: displayStates.udp,
+      mode: displayStates.mode,
+    },
+    ...(displayStates.warning ? { warning: displayStates.warning } : {}),
   };
 }
 
@@ -98,7 +114,10 @@ function checkForCancel() {
  * runSurveyTests() - get the Wi-Fi and iperf readings
  * @param settings
  * @returns the Wi-Fi and iperf results for this location, or a
- *          human-readable `status` explaining why there are none
+ *          human-readable `status` explaining why there are none.
+ *          `warning` is set when the reading was saved without speed
+ *          although the survey asks for it (iperf3 missing, server
+ *          unreachable, a test failed).
  */
 export async function runSurveyTests(
   settings: PartialHeatmapSettings,
@@ -106,6 +125,7 @@ export async function runSurveyTests(
   iperfData: IperfResults | null;
   wifiData: WifiResults | null;
   status: string;
+  warning?: string;
 }> {
   // first check the settings and return a cogent error if not good
   const preResults = await wifiActions.preflightSettings(settings);
@@ -114,25 +134,19 @@ export async function runSurveyTests(
     return { iperfData: null, wifiData: null, status: preResults.reason };
   }
 
-  // Is the iperf3 server reachable? This is separate from the other
-  // preflight checks because measuring the Wi-Fi alone is still useful
-  // (say, you have moved to another subnet).
-  let noIperfTestReason = "";
-  let performIperfTest = true;
-  if (settings.iperfServerAdrs == "localhost") {
-    performIperfTest = false;
-    noIperfTestReason = "Not performed";
-  } else {
-    const resp = await wifiActions.checkIperfServer(settings);
-    logger.debug(`checkIperfServer returned: ${JSON.stringify(resp)}`);
-    if (resp.reason != "") {
-      performIperfTest = false;
-      noIperfTestReason = resp.reason;
-    }
-  }
+  // Speed test or not? The same on every OS: a missing iperf3 or an
+  // unreachable server skips the speed test, never the signal reading.
+  const plan = await planSpeedTest(settings, wifiActions);
+  logger.debug(`planSpeedTest returned: ${JSON.stringify(plan)}`);
+  let runSpeed = plan.run;
 
   const startTime = Date.now();
-  resetDisplayStates();
+  resetDisplayStates(plan.signalOnly ? "signal" : "speed");
+  displayStates.warning = plan.warning;
+  if (plan.warning) {
+    displayStates.tcp = SKIPPED;
+    displayStates.udp = SKIPPED;
+  }
   sendSSEMessage(getUpdatedMessage()); // immediately send initial values
   displayStates.header = "Measurement in progress...";
 
@@ -150,10 +164,11 @@ export async function runSurveyTests(
     const wifiRssis: number[] = []; // dBm, as the OS reports it
     const wifiNoises: (number | null | undefined)[] = []; // dBm, if reported
 
-    displayStates.header =
+    const measuringHeader =
       !ssidName || ssidName.includes("redacted")
         ? "Measuring Wi-Fi"
         : `Measuring Wi-Fi (${ssidName})`;
+    displayStates.header = measuringHeader;
 
     const readWifi = async (): Promise<WifiResults> => {
       const resp = await wifiActions.getWifi(settings);
@@ -169,59 +184,57 @@ export async function runSurveyTests(
       return resp.SSIDs[0];
     };
 
+    /**
+     * Run one direction of one test. A failure stops the remaining speed
+     * tests and turns into a warning; the signal reading carries on.
+     */
+    const speedTest = async (
+      dir: TestDirection,
+      type: TestType,
+    ): Promise<IperfTestProperty | null> => {
+      if (!runSpeed) return null;
+      displayStates.header = `Testing ${dir === "Down" ? "download" : "upload"} speed${type === "UDP" ? " (UDP)" : ""}`;
+      sendSSEMessage(getUpdatedMessage());
+      try {
+        return await runSingleTest(server, duration, dir, type, cmds);
+      } catch (error) {
+        logger.warn(`Speed test ${type} ${dir} failed: ${error}`);
+        runSpeed = false;
+        displayStates.warning = speedTestFailedWarning(error);
+        return null;
+      } finally {
+        displayStates.header = measuringHeader;
+      }
+    };
+
+    const runPair = async (type: TestType): Promise<string> => {
+      if (!runSpeed) {
+        await delay(300);
+        return plan.signalOnly ? OFF : SKIPPED;
+      }
+      const down = await speedTest("Down", type);
+      checkForCancel();
+      const up = await speedTest("Up", type);
+      const key = type === "TCP" ? "tcp" : "udp";
+      if (down) newIperfData[`${key}Download`] = down;
+      if (up) newIperfData[`${key}Upload`] = up;
+      if (!down || !up) return SKIPPED;
+      return `${toMbps(down.bitsPerSecond)} / ${toMbps(up.bitsPerSecond)} Mbps`;
+    };
+
     const wifiDataBefore = await readWifi();
     logger.debug(`getWifi() returned: ${JSON.stringify(wifiDataBefore)}`);
     logger.debug(`Elapsed time for scan: ${Date.now() - startTime} ms`);
 
-    // TCP tests
-    if (performIperfTest) {
-      newIperfData.tcpDownload = await runSingleTest(
-        server,
-        duration,
-        "Down",
-        "TCP",
-        cmds,
-      );
-      checkForCancel();
-      newIperfData.tcpUpload = await runSingleTest(
-        server,
-        duration,
-        "Up",
-        "TCP",
-        cmds,
-      );
-      displayStates.tcp = `${toMbps(newIperfData.tcpDownload.bitsPerSecond)} / ${toMbps(newIperfData.tcpUpload.bitsPerSecond)} Mbps`;
-    } else {
-      await delay(300);
-      displayStates.tcp = noIperfTestReason;
-    }
+    // TCP tests (download / upload speed)
+    displayStates.tcp = await runPair("TCP");
     checkForCancel();
     sendSSEMessage(getUpdatedMessage());
 
     await readWifi();
 
-    // UDP tests
-    if (performIperfTest) {
-      newIperfData.udpDownload = await runSingleTest(
-        server,
-        duration,
-        "Down",
-        "UDP",
-        cmds,
-      );
-      checkForCancel();
-      newIperfData.udpUpload = await runSingleTest(
-        server,
-        duration,
-        "Up",
-        "UDP",
-        cmds,
-      );
-      displayStates.udp = `${toMbps(newIperfData.udpDownload.bitsPerSecond)} / ${toMbps(newIperfData.udpUpload.bitsPerSecond)} Mbps`;
-    } else {
-      await delay(300);
-      displayStates.udp = noIperfTestReason;
-    }
+    // UDP tests (fixed rate: jitter and lost packets)
+    displayStates.udp = await runPair("UDP");
     checkForCancel();
     sendSSEMessage(getUpdatedMessage());
 
@@ -235,7 +248,9 @@ export async function runSurveyTests(
 
     // Final update - type is "done"
     displayStates.type = "done";
-    displayStates.header = "Measurement complete";
+    displayStates.header = displayStates.warning
+      ? "Saved without speed"
+      : "Measurement complete";
     sendSSEMessage(getUpdatedMessage());
 
     const strength = arrayAverage(wifiStrengths);
@@ -246,7 +261,12 @@ export async function runSurveyTests(
       noise: averageNoise(wifiNoises),
     };
     logger.debug(`Measurement took ${Date.now() - startTime} ms`);
-    return { iperfData: newIperfData, wifiData: newWifiData, status: "" };
+    return {
+      iperfData: newIperfData,
+      wifiData: newWifiData,
+      status: "",
+      ...(displayStates.warning ? { warning: displayStates.warning } : {}),
+    };
   } catch (error: any) {
     if (error?.message == "cancelled") {
       logger.info("Measurement cancelled");
@@ -282,12 +302,10 @@ async function runSingleTest(
     return mockIperfResult(isUdp, isDownload, duration);
   }
 
-  let port = "";
-  if (server.includes(":")) {
-    const [host, serverPort] = server.split(":");
-    server = host;
-    port = serverPort;
-  }
+  // host, host:port, [IPv6]:port or a bare IPv6 address
+  const address = parseServerAddress(server);
+  if (!address) throw new Error(`Invalid speed test server "${server}"`);
+  const port = address.port === null ? "" : String(address.port);
 
   // Select the appropriate command template
   let template: string;
@@ -297,7 +315,7 @@ async function runSingleTest(
     template = isDownload ? iperfCommands.udpDownload : iperfCommands.udpUpload;
   }
 
-  const command = buildIperfCommand(template, server, port, duration);
+  const command = buildIperfCommand(template, address.host, port, duration);
   logger.debug("Executing iperf command:", command);
   const { stdout } = await execAsync(command);
   const result = JSON.parse(stdout);

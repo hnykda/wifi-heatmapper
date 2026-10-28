@@ -28,6 +28,7 @@ import {
 import { resolveHeatmapRange, toDisplayRange } from "../lib/heatmap-scale";
 import type { MeasurementTestType, SurveyPoint } from "../lib/types";
 import { sanitizeFilename } from "../lib/utils";
+import { measuresSpeed } from "../lib/measurement-mode";
 import {
   AppClient,
   AppRequestError,
@@ -176,7 +177,7 @@ export function createMcpServer(client: AppClient, version: string): McpServer {
           return {
             points: pts.length,
             enabledPoints: pts.filter((p) => p.isEnabled !== false).length,
-            throughputTests: survey.iperfServerAdrs !== "localhost",
+            throughputTests: measuresSpeed(survey),
             savedAt: survey.meta?.savedAt ?? null,
           };
         };
@@ -266,10 +267,9 @@ export function createMcpServer(client: AppClient, version: string): McpServer {
             height: survey.dimensions?.height,
             units: "pixels, origin top left",
           },
-          throughputTests:
-            survey.iperfServerAdrs === "localhost"
-              ? "off (iperf3 server is localhost)"
-              : `on (server ${survey.iperfServerAdrs})`,
+          throughputTests: measuresSpeed(survey)
+            ? `on (server ${survey.iperfServerAdrs})`
+            : "off (signal only)",
           savedAt: survey.meta?.savedAt ?? null,
           measuredWith: survey.meta
             ? { appVersion: survey.meta.appVersion, os: survey.meta.osName }
@@ -301,7 +301,10 @@ export function createMcpServer(client: AppClient, version: string): McpServer {
           name: args.name,
           settings: pickSafeSettings(survey),
           notes: {
-            iperfServerAdrs: '"localhost" means throughput tests are off.',
+            measureSpeed:
+              "true: signal and speed (iperf3 throughput tests); false: signal only.",
+            iperfServerAdrs:
+              "The speed test (iperf3) server, used when measureSpeed is true.",
             radiusDivider: `Heat spot radius in floor-plan pixels; null is automatic (currently ${radius}px${automatic ? ", automatic" : ""}).`,
             heatmapRanges:
               "Fixed colour scales per map, in display units (signal %, Mbps, ms, counts). Maps without one scale automatically.",
@@ -328,11 +331,17 @@ export function createMcpServer(client: AppClient, version: string): McpServer {
         "Changes made in the app at the same time are kept.",
       inputSchema: {
         name: nameArg,
+        measureSpeed: z
+          .boolean()
+          .optional()
+          .describe(
+            "true: measure signal and speed (needs an iperf3 server); false: signal only",
+          ),
         iperfServerAdrs: z
           .string()
           .optional()
           .describe(
-            'iperf3 server, e.g. "192.168.1.10" or "192.168.1.10:5201"; "localhost" turns throughput tests off',
+            'iperf3 server, e.g. "192.168.1.10" or "192.168.1.10:5201". Without measureSpeed, "localhost" turns speed tests off and any other server turns them on',
           ),
         testDuration: z
           .number()

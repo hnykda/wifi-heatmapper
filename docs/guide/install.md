@@ -147,13 +147,13 @@ for your sudo password, which is kept in memory only.
 Surveys and floor plans: `~/.local/share/com.github.hnykda.wifi-heatmapper/data`
 Log: `~/.local/share/com.github.hnykda.wifi-heatmapper/logs/server.log`
 
-## iperf3 for throughput tests
+## iperf3 for speed tests
 
 Signal strength works out of the box. To also measure speed you need
 [iperf3](https://iperf.fr/iperf-download.php) on this computer and on a second
 computer on your network, ideally wired, running `iperf3 -s`. Homebrew and the
 `.deb` install it for you on this computer. See
-[measuring speed with iperf3](throughput.md).
+[measuring speed](throughput.md).
 
 ## What has been tested
 

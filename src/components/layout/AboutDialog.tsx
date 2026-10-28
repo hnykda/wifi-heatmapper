@@ -58,9 +58,9 @@ export function AboutDialog() {
         <DialogHeader>
           <DialogTitle>Wi-Fi Heatmapper</DialogTitle>
           <DialogDescription>
-            Measures Wi-Fi signal strength and throughput where you stand, and
-            draws heat maps on your floor plan. Everything stays on this
-            computer.
+            Measures Wi-Fi signal strength, and optionally speed, where you
+            stand, and draws heat maps on your floor plan. Everything stays on
+            this computer.
           </DialogDescription>
         </DialogHeader>
         <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-1.5 text-sm">

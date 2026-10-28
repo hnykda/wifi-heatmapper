@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { Check, CircleAlert, X } from "lucide-react";
+import { Check, CircleAlert, TriangleAlert, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { SSEMessageType } from "@/app/api/events/route";
 import { cn } from "@/lib/utils";
@@ -14,6 +14,8 @@ interface MeasurementPanelProps {
   onCancel: () => void;
   /** Optional error from the results poll (shown instead of progress). */
   error?: string | null;
+  /** The survey's choice, shown until the server confirms it. */
+  measureSpeed?: boolean;
 }
 
 type Phase = "connecting" | "running" | "done" | "cancelled" | "error";
@@ -29,10 +31,15 @@ export default function MeasurementPanel({
   onClose,
   onCancel,
   error,
+  measureSpeed = false,
 }: MeasurementPanelProps) {
   const [phase, setPhase] = useState<Phase>("connecting");
   const [header, setHeader] = useState("Connecting");
   const [fields, setFields] = useState({ strength: "-", tcp: "-", udp: "-" });
+  const [mode, setMode] = useState<"signal" | "speed">(
+    measureSpeed ? "speed" : "signal",
+  );
+  const [warning, setWarning] = useState("");
   const [message, setMessage] = useState("");
   const onReadyRef = useRef(onReady);
   onReadyRef.current = onReady;
@@ -54,7 +61,11 @@ export default function MeasurementPanel({
         onReadyRef.current();
         return;
       }
-      if (data.fields) setFields(data.fields);
+      if (data.fields) {
+        setFields(data.fields);
+        if (data.fields.mode) setMode(data.fields.mode);
+      }
+      setWarning(data.warning ?? "");
       setHeader(data.header);
       if (data.type === "update") return;
       if (data.type === "done") {
@@ -88,12 +99,12 @@ export default function MeasurementPanel({
     }
   }, [error]);
 
-  // Success closes itself
+  // Success closes itself; a warning stays until it is dismissed
   useEffect(() => {
-    if (phase !== "done") return;
+    if (phase !== "done" || warning) return;
     const t = setTimeout(onClose, DONE_AUTOCLOSE_MS);
     return () => clearTimeout(t);
-  }, [phase, onClose]);
+  }, [phase, warning, onClose]);
 
   const cancel = async () => {
     setPhase("cancelled");
@@ -105,6 +116,18 @@ export default function MeasurementPanel({
   };
 
   const running = phase === "connecting" || phase === "running";
+  const savedWithWarning = phase === "done" && !!warning;
+
+  const title =
+    phase === "done"
+      ? warning
+        ? "Saved without speed"
+        : "Measurement saved"
+      : phase === "error"
+        ? "Could not measure"
+        : phase === "cancelled"
+          ? "Cancelled"
+          : header;
 
   return (
     <aside
@@ -112,8 +135,10 @@ export default function MeasurementPanel({
       aria-live="polite"
       data-testid="measurement-panel"
       data-phase={phase}
+      data-mode={mode}
+      data-warning={savedWithWarning ? "true" : undefined}
       className={cn(
-        "fixed bottom-4 right-4 z-40 w-[min(22rem,calc(100vw-2rem))] rounded-lg border bg-popover text-popover-foreground shadow-float",
+        "fixed bottom-4 right-4 z-40 w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-lg border bg-popover text-popover-foreground shadow-float",
         "animate-in slide-in-from-bottom-2 fade-in-0 duration-200",
       )}
     >
@@ -121,15 +146,16 @@ export default function MeasurementPanel({
         {running && (
           <span className="measuring-dot h-2.5 w-2.5 shrink-0 rounded-full bg-brand" />
         )}
-        {phase === "done" && (
+        {phase === "done" && !warning && (
           <Check className="h-4 w-4 shrink-0 text-success" />
+        )}
+        {savedWithWarning && (
+          <TriangleAlert className="h-4 w-4 shrink-0 text-warning" />
         )}
         {(phase === "error" || phase === "cancelled") && (
           <CircleAlert className="h-4 w-4 shrink-0 text-destructive" />
         )}
-        <h3 className="truncate text-sm font-semibold">
-          {phase === "done" ? "Measurement saved" : header}
-        </h3>
+        <h3 className="truncate text-sm font-semibold">{title}</h3>
         {!running && (
           <button
             type="button"
@@ -145,14 +171,45 @@ export default function MeasurementPanel({
       {phase === "error" || phase === "cancelled" ? (
         <p className="whitespace-pre-line px-4 py-3 text-sm">{message}</p>
       ) : (
-        <dl className="tabular grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 px-4 py-3 text-sm">
-          <dt className="text-muted-foreground">Signal</dt>
-          <dd className="text-right font-medium">{fields.strength}</dd>
-          <dt className="text-muted-foreground">TCP down / up</dt>
-          <dd className="truncate text-right font-medium">{fields.tcp}</dd>
-          <dt className="text-muted-foreground">UDP down / up</dt>
-          <dd className="truncate text-right font-medium">{fields.udp}</dd>
-        </dl>
+        <>
+          <dl className="tabular grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 px-4 py-3 text-sm">
+            <dt className="text-muted-foreground">Signal</dt>
+            <dd className="text-right font-medium">{fields.strength}</dd>
+            {mode === "signal" ? (
+              <>
+                <dt className="text-muted-foreground">Speed</dt>
+                <dd
+                  className="text-right text-muted-foreground"
+                  data-testid="measurement-speed-off"
+                >
+                  Not measured (signal only)
+                </dd>
+              </>
+            ) : (
+              <>
+                <dt className="text-muted-foreground">Download / upload</dt>
+                <dd className="truncate text-right font-medium">
+                  {fields.tcp}
+                </dd>
+                <dt className="text-muted-foreground">Fixed rate (UDP)</dt>
+                <dd className="truncate text-right font-medium">
+                  {fields.udp}
+                </dd>
+              </>
+            )}
+          </dl>
+          {warning && (
+            <p
+              className="border-t bg-warning/10 px-4 py-3 text-sm"
+              data-testid="measurement-warning"
+            >
+              {warning}{" "}
+              <a href="#settings" className="prose-link whitespace-nowrap">
+                Open Settings
+              </a>
+            </p>
+          )}
+        </>
       )}
 
       {running && (

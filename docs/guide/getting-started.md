@@ -34,15 +34,34 @@ Prefer a terminal? See [running from source](run-from-source.md).
 On a Mac, click **Allow Location access** in Settings once: macOS then lets
 the app see your network's name. Your location itself is not used.
 
+## Signal only or with speed?
+
+Every survey measures the signal. It can also measure speed: how fast data
+actually moves between this laptop and a second computer on your network.
+You choose under **What to measure** in Settings, separately for each
+survey. New surveys start with **Signal only**.
+
+| | Signal only | Signal and speed |
+|---|---|---|
+| Setup | Nothing | iperf3 on two computers; one stays put, wired if possible |
+| Time per spot | About 2 s | About 6–10 s |
+| Tells you | Where coverage is weak | What speed you actually get; catches interference and slow links that look strong |
+| Limits | A strong signal is not always fast | A server on Wi-Fi roughly halves the result; the fixed-rate (UDP) test stops at 100 Mbps by default |
+
+Start with signal only to find the weak rooms. Add speed when you want to
+know whether the Wi-Fi is really what makes a connection slow, or to compare
+before and after a change. [Measuring speed](throughput.md) explains the
+setup.
+
 ## Your first survey
 
 1. **Settings.** Pick the bundled floor plan or upload your own image. A
    photo of a pencil sketch is fine; it does not need to be to scale (see the
-   [FAQ](faq.md#how-do-i-make-a-floor-plan)).
+   [FAQ](faq.md#how-do-i-make-a-floor-plan)). Leave **What to measure** at
+   **Signal only**, or [set up speed tests](throughput.md) first.
 2. **Floor plan.** Stand somewhere, click that spot. The app measures the
-   signal (and throughput, if you [set up iperf3](throughput.md)) and drops a
-   coloured dot there. Do this in every room, twice in big ones, and near the
-   outer walls.
+   signal (and speed, if the survey measures it) and drops a coloured dot
+   there. Do this in every room, twice in big ones, and near the outer walls.
 3. **Heat maps.** Drag the radius until neighbouring spots merge into one
    surface. Download the maps you need.
 4. **Survey points.** Check, switch off or delete individual measurements,

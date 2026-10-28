@@ -36,33 +36,44 @@ import {
 } from "@/lib/heatmap-scale";
 import HeatmapImage from "./HeatmapImage";
 import HeatmapModal from "./HeatmapModal";
+import { hasSpeedData } from "@/lib/measurement-mode";
 
 const logger = getLogger("Heatmaps");
 
 const metricTitles: Record<MeasurementTestType, string> = {
   signalStrength: "Signal strength",
   snr: "Signal-to-noise ratio",
-  tcpDownload: "TCP download",
-  tcpUpload: "TCP upload",
-  udpDownload: "UDP download",
-  udpUpload: "UDP upload",
+  tcpDownload: "Download speed",
+  tcpUpload: "Upload speed",
+  udpDownload: "Fixed-rate download (UDP)",
+  udpUpload: "Fixed-rate upload (UDP)",
 };
 
 const propertyTitles: Record<keyof IperfTestProperty, string> = {
-  bitsPerSecond: "Throughput (Mbps)",
-  jitterMs: "Jitter (ms)",
+  bitsPerSecond: "Speed (Mbps)",
+  jitterMs: "Jitter, delay variation (ms)",
   lostPackets: "Lost packets",
-  retransmits: "Retransmits",
+  retransmits: "Resent data (retransmits)",
   packetsReceived: "Packets received",
   signalStrength: "Signal",
 };
 
 const propertyNotes: Partial<Record<keyof IperfTestProperty, string>> = {
-  jitterMs: "UDP only",
-  lostPackets: "UDP only",
-  packetsReceived: "UDP only",
-  retransmits: "TCP download only",
+  jitterMs: "fixed rate",
+  lostPackets: "fixed rate",
+  packetsReceived: "fixed rate",
+  retransmits: "download",
 };
+
+/** "Download speed (Mbps)", "Fixed-rate upload (UDP): lost packets" */
+function speedMapTitle(
+  metric: MeasurementTestType,
+  property: keyof IperfTestProperty,
+): string {
+  return property === "bitsPerSecond"
+    ? `${metricTitles[metric]} (Mbps)`
+    : `${metricTitles[metric]}: ${propertyTitles[property].toLowerCase()}`;
+}
 
 const getAvailableProperties = (
   metric: MeasurementTestType,
@@ -110,6 +121,8 @@ export function Heatmaps() {
     () => points.some((p) => snrOf(p.wifiData) !== null),
     [points],
   );
+  // Speed maps only make sense once a point has a speed reading
+  const hasSpeed = useMemo(() => points.some(hasSpeedData), [points]);
 
   const [heatmaps, setHeatmaps] = useState<
     Partial<Record<HeatmapKey, Rendered>>
@@ -304,7 +317,7 @@ export function Heatmaps() {
           ? `Signal strength (${asPercentage ? "%" : "dBm"})`
           : property === "snr"
             ? "Signal-to-noise ratio (dB)"
-            : `${metricTitles[metric]}, ${propertyTitles[property].toLowerCase()}`;
+            : speedMapTitle(metric, property);
       ctx.fillStyle = "#14181f";
       ctx.font = `600 ${fontPx}px ui-sans-serif, system-ui, sans-serif`;
       ctx.textAlign = "left";
@@ -359,20 +372,21 @@ export function Heatmaps() {
           title: metricTitles[metric],
         });
       } else {
+        if (!hasSpeed) continue;
         for (const property of selectedProperties) {
           if (getAvailableProperties(metric).includes(property)) {
             list.push({
               key: heatmapKey(metric, property),
               metric,
               property,
-              title: `${metricTitles[metric]}: ${propertyTitles[property]}`,
+              title: speedMapTitle(metric, property),
             });
           }
         }
       }
     }
     return list;
-  }, [selectedMetrics, selectedProperties, hasNoise]);
+  }, [selectedMetrics, selectedProperties, hasNoise, hasSpeed]);
 
   // Keep in-flight results as well as completed maps, so editing one scale
   // doesn't restart unchanged maps while their background images load.
@@ -454,7 +468,8 @@ export function Heatmaps() {
       ),
     );
 
-  const anyIperfSelected = selectedMetrics.some((m) => !singleMapProperty[m]);
+  const anyIperfSelected =
+    hasSpeed && selectedMetrics.some((m) => !singleMapProperty[m]);
 
   const checkboxRow = (
     id: string,
@@ -503,17 +518,19 @@ export function Heatmaps() {
         <aside className="space-y-6 lg:sticky lg:top-[7.5rem] lg:self-start">
           <div>
             <h2 className="mb-1.5 text-sm font-medium">Show</h2>
-            {Object.values(testTypes).map((metric) => {
-              const unavailable = metric === "snr" && !hasNoise;
-              return checkboxRow(
-                `metric-${metric}`,
-                metricTitles[metric],
-                selectedMetrics.includes(metric) && !unavailable,
-                () => toggleMetric(metric),
-                undefined,
-                unavailable,
-              );
-            })}
+            {Object.values(testTypes)
+              .filter((metric) => singleMapProperty[metric])
+              .map((metric) => {
+                const unavailable = metric === "snr" && !hasNoise;
+                return checkboxRow(
+                  `metric-${metric}`,
+                  metricTitles[metric],
+                  selectedMetrics.includes(metric) && !unavailable,
+                  () => toggleMetric(metric),
+                  undefined,
+                  unavailable,
+                );
+              })}
             {!hasNoise && points.length > 0 && (
               <p
                 className="mt-1 text-xs text-muted-foreground"
@@ -523,11 +540,43 @@ export function Heatmaps() {
                 Wi-Fi drivers report them; Windows does not.
               </p>
             )}
+            {hasSpeed ? (
+              <>
+                <h3 className="mb-1 mt-3 text-xs font-medium text-muted-foreground">
+                  Speed
+                </h3>
+                {Object.values(testTypes)
+                  .filter((metric) => !singleMapProperty[metric])
+                  .map((metric) =>
+                    checkboxRow(
+                      `metric-${metric}`,
+                      metricTitles[metric],
+                      selectedMetrics.includes(metric),
+                      () => toggleMetric(metric),
+                    ),
+                  )}
+              </>
+            ) : (
+              points.length > 0 && (
+                <p
+                  className="mt-3 text-xs text-muted-foreground"
+                  data-testid="speed-maps-off"
+                >
+                  {settings.measureSpeed
+                    ? "Speed maps appear once a point has a speed reading. None has one yet: check the speed setup in "
+                    : "This survey measures signal only. To add speed maps, choose Signal and speed in "}
+                  <a href="#settings" className="prose-link">
+                    Settings
+                  </a>
+                  .
+                </p>
+              )
+            )}
           </div>
 
           {anyIperfSelected && (
             <div>
-              <h2 className="mb-1.5 text-sm font-medium">Throughput detail</h2>
+              <h2 className="mb-1.5 text-sm font-medium">Speed detail</h2>
               {Object.values(testProperties)
                 .filter((p) => p !== "signalStrength")
                 .map((property) =>
@@ -561,10 +610,7 @@ export function Heatmaps() {
                         singleMapTitles[w.property] ??
                         propertyTitles[w.property as keyof IperfTestProperty]
                       }
-                      label={
-                        singleMapTitles[w.property] ??
-                        `${metricTitles[metric]} ${propertyTitles[w.property as keyof IperfTestProperty]}`
-                      }
+                      label={singleMapTitles[w.property] ?? w.title}
                       scale={settings.heatmapRanges?.[w.key]}
                       automaticRange={toDisplayRange(
                         w.property,
@@ -637,9 +683,7 @@ export function Heatmaps() {
                       ? "Could not render this map."
                       : w.metric === "snr"
                         ? "None of the points in use has a noise reading."
-                        : settings.iperfServerAdrs === "localhost"
-                          ? "Throughput tests are off. Set an iperf3 server in Settings to measure it."
-                          : "No points have this measurement yet."
+                        : "None of the points in use has this measurement."
                   }
                 />
               );

@@ -62,10 +62,9 @@ export class MacOSWifiActions implements WifiActions {
   }
 
   /**
-   * preflightSettings - check whether the settings are "primed" to run a test
+   * preflightSettings - check whether the Wi-Fi can be read
+   * (the speed test is checked separately, in speed-test.ts)
    * Tests:
-   *   * iperfServerAdrs - non-empty
-   *   * testDuration - greater than zero
    *   * sudoerPassword - non-empty and correct
    *     (skipped when the native Wi-Fi helper works: it needs no sudo)
    *
@@ -81,27 +80,11 @@ export class MacOSWifiActions implements WifiActions {
     };
 
     let reason: string = "";
-    // check that iperf3 is really installed if it's needed
-    try {
-      if (settings.iperfServerAdrs != "localhost") {
-        await execAsync("iperf3 --version");
-      }
-    } catch {
-      reason =
-        "iperf3 not installed. Install it,\n or set the iperfServer to 'localhost'.";
-    }
-    // test duration must be > 0 - otherwise iperf3 runs forever
-    if (settings.testDuration <= 0) {
-      reason = "Test duration must be greater than zero.";
-    }
-
-    // iperfServerAddress must not be empty or ""
-    else if (!settings.iperfServerAdrs) {
-      reason = "Please set iperf3 server address";
-    }
+    // The speed test (iperf3 installed, server address, duration) is
+    // checked for every OS in speed-test.ts; this only covers Wi-Fi.
 
     // the native helper reads Wi-Fi without sudo
-    else if (await this.tryHelper()) {
+    if (await this.tryHelper()) {
       // nothing more to check
     }
 

@@ -19,6 +19,8 @@ import {
 } from "./types";
 import { getDefaultWifiResults, percentageToRssi } from "./utils";
 import { delay } from "./server-utils";
+import { badAddressReason, unreachableReason } from "./iperf-server-check";
+import { parseServerAddress } from "./measurement-mode";
 
 const STEP_DELAY_MS = parseInt(
   process.env.WIFI_HEATMAPPER_MOCK_DELAY_MS || "150",
@@ -45,6 +47,9 @@ const random = makeRandom(
 export const mockState = {
   strength: 78, // percent
   measurements: 0,
+  // chosen once per measurement (in scanWifi), so the band never flips
+  // half way and fails the "Wi-Fi changed during the measurement" check
+  band: 5 as 2.4 | 5,
 };
 
 function nextStrength(): number {
@@ -64,7 +69,7 @@ function nextNoise(): number {
 }
 
 function currentWifi(strength: number, noise: number | null): WifiResults {
-  const band = strength > 55 ? 5 : 2.4;
+  const band = mockState.band;
   return {
     ...getDefaultWifiResults(),
     ssid: DEMO_SSID,
@@ -84,15 +89,10 @@ function currentWifi(strength: number, noise: number | null): WifiResults {
 
 export class MockWifiActions implements WifiActions {
   async preflightSettings(
-    settings: PartialHeatmapSettings,
+    _settings: PartialHeatmapSettings,
   ): Promise<WifiScanResults> {
-    let reason = "";
-    if (settings.testDuration <= 0) {
-      reason = "Test duration must be greater than zero.";
-    } else if (!settings.iperfServerAdrs) {
-      reason = "Please set iperf3 server address";
-    }
-    return { SSIDs: [], reason };
+    // like Windows: nothing to check before reading Wi-Fi
+    return { SSIDs: [], reason: "" };
   }
 
   async checkIperfServer(
@@ -100,14 +100,17 @@ export class MockWifiActions implements WifiActions {
   ): Promise<WifiScanResults> {
     await delay(STEP_DELAY_MS);
     // "unreachable" lets tests and demos exercise the error path
-    const reason = /unreachable/i.test(settings.iperfServerAdrs)
-      ? "Cannot connect to iperf3 server."
-      : "";
+    const reason = !parseServerAddress(settings.iperfServerAdrs)
+      ? badAddressReason(settings.iperfServerAdrs)
+      : /unreachable/i.test(settings.iperfServerAdrs)
+        ? unreachableReason(settings.iperfServerAdrs)
+        : "";
     return { SSIDs: [], reason };
   }
 
   async scanWifi(_settings: PartialHeatmapSettings): Promise<WifiScanResults> {
     await delay(STEP_DELAY_MS);
+    mockState.band = mockState.strength > 55 ? 5 : 2.4;
     const mine = currentWifi(mockState.strength, null);
     const neighbour: WifiResults = {
       ...getDefaultWifiResults(),
