@@ -21,13 +21,7 @@ export const TELEMETRY_ENV = "WIFI_HEATMAPPER_TELEMETRY";
  * - setting: turned off in Settings
  */
 export type UsageCountsOffReason =
-  | "env"
-  | "dnt"
-  | "mock"
-  | "ci"
-  | "dev"
-  | "test"
-  | "setting";
+  "env" | "dnt" | "mock" | "ci" | "dev" | "test" | "setting";
 
 export interface UsageCountsSample {
   /** where events go */
