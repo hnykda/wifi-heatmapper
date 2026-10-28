@@ -38,7 +38,8 @@ export function defaultSurvey(floorPlan: string): SurveyDocument {
     surveyPoints: [],
     floorplanImageName: floorPlan,
     floorplanImagePath: floorPlan ? mediaUrlFor(floorPlan) : "",
-    iperfServerAdrs: "localhost",
+    measureSpeed: false, // new surveys measure signal only
+    iperfServerAdrs: "",
     apMapping: [],
     testDuration: 1,
     nextPointNum: 1,

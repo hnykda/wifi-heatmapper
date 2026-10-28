@@ -51,6 +51,7 @@ import {
   validNoise,
 } from "@/lib/utils";
 import { apNameFor } from "@/lib/apName";
+import { hasSpeedData } from "@/lib/measurement-mode";
 import { surveyPointsToCsv, downloadText } from "@/lib/exportCsv";
 import { AlertDialogModal } from "./AlertDialogModal";
 import { useSettings } from "./GlobalSettings";
@@ -91,12 +92,21 @@ interface SurveyPointsTableProps {
 const toMbps = (bps: number) => Math.round((bps / 1_000_000) * 100) / 100;
 const mbps = (v: number) => (v === 0 ? "" : v.toFixed(2));
 
+const SPEED_COLUMNS = new Set([
+  "tcpDownloadMbps",
+  "tcpUploadMbps",
+  "udpDownloadMbps",
+  "udpUploadMbps",
+]);
+
 const SurveyPointsTable: React.FC<SurveyPointsTableProps> = ({
   data,
   surveyPointActions,
   apMapping,
 }) => {
   const { settings } = useSettings();
+  // Speed columns would be empty: leave them out until a point has speed
+  const hasSpeed = useMemo(() => data.some(hasSpeedData), [data]);
   const [rowSelection, setRowSelection] = useState({});
   const [globalFilter, setGlobalFilter] = useState("");
   const [sorting, setSorting] = useState<SortingState>([]);
@@ -149,7 +159,7 @@ const SurveyPointsTable: React.FC<SurveyPointsTableProps> = ({
   );
 
   const update = surveyPointActions.update;
-  const columns: ColumnDef<Row>[] = useMemo(
+  const allColumns: ColumnDef<Row>[] = useMemo(
     () => [
       {
         id: "select",
@@ -206,7 +216,7 @@ const SurveyPointsTable: React.FC<SurveyPointsTableProps> = ({
           </span>
         ),
       },
-      { accessorKey: "rssi", header: "RSSI dBm" },
+      { accessorKey: "rssi", header: "Signal dBm" },
       {
         accessorKey: "noise",
         header: "Noise dBm",
@@ -236,27 +246,27 @@ const SurveyPointsTable: React.FC<SurveyPointsTableProps> = ({
       { accessorKey: "ssid", header: "Network", meta: { align: "left" } },
       {
         accessorKey: "tcpDownloadMbps",
-        header: "TCP down",
+        header: "Download Mbps",
         cell: ({ getValue }) => mbps(getValue<number>()),
       },
       {
         accessorKey: "tcpUploadMbps",
-        header: "TCP up",
+        header: "Upload Mbps",
         cell: ({ getValue }) => mbps(getValue<number>()),
       },
       {
         accessorKey: "udpDownloadMbps",
-        header: "UDP down",
+        header: "UDP download Mbps",
         cell: ({ getValue }) => mbps(getValue<number>()),
       },
       {
         accessorKey: "udpUploadMbps",
-        header: "UDP up",
+        header: "UDP upload Mbps",
         cell: ({ getValue }) => mbps(getValue<number>()),
       },
       { accessorKey: "security", header: "Security", meta: { align: "left" } },
       { accessorKey: "txRate", header: "TX rate" },
-      { accessorKey: "phyMode", header: "PHY" },
+      { accessorKey: "phyMode", header: "Wi-Fi standard" },
       { accessorKey: "channelWidth", header: "Width MHz" },
       { accessorKey: "x", header: "X" },
       { accessorKey: "y", header: "Y" },
@@ -267,6 +277,18 @@ const SurveyPointsTable: React.FC<SurveyPointsTableProps> = ({
       },
     ],
     [update, settings.gradient],
+  );
+  const columns = useMemo(
+    () =>
+      hasSpeed
+        ? allColumns
+        : allColumns.filter(
+            (c) =>
+              !SPEED_COLUMNS.has(
+                (c as { accessorKey?: string }).accessorKey ?? "",
+              ),
+          ),
+    [allColumns, hasSpeed],
   );
 
   const table = useReactTable({
@@ -519,6 +541,21 @@ const SurveyPointsTable: React.FC<SurveyPointsTableProps> = ({
           </TableBody>
         </Table>
       </div>
+
+      {!hasSpeed && data.length > 0 && (
+        <p
+          className="text-xs text-muted-foreground"
+          data-testid="speed-columns-off"
+        >
+          {settings.measureSpeed
+            ? "Speed columns appear once a point has a speed reading. None has one yet: check the speed setup in "
+            : "This survey measures signal only, so there are no speed columns. To measure speed too, choose Signal and speed in "}
+          <a href="#settings" className="prose-link">
+            Settings
+          </a>
+          .
+        </p>
+      )}
 
       {table.getPageCount() > 1 && (
         <div className="flex items-center justify-end gap-2 text-sm">

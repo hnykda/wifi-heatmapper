@@ -63,13 +63,15 @@ export function WelcomePanel() {
           where your Wi-Fi is strong and where it is not. Pick or upload a floor
           plan in Settings, then walk around with this laptop and, on the Floor
           plan tab, click the spot where you are standing: each click measures
-          the signal there. To measure speed as well, run{" "}
+          the signal there. To measure speed as well, choose{" "}
+          <strong className="font-medium">Signal and speed</strong> in Settings
+          and run{" "}
           <code className="rounded bg-background/70 px-1 py-0.5 font-mono text-xs">
             iperf3 -s
           </code>{" "}
-          on another computer on your network and enter its address in Settings.
-          After a dozen points or so, the Heat maps tab draws the picture.
-          Everything stays on this computer.
+          on a second computer, wired to your router. After a dozen points or
+          so, the Heat maps tab draws the picture. Everything stays on this
+          computer.
         </p>
         {status?.mockMode && (
           <p

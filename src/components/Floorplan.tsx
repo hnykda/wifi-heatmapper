@@ -220,6 +220,7 @@ export default function ClickableFloorplan() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           settings: {
+            measureSpeed: settings.measureSpeed,
             iperfServerAdrs: settings.iperfServerAdrs,
             testDuration: settings.testDuration,
             sudoerPassword: settings.sudoerPassword,
@@ -477,6 +478,7 @@ export default function ClickableFloorplan() {
           onClose={closePanel}
           onCancel={cancelMeasurement}
           error={measureError}
+          measureSpeed={settings.measureSpeed}
         />
       )}
     </div>

@@ -96,6 +96,8 @@ export type HeatmapSettings = SurveyDocument & { sudoerPassword: string };
  * This is what the browser POSTs to /api/start-task.
  */
 export interface PartialHeatmapSettings {
+  // missing: derived from iperfServerAdrs (localhost or empty = signal only)
+  measureSpeed?: boolean;
   iperfServerAdrs: string;
   testDuration: number;
   sudoerPassword: string;
@@ -151,6 +153,7 @@ export interface SurveyResult {
   state: TaskStatus; // mimics states of Promise()
   results?: SurveyResults; // if "done", has the wifiData and iperfData
   explanation?: string; // if "error", this is the string to display
+  warning?: string; // if "done": saved, but the speed test was skipped
 }
 
 export type ScannerSettings = {

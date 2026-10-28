@@ -52,7 +52,8 @@ export async function POST(req: NextRequest) {
     // this IIFE runs independently and uses setSurveyResults for the client
     void (async () => {
       try {
-        const { iperfData, wifiData, status } = await runSurveyTests(settings);
+        const { iperfData, wifiData, status, warning } =
+          await runSurveyTests(settings);
         // status that isn't "" means preflight went wrong
         if (status != "") {
           setSurveyResults({
@@ -68,7 +69,11 @@ export async function POST(req: NextRequest) {
           });
           return;
         }
-        setSurveyResults({ state: "done", results: { wifiData, iperfData } });
+        setSurveyResults({
+          state: "done",
+          results: { wifiData, iperfData },
+          ...(warning ? { warning } : {}),
+        });
       } catch (err) {
         setSurveyResults({ state: "error", explanation: String(err) });
       }

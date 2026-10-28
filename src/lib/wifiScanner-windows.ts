@@ -34,36 +34,17 @@ export class NetshWifiActions implements WifiActions {
   strongestSSID: WifiResults | null = null; // strongest SSID if not currentSSID
 
   /**
-   * preflightSettings - check whether the settings are "primed" to run a test
-   * Tests:
-   *   * iperfServerAdrs - non-empty
-   *   * testDuration - greater than zero
-   *   * sudoerPassword - non-empty and correct
+   * preflightSettings - check whether the Wi-Fi can be read.
+   * Windows needs no sudo, so there is nothing to check here; the speed
+   * test (iperf3 installed, server address, duration) is checked for every
+   * OS in speed-test.ts.
    *
-   * @param settings
    * @returns string - empty, or error message to display
    */
   async preflightSettings(
-    settings: PartialHeatmapSettings,
+    _settings: PartialHeatmapSettings,
   ): Promise<WifiScanResults> {
-    const response: WifiScanResults = {
-      SSIDs: [],
-      reason: "",
-    };
-    let reason: string = "";
-    // test duration must be > 0 - otherwise iperf3 runs forever
-    if (settings.testDuration <= 0) {
-      reason = "Test duration must be greater than zero.";
-    }
-
-    // iperfServerAddress must not be empty or ""
-    else if (!settings.iperfServerAdrs) {
-      reason = "Please set iperf3 server address";
-    }
-
-    // fill in the reason and return it
-    response.reason = reason;
-    return response;
+    return { SSIDs: [], reason: "" };
   }
 
   /**

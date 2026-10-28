@@ -7,7 +7,7 @@ import { Toaster } from "@/components/ui/toaster";
 export const metadata: Metadata = {
   title: "Wi-Fi Heatmapper",
   description:
-    "Measure Wi-Fi signal strength and throughput around your home or office and draw heat maps on your floor plan.",
+    "Measure Wi-Fi signal strength, and optionally speed, around your home or office and draw heat maps on your floor plan.",
   icons: { icon: "/favicon.ico" },
 };
 

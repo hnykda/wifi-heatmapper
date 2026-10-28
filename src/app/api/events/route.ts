@@ -19,9 +19,13 @@ export type SSEMessageType = {
   status: string; // human readable, multi-line
   fields?: {
     strength: string; // "78%" or "-"
-    tcp: string; // "312.10 / 280.55 Mbps", "Not performed", or an error
+    tcp: string; // "312.10 / 280.55 Mbps", "Skipped" or "Off"
     udp: string;
+    // "signal": the survey measures signal only; "speed": signal and speed
+    mode?: "signal" | "speed";
   };
+  // set when the reading is saved without speed although the survey wants it
+  warning?: string;
 };
 
 export async function GET(req: NextRequest) {

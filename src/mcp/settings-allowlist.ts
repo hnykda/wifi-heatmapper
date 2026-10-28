@@ -18,8 +18,13 @@ import { defaultIperfCommands } from "../lib/iperfUtils";
 import type { SettingsPatch } from "../lib/types";
 import { normalizeMacAddress } from "../lib/utils";
 import { isValidApPattern } from "../lib/apName";
+import {
+  isLegacySignalOnlyServer,
+  migrateMeasurementMode,
+} from "../lib/measurement-mode";
 
 export const SAFE_SETTING_KEYS = [
+  "measureSpeed",
   "iperfServerAdrs",
   "testDuration",
   "iperfCommands",
@@ -36,16 +41,20 @@ const safeKeys = Object.fromEntries(
 
 /** The allow-listed values of a survey, read like the app reads a file. */
 export const safeSettingsSchema = surveyFileSchema.pick(safeKeys);
-export type SafeSettings = z.output<typeof safeSettingsSchema>;
+export type SafeSettings = Omit<
+  z.output<typeof safeSettingsSchema>,
+  "measureSpeed"
+> & { measureSpeed: boolean };
 
+/** Older files without measureSpeed are migrated like the app does. */
 export function pickSafeSettings(survey: unknown): SafeSettings {
-  return safeSettingsSchema.parse(survey ?? {});
+  return migrateMeasurementMode(safeSettingsSchema.parse(survey ?? {}));
 }
 
 export const TEST_DURATION_RANGE = { min: 1, max: 60 };
 export const RADIUS_RANGE = { min: 1, max: 10_000 };
 
-/** "localhost" (throughput tests off), or a host name / IPv4 address with an optional port. */
+/** "localhost" (signal only, unless measureSpeed says otherwise), or a host name / IPv4 address with an optional port. */
 export function isSafeIperfServer(value: string): boolean {
   const m =
     /^([A-Za-z0-9](?:[A-Za-z0-9.-]{0,252}[A-Za-z0-9])?)(?::(\d{1,5}))?$/.exec(
@@ -99,11 +108,12 @@ const shape = settingsPatchSchema.shape;
  * change only what is given (null removes a map's scale).
  */
 export const mcpSettingsPatchSchema = z.strictObject({
+  measureSpeed: shape.measureSpeed.unwrap().optional(),
   iperfServerAdrs: z
     .string()
     .trim()
     .refine(isSafeIperfServer, {
-      error: `must be "localhost" (throughput tests off) or a host name or IPv4 address with an optional port, e.g. 192.168.1.10 or 192.168.1.10:5201`,
+      error: `must be "localhost" (signal only) or a host name or IPv4 address with an optional port, e.g. 192.168.1.10 or 192.168.1.10:5201`,
     })
     .optional(),
   testDuration: shape.testDuration.unwrap().optional(),
@@ -150,6 +160,7 @@ export const mcpSettingsPatchSchema = z.strictObject({
 export type McpSettingsPatch = z.input<typeof mcpSettingsPatchSchema>;
 
 const fieldHints: Record<string, string> = {
+  measureSpeed: "true (signal and speed) or false (signal only)",
   testDuration: `a whole number of seconds from ${TEST_DURATION_RANGE.min} to ${TEST_DURATION_RANGE.max}`,
   radiusDivider: `null (automatic) or a radius in floor-plan pixels from ${RADIUS_RANGE.min} to ${RADIUS_RANGE.max}`,
   maxOpacity: "a number from 0 to 1",
@@ -201,5 +212,11 @@ export function toSettingsPatch(patch: unknown): SettingsPatch {
   if (!parsed.success) {
     throw new SettingsPatchError(describeProblems(parsed.error));
   }
-  return parsed.data;
+  const body: SettingsPatch = parsed.data;
+  // Setting only the server keeps the old meaning: localhost is signal
+  // only, a real server adds speed.
+  if (body.measureSpeed === undefined && body.iperfServerAdrs !== undefined) {
+    body.measureSpeed = !isLegacySignalOnlyServer(body.iperfServerAdrs);
+  }
+  return body;
 }

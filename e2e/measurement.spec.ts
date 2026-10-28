@@ -1,5 +1,11 @@
 import { test, expect } from "@playwright/test";
-import { uploadFloorplan, gotoTab, measureAt, readSurvey } from "./helpers";
+import {
+  uploadFloorplan,
+  gotoTab,
+  measureAt,
+  readSurvey,
+  useSpeedServer,
+} from "./helpers";
 
 test("clicking the floor plan takes a measurement and stores it", async ({
   page,
@@ -10,9 +16,15 @@ test("clicking the floor plan takes a measurement and stores it", async ({
 
   await measureAt(page, 0.3, 0.4);
   await expect(page.getByTestId("summary-points")).toContainText("1");
-  await expect(page.getByTestId("measurement-panel")).toContainText(
-    "Measurement saved",
+  const panel = page.getByTestId("measurement-panel");
+  await expect(panel).toContainText("Measurement saved");
+  // new surveys measure signal only, and say so
+  await expect(panel).toHaveAttribute("data-mode", "signal");
+  await expect(page.getByTestId("measurement-speed-off")).toContainText(
+    "signal only",
   );
+  await expect(page.getByTestId("summary-iperf")).toContainText("Signal only");
+  await expect(page.getByTestId("summary-speed-warning")).toHaveCount(0);
 
   const survey = await readSurvey(
     page,
@@ -29,15 +41,23 @@ test("clicking the floor plan takes a measurement and stores it", async ({
   expect(p.wifiData.noise).toBeLessThanOrEqual(-90);
   expect(p.x).toBeCloseTo(800 * 0.3, -1);
   expect(p.y).toBeCloseTo(500 * 0.4, -1);
-  // iperf3 server is localhost by default: no throughput
+  // signal only by default: no speed
+  expect(survey.measureSpeed).toBe(false);
   expect(p.iperfData.tcpDownload.bitsPerSecond).toBe(0);
 });
 
-test("with an iperf3 server, throughput is measured too", async ({ page }) => {
+test("with signal and speed, speed is measured too", async ({ page }) => {
   const name = await uploadFloorplan(page);
-  await page.getByLabel("iperf3 server").fill("10.0.0.2");
+  await useSpeedServer(page, "10.0.0.2");
+  await expect(page.getByTestId("summary-iperf")).toContainText(
+    "Signal and speed (10.0.0.2)",
+  );
   await gotoTab(page, "floorplan");
   await measureAt(page, 0.5, 0.5);
+  const panel = page.getByTestId("measurement-panel");
+  await expect(panel).toContainText("Measurement saved");
+  await expect(panel).toHaveAttribute("data-mode", "speed");
+  await expect(panel).toContainText("Download / upload");
 
   const survey = await readSurvey(
     page,
@@ -52,28 +72,53 @@ test("with an iperf3 server, throughput is measured too", async ({ page }) => {
   ).toBeGreaterThan(0);
 });
 
-test("an unreachable iperf3 server still records the signal", async ({
+test("an unreachable speed test server still records the signal, with a warning", async ({
   page,
 }) => {
   const name = await uploadFloorplan(page);
-  await page.getByLabel("iperf3 server").fill("unreachable.local");
+  await useSpeedServer(page, "unreachable.local");
   await gotoTab(page, "floorplan");
   await measureAt(page, 0.5, 0.5);
-  await expect(page.getByTestId("measurement-panel")).toContainText(
-    "Cannot connect to iperf3 server",
+  const panel = page.getByTestId("measurement-panel");
+  await expect(panel).toHaveAttribute("data-warning", "true");
+  await expect(panel).toContainText("Saved without speed");
+  await expect(page.getByTestId("measurement-warning")).toContainText(
+    "Can't reach the speed test server at unreachable.local:5201",
+  );
+  // the warning stays until dismissed, and the header keeps it visible
+  await page.waitForTimeout(3000);
+  await expect(panel).toBeVisible();
+  await expect(page.getByTestId("summary-speed-warning")).toContainText(
+    "Newest point has no speed",
   );
   const survey = await readSurvey(
     page,
     name,
     (s) => s.surveyPoints.length === 1,
   );
+  expect(survey.surveyPoints[0].wifiData.signalStrength).toBeGreaterThan(0);
   expect(survey.surveyPoints[0].iperfData.tcpDownload.bitsPerSecond).toBe(0);
+});
+
+test("a speed survey without a server warns before measuring", async ({
+  page,
+}) => {
+  await uploadFloorplan(page);
+  await page.getByTestId("measure-mode-speed").click();
+  await expect(page.getByTestId("summary-speed-warning")).toContainText(
+    "No speed test server set",
+  );
+  await gotoTab(page, "floorplan");
+  await measureAt(page, 0.4, 0.4);
+  await expect(page.getByTestId("measurement-warning")).toContainText(
+    "No speed test server is set",
+  );
 });
 
 test("a measurement can be cancelled", async ({ page }) => {
   const name = await uploadFloorplan(page);
-  // throughput tests with a long duration keep the mock busy for a few seconds
-  await page.getByLabel("iperf3 server").fill("10.0.0.2");
+  // speed tests with a long duration keep the mock busy for a few seconds
+  await useSpeedServer(page, "10.0.0.2");
   await page.getByLabel("Test duration (seconds)").fill("10");
   await gotoTab(page, "floorplan");
   const canvas = page.getByTestId("floorplan-canvas");

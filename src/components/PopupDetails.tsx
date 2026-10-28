@@ -3,6 +3,7 @@ import { X, Trash2 } from "lucide-react";
 import { SurveyPoint, HeatmapSettings, SurveyPointActions } from "@/lib/types";
 import { formatMacAddress, snrOf, validNoise } from "@/lib/utils";
 import { apNameFor } from "@/lib/apName";
+import { hasSpeedData } from "@/lib/measurement-mode";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { AlertDialogModal } from "@/components/AlertDialogModal";
@@ -37,10 +38,7 @@ const PopupDetails: React.FC<PopupDetailsProps> = ({
   const mbps = (bps: number) => (bps / 1_000_000).toFixed(1);
   const noise = validNoise(wifi.noise);
   const snr = snrOf(wifi);
-  const hasIperf =
-    point.iperfData &&
-    (point.iperfData.tcpDownload.bitsPerSecond > 0 ||
-      point.iperfData.tcpUpload.bitsPerSecond > 0);
+  const hasIperf = hasSpeedData(point);
 
   const rows: [string, React.ReactNode][] = [
     ["Signal", `${wifi.signalStrength}% (${wifi.rssi} dBm)`],
@@ -61,16 +59,16 @@ const PopupDetails: React.FC<PopupDetailsProps> = ({
   if (hasIperf) {
     rows.push(
       [
-        "TCP down / up",
+        "Download / upload",
         `${mbps(point.iperfData.tcpDownload.bitsPerSecond)} / ${mbps(point.iperfData.tcpUpload.bitsPerSecond)} Mbps`,
       ],
       [
-        "UDP down / up",
+        "Fixed rate (UDP)",
         `${mbps(point.iperfData.udpDownload.bitsPerSecond)} / ${mbps(point.iperfData.udpUpload.bitsPerSecond)} Mbps`,
       ],
     );
   } else {
-    rows.push(["Throughput", "not measured"]);
+    rows.push(["Speed", "not measured"]);
   }
   rows.push(["Measured", new Date(point.timestamp).toLocaleString()]);
 

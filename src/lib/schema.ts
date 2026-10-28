@@ -31,6 +31,7 @@ import { isValidHeatmapRange } from "./heatmap-scale";
 import { defaultIperfCommands } from "./iperfUtils";
 import { defaultGradient, emptyWifiResults } from "./survey-defaults";
 import { mediaUrlFor } from "./media-url";
+import { migrateMeasurementMode } from "./measurement-mode";
 import type { Gradient, HeatmapKey, HeatmapRanges } from "./types";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -294,7 +295,10 @@ export const surveyFileSchema = z.object({
   floorplanImageName: z.string().catch(""),
   // URL the browser loads the image from; always derived from the name
   floorplanImagePath: z.string().catch(""),
-  iperfServerAdrs: z.string().catch("localhost"),
+  // "Signal and speed" (true) or "Signal only" (false). Files before 0.8
+  // don't have it; parseSurveyFile() derives it from the server address.
+  measureSpeed: z.boolean().optional().catch(undefined),
+  iperfServerAdrs: z.string().catch(""), // the speed test (iperf3) server, host[:port]
   testDuration: finite.catch(1),
   apMapping: lenientArray(apMappingSchema),
   nextPointNum: z.int().catch(1),
@@ -312,7 +316,10 @@ export const surveyFileSchema = z.object({
 });
 
 /** A survey as the API returns it: the file, never with a password. */
-export type SurveyDocument = z.output<typeof surveyFileSchema>;
+export type SurveyDocument = Omit<
+  z.output<typeof surveyFileSchema>,
+  "measureSpeed"
+> & { measureSpeed: boolean };
 
 /**
  * parseSurveyFile() - whatever is in a survey file, as a complete survey for
@@ -325,7 +332,7 @@ export function parseSurveyFile(
   floorPlan: string,
   sameFile: (a: string, b: string) => boolean = (a, b) => a === b,
 ): SurveyDocument {
-  const survey = surveyFileSchema.parse(raw);
+  const survey = migrateMeasurementMode(surveyFileSchema.parse(raw));
   const name =
     survey.floorplanImageName && sameFile(survey.floorplanImageName, floorPlan)
       ? survey.floorplanImageName
@@ -342,6 +349,7 @@ export function parseSurveyFile(
 /** What PATCH /api/settings accepts. Every field is optional. */
 export const settingsPatchSchema = z
   .strictObject({
+    measureSpeed: z.boolean(),
     iperfServerAdrs: z.string().trim(),
     testDuration: z.int().min(1).max(60),
     /** Replaces the whole list. */
@@ -419,6 +427,8 @@ export const surveyImportSchema = z.looseObject({
 /** POST /api/start-task?action=start */
 export const startTaskSchema = z.strictObject({
   settings: z.object({
+    // missing: derived from the server (localhost or empty = signal only)
+    measureSpeed: z.boolean().optional(),
     iperfServerAdrs: z.string(),
     testDuration: finite,
     sudoerPassword: z.string(),

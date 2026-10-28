@@ -1,5 +1,7 @@
 "use client";
+import { TriangleAlert } from "lucide-react";
 import { useSettings } from "@/components/GlobalSettings";
+import { hasSpeedData, parseServerAddress } from "@/lib/measurement-mode";
 import type { TabId } from "./AppShell";
 
 function relativeTime(ts: number): string {
@@ -25,10 +27,25 @@ export function SurveySummary({
   const points = settings.surveyPoints;
   const enabled = points.filter((p) => p.isEnabled).length;
   const last = points.reduce((m, p) => Math.max(m, p.timestamp), 0);
-  const iperf =
-    settings.iperfServerAdrs === "localhost" || !settings.iperfServerAdrs
-      ? "off"
-      : settings.iperfServerAdrs;
+  const speed = settings.measureSpeed;
+  const mode = speed
+    ? parseServerAddress(settings.iperfServerAdrs)
+      ? `Signal and speed (${settings.iperfServerAdrs})`
+      : "Signal and speed"
+    : "Signal only";
+  // A survey that wants speed but whose newest point has none: say so, or
+  // a whole survey can end up without speed data.
+  const newest = points.reduce<(typeof points)[number] | null>(
+    (m, p) => (!m || p.timestamp > m.timestamp ? p : m),
+    null,
+  );
+  const speedProblem = !speed
+    ? null
+    : !parseServerAddress(settings.iperfServerAdrs)
+      ? "No speed test server set"
+      : newest && !hasSpeedData(newest)
+        ? "Newest point has no speed"
+        : null;
 
   const item = (label: string, value: string, tab: TabId, testid?: string) => (
     <button
@@ -63,7 +80,18 @@ export function SurveySummary({
           "points",
           "summary-points",
         )}
-        {item("Throughput tests", iperf, "settings", "summary-iperf")}
+        {item("Measuring", mode, "settings", "summary-iperf")}
+        {speedProblem && (
+          <button
+            type="button"
+            onClick={() => onNavigate("settings")}
+            className="flex items-center gap-1.5 rounded-md py-1 text-sm font-medium text-warning hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            data-testid="summary-speed-warning"
+          >
+            <TriangleAlert className="h-3.5 w-3.5 shrink-0" />
+            {speedProblem}
+          </button>
+        )}
         {last > 0 && item("Last measured", relativeTime(last), "floorplan")}
       </div>
     </div>
