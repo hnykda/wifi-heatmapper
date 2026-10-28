@@ -66,13 +66,6 @@ test.describe("with sample points", () => {
   test("signal-to-noise ratio is unavailable without noise readings", async ({
     page,
   }) => {
-    // Adding the sample points in one go saves only the first one; any later
-    // change writes them all (here: the radius).
-    await gotoTab(page, "heatmaps");
-    await page
-      .getByRole("slider", { name: "Radius of each heat spot" })
-      .focus();
-    await page.keyboard.press("ArrowRight");
     const survey = await readSurvey(
       page,
       name,
