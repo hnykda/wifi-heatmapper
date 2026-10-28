@@ -1,7 +1,6 @@
 /**
  * usage-counts.ts - what the browser needs to know about usage counts
- * (anonymous telemetry): the answer of GET /api/telemetry, why it is off,
- * and when to show the first-run notice.
+ * (anonymous telemetry): the answer of GET /api/telemetry and why it is off.
  *
  * Pure, no Node APIs. The server side (sending, the install id) is in
  * telemetry.ts.
@@ -40,8 +39,6 @@ export interface UsageCountsInfo {
   setting: boolean;
   /** why it is off, null when on */
   offReason: UsageCountsOffReason | null;
-  /** show the first-run notice */
-  showNotice: boolean;
   /** the last event that was sent, if any */
   lastSent: { event: string; at: string } | null;
   sample: UsageCountsSample;
@@ -77,19 +74,7 @@ export function isLockedOff(reason: UsageCountsOffReason | null): boolean {
   return reason !== null && reason !== "setting";
 }
 
-/**
- * The first-run notice shows while usage counts are on and nobody has
- * dismissed it on this computer yet (dismissing, "Turn off" and
- * "What's sent" all count).
- */
-export function shouldShowNotice(state: {
-  enabled: boolean;
-  noticeDismissedAt?: string;
-}): boolean {
-  return state.enabled && !state.noticeDismissedAt;
-}
-
-/** Why usage counts exist, in the developer's words (notice and Settings). */
+/** Why usage counts exist, in the developer's words (Settings). */
 export const USAGE_COUNTS_WHY =
   "I build wifi-heatmapper on my own, and I only keep working on it if people actually use it. Anonymous counts of installs, app starts and measurements tell me that, and honestly keep me motivated.";
 

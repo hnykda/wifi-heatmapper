@@ -27,7 +27,6 @@ import {
   runtimeFacts,
   send,
   setEnabled,
-  dismissNotice,
   usageCountsInfo,
   usageCountsSummary,
   userAgent,
@@ -35,7 +34,6 @@ import {
 import {
   describeOffReason,
   isLockedOff,
-  shouldShowNotice,
   UsageCountsOffReason,
 } from "@/lib/usage-counts";
 import { getUsageCountsPath } from "@/lib/server-paths";
@@ -139,7 +137,6 @@ describe("off switches", () => {
       expect(info).toMatchObject({
         enabled: false,
         offReason: reason,
-        showNotice: false,
       });
       expect(isLockedOff(info.offReason)).toBe(true);
       expect(existsSync(getUsageCountsPath())).toBe(false);
@@ -493,31 +490,7 @@ describe("a real measurement sends only counts", () => {
   );
 });
 
-describe("first-run notice", () => {
-  it("shows while on until dismissed", () => {
-    expect(shouldShowNotice({ enabled: true })).toBe(true);
-    expect(shouldShowNotice({ enabled: false })).toBe(false);
-    expect(
-      shouldShowNotice({ enabled: true, noticeDismissedAt: "2030-01-01" }),
-    ).toBe(false);
-  });
-
-  it("is remembered for this computer once dismissed", async () => {
-    expect((await usageCountsInfo(ON)).showNotice).toBe(true);
-    await dismissNotice();
-    resetUsageCountsCache();
-    expect((await usageCountsInfo(ON)).showNotice).toBe(false);
-    expect(fileState().noticeDismissedAt).toBeTruthy();
-  });
-
-  it("never shows when usage counts are off", async () => {
-    expect(
-      (await usageCountsInfo({ WIFI_HEATMAPPER_MOCK: "1" })).showNotice,
-    ).toBe(false);
-    await setEnabled(false);
-    expect((await usageCountsInfo(ON)).showNotice).toBe(false);
-  });
-
+describe("Settings info", () => {
   it("the sample is the real Measurement event from this computer", async () => {
     const info = await usageCountsInfo(ON);
     expect(info.sample.body).toEqual(
