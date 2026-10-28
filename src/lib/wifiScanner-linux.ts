@@ -19,6 +19,7 @@ import {
 import isDocker from "is-docker";
 import isPodman from "is-podman";
 import { getLogger } from "./logger";
+import { recordWifiMethod } from "./diagnostics-state";
 const logger = getLogger("wifi-Linux");
 
 export class LinuxWifiActions implements WifiActions {
@@ -177,6 +178,10 @@ export class LinuxWifiActions implements WifiActions {
       logger.trace("IW info:", infoOutput);
       const parsed = parseIwOutput(linkOutput, infoOutput);
       parsed.noise = await readNoise(interfaceId, settings.sudoerPassword);
+      recordWifiMethod(
+        lastLinkUsedSudo ? "iw with sudo" : "iw",
+        `iw dev ${interfaceId} link; noise ${parsed.noise == null ? "not reported" : "from survey dump"}`,
+      );
       logger.trace("Final WiFi data:", parsed);
       response.SSIDs.push(parsed);
     } catch (err) {
@@ -275,6 +280,9 @@ async function iwDevLink(interfaceId: string, pw: string): Promise<string> {
   return iwDevRun(interfaceId, "link", pw);
 }
 
+/** true when the last `iw dev <if> link` only worked with sudo */
+let lastLinkUsedSudo = false;
+
 async function iwDevRun(
   interfaceId: string,
   subcommand: string,
@@ -290,6 +298,7 @@ async function iwDevRun(
   for (const command of commands) {
     try {
       const { stdout } = await execAsync(command);
+      if (subcommand === "link") lastLinkUsedSudo = command.includes("sudo");
       return stdout;
     } catch (err) {
       lastError = err;

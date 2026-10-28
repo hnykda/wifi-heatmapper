@@ -11,8 +11,24 @@ _This section follows the precepts of [Keep a Changelog](https://keepachangelog.
   commands on your computer. Requests must now come from the app's own
   pages or from a non-browser tool, and be addressed to a local host name
   (see `WIFI_HEATMAPPER_ALLOWED_HOSTS` in the README).
+* The sudo password no longer appears in debug logs (`LOG_LEVEL=2`) or in
+  error messages: failed `echo … | sudo -S …` commands put it in the error
+  text, which could be shown in the app or logged.
 
 ### Added
+
+* **Report a problem from the app.** A small help button in the bottom-right
+  corner opens **Report a problem**, **Docs** (the guide for the current tab)
+  and **What's new**. The report shows exactly what would be shared (app
+  version, OS, how the app runs and reads Wi-Fi, iperf3, signal only or
+  signal and speed, the last measurement and the recent log, kept in memory
+  only) and opens
+  a prefilled GitHub issue in the browser, or copies it. The sudo password
+  is always removed; network names, MAC and IP addresses are replaced by
+  placeholders unless you include them. **Could not measure**, **Saved
+  without speed** and error messages have a **Report this** link. The bug report is now a GitHub issue
+  form, the MCP server has a `report_problem` tool, and `GET /api/diagnostics`
+  returns the report.
 
 * **An optional MCP server for AI agents** (Claude Code, Claude Desktop and
   other MCP clients). It reads surveys from the running app, summarises

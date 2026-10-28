@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: User guide
+    url: https://wifi-heatmapper.danielalder.cz/docs/getting-started
+    about: Installing, measuring, iperf3 and how the heat maps work.
+  - name: FAQ
+    url: https://wifi-heatmapper.danielalder.cz/docs/faq
+    about: Hidden network names on macOS, where your data is, and more.

@@ -11,6 +11,7 @@ import type {
   MacosHelperStatus,
   SettingsPatch,
 } from "../lib/types";
+import type { DiagnosticsReport } from "../lib/diagnostics";
 
 export const DEFAULT_APP_URL = "http://localhost:3000";
 export const ALLOW_REMOTE_ENV = "WIFI_HEATMAPPER_MCP_ALLOW_REMOTE";
@@ -146,6 +147,22 @@ export class AppClient {
 
   status(): Promise<AppStatus> {
     return this.json<AppStatus>("api/status");
+  }
+
+  /** The bug report; network names and addresses hidden unless asked. */
+  diagnostics(options: {
+    survey?: string;
+    problem?: string;
+    includeNetwork?: boolean;
+  }): Promise<DiagnosticsReport> {
+    const params = new URLSearchParams();
+    if (options.survey) params.set("survey", options.survey);
+    if (options.problem) params.set("problem", options.problem);
+    if (options.includeNetwork) params.set("network", "include");
+    const query = params.toString();
+    return this.json<DiagnosticsReport>(
+      `api/diagnostics${query ? `?${query}` : ""}`,
+    );
   }
 
   macosHelper(): Promise<MacosHelperStatus> {

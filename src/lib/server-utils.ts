@@ -1,6 +1,7 @@
 "use server";
 import { exec, ExecOptions, spawn } from "child_process";
 import { getLogger } from "./logger";
+import { hideSudoPassword } from "./redact";
 const logger = getLogger("server-utils");
 
 /**
@@ -33,11 +34,18 @@ export const execAsync = async (
     windowsHide: true,
   };
 
+  // `echo <password> | sudo -S ...` must never reach a log or the UI
+  const shown = hideSudoPassword(command);
   return new Promise((resolve, reject) => {
-    logger.debug("Executing command:", command);
+    logger.debug("Executing command:", shown);
     exec(command, options, (error, stdout, stderr) => {
       if (error) {
-        logger.debug(`execAsync(${command}) rejects with "${error}"`);
+        // Node puts the whole command line in the message ("Command failed:
+        // echo pw | sudo -S ...") and in `cmd`; callers show and log both.
+        error.message = hideSudoPassword(error.message);
+        (error as { cmd?: string }).cmd = shown;
+        if (error.stack) error.stack = hideSudoPassword(error.stack);
+        logger.debug(`execAsync(${shown}) rejects with "${error}"`);
         // Like util.promisify(exec): callers may need the output of a
         // command that failed (netsh prints why it was denied on stdout).
         reject(Object.assign(error, { stdout, stderr }));

@@ -17,6 +17,7 @@ import {
   validNoise,
 } from "./utils";
 import { getLogger } from "./logger";
+import { recordWifiMethod } from "./diagnostics-state";
 import { findMacosHelper, runMacosHelper } from "./macos-helper";
 import { parseHelperInfo, parseHelperScan } from "./macos-helper-parse";
 const logger = getLogger("wifi-macOS");
@@ -278,6 +279,7 @@ export class MacOSWifiActions implements WifiActions {
           return response;
         }
         response.SSIDs.push(info.wifi);
+        recordWifiMethod("macOS Wi-Fi helper (CoreWLAN)");
         return response;
       } catch (err) {
         logger.warn(`Wi-Fi helper failed: ${err}`);
@@ -290,6 +292,12 @@ export class MacOSWifiActions implements WifiActions {
     }
     try {
       const netInfo: WifiResults = await getWdutilResults(settings);
+      recordWifiMethod(
+        "wdutil with sudo",
+        findMacosHelper()
+          ? "the Wi-Fi helper is built but did not answer"
+          : "the Wi-Fi helper is not built",
+      );
       // if the returned SSID contains "redacted" use the "global SSID"
       if (netInfo.ssid.includes("redacted")) {
         netInfo.ssid = this.currentSSIDName; // patch up the SSID

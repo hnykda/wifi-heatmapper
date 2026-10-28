@@ -4,6 +4,7 @@ import { Check, CircleAlert, TriangleAlert, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { SSEMessageType } from "@/app/api/events/route";
 import { cn } from "@/lib/utils";
+import { openReport } from "@/components/help/report-store";
 
 interface MeasurementPanelProps {
   /** Called once the SSE channel is open; start the measurement then. */
@@ -169,7 +170,19 @@ export default function MeasurementPanel({
       </div>
 
       {phase === "error" || phase === "cancelled" ? (
-        <p className="whitespace-pre-line px-4 py-3 text-sm">{message}</p>
+        <div className="px-4 py-3 text-sm">
+          <p className="whitespace-pre-line">{message}</p>
+          {phase === "error" && (
+            <button
+              type="button"
+              onClick={() => openReport(message)}
+              className="mt-2 text-xs text-brand underline-offset-4 hover:underline"
+              data-testid="measurement-report"
+            >
+              Report this
+            </button>
+          )}
+        </div>
       ) : (
         <>
           <dl className="tabular grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 px-4 py-3 text-sm">
@@ -207,6 +220,14 @@ export default function MeasurementPanel({
               <a href="#settings" className="prose-link whitespace-nowrap">
                 Open Settings
               </a>
+              <button
+                type="button"
+                onClick={() => openReport(`Saved without speed: ${warning}`)}
+                className="mt-2 block text-xs text-brand underline-offset-4 hover:underline"
+                data-testid="measurement-warning-report"
+              >
+                Report this
+              </button>
             </p>
           )}
         </>

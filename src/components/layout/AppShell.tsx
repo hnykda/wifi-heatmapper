@@ -15,6 +15,7 @@ import SettingsEditor from "@/components/SettingsEditor";
 import ClickableFloorplan from "@/components/Floorplan";
 import { Heatmaps } from "@/components/Heatmaps";
 import PointsTable from "@/components/PointsTable";
+import { HelpMenu } from "@/components/help/HelpMenu";
 import { cn } from "@/lib/utils";
 
 export const TABS = [
@@ -148,6 +149,7 @@ export default function AppShell() {
           />
         </Tabs.Content>
       </main>
+      <HelpMenu tab={tab} />
     </Tabs.Root>
   );
 }

@@ -12,8 +12,8 @@ import { Button } from "@/components/ui/button";
 import { useAppStatus } from "@/hooks/useAppStatus";
 import { showWelcomeAgain } from "./WelcomePanel";
 import { DialogClose } from "@/components/ui/dialog";
+import { openReport } from "@/components/help/report-store";
 
-const REPO = "https://github.com/hnykda/wifi-heatmapper";
 const SITE = "https://wifi-heatmapper.danielalder.cz";
 
 /**
@@ -72,16 +72,18 @@ export function AboutDialog() {
           ))}
         </dl>
         <p className="text-sm text-muted-foreground">
-          Include the rows above when you{" "}
-          <a
-            className="prose-link"
-            href={`${REPO}/issues/new/choose`}
-            target="_blank"
-            rel="noreferrer"
-          >
-            report a problem
-          </a>
-          . Read the{" "}
+          Something not working?{" "}
+          <DialogClose asChild>
+            <button
+              type="button"
+              className="prose-link"
+              onClick={() => openReport()}
+              data-testid="about-report"
+            >
+              Report a problem
+            </button>
+          </DialogClose>
+          : it fills in these details for you. Read the{" "}
           <a
             className="prose-link"
             href={`${SITE}/docs/using-the-app`}
