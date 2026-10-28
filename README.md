@@ -126,6 +126,11 @@ Surveys and floor plans are kept in `./datas` on the host. NetworkManager
 inside the container talks to the host over D-Bus, hence the second mount.
 No sudo password is needed in Docker.
 
+The app only answers requests addressed to `localhost`, an IP address, a
+one-word host name (`nas`) or a local name (`nas.local`, `.lan`,
+`.home.arpa`), so other web sites can't drive it. To open it under another
+name, add `-e WIFI_HEATMAPPER_ALLOWED_HOSTS=heatmap.example.com`.
+
 ## Documentation
 
 - [Installing the app](docs/Install.md), per system, and what has been tested

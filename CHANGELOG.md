@@ -4,6 +4,14 @@ _This section follows the precepts of [Keep a Changelog](https://keepachangelog.
 
 ## Unreleased
 
+### Security
+
+* The API refuses requests from other web sites. Before, any page open in
+  your browser could send a request to the app on `localhost` that ran
+  commands on your computer. Requests must now come from the app's own
+  pages or from a non-browser tool, and be addressed to a local host name
+  (see `WIFI_HEATMAPPER_ALLOWED_HOSTS` in the README).
+
 ### Added
 
 * Access point names can match several BSSIDs at once: end the MAC address
