@@ -66,8 +66,9 @@ helped you, star the
 
 Only anonymous usage counts: that it was installed, that it started (at most
 once a day) and that a measurement was saved, with the app version, the
-system and how the app runs. Never network names, addresses, results or
-anything from your surveys. I build the app on my own, and these counts tell
+system, how the app runs and whether speed tests are switched on. Never any
+measured value (signal, speed), network names, addresses or anything from
+your surveys. I build the app on my own, and these counts tell
 me whether people actually use it. Turn them off in Settings > Usage counts,
 or with `WIFI_HEATMAPPER_TELEMETRY=0` or `DO_NOT_TRACK=1`.
 [Privacy and usage counts](privacy.md) lists every field.

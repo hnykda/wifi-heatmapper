@@ -34,8 +34,11 @@ Each event carries these properties, and nothing else:
 | `os` | `macos`, `windows`, `linux` or `other` |
 | `arch` | the processor type, e.g. `arm64` or `x64` |
 | `runs_as` | `desktop` (the desktop app), `docker`, `podman` or `browser` (from source, opened in a browser) |
-| `mode` | `Measurement` only: `signal` (signal only) or `speed` (signal and speed) |
-| `speed_ok` | `Measurement` only: `yes` (speed measured), `no` (saved without speed) or `skipped` (signal only) |
+| `speed_test` | `Measurement` only: `on` if the survey runs speed tests (iperf3), `off` if it measures signal only |
+
+No measured value is ever sent: no signal strength, dBm, speed, noise,
+network names or addresses. `speed_test` only says whether speed tests are
+switched on, so I can see if the iperf3 part is worth working on.
 
 This is a whole `Measurement` event, exactly as sent:
 
@@ -53,13 +56,12 @@ Content-Type: application/json
     "os": "macos",
     "arch": "arm64",
     "runs_as": "desktop",
-    "mode": "speed",
-    "speed_ok": "yes"
+    "speed_test": "on"
   }
 }
 ```
 
-`Install` and `App start` look the same, without `mode` and `speed_ok`.
+`Install` and `App start` look the same, without `speed_test`.
 **Settings > Usage counts** in the app shows the event your computer would
 send, built by the same code that sends it, and when the last one went out.
 

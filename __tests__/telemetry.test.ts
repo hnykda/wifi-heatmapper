@@ -131,7 +131,7 @@ describe("off switches", () => {
       }[reason];
       await reportAppStart(env);
       expect(await send("Measurement", undefined, env)).toBe(false);
-      reportMeasurement({ speedTests: true, speedSaved: true }, env);
+      reportMeasurement({ speedTests: true }, env);
       await new Promise((r) => setTimeout(r, 20));
       expect(calls).toHaveLength(0);
       expect(existsSync(getUsageCountsPath())).toBe(false);
@@ -274,9 +274,7 @@ describe("sending never fails anything", () => {
     answer = fail;
     await expect(send("Measurement", undefined, ON)).resolves.toBe(false);
     await expect(reportAppStart(ON)).resolves.toBeUndefined();
-    expect(() =>
-      reportMeasurement({ speedTests: false, speedSaved: false }, ON),
-    ).not.toThrow();
+    expect(() => reportMeasurement({ speedTests: false }, ON)).not.toThrow();
     await new Promise((r) => setTimeout(r, 20));
     expect(fileState()?.lastSent).toBeUndefined();
   });
@@ -314,14 +312,14 @@ describe("the event", () => {
       domain: "example.test",
       props: facts,
     });
-    expect(
-      buildEvent("Measurement", facts, "d", { mode: "speed", speed_ok: "no" }),
-    ).toEqual({
-      name: "Measurement",
-      url: "app://wifi-heatmapper/measurement",
-      domain: "d",
-      props: { ...facts, mode: "speed", speed_ok: "no" },
-    });
+    expect(buildEvent("Measurement", facts, "d", { speed_test: "on" })).toEqual(
+      {
+        name: "Measurement",
+        url: "app://wifi-heatmapper/measurement",
+        domain: "d",
+        props: { ...facts, speed_test: "on" },
+      },
+    );
     expect(buildEvent("Install", facts, "d").url).toBe(
       "app://wifi-heatmapper/install",
     );
@@ -345,9 +343,11 @@ describe("the event", () => {
       } as unknown as Facts;
       const measurement = {
         ...junk(),
+        speed_test: "off",
         mode: "signal",
         speed_ok: "skipped",
         rssi: -55,
+        bitsPerSecond: 123e6,
       } as unknown as Parameters<typeof buildEvent>[3];
       const name = (["Install", "App start", "Measurement"] as const)[i % 3];
       const event = buildEvent(name, dirty, "d", measurement);
@@ -355,10 +355,7 @@ describe("the event", () => {
         ["domain", "name", "props", "url"].sort(),
       );
       expect(Object.keys(event.props).sort()).toEqual(
-        (name === "Measurement"
-          ? [...ALLOWED, "mode", "speed_ok"]
-          : ALLOWED
-        ).sort(),
+        (name === "Measurement" ? [...ALLOWED, "speed_test"] : ALLOWED).sort(),
       );
       const text = JSON.stringify(event);
       for (const bad of ["HomeNet", "aa:bb", "hunter2", "-55"]) {
@@ -429,9 +426,9 @@ describe("a real measurement sends only counts", () => {
     });
 
   it.each([
-    [false, undefined, { mode: "signal", speed_ok: "skipped" }],
-    [true, undefined, { mode: "speed", speed_ok: "yes" }],
-    [true, "iperf3 server not reachable", { mode: "speed", speed_ok: "no" }],
+    [false, undefined, { speed_test: "off" }],
+    [true, undefined, { speed_test: "on" }],
+    [true, "iperf3 server not reachable", { speed_test: "on" }],
   ] as const)(
     "speed %s, warning %s -> %j",
     async (speed, warning, expected) => {
@@ -528,7 +525,7 @@ describe("first-run notice", () => {
         "Measurement",
         runtimeFacts(ON),
         "app.wifi-heatmapper.danielalder.cz",
-        { mode: "speed", speed_ok: "yes" },
+        { speed_test: "on" },
       ),
     );
     expect(info.sample.endpoint).toBe("https://plan.danielhnyk.cz/api/event");
