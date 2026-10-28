@@ -70,8 +70,10 @@ server's firewall) and measure the spot again, or switch the survey back to
 
 ## What each spot runs
 
-With speed on, every spot runs four short tests, reading the Wi-Fi signal
-before, between and after them:
+With speed on, every spot tests download and upload speed (TCP), reading the
+Wi-Fi signal before, between and after the tests. Turn on **Jitter and lost
+packets** in Settings to add two fixed-rate tests (UDP); it doubles the time
+per spot. New surveys start with it off; older surveys keep it on.
 
 | Test | Heat maps you get |
 |---|---|
@@ -80,7 +82,8 @@ before, between and after them:
 
 The download and upload tests send as fast as the connection allows. The
 fixed-rate tests send at a steady rate and show how evenly the data arrives,
-which matters for calls and games.
+which matters for calls and games. For "how good is the coverage here",
+signal and download/upload speed are enough.
 
 **The fixed-rate (UDP) tests are capped at 100 Mbps** by `-b 100M` in their
 extra iperf3 options, which is safe on most networks. If your UDP results sit at exactly
@@ -88,7 +91,7 @@ extra iperf3 options, which is safe on most networks. If your UDP results sit at
 iperf3 options**, for example to `-b 500M`.
 
 **Test duration** sets the seconds per test, 5 by default, so a spot takes
-about 25 seconds in all. A connection takes a second or two to reach full
+about 13 seconds in all (about 25 with the UDP tests). A connection takes a second or two to reach full
 speed, so shorter tests read low and vary more: 3 seconds is the least
 that gives useful numbers, and longer tests are steadier still. Extra iperf3 options per test (for example `-P 4` for
 parallel streams, or the UDP cap) go under **Advanced: iperf3 options** in

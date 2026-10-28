@@ -27,6 +27,7 @@ export const SAFE_SETTING_KEYS = [
   "measureSpeed",
   "iperfServerAdrs",
   "testDuration",
+  "udpTests",
   "iperfCommands",
   "apMapping",
   "radiusDivider",
@@ -76,6 +77,7 @@ export const mcpSettingsPatchSchema = z.strictObject({
     })
     .optional(),
   testDuration: shape.testDuration.unwrap().optional(),
+  udpTests: shape.udpTests.unwrap().optional(),
   iperfCommands: shape.iperfCommands,
   apMapping: z
     .array(
@@ -113,6 +115,7 @@ export type McpSettingsPatch = z.input<typeof mcpSettingsPatchSchema>;
 
 const fieldHints: Record<string, string> = {
   measureSpeed: "true (signal and speed) or false (signal only)",
+  udpTests: "true or false",
   testDuration: `a whole number of seconds from ${TEST_DURATION_RANGE.min} to ${TEST_DURATION_RANGE.max}`,
   radiusDivider: `null (automatic) or a radius in floor-plan pixels from ${RADIUS_RANGE.min} to ${RADIUS_RANGE.max}`,
   maxOpacity: "a number from 0 to 1",

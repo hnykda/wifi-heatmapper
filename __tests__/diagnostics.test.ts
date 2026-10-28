@@ -83,7 +83,7 @@ describe("buildDiagnostics", () => {
     expect(r.summary).toContain("Wi-Fi tools: iw found, nmcli not found");
     expect(r.summary).toContain("iperf3: iperf 3.16");
     expect(r.summary).toContain(
-      "Measuring: Signal and speed (server <ip-1>, 2 s)",
+      "Measuring: Signal and speed (server <ip-1>, 2 s, TCP and UDP)",
     );
     expect(r.summary).toContain(
       "Last measurement: failed at 2026-10-28T09:59:30.000Z: Cannot read Wi-Fi link information.",

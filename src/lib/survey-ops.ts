@@ -18,6 +18,7 @@ export const SETTINGS_PATCH_KEYS = [
   "measureSpeed",
   "iperfServerAdrs",
   "testDuration",
+  "udpTests",
   "apMapping",
   "dimensions",
   "radiusDivider",
@@ -35,7 +36,13 @@ export const SETTINGS_PATCH_KEYS = [
  */
 export const COPY_PARTS = {
   /** What to measure, the iperf3 server, test duration and commands */
-  speed: ["measureSpeed", "iperfServerAdrs", "testDuration", "iperfCommands"],
+  speed: [
+    "measureSpeed",
+    "iperfServerAdrs",
+    "testDuration",
+    "udpTests",
+    "iperfCommands",
+  ],
   /** Access point names */
   apNames: ["apMapping"],
   /** Heat spot radius, opacity, blur, colours and fixed colour scales */

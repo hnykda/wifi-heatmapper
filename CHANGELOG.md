@@ -12,6 +12,12 @@ _This section follows the precepts of [Keep a Changelog](https://keepachangelog.
 
 ### Changed
 
+* **The fixed-rate (UDP) tests are optional, and off for new surveys.**
+  Download and upload speed (TCP) and the signal answer "how good is the
+  coverage here"; the UDP tests add jitter and lost packets, which matter
+  for calls and games, and double the time per spot. Turn them on under
+  **Settings > Jitter and lost packets** (MCP: `udpTests`). Surveys from
+  before keep running them.
 * **Speed tests run 5 seconds each by default**, up from 1: a connection
   takes a second or two to reach full speed, so one-second tests read low
   and jump around. Existing surveys keep their setting.

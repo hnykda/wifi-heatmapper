@@ -64,6 +64,7 @@ export function measurementSettings(survey: StoredSurvey): MeasurementSettings {
     measureSpeed: s.measureSpeed,
     iperfServerAdrs: s.iperfServerAdrs,
     testDuration: s.testDuration,
+    udpTests: s.udpTests,
     iperfCommands: s.iperfCommands,
   };
 }

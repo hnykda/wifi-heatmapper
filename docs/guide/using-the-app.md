@@ -58,6 +58,9 @@ workflow. "Got it" hides it for good; the About dialog can show it again.
     reminder to wire the server to the router.
   * **Test duration** – seconds per test, 5 by default. Below 3 the
     numbers read low and jump around.
+  * **Jitter and lost packets** – also runs fixed-rate (UDP) tests in both
+    directions, for jitter and lost packets. Off for new surveys; it doubles
+    the time per spot.
   * **Advanced: iperf3 options** – extra iperf3 options for each test,
     separated by spaces, such as `-P 4` (four parallel streams). The app
     sets the server, port, duration, download/upload and TCP/UDP itself; the
@@ -92,8 +95,8 @@ workflow. "Got it" hides it for good; the About dialog can show it again.
 Stand where you want to measure and click that spot. A pulsing dot marks the
 spot while the measurement runs; the panel in the corner shows progress and
 has a Cancel button. In a signal-only survey it shows the signal and "Speed:
-not measured (signal only)"; with speed it shows download / upload and the
-fixed-rate (UDP) results as they come in. When it finishes, the dot is
+not measured (signal only)"; with speed it shows download / upload (and the
+fixed-rate UDP results, if they are on) as they come in. When it finishes, the dot is
 coloured by signal strength and labelled with the percentage.
 
 The app's server takes the measurement and saves the point, so closing or

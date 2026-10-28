@@ -259,6 +259,7 @@ export default function ClickableFloorplan() {
       measureSpeed: settings.measureSpeed,
       iperfServerAdrs: settings.iperfServerAdrs,
       testDuration: settings.testDuration,
+      udpTests: settings.udpTests,
       sudoerPassword: settings.sudoerPassword,
       iperfCommands: settings.iperfCommands,
     });

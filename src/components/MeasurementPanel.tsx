@@ -140,10 +140,14 @@ export default function MeasurementPanel({
                 <dd className="truncate text-right font-medium">
                   {fields.tcp}
                 </dd>
-                <dt className="text-muted-foreground">Fixed rate (UDP)</dt>
-                <dd className="truncate text-right font-medium">
-                  {fields.udp}
-                </dd>
+                {fields.udp !== "Off" && (
+                  <>
+                    <dt className="text-muted-foreground">Fixed rate (UDP)</dt>
+                    <dd className="truncate text-right font-medium">
+                      {fields.udp}
+                    </dd>
+                  </>
+                )}
               </>
             )}
           </dl>
