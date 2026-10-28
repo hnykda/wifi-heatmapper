@@ -19,7 +19,8 @@ everything it needs built in: no Node.js, no terminal, no `npm`.
 
 ## macOS
 
-Needs macOS 11 or later. Download from the
+Needs macOS 13.5 (Ventura) or later; on an older Mac,
+[run it from source](run-from-source.md) with Node.js 22. Download from the
 [latest release](https://github.com/hnykda/wifi-heatmapper/releases/latest):
 
 | Your Mac | File |

@@ -48,7 +48,7 @@ const distDir = join(repoRoot, distDirName);
  * The Node release the app ships. Same major as the Docker image and CI, so
  * the bundled server runs on what is tested. Bump together with the Dockerfile.
  */
-const NODE_VERSION = process.env.WIFI_HEATMAPPER_NODE_VERSION || "22.23.3";
+const NODE_VERSION = process.env.WIFI_HEATMAPPER_NODE_VERSION || "26.12.1";
 
 /**
  * How nodejs.org names its downloads, per platform. Adding a platform means

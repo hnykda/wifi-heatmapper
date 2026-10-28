@@ -55,13 +55,13 @@ jobs:
 
     runs-on: ${{ matrix.platform }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           # Only runs the build. The Node shipped inside the app is pinned in
           # desktop/build-server.mjs.
-          node-version: 22
+          node-version: 26
           cache: npm
           cache-dependency-path: |
             package-lock.json
@@ -71,7 +71,7 @@ jobs:
         with:
           targets: ${{ matrix.target }}
 
-      - uses: swatinem/rust-cache@v2
+      - uses: Swatinem/rust-cache@v2
         with:
           workspaces: desktop/src-tauri -> target
           key: ${{ matrix.target }}
@@ -91,7 +91,7 @@ jobs:
       # The Node binary the bundle ships (desktop/.cache), so a slow
       # nodejs.org doesn't hold up every run. The key changes with the
       # version pinned in build-server.mjs.
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: desktop/.cache
           key: node-dist-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('desktop/build-server.mjs') }}
@@ -145,7 +145,7 @@ jobs:
 
       - name: Upload the installers
         if: github.event_name == 'pull_request'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: wifi-heatmapper-${{ matrix.label }}
           path: |
@@ -195,9 +195,14 @@ jobs:
           node desktop/smoke-test-app.mjs "$env:LOCALAPPDATA\WiFi Heatmapper\wifi-heatmapper.exe"
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
 
+      # tauri-action v1: the first row to finish creates the draft, the others
+      # attach to it. Every row rewrites the draft's name and body with the
+      # ones below, so edit the draft only after all rows are done (and again
+      # after a re-run). A re-run fails, on purpose, once the release has been
+      # published (releaseDraft: true but the release is no longer a draft).
       - name: Build the app and attach it to the draft release
         if: github.event_name != 'pull_request'
-        uses: tauri-apps/tauri-action@v0
+        uses: tauri-apps/tauri-action@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:

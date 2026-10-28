@@ -124,6 +124,11 @@ _This section follows the precepts of [Keep a Changelog](https://keepachangelog.
 * The stored RSSI of a measurement is now the average of the dBm readings
   taken during it (on every platform), not a conversion of the average
   signal percentage.
+* The desktop app and the Docker image run on Node.js 26 (was 22). Running
+  from source needs Node.js 22.12 or newer.
+* **The macOS desktop app needs macOS 13.5 (Ventura) or later** (was 11).
+  The Node.js 26 it ships doesn't run on older versions. On an older Mac,
+  [run the app from source](docs/guide/run-from-source.md) with Node.js 22.
 
 ### Fixed
 
