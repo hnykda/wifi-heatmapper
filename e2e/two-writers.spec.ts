@@ -1,5 +1,11 @@
 import { test, expect, Page } from "@playwright/test";
-import { uploadFloorplan, gotoTab, measureAt, readSurvey } from "./helpers";
+import {
+  uploadFloorplan,
+  gotoTab,
+  measureAt,
+  readSurvey,
+  useSpeedServer,
+} from "./helpers";
 
 /** Open an existing floor plan in a page. */
 async function openFloorplan(page: Page, name: string) {
@@ -52,7 +58,7 @@ test("a change made elsewhere survives the page's next save", async ({
   );
   expect(res.ok()).toBe(true);
   // the page, which still has the old value, changes something else
-  await page.getByLabel("iperf3 server").fill("10.0.0.9");
+  await useSpeedServer(page, "10.0.0.9");
   const survey = await readSurvey(
     page,
     name,
