@@ -28,8 +28,10 @@ test("uploading a duplicate name is refused", async ({ page }) => {
     mimeType: "image/png",
     buffer: makePng(100, 100),
   });
-  await expect(page.getByText("Upload failed")).toBeVisible();
-  await expect(page.getByText(/already exists/)).toBeVisible();
+  // exact/first: Radix also copies the toast into a screen-reader-only
+  // role="status" span, which sometimes matches too.
+  await expect(page.getByText("Upload failed", { exact: true })).toBeVisible();
+  await expect(page.getByText(/already exists/).first()).toBeVisible();
 });
 
 test("settings persist across reloads", async ({ page }) => {
