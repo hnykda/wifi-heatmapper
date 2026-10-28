@@ -43,6 +43,12 @@ One JSON file per floor plan, plus the images. In the desktop app:
 From source it is `data/` in the repository. Copy that folder to back up or
 move a survey. Set `WIFI_HEATMAPPER_DATA_DIR` to keep it elsewhere.
 
+You can edit a survey file by hand. A value the app can't use falls back to
+its default and the rest still loads; a file that isn't valid JSON is left
+as it is (the app says it can't read it) until you fix or delete it. Having
+the same survey open in two tabs is fine: each change is saved on its own,
+so neither tab undoes the other.
+
 ## Can I try it without a Wi-Fi card, sudo or iperf3?
 
 Yes: from source, `npm run dev:mock` runs the app with synthetic

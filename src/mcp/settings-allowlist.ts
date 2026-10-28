@@ -1,9 +1,10 @@
 /**
- * settings-allowlist.ts - the survey settings an agent may read and change.
+ * settings-allowlist.ts - the survey settings an agent may read and change,
+ * as a pick of the app's own schemas (src/lib/schema.ts).
  *
  * Everything else in a survey file (the points, the floor plan, the
  * gradient, ...) is out of reach of update_settings, and the sudo password
- * is never read or written. Pure functions.
+ * is never read or written.
  *
  * Validation is stricter than the Settings tab for the two values that end
  * up in a shell command (the iperf3 server and the iperf3 command
@@ -11,21 +12,12 @@
  * arguments, never shell syntax. Anything fancier is set by a person in the
  * app.
  */
-import {
-  isValidHeatmapRange,
-  normalizeHeatmapRanges,
-} from "../lib/heatmap-scale";
-import { isGridHeatmapKey, parseHeatmapKey } from "../lib/heatmap-grid";
+import { z } from "zod";
+import { settingsPatchSchema, surveyFileSchema } from "../lib/schema";
 import { defaultIperfCommands } from "../lib/iperfUtils";
-import type {
-  ApMapping,
-  HeatmapRanges,
-  HeatmapScale,
-  IperfCommands,
-} from "../lib/types";
+import type { SettingsPatch } from "../lib/types";
 import { normalizeMacAddress } from "../lib/utils";
 import { isValidApPattern } from "../lib/apName";
-import type { StoredSurvey } from "./app-client";
 
 export const SAFE_SETTING_KEYS = [
   "iperfServerAdrs",
@@ -38,49 +30,20 @@ export const SAFE_SETTING_KEYS = [
   "heatmapRanges",
 ] as const;
 
-export type SafeSettings = {
-  iperfServerAdrs: string;
-  testDuration: number;
-  iperfCommands: IperfCommands;
-  apMapping: ApMapping[];
-  radiusDivider: number | null;
-  maxOpacity: number;
-  minOpacity: number;
-  heatmapRanges: HeatmapRanges;
-};
+const safeKeys = Object.fromEntries(
+  SAFE_SETTING_KEYS.map((key) => [key, true as const]),
+) as { [K in (typeof SAFE_SETTING_KEYS)[number]]: true };
 
-/** What update_settings accepts. Every field is optional. */
-export interface SettingsPatch {
-  iperfServerAdrs?: string;
-  testDuration?: number;
-  /** Only the commands given are changed. */
-  iperfCommands?: Partial<IperfCommands>;
-  /** Replaces the whole list. */
-  apMapping?: ApMapping[];
-  /** Heat spot radius in floor-plan pixels, or null for automatic. */
-  radiusDivider?: number | null;
-  maxOpacity?: number;
-  minOpacity?: number;
-  /** Per map; null removes that map's saved scale. Others are kept. */
-  heatmapRanges?: Record<string, HeatmapScale | null>;
+/** The allow-listed values of a survey, read like the app reads a file. */
+export const safeSettingsSchema = surveyFileSchema.pick(safeKeys);
+export type SafeSettings = z.output<typeof safeSettingsSchema>;
+
+export function pickSafeSettings(survey: unknown): SafeSettings {
+  return safeSettingsSchema.parse(survey ?? {});
 }
 
 export const TEST_DURATION_RANGE = { min: 1, max: 60 };
 export const RADIUS_RANGE = { min: 1, max: 10_000 };
-
-/** The allow-listed values of a survey, with the app's defaults filled in. */
-export function pickSafeSettings(survey: Partial<StoredSurvey>): SafeSettings {
-  return {
-    iperfServerAdrs: survey.iperfServerAdrs ?? "localhost",
-    testDuration: survey.testDuration ?? 1,
-    iperfCommands: { ...defaultIperfCommands, ...(survey.iperfCommands ?? {}) },
-    apMapping: survey.apMapping ?? [],
-    radiusDivider: survey.radiusDivider ?? null,
-    maxOpacity: survey.maxOpacity ?? 0.7,
-    minOpacity: survey.minOpacity ?? 0.2,
-    heatmapRanges: normalizeHeatmapRanges(survey.heatmapRanges),
-  };
-}
 
 /** "localhost" (throughput tests off), or a host name / IPv4 address with an optional port. */
 export function isSafeIperfServer(value: string): boolean {
@@ -119,133 +82,101 @@ export function iperfCommandProblem(command: string): string | null {
   return null;
 }
 
-function isNumber(v: unknown): v is number {
-  return typeof v === "number" && Number.isFinite(v);
-}
+const safeCommand = z
+  .string()
+  .superRefine((command, ctx) => {
+    const problem = iperfCommandProblem(command);
+    if (problem) ctx.addIssue({ code: "custom", message: problem });
+  })
+  .transform((command) => command.trim().replace(/\s+/g, " "));
 
-/** Check a patch; returns every problem found, in plain words. */
-export function validateSettingsPatch(patch: SettingsPatch): string[] {
-  const errors: string[] = [];
-  const known = new Set<string>(SAFE_SETTING_KEYS);
-  for (const key of Object.keys(patch)) {
-    if (!known.has(key)) {
-      errors.push(
-        key === "sudoerPassword"
+const shape = settingsPatchSchema.shape;
+
+/**
+ * What update_settings accepts: the app's settings patch for the
+ * allow-listed keys, with the stricter checks above. Every field is
+ * optional; apMapping replaces the list, iperfCommands and heatmapRanges
+ * change only what is given (null removes a map's scale).
+ */
+export const mcpSettingsPatchSchema = z.strictObject({
+  iperfServerAdrs: z
+    .string()
+    .trim()
+    .refine(isSafeIperfServer, {
+      error: `must be "localhost" (throughput tests off) or a host name or IPv4 address with an optional port, e.g. 192.168.1.10 or 192.168.1.10:5201`,
+    })
+    .optional(),
+  testDuration: shape.testDuration.unwrap().optional(),
+  iperfCommands: z
+    .strictObject({
+      tcpDownload: safeCommand.optional(),
+      tcpUpload: safeCommand.optional(),
+      udpDownload: safeCommand.optional(),
+      udpUpload: safeCommand.optional(),
+    })
+    .optional(),
+  apMapping: z
+    .array(
+      z.object({
+        apName: z
+          .string()
+          .trim()
+          .min(1, { error: "must not be empty" })
+          .max(100, { error: "is longer than 100 characters" }),
+        macAddress: z
+          .string()
+          .trim()
+          .refine(isValidApPattern, {
+            error:
+              "must be a MAC address such as 9e:05:d6:96:e8:30, or a prefix ending in * such as 9e:05:d6:96:e8:* (names every BSSID that starts with it)",
+          })
+          .transform(normalizeMacAddress),
+      }),
+    )
+    .optional(),
+  radiusDivider: z
+    .number()
+    .min(RADIUS_RANGE.min)
+    .max(RADIUS_RANGE.max)
+    .transform(Math.round)
+    .nullable()
+    .optional(),
+  maxOpacity: shape.maxOpacity,
+  minOpacity: shape.minOpacity,
+  heatmapRanges: shape.heatmapRanges,
+});
+
+/** What update_settings accepts (before validation). */
+export type McpSettingsPatch = z.input<typeof mcpSettingsPatchSchema>;
+
+const fieldHints: Record<string, string> = {
+  testDuration: `a whole number of seconds from ${TEST_DURATION_RANGE.min} to ${TEST_DURATION_RANGE.max}`,
+  radiusDivider: `null (automatic) or a radius in floor-plan pixels from ${RADIUS_RANGE.min} to ${RADIUS_RANGE.max}`,
+  maxOpacity: "a number from 0 to 1",
+  minOpacity: "a number from 0 to 1",
+};
+
+/** Every problem with a patch, one sentence each. */
+function describeProblems(error: z.ZodError): string[] {
+  return error.issues.flatMap((issue) => {
+    const [field] = issue.path;
+    if (issue.code === "unrecognized_keys") {
+      return issue.keys.map((key) => {
+        if (field === "iperfCommands") {
+          return `iperfCommands.${key} is not a command. Allowed: ${Object.keys(defaultIperfCommands).join(", ")}.`;
+        }
+        if (issue.path.length)
+          return `${issue.path.join(".")}.${key} is not allowed.`;
+        return key === "sudoerPassword"
           ? "The sudo password can't be set here. Type it in the app (Settings tab); it is never saved."
-          : `${key} can't be changed with this tool. Allowed: ${SAFE_SETTING_KEYS.join(", ")}.`,
-      );
-    }
-  }
-
-  if (patch.iperfServerAdrs !== undefined) {
-    const v = patch.iperfServerAdrs;
-    if (typeof v !== "string" || !isSafeIperfServer(v.trim())) {
-      errors.push(
-        `iperfServerAdrs must be "localhost" (throughput tests off) or a host name or IPv4 address with an optional port, e.g. 192.168.1.10 or 192.168.1.10:5201.`,
-      );
-    }
-  }
-
-  if (patch.testDuration !== undefined) {
-    const v = patch.testDuration;
-    if (
-      !Number.isInteger(v) ||
-      v < TEST_DURATION_RANGE.min ||
-      v > TEST_DURATION_RANGE.max
-    ) {
-      errors.push(
-        `testDuration must be a whole number of seconds from ${TEST_DURATION_RANGE.min} to ${TEST_DURATION_RANGE.max}.`,
-      );
-    }
-  }
-
-  if (patch.iperfCommands !== undefined) {
-    const allowed = Object.keys(defaultIperfCommands);
-    for (const [key, value] of Object.entries(patch.iperfCommands)) {
-      if (!allowed.includes(key)) {
-        errors.push(
-          `iperfCommands.${key} is not a command. Allowed: ${allowed.join(", ")}.`,
-        );
-      } else if (typeof value !== "string") {
-        errors.push(`iperfCommands.${key} must be a string.`);
-      } else {
-        const problem = iperfCommandProblem(value);
-        if (problem) errors.push(`iperfCommands.${key} ${problem}.`);
-      }
-    }
-  }
-
-  if (patch.apMapping !== undefined) {
-    if (!Array.isArray(patch.apMapping)) {
-      errors.push("apMapping must be a list of { apName, macAddress }.");
-    } else {
-      patch.apMapping.forEach((ap, i) => {
-        if (!ap || typeof ap.apName !== "string" || !ap.apName.trim()) {
-          errors.push(`apMapping[${i}].apName must not be empty.`);
-        } else if (ap.apName.length > 100) {
-          errors.push(`apMapping[${i}].apName is longer than 100 characters.`);
-        }
-        if (
-          !ap ||
-          typeof ap.macAddress !== "string" ||
-          !isValidApPattern(ap.macAddress)
-        ) {
-          errors.push(
-            `apMapping[${i}].macAddress must be a MAC address such as 9e:05:d6:96:e8:30, or a prefix ending in * such as 9e:05:d6:96:e8:* (names every BSSID that starts with it).`,
-          );
-        }
+          : `${key} can't be changed with this tool. Allowed: ${SAFE_SETTING_KEYS.join(", ")}.`;
       });
     }
-  }
-
-  if (patch.radiusDivider !== undefined && patch.radiusDivider !== null) {
-    const v = patch.radiusDivider;
-    if (!isNumber(v) || v < RADIUS_RANGE.min || v > RADIUS_RANGE.max) {
-      errors.push(
-        `radiusDivider must be null (automatic) or a radius in floor-plan pixels from ${RADIUS_RANGE.min} to ${RADIUS_RANGE.max}.`,
-      );
-    }
-  }
-
-  for (const key of ["maxOpacity", "minOpacity"] as const) {
-    const v = patch[key];
-    if (v !== undefined && (!isNumber(v) || v < 0 || v > 1)) {
-      errors.push(`${key} must be a number from 0 to 1.`);
-    }
-  }
-
-  if (patch.heatmapRanges !== undefined) {
-    if (
-      typeof patch.heatmapRanges !== "object" ||
-      patch.heatmapRanges === null ||
-      Array.isArray(patch.heatmapRanges)
-    ) {
-      errors.push("heatmapRanges must be an object keyed by map.");
-    } else {
-      for (const [key, scale] of Object.entries(patch.heatmapRanges)) {
-        if (!isGridHeatmapKey(key)) {
-          errors.push(`heatmapRanges: "${key}" is not a heat map.`);
-          continue;
-        }
-        if (scale === null) continue;
-        const { property } = parseHeatmapKey(key);
-        if (
-          typeof scale !== "object" ||
-          typeof scale.enabled !== "boolean" ||
-          !isValidHeatmapRange(scale, property)
-        ) {
-          errors.push(
-            `heatmapRanges.${key} must be { min, max, enabled } with 0 <= min < max` +
-              (property === "signalStrength"
-                ? " <= 100 (percent)."
-                : ", in display units (Mbps, ms or counts)."),
-          );
-        }
-      }
-    }
-  }
-
-  return errors;
+    const where = issue.path.join(".");
+    const hint =
+      issue.path.length === 1 ? fieldHints[String(field)] : undefined;
+    return [hint ? `${where} must be ${hint}.` : `${where} ${issue.message}.`];
+  });
 }
 
 export class SettingsPatchError extends Error {
@@ -254,61 +185,21 @@ export class SettingsPatchError extends Error {
   }
 }
 
+/** Check a patch; returns every problem found, in plain words. */
+export function validateSettingsPatch(patch: unknown): string[] {
+  const parsed = mcpSettingsPatchSchema.safeParse(patch);
+  return parsed.success ? [] : describeProblems(parsed.error);
+}
+
 /**
- * applySettingsPatch() - the whole survey with the patch applied, ready to
- * POST to /api/settings. Fields outside the allow-list are copied as they
- * are; the sudo password is dropped. Throws SettingsPatchError.
+ * toSettingsPatch() - the PATCH /api/settings body for an update_settings
+ * call: validated and normalized (trimmed, MAC addresses without
+ * punctuation, radius rounded). Throws SettingsPatchError.
  */
-export function applySettingsPatch(
-  survey: StoredSurvey,
-  patch: SettingsPatch,
-): StoredSurvey {
-  const problems = validateSettingsPatch(patch);
-  if (problems.length) throw new SettingsPatchError(problems);
-
-  const { sudoerPassword: _ignored, ...base } = survey as StoredSurvey & {
-    sudoerPassword?: unknown;
-  };
-  const next: StoredSurvey = { ...base };
-  const current = pickSafeSettings(survey);
-
-  if (patch.iperfServerAdrs !== undefined) {
-    next.iperfServerAdrs = patch.iperfServerAdrs.trim();
+export function toSettingsPatch(patch: unknown): SettingsPatch {
+  const parsed = mcpSettingsPatchSchema.safeParse(patch);
+  if (!parsed.success) {
+    throw new SettingsPatchError(describeProblems(parsed.error));
   }
-  if (patch.testDuration !== undefined) next.testDuration = patch.testDuration;
-  if (patch.iperfCommands !== undefined) {
-    const changed = Object.fromEntries(
-      Object.entries(patch.iperfCommands).map(([k, v]) => [
-        k,
-        (v as string).trim().replace(/\s+/g, " "),
-      ]),
-    );
-    next.iperfCommands = { ...current.iperfCommands, ...changed };
-  }
-  if (patch.apMapping !== undefined) {
-    next.apMapping = patch.apMapping.map((ap) => ({
-      apName: ap.apName.trim(),
-      macAddress: normalizeMacAddress(ap.macAddress.trim()),
-    }));
-  }
-  if (patch.radiusDivider !== undefined) {
-    next.radiusDivider =
-      patch.radiusDivider === null ? null : Math.round(patch.radiusDivider);
-  }
-  if (patch.maxOpacity !== undefined) next.maxOpacity = patch.maxOpacity;
-  if (patch.minOpacity !== undefined) next.minOpacity = patch.minOpacity;
-  if (patch.heatmapRanges !== undefined) {
-    const ranges: Record<string, HeatmapScale> = { ...current.heatmapRanges };
-    for (const [key, scale] of Object.entries(patch.heatmapRanges)) {
-      if (scale === null) delete ranges[key];
-      else
-        ranges[key] = {
-          min: scale.min,
-          max: scale.max,
-          enabled: scale.enabled,
-        };
-    }
-    next.heatmapRanges = normalizeHeatmapRanges(ranges);
-  }
-  return next;
+  return parsed.data;
 }

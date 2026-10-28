@@ -2,10 +2,10 @@ import { describe, expect, it } from "vitest";
 import {
   heatmapKey,
   isValidHeatmapRange,
-  normalizeHeatmapRanges,
   resolveHeatmapRange,
   toDisplayRange,
 } from "../src/lib/heatmap-scale";
+import { normalizeHeatmapRanges } from "../src/lib/schema";
 import { HeatmapRanges, IperfTestProperty } from "../src/lib/types";
 
 describe("heat map scales", () => {

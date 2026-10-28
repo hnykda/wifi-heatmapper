@@ -1,44 +1,38 @@
+import type { z } from "zod";
+import type {
+  apMappingSchema,
+  iperfCommandsSchema,
+  iperfResultsSchema,
+  iperfTestPropertySchema,
+  SurveyDocument,
+  surveyFileMetaSchema,
+  surveyPointSchema,
+  WifiResults,
+} from "./schema";
+
+// The survey file's types are derived from the Zod schemas in schema.ts.
+export type {
+  NewSurveyPoint,
+  SettingsPatch,
+  SurveyDocument,
+  SurveyPointPatch,
+  WifiResults,
+} from "./schema";
+export type IperfTestProperty = z.output<typeof iperfTestPropertySchema>;
+/** IperfResults - results from an iperf3 test */
+export type IperfResults = z.output<typeof iperfResultsSchema>;
+export type ApMapping = z.output<typeof apMappingSchema>;
+export type IperfCommands = z.output<typeof iperfCommandsSchema>;
+/** SurveyPoint - all the information we have about a particular point */
+export type SurveyPoint = z.output<typeof surveyPointSchema>;
+/**
+ * SurveyFileMeta - provenance recorded in each data/surveys/*.json file
+ * so bug reports and old files can be understood later.
+ */
+export type SurveyFileMeta = z.output<typeof surveyFileMetaSchema>;
+
 // Used for localization map
 export type LocalizerMap = Record<string, any>;
-export interface IperfTestProperty {
-  bitsPerSecond: number;
-  retransmits?: number;
-  jitterMs: number | null;
-  lostPackets: number | null;
-  packetsReceived: number | null;
-  signalStrength: number;
-}
-/**
- * WifiResults - the results from a Wi-Fi test
- */
-export interface WifiResults {
-  ssid: string;
-  bssid: string;
-  rssi: number; // dBm value
-  // noise floor in dBm; only some platforms report it (macOS, some Linux
-  // drivers). Missing or null means unknown.
-  noise?: number | null;
-  signalStrength: number; // percentage of signal strength
-  channel: number;
-  security: string;
-  txRate: number;
-  phyMode: string;
-  channelWidth: number;
-  band: number; // frequency band - 2.4 or 5 (GHz)
-  currentSSID: boolean; // true if this is the SSID currently in use
-  strongestSSID: WifiResults | null;
-  // frequency: number; // exact frequency (as number) - xxxx GHz
-}
-
-/**
- * IperfResults - results from an iperf3 test
- */
-export interface IperfResults {
-  tcpDownload: IperfTestProperty;
-  tcpUpload: IperfTestProperty;
-  udpDownload: IperfTestProperty;
-  udpUpload: IperfTestProperty;
-}
 
 type IperfTestProperties = {
   [K in keyof IperfTestProperty]: K;
@@ -69,11 +63,6 @@ export const testTypes: TestTypes = {
 
 export type MeasurementTestType = keyof TestTypes;
 
-export interface ApMapping {
-  apName: string;
-  macAddress: string;
-}
-
 export type Gradient = Record<number, string>; // Maps 0-1 values to colors
 
 export interface HeatmapRange {
@@ -95,48 +84,12 @@ export type HeatmapScale = HeatmapRange & { enabled: boolean };
 /** Independent per-map scales; disabled entries retain their saved bounds. */
 export type HeatmapRanges = Partial<Record<HeatmapKey, HeatmapScale>>;
 
-export interface IperfCommands {
-  tcpDownload: string;
-  tcpUpload: string;
-  udpDownload: string;
-  udpUpload: string;
-}
-
 /**
- * The full set of data for a particular background image
- * This is "global" to the entire GUI, and passed down as needed
+ * The full set of data for a particular floor plan: the survey file
+ * (see SurveyDocument in schema.ts) plus the sudo password, which lives only
+ * in the browser's memory and is never sent to /api/settings.
  */
-export interface HeatmapSettings {
-  surveyPoints: SurveyPoint[];
-  floorplanImageName: string; // name of the floorplan-filename
-  floorplanImagePath: string; // URL the browser loads the image from (derived from the name)
-  iperfServerAdrs: string;
-  testDuration: number;
-  sudoerPassword: string; // kept in settings, removed before writing to file
-  apMapping: ApMapping[];
-  nextPointNum: number;
-  dimensions: { width: number; height: number };
-  radiusDivider: number | null; // null - use calculated value
-  maxOpacity: number;
-  minOpacity: number;
-  blur: number;
-  gradient: Gradient;
-  heatmapRanges?: HeatmapRanges;
-  iperfCommands: IperfCommands;
-  meta?: SurveyFileMeta; // written by the server on every save
-}
-
-/**
- * SurveyFileMeta - provenance recorded in each data/surveys/*.json file
- * so bug reports and old files can be understood later.
- */
-export interface SurveyFileMeta {
-  schemaVersion: number;
-  appVersion: string;
-  platform: string;
-  osName: string;
-  savedAt: string; // ISO timestamp
-}
+export type HeatmapSettings = SurveyDocument & { sudoerPassword: string };
 
 /**
  * The subset of settings the measurement process needs.
@@ -181,19 +134,6 @@ export interface MacosHelperStatus {
   prompted?: boolean; // POST only: the macOS prompt was shown
   error?: string;
 }
-
-/**
- * SurveyPoint - all the information we have about a particular point
- */
-export type SurveyPoint = {
-  x: number;
-  y: number;
-  wifiData: WifiResults;
-  iperfData: IperfResults;
-  timestamp: number;
-  id: string;
-  isEnabled: boolean;
-};
 
 /**
  * SurveyResults - returned from runSurveyTests()

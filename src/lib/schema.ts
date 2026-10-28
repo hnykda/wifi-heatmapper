@@ -1,0 +1,441 @@
+/**
+ * schema.ts - the shape of a survey file and of the API request bodies that
+ * change one, as Zod schemas. The TypeScript types in types.ts are derived
+ * from these, so the two cannot drift apart.
+ *
+ * Two kinds of schema live here:
+ *
+ * - Lenient ones read what is on disk (surveyFileSchema). Survey files come
+ *   from every version since 0.4, and some were edited by hand. A field that
+ *   is missing or has the wrong type falls back to its default (`.catch()`),
+ *   a list entry that is unusable is dropped, and the rest still loads.
+ *   The migrations that used to live in GlobalSettings.tsx and fileHandler.ts
+ *   (defaults for missing fields, iperfResults -> iperfData, the fixed
+ *   colour scales) happen here, on the server.
+ *
+ * - Strict ones check request bodies (settingsPatchSchema, addPointSchema,
+ *   ...). Unknown keys and invalid values are refused with a 400, and
+ *   nothing is written.
+ *
+ * The measurement payload of a point (wifiData, iperfData) is read leniently
+ * in both cases: it comes from this server's own scanners, which leave a
+ * field out on some systems, and losing a measurement over a missing
+ * txRate would be worse than storing 0.
+ *
+ * The sudo password is not part of any schema here: it is never stored, and
+ * parsing drops it like any other unknown key.
+ */
+import { z } from "zod";
+import { HEATMAP_KEYS, parseHeatmapKey } from "./heatmap-grid";
+import { isValidHeatmapRange } from "./heatmap-scale";
+import { defaultIperfCommands } from "./iperfUtils";
+import { defaultGradient, emptyWifiResults } from "./survey-defaults";
+import { mediaUrlFor } from "./media-url";
+import type { Gradient, HeatmapKey, HeatmapRanges } from "./types";
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/** A list whose unusable entries are dropped instead of failing the list. */
+function lenientArray<T extends z.ZodType>(item: T) {
+  return z
+    .array(z.unknown())
+    .catch([])
+    .transform((items) =>
+      items.flatMap((value) => {
+        const parsed = item.safeParse(value);
+        return parsed.success ? [parsed.data as z.output<T>] : [];
+      }),
+    );
+}
+
+const finite = z.number(); // Zod 4 refuses NaN and Infinity
+
+/* ---------- measurements ---------- */
+
+export const iperfTestPropertySchema = z.object({
+  bitsPerSecond: finite.catch(0),
+  retransmits: finite.optional().catch(undefined),
+  // null: the test does not report it (TCP has no jitter) or it is unknown
+  jitterMs: finite.nullable().catch(null),
+  lostPackets: finite.nullable().catch(null),
+  packetsReceived: finite.nullable().catch(null),
+  signalStrength: finite.catch(0),
+});
+
+const emptyIperfTest = (): z.output<typeof iperfTestPropertySchema> => ({
+  bitsPerSecond: 0,
+  retransmits: 0,
+  jitterMs: 0,
+  lostPackets: 0,
+  packetsReceived: 0,
+  signalStrength: 0,
+});
+
+export const iperfResultsSchema = z.object({
+  tcpDownload: iperfTestPropertySchema.catch(emptyIperfTest),
+  tcpUpload: iperfTestPropertySchema.catch(emptyIperfTest),
+  udpDownload: iperfTestPropertySchema.catch(emptyIperfTest),
+  udpUpload: iperfTestPropertySchema.catch(emptyIperfTest),
+});
+
+/** The results of a Wi-Fi reading. */
+export interface WifiResults {
+  ssid: string;
+  bssid: string;
+  rssi: number; // dBm
+  // noise floor in dBm; only some platforms report it (macOS, some Linux
+  // drivers). Missing or null means unknown.
+  noise?: number | null;
+  signalStrength: number; // percent
+  channel: number;
+  security: string;
+  txRate: number;
+  phyMode: string;
+  channelWidth: number;
+  band: number; // frequency band - 2.4 or 5 (GHz)
+  currentSSID: boolean; // true if this is the SSID currently in use
+  strongestSSID: WifiResults | null;
+}
+
+export const wifiResultsSchema: z.ZodType<WifiResults> = z.lazy(() =>
+  z.object({
+    ssid: z.string().catch(""),
+    bssid: z.string().catch(""),
+    rssi: finite.catch(0),
+    noise: finite.nullable().optional().catch(undefined),
+    signalStrength: finite.catch(0),
+    channel: finite.catch(0),
+    security: z.string().catch(""),
+    txRate: finite.catch(0),
+    phyMode: z.string().catch(""),
+    channelWidth: finite.catch(0),
+    band: finite.catch(0),
+    currentSSID: z.boolean().catch(false),
+    strongestSSID: wifiResultsSchema.nullable().catch(null),
+  }),
+);
+
+/* ---------- survey points ---------- */
+
+const pointFields = {
+  x: finite,
+  y: finite,
+  wifiData: wifiResultsSchema,
+  iperfData: iperfResultsSchema,
+  timestamp: finite,
+  isEnabled: z.boolean(),
+};
+
+/**
+ * A stored point. Without a usable position and id it is dropped; everything
+ * else falls back. Versions before 0.4 called iperfData "iperfResults".
+ */
+export const surveyPointSchema = z.preprocess(
+  (value) => {
+    if (!isRecord(value) || value.iperfResults === undefined) return value;
+    const { iperfResults, ...rest } = value;
+    return { ...rest, iperfData: iperfResults };
+  },
+  z.object({
+    x: pointFields.x,
+    y: pointFields.y,
+    id: z.string().min(1),
+    wifiData: pointFields.wifiData.catch(emptyWifiResults),
+    iperfData: pointFields.iperfData.catch(() => iperfResultsSchema.parse({})),
+    timestamp: pointFields.timestamp.catch(0),
+    isEnabled: pointFields.isEnabled.catch(true),
+  }),
+);
+
+/* ---------- settings ---------- */
+
+export const apMappingSchema = z.object({
+  apName: z.string(),
+  macAddress: z.string(),
+});
+
+export const iperfCommandsSchema = z.object({
+  tcpDownload: z.string(),
+  tcpUpload: z.string(),
+  udpDownload: z.string(),
+  udpUpload: z.string(),
+});
+
+const iperfCommandKeys = Object.keys(
+  iperfCommandsSchema.shape,
+) as (keyof typeof iperfCommandsSchema.shape)[];
+
+/** Missing or damaged commands fall back to the default one by one. */
+const iperfCommandsLenient = z
+  .unknown()
+  .optional()
+  .transform(
+    (value) =>
+      Object.fromEntries(
+        iperfCommandKeys.map((key) => {
+          const v = isRecord(value) ? value[key] : undefined;
+          return [key, typeof v === "string" ? v : defaultIperfCommands[key]];
+        }),
+      ) as z.output<typeof iperfCommandsSchema>,
+  );
+
+export const heatmapScaleSchema = z.object({
+  min: finite,
+  max: finite,
+  enabled: z.boolean(),
+});
+
+function isHeatmapKey(key: string): key is (typeof HEATMAP_KEYS)[number] {
+  return (HEATMAP_KEYS as readonly string[]).includes(key);
+}
+
+/** Why a saved scale isn't valid for its map (0 <= min < max, <= 100 for signal), or null. */
+function scaleProblem(
+  key: (typeof HEATMAP_KEYS)[number],
+  scale: unknown,
+): string | null {
+  const { property } = parseHeatmapKey(key);
+  if (
+    heatmapScaleSchema.safeParse(scale).success &&
+    isValidHeatmapRange(scale, property)
+  ) {
+    return null;
+  }
+  return (
+    "must be { min, max, enabled } with 0 <= min < max" +
+    (property === "signalStrength"
+      ? " <= 100 (percent)"
+      : ", in display units (Mbps, ms, counts or dB)")
+  );
+}
+
+/** Keep only known maps with a valid saved scale (lenient). */
+export function normalizeHeatmapRanges(input: unknown): HeatmapRanges {
+  if (!isRecord(input)) return {};
+  const ranges: HeatmapRanges = {};
+  for (const key of HEATMAP_KEYS) {
+    const value = input[key];
+    if (scaleProblem(key, value) === null) {
+      ranges[key] = heatmapScaleSchema.parse(value);
+    }
+  }
+  return ranges;
+}
+
+const heatmapRangesLenient = z
+  .unknown()
+  .optional()
+  .transform(normalizeHeatmapRanges);
+
+function isGradientStop(key: string, color: unknown): color is string {
+  const stop = Number(key);
+  return (
+    key.trim() !== "" &&
+    Number.isFinite(stop) &&
+    stop >= 0 &&
+    stop <= 1 &&
+    typeof color === "string" &&
+    color !== ""
+  );
+}
+
+/** Colour stops 0..1 -> CSS colour. */
+const gradientSchema = z
+  .record(z.string(), z.string())
+  .superRefine((gradient, ctx) => {
+    const entries = Object.entries(gradient);
+    if (entries.length === 0) {
+      ctx.addIssue({ code: "custom", message: "needs at least one stop" });
+    }
+    for (const [key, color] of entries) {
+      if (!isGradientStop(key, color)) {
+        ctx.addIssue({
+          code: "custom",
+          path: [key],
+          message: "a stop is a number from 0 to 1 and a colour",
+        });
+      }
+    }
+  })
+  .transform((g) => g as Gradient);
+
+/** Bad stops are dropped; with none left, the default gradient. */
+const gradientLenient = z
+  .unknown()
+  .optional()
+  .transform((value): Gradient => {
+    if (!isRecord(value)) return defaultGradient();
+    const stops = Object.entries(value).filter(([k, c]) =>
+      isGradientStop(k, c),
+    );
+    return stops.length
+      ? (Object.fromEntries(stops) as Gradient)
+      : defaultGradient();
+  });
+
+export const surveyFileMetaSchema = z.object({
+  schemaVersion: finite,
+  appVersion: z.string(),
+  platform: z.string(),
+  osName: z.string(),
+  savedAt: z.string(), // ISO timestamp
+});
+
+/* ---------- the survey file ---------- */
+
+/**
+ * One data/surveys/<floor plan>.json, read leniently. Unknown keys
+ * (including a sudo password in a very old file) are dropped.
+ */
+export const surveyFileSchema = z.object({
+  surveyPoints: lenientArray(surveyPointSchema),
+  floorplanImageName: z.string().catch(""),
+  // URL the browser loads the image from; always derived from the name
+  floorplanImagePath: z.string().catch(""),
+  iperfServerAdrs: z.string().catch("localhost"),
+  testDuration: finite.catch(1),
+  apMapping: lenientArray(apMappingSchema),
+  nextPointNum: z.int().catch(1),
+  dimensions: z
+    .object({ width: finite, height: finite })
+    .catch(() => ({ width: 100, height: 100 })),
+  radiusDivider: finite.nullable().catch(null), // null: calculated
+  maxOpacity: finite.catch(0.7),
+  minOpacity: finite.catch(0.2),
+  blur: finite.catch(0.99),
+  gradient: gradientLenient,
+  heatmapRanges: heatmapRangesLenient,
+  iperfCommands: iperfCommandsLenient,
+  meta: surveyFileMetaSchema.optional().catch(undefined), // set on every save
+});
+
+/** A survey as the API returns it: the file, never with a password. */
+export type SurveyDocument = z.output<typeof surveyFileSchema>;
+
+/**
+ * parseSurveyFile() - whatever is in a survey file, as a complete survey for
+ * that floor plan. The floor plan name and image URL come from the name the
+ * survey was asked for (older files stored a /media/... path that is no
+ * longer served), keeping the stored spelling when it is the same file.
+ */
+export function parseSurveyFile(
+  raw: Record<string, unknown>,
+  floorPlan: string,
+  sameFile: (a: string, b: string) => boolean = (a, b) => a === b,
+): SurveyDocument {
+  const survey = surveyFileSchema.parse(raw);
+  const name =
+    survey.floorplanImageName && sameFile(survey.floorplanImageName, floorPlan)
+      ? survey.floorplanImageName
+      : floorPlan;
+  return {
+    ...survey,
+    floorplanImageName: name,
+    floorplanImagePath: mediaUrlFor(name),
+  };
+}
+
+/* ---------- request bodies (strict) ---------- */
+
+/** What PATCH /api/settings accepts. Every field is optional. */
+export const settingsPatchSchema = z
+  .strictObject({
+    iperfServerAdrs: z.string().trim(),
+    testDuration: z.int().min(1).max(60),
+    /** Replaces the whole list. */
+    apMapping: z.array(z.strictObject(apMappingSchema.shape)),
+    dimensions: z.strictObject({
+      width: finite.positive(),
+      height: finite.positive(),
+    }),
+    radiusDivider: finite.positive().nullable(),
+    maxOpacity: finite.min(0).max(1),
+    minOpacity: finite.min(0).max(1),
+    blur: finite.min(0),
+    gradient: gradientSchema,
+    /** Per map; null removes that map's scale, maps not given are kept. */
+    heatmapRanges: z
+      .record(z.string(), z.unknown())
+      .superRefine((ranges, ctx) => {
+        for (const [key, scale] of Object.entries(ranges)) {
+          if (!isHeatmapKey(key)) {
+            ctx.addIssue({
+              code: "custom",
+              path: [key],
+              message: "is not a heat map",
+            });
+          } else if (scale !== null) {
+            const problem = scaleProblem(key, scale);
+            if (problem) {
+              ctx.addIssue({ code: "custom", path: [key], message: problem });
+            }
+          }
+        }
+      })
+      .transform(
+        (ranges) =>
+          ranges as Partial<
+            Record<HeatmapKey, z.output<typeof heatmapScaleSchema> | null>
+          >,
+      ),
+    /** Only the commands given change. */
+    iperfCommands: z.strictObject(iperfCommandsSchema.shape).partial(),
+  })
+  .partial();
+
+export type SettingsPatch = z.output<typeof settingsPatchSchema>;
+
+/**
+ * POST /api/surveys/[name]/points. The server assigns the id unless a
+ * free one is given; the browser sends "".
+ */
+export const addPointSchema = z.strictObject({
+  ...pointFields,
+  id: z.string().optional(),
+});
+
+export type NewSurveyPoint = z.output<typeof addPointSchema>;
+
+/** PATCH /api/surveys/[name]/points/[id]. The id cannot change. */
+export const pointPatchSchema = z.strictObject(pointFields).partial();
+
+export type SurveyPointPatch = z.output<typeof pointPatchSchema>;
+
+/** DELETE /api/surveys/[name]/points. Unknown ids are ignored. */
+export const deletePointsSchema = z.strictObject({
+  ids: z.array(z.string()),
+});
+
+/**
+ * POST /api/settings (whole document, kept for older clients). Read like a
+ * file, so an export from any version imports; it must name its floor plan.
+ */
+export const surveyImportSchema = z.looseObject({
+  floorplanImageName: z.string().min(1),
+});
+
+/** POST /api/start-task?action=start */
+export const startTaskSchema = z.strictObject({
+  settings: z.object({
+    iperfServerAdrs: z.string(),
+    testDuration: finite,
+    sudoerPassword: z.string(),
+    iperfCommands: iperfCommandsSchema,
+  }),
+});
+
+/** One line per problem, for a 400 answer. */
+export function describeIssues(error: z.ZodError): string {
+  return error.issues
+    .map((issue) => {
+      const where = issue.path.join(".");
+      if (issue.code === "unrecognized_keys") {
+        const keys = issue.keys.join(", ");
+        return where ? `${where}: unknown ${keys}` : `unknown field ${keys}`;
+      }
+      return where ? `${where}: ${issue.message}` : issue.message;
+    })
+    .join("; ");
+}

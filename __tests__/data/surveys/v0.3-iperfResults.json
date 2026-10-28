@@ -1,0 +1,124 @@
+{
+  "surveyPoints": [
+    {
+      "x": 120,
+      "y": 80,
+      "wifiData": {
+        "ssid": "Home",
+        "bssid": "9e05d696e830",
+        "rssi": -52,
+        "signalStrength": 80,
+        "channel": 44,
+        "security": "WPA2",
+        "txRate": 866,
+        "phyMode": "11ac",
+        "channelWidth": 80,
+        "band": 5,
+        "currentSSID": true,
+        "strongestSSID": null
+      },
+      "iperfResults": {
+        "tcpDownload": {
+          "bitsPerSecond": 412000000,
+          "retransmits": 3,
+          "jitterMs": null,
+          "lostPackets": null,
+          "packetsReceived": null,
+          "signalStrength": 80
+        },
+        "tcpUpload": {
+          "bitsPerSecond": 300000000,
+          "jitterMs": null,
+          "lostPackets": null,
+          "packetsReceived": null,
+          "signalStrength": 80
+        },
+        "udpDownload": {
+          "bitsPerSecond": 100000000,
+          "jitterMs": 0.12,
+          "lostPackets": 2,
+          "packetsReceived": 8000,
+          "signalStrength": 80
+        },
+        "udpUpload": {
+          "bitsPerSecond": 99000000,
+          "jitterMs": 0.2,
+          "lostPackets": 0,
+          "packetsReceived": 7900,
+          "signalStrength": 80
+        }
+      },
+      "timestamp": 1700000000000,
+      "id": "Point_1",
+      "isEnabled": true
+    },
+    {
+      "x": 300,
+      "y": 220,
+      "wifiData": {
+        "ssid": "Home",
+        "bssid": "9e05d696e831",
+        "rssi": -70,
+        "signalStrength": 50,
+        "channel": 6,
+        "security": "WPA2",
+        "txRate": 144,
+        "phyMode": "11n",
+        "channelWidth": 20,
+        "band": 2.4,
+        "currentSSID": true,
+        "strongestSSID": null
+      },
+      "iperfResults": {
+        "tcpDownload": {
+          "bitsPerSecond": 0,
+          "jitterMs": null,
+          "lostPackets": null,
+          "packetsReceived": null,
+          "signalStrength": 50
+        },
+        "tcpUpload": {
+          "bitsPerSecond": 0,
+          "jitterMs": null,
+          "lostPackets": null,
+          "packetsReceived": null,
+          "signalStrength": 50
+        },
+        "udpDownload": {
+          "bitsPerSecond": 0,
+          "jitterMs": null,
+          "lostPackets": null,
+          "packetsReceived": null,
+          "signalStrength": 50
+        },
+        "udpUpload": {
+          "bitsPerSecond": 0,
+          "jitterMs": null,
+          "lostPackets": null,
+          "packetsReceived": null,
+          "signalStrength": 50
+        }
+      },
+      "timestamp": 1700000060000,
+      "id": "Point_2",
+      "isEnabled": false
+    }
+  ],
+  "floorplanImageName": "Home.png",
+  "floorplanImagePath": "/media/Home.png",
+  "iperfServerAdrs": "192.168.1.10",
+  "testDuration": 2,
+  "sudoerPassword": "hunter2",
+  "apMapping": [{ "apName": "Hall", "macAddress": "9e05d696e830" }],
+  "nextPointNum": 3,
+  "dimensions": { "width": 800, "height": 600 },
+  "radiusDivider": null,
+  "maxOpacity": 0.7,
+  "minOpacity": 0.2,
+  "blur": 0.99,
+  "gradient": {
+    "0": "rgba(255, 0, 0, 0.6)",
+    "0.5": "rgba(0, 0, 255, 0.6)",
+    "1": "rgba(0, 255, 0, 0.6)"
+  }
+}

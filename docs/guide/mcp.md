@@ -285,9 +285,9 @@ optional port, and commands that start with `iperf3`, contain `{server}` and
 else is refused and nothing is saved. You can still type other commands in
 the app's Settings tab yourself.
 
-**If the app is open on that floor plan, reload the page after a change.**
-The page keeps its own copy of the survey and writes all of it back on your
-next change, which would undo the agent's edit.
+The app saves each change on its own (one setting, one point), so a change
+the agent makes while the app is open on that floor plan is kept. The page
+shows it after its next save, or when you reload it.
 
 ### check_setup
 
@@ -381,10 +381,10 @@ measurements are synthetic.
   fake app.
 - **Step two (planned): measuring.** A tool that starts a measurement
   (`POST /api/start-task?action=start`), follows its progress, and adds the
-  point at a given position. Open questions: the app adds points from the
-  browser today, so an agent adding one at the same time needs a server-side
-  way to append a point; and it needs a clear confirmation, because a
-  measurement runs commands on this computer.
+  point at a given position (`POST /api/surveys/<name>/points` appends one
+  without touching the rest). Open question: it needs a clear confirmation,
+  because a measurement runs commands on this computer.
 - Possible follow-ups: let the desktop app write its URL somewhere the MCP
   server can find it, or prefer a fixed port, so `WIFI_HEATMAPPER_PORT` isn't
-  needed; have the page reload a survey that changed on disk.
+  needed; have the page pick up a survey that changed on the server without
+  waiting for its next save.

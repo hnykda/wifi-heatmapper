@@ -2,19 +2,10 @@ import {
   HeatmapKey,
   HeatmapProperty,
   HeatmapRange,
-  HeatmapRanges,
   HeatmapScale,
-  IperfResults,
   IperfTestProperty,
   MeasurementTestType,
 } from "./types";
-
-const mapProperties: Record<keyof IperfResults, (keyof IperfTestProperty)[]> = {
-  tcpDownload: ["bitsPerSecond", "retransmits"],
-  tcpUpload: ["bitsPerSecond"],
-  udpDownload: ["bitsPerSecond", "jitterMs", "lostPackets", "packetsReceived"],
-  udpUpload: ["bitsPerSecond", "jitterMs", "lostPackets", "packetsReceived"],
-};
 
 export function heatmapKey(
   metric: MeasurementTestType,
@@ -87,34 +78,4 @@ export function toDisplayRange(
   return { min: rawRange.min / factor, max: rawRange.max / factor };
 }
 
-/** Accept only supported map keys and valid saved scales. */
-export function normalizeHeatmapRanges(input: unknown): HeatmapRanges {
-  if (!isRecord(input)) return {};
-  const ranges: HeatmapRanges = {};
-  const readScale = (
-    value: unknown,
-    property: HeatmapProperty,
-  ): HeatmapScale | undefined => {
-    if (!isRecord(value) || !isValidHeatmapRange(value, property)) {
-      return undefined;
-    }
-    if (typeof value.enabled === "boolean") {
-      return { min: value.min, max: value.max, enabled: value.enabled };
-    }
-
-    return undefined;
-  };
-
-  const signal = readScale(input.signalStrength, "signalStrength");
-  if (signal) ranges.signalStrength = signal;
-  const snr = readScale(input.snr, "snr");
-  if (snr) ranges.snr = snr;
-  for (const metric of Object.keys(mapProperties) as (keyof IperfResults)[]) {
-    for (const property of mapProperties[metric]) {
-      const key = heatmapKey(metric, property);
-      const scale = readScale(input[key], property);
-      if (scale) ranges[key] = scale;
-    }
-  }
-  return ranges;
-}
+// Saved scales are read with normalizeHeatmapRanges() in schema.ts.

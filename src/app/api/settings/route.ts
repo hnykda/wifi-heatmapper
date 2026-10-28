@@ -1,151 +1,88 @@
 /**
  * /api/settings - survey files, stored in <data dir>/surveys
  *
- * GET    /api/settings?list=true       -> { surveys: string[] }
- * GET    /api/settings?name=<floorplan> -> the HeatmapSettings for that floor plan
- * POST   /api/settings                  -> write settings (body: HeatmapSettings)
+ * GET    /api/settings?list=true        -> { surveys: string[] }
+ * GET    /api/settings?name=<floorplan> -> the survey for that floor plan
+ * PATCH  /api/settings?name=<floorplan> -> change settings (body: SettingsPatch,
+ *                                          see schema.ts); creates the survey
+ *                                          if there is none; returns it
+ * POST   /api/settings                  -> replace a whole survey (body: a
+ *                                          survey with floorplanImageName);
+ *                                          kept for older clients and imports
  * DELETE /api/settings?name=<floorplan> -> remove the survey file
  *
- * The sudo password is never written to disk. The server stamps every
- * saved file with `meta` (app version, OS, timestamp).
+ * Points have their own routes: /api/surveys/[name]/points.
+ * All writes go through survey-store.ts (one at a time per file, meta
+ * stamped, the sudo password never written).
  */
-import { NextRequest, NextResponse } from "next/server";
-import {
-  readFile,
-  writeFile,
-  mkdir,
-  readdir,
-  rename,
-  unlink,
-} from "fs/promises";
-import path from "path";
-import { sanitizeFilename } from "@/lib/utils";
-import { getSurveysDir } from "@/lib/server-paths";
-import { APP_VERSION, describeOS } from "@/lib/app-info";
-import os from "os";
-import { SurveyFileMeta } from "@/lib/types";
+import { NextRequest } from "next/server";
+import * as store from "@/lib/survey-store";
+import { settingsPatchSchema, surveyImportSchema } from "@/lib/schema";
+import { applySettingsPatch } from "@/lib/survey-ops";
+import { jsonError, readBody, storeErrorResponse } from "@/lib/api-helpers";
+import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
-const SURVEY_SCHEMA_VERSION = 1;
-
-function getSurveyPath(floorplanName: string): string {
-  return path.join(getSurveysDir(), `${sanitizeFilename(floorplanName)}.json`);
-}
-
-function isNotFound(err: unknown): boolean {
-  return err instanceof Error && "code" in err && err.code === "ENOENT";
+function nameParam(request: NextRequest) {
+  return request.nextUrl.searchParams.get("name");
 }
 
 export async function GET(request: NextRequest) {
-  const searchParams = request.nextUrl.searchParams;
-  const listAll = searchParams.get("list");
-  const name = searchParams.get("name");
-
-  if (listAll === "true") {
+  if (request.nextUrl.searchParams.get("list") === "true") {
     try {
-      const dir = getSurveysDir();
-      await mkdir(dir, { recursive: true });
-      const surveys = (await readdir(dir))
-        .filter((f) => f.endsWith(".json"))
-        .map((f) => f.replace(/\.json$/, ""));
-      return NextResponse.json({ surveys });
+      return NextResponse.json({ surveys: await store.list() });
     } catch (err) {
-      return NextResponse.json(
-        { error: `Unable to list surveys: ${err}` },
-        { status: 500 },
-      );
+      return jsonError(500, `Unable to list surveys: ${err}`);
     }
   }
-
-  if (!name) {
-    return NextResponse.json(
-      { error: "Missing 'name' query parameter" },
-      { status: 400 },
-    );
-  }
-
+  const name = nameParam(request);
+  if (!name) return jsonError(400, "Missing 'name' query parameter");
   try {
-    const data = await readFile(getSurveyPath(name), "utf-8");
-    // POST never writes it, but a hand-edited or very old file might have one
-    const { sudoerPassword: _, ...survey } = JSON.parse(data);
+    const survey = await store.read(name);
+    if (!survey) return jsonError(404, "Survey not found");
     return NextResponse.json(survey);
-  } catch (err: unknown) {
-    if (isNotFound(err)) {
-      return NextResponse.json({ error: "Survey not found" }, { status: 404 });
-    }
-    return NextResponse.json(
-      { error: `Unable to read survey: ${err}` },
-      { status: 500 },
+  } catch (err) {
+    return storeErrorResponse(err, "Unable to read survey");
+  }
+}
+
+export async function PATCH(request: NextRequest) {
+  const name = nameParam(request);
+  if (!name) return jsonError(400, "Missing 'name' query parameter");
+  const body = await readBody(request, settingsPatchSchema);
+  if (!body.ok) return body.response;
+  try {
+    const survey = await store.mutate(name, (s) =>
+      applySettingsPatch(s, body.data),
     );
+    return NextResponse.json(survey);
+  } catch (err) {
+    return storeErrorResponse(err, "Unable to save survey");
   }
 }
 
 export async function POST(request: NextRequest) {
+  const body = await readBody(request, surveyImportSchema);
+  if (!body.ok) return body.response;
   try {
-    const settings = await request.json();
-
-    if (
-      !settings ||
-      typeof settings.floorplanImageName !== "string" ||
-      settings.floorplanImageName === ""
-    ) {
-      return NextResponse.json(
-        { error: "Missing floorplanImageName in settings" },
-        { status: 400 },
-      );
-    }
-
-    await mkdir(getSurveysDir(), { recursive: true });
-
-    // Never persist the sudo password
-    const { sudoerPassword: _, ...safeSettings } = settings;
-
-    const meta: SurveyFileMeta = {
-      schemaVersion: SURVEY_SCHEMA_VERSION,
-      appVersion: APP_VERSION,
-      platform: os.platform(),
-      osName: describeOS(),
-      savedAt: new Date().toISOString(),
-    };
-
-    const filePath = getSurveyPath(settings.floorplanImageName);
-    // Write a temp file and rename it over the survey, so a crash or two
-    // overlapping saves can never leave half a JSON file behind.
-    const tmpPath = `${filePath}.${process.pid}.${Date.now()}.tmp`;
-    await writeFile(
-      tmpPath,
-      JSON.stringify({ ...safeSettings, meta }, null, 2),
-    );
-    await rename(tmpPath, filePath);
-
-    return NextResponse.json({ status: "success", path: filePath });
+    const survey = await store.replace(body.data.floorplanImageName, body.data);
+    return NextResponse.json({
+      status: "success",
+      path: store.surveyPath(survey.floorplanImageName),
+    });
   } catch (err) {
-    return NextResponse.json(
-      { error: `Unable to save survey: ${err}` },
-      { status: 500 },
-    );
+    return storeErrorResponse(err, "Unable to save survey");
   }
 }
 
 export async function DELETE(request: NextRequest) {
-  const name = request.nextUrl.searchParams.get("name");
-  if (!name) {
-    return NextResponse.json(
-      { error: "Missing 'name' query parameter" },
-      { status: 400 },
-    );
-  }
+  const name = nameParam(request);
+  if (!name) return jsonError(400, "Missing 'name' query parameter");
   try {
-    await unlink(getSurveyPath(name));
+    await store.remove(name);
     return NextResponse.json({ status: "deleted" });
-  } catch (err: unknown) {
-    if (isNotFound(err)) {
-      return NextResponse.json({ status: "deleted" }); // already gone
-    }
-    return NextResponse.json(
-      { error: `Unable to delete survey: ${err}` },
-      { status: 500 },
-    );
+  } catch (err) {
+    return jsonError(500, `Unable to delete survey: ${err}`);
   }
 }

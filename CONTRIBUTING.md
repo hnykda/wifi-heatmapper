@@ -49,7 +49,8 @@ server runs and its output. Bug reports should include that log.
 src/app/                Next.js app router: layout, page, API routes
   api/status            what is running (version, OS, mock mode, iperf3)
   api/media             floor plan images: list, upload, serve, delete
-  api/settings          survey files: read, write, list, delete
+  api/settings          survey files: read, change settings, list, delete
+  api/surveys           a survey's points: add, change, delete
   api/start-task        start/stop/poll a measurement
   api/events            server-sent progress events during a measurement
   webGL/                heat map renderer (inverse-distance weighting)
@@ -58,7 +59,9 @@ src/lib/                shared code
   wifiScanner-*.ts      one file per OS + wifiScanner-mock.ts; picked by wifiScanner.ts
   iperfRunner.ts        the measurement sequence (wifi, TCP, wifi, UDP, wifi)
   server-paths.ts       where data lives on disk
-  types.ts              every shared type
+  schema.ts             Zod schemas: the survey file (lenient) and API bodies (strict)
+  survey-store.ts       the only code that reads and writes survey files
+  types.ts              every shared type (survey types come from schema.ts)
 src/instrumentation.ts  runs once when the server starts (seeds floor plans, migrates old data)
 __tests__/              Vitest unit tests + fixtures of real command output
 e2e/                    Playwright tests

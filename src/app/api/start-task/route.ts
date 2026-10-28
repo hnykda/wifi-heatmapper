@@ -12,6 +12,8 @@ import {
   getSurveyResults,
 } from "@/lib/server-globals";
 import { runSurveyTests } from "@/lib/iperfRunner";
+import { readBody } from "@/lib/api-helpers";
+import { startTaskSchema } from "@/lib/schema";
 import { getLogger } from "../../../lib/logger";
 const logger = getLogger("start-task");
 
@@ -38,8 +40,12 @@ export async function POST(req: NextRequest) {
 
   // action=start: expects an object with a single property: settings
   if (action === "start") {
-    const { settings } = await req.json();
-    logger.debug(`action=start: ${JSON.stringify(settings)}`);
+    const body = await readBody(req, startTaskSchema);
+    if (!body.ok) return body.response;
+    const { settings } = body.data;
+    logger.debug(
+      `action=start: ${JSON.stringify({ ...settings, sudoerPassword: settings.sudoerPassword ? "(set)" : "" })}`,
+    );
     setSurveyResults({ state: "pending" });
 
     // Start off the survey process immediately
