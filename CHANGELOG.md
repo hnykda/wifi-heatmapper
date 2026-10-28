@@ -4,6 +4,12 @@ _This section follows the precepts of [Keep a Changelog](https://keepachangelog.
 
 ## Unreleased
 
+### Added
+
+* Access point names can match several BSSIDs at once: end the MAC address
+  with `*`, for example `aa:bb:cc:dd:ee:*`, to name every BSSID that starts
+  with it. An exact MAC address still wins, then the longest prefix (#99).
+
 ### Changed
 
 * **Windows reads Wi-Fi details from the Native Wifi API** (`wlanapi.dll`,

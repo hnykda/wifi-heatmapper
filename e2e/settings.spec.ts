@@ -87,6 +87,20 @@ test("access point names are validated and saved", async ({ page }) => {
   ]);
 });
 
+test("access point names accept a prefix ending in *", async ({ page }) => {
+  const name = await uploadFloorplan(page);
+  await page.getByRole("button", { name: "Add access point" }).click();
+  await page.getByLabel("Access point name").fill("Upstairs");
+  await page.getByLabel("MAC address").fill("9e:05:d6:96:e8:*");
+  await page.getByLabel("MAC address").blur();
+  await expect(page.getByText(/12 hex digits/)).toHaveCount(0);
+  await expect(page.getByLabel("MAC address")).toHaveValue("9E-05-D6-96-E8-*");
+  const survey = await readSurvey(page, name, (s) => s.apMapping?.length === 1);
+  expect(survey.apMapping).toEqual([
+    { apName: "Upstairs", macAddress: "9e05d696e8*" },
+  ]);
+});
+
 test("media API rejects path traversal", async ({ request }) => {
   const res = await request.get("/api/media/..%2Fpackage.json");
   expect([400, 404]).toContain(res.status());

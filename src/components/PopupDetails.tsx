@@ -2,6 +2,7 @@ import React from "react";
 import { X, Trash2 } from "lucide-react";
 import { SurveyPoint, HeatmapSettings, SurveyPointActions } from "@/lib/types";
 import { formatMacAddress } from "@/lib/utils";
+import { apNameFor } from "@/lib/apName";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { AlertDialogModal } from "@/components/AlertDialogModal";
@@ -27,9 +28,7 @@ const PopupDetails: React.FC<PopupDetailsProps> = ({
   if (!point) return null;
 
   const wifi = point.wifiData;
-  const apName = settings.apMapping.find(
-    (ap) => ap.macAddress === wifi?.bssid,
-  )?.apName;
+  const apName = apNameFor(wifi?.bssid, settings.apMapping);
   const color = objectToRGBAString({
     ...getColorAt(wifi.signalStrength / 100, settings.gradient),
     a: 1,
