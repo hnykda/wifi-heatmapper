@@ -17,7 +17,8 @@ and draws heat maps on a floor plan. Runs on macOS, Windows, Linux (+Docker).
 - `src/lib/iperfRunner.ts` is the measurement sequence and pushes progress via `server-globals.ts` (SSE).
 - `src/lib/server-paths.ts` is the only place that knows where data lives (`data/surveys`, `data/media`; overridable with `WIFI_HEATMAPPER_DATA_DIR`).
 - `src/instrumentation.ts` -> `server-init.ts` runs once at server start (seeds bundled floor plans from `assets/floorplans`, migrates pre-0.5 uploads from `public/media`).
-- `src/components/GlobalSettings.tsx` owns all client state for the current survey and debounces writes to `/api/settings`. Mutate through `updateSettings` / `surveyPointActions` only.
+- The server owns survey files: `src/lib/survey-store.ts` is the only writer (per-file lock, atomic writes), and `src/lib/schema.ts` (Zod) validates files on load (lenient) and API bodies (strict). Endpoints send small operations: `PATCH /api/settings`, `/api/surveys/[name]/points`.
+- `src/components/GlobalSettings.tsx` holds the client's view of the current survey and sends those operations in order. Mutate through `updateSettings` / `surveyPointActions` only.
 - `src/components/layout/AppShell.tsx` is the header + tabs; the active tab is in the URL hash.
 - Floor plan images are served by `/api/media/[name]`, never from `/public`, so `next start` works.
 - `docs/guide/*.md` is the user guide and the single source for the website: `site/build.mjs` renders it to wifi-heatmapper.danielalder.cz/docs/<slug> (GitHub Pages, `.github/workflows/site.yml`) and generates `llms.txt` / `llms-full.txt` from it. Developer docs are in `docs/dev/`. See `site/README.md`.
