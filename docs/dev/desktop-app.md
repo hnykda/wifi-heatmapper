@@ -205,6 +205,11 @@ Privacy & Security → "Open Anyway" (or
 `xattr -dr com.apple.quarantine "/Applications/WiFi Heatmapper.app"`), and Windows
 needs SmartScreen → "More info" → "Run anyway".
 
+`tauri-action` (v1) rewrites the draft's name and body from `releaseBody`
+in release.yml on every matrix row, so edit the draft only after all five
+rows have finished, and again after re-running one. Re-running a row after
+the release is published fails on purpose instead of changing it.
+
 ## Homebrew tap
 
 macOS users can install with `brew install --cask hnykda/tap/wifi-heatmapper`.

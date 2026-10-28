@@ -9,7 +9,7 @@ order: 6
 The desktop app is the easiest way in, but the same app runs from a clone of
 the repository in any browser.
 
-You need Node.js 20 or newer (`node --version`).
+You need Node.js 22.12 or newer (`node --version`).
 
 ```bash
 git clone https://github.com/hnykda/wifi-heatmapper.git

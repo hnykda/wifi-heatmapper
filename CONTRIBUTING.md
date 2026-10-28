@@ -19,7 +19,7 @@ results are made up, so you can click around on any machine without a sudo
 password, an iperf3 server, or even a Wi-Fi card. Use `npm run dev` for real
 measurements.
 
-Node 20 or newer is required (CI runs on 22).
+Node 22.12 or newer is required (CI, the Docker image and the desktop app use Node 26).
 
 ## Everyday commands
 
@@ -176,7 +176,7 @@ WIFI_HEATMAPPER_MOCK=1 desktop/src-tauri/target/release/bundle/appimage/*.AppIma
 `desktop/smoke-test-linux.sh <AppImage or /usr/bin/wifi-heatmapper>` starts
 the built Linux app under Xvfb in mock mode and checks it (CI runs it on both
 Linux release rows). Without a Linux machine, an `ubuntu:22.04` container
-with the packages above, Node 22 and rustup builds both packages (set
+with the packages above, Node 26 and rustup builds both packages (set
 `APPIMAGE_EXTRACT_AND_RUN=1`: containers have no FUSE).
 
 On macOS the build also compiles the Wi-Fi helper
