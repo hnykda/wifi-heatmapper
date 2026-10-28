@@ -50,7 +50,21 @@ const point = (id: string, x = 1, y = 2) => ({
 
 describe("reading survey files (lenient)", () => {
   it("fills a nearly empty file with the defaults", () => {
-    expect(parseSurveyFile({}, "Plan.png")).toEqual(defaultSurvey("Plan.png"));
+    // except the UDP tests: every file before them ran them on each point
+    expect(parseSurveyFile({}, "Plan.png")).toEqual({
+      ...defaultSurvey("Plan.png"),
+      udpTests: true,
+    });
+  });
+
+  it("keeps the UDP tests on for older files, off for new surveys", () => {
+    expect(defaultSurvey("Plan.png").udpTests).toBe(false);
+    expect(parseSurveyFile({ testDuration: 1 }, "Plan.png").udpTests).toBe(
+      true,
+    );
+    expect(parseSurveyFile({ udpTests: false }, "Plan.png").udpTests).toBe(
+      false,
+    );
   });
 
   it("reads a current file back unchanged", () => {

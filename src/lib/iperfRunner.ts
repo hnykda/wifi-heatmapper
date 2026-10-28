@@ -141,11 +141,13 @@ export async function runSurveyTests(
 
   const startTime = Date.now();
   const mode = plan.signalOnly ? "signal" : "speed";
+  const udpTests = settings.udpTests !== false;
   const display: Display = {
     header: "Measurement beginning",
     strength: "-",
     tcp: mode === "signal" ? OFF : plan.warning ? SKIPPED : PENDING,
-    udp: mode === "signal" ? OFF : plan.warning ? SKIPPED : PENDING,
+    udp:
+      mode === "signal" || !udpTests ? OFF : plan.warning ? SKIPPED : PENDING,
     mode,
     warning: plan.warning,
   };
@@ -234,9 +236,11 @@ export async function runSurveyTests(
 
     await readWifi();
 
-    // UDP tests (fixed rate: jitter and lost packets)
-    display.udp = await runPair("UDP");
-    send();
+    // UDP tests (fixed rate: jitter and lost packets), if the survey wants them
+    if (udpTests) {
+      display.udp = await runPair("UDP");
+      send();
+    }
 
     const wifiDataAfter = await readWifi();
 

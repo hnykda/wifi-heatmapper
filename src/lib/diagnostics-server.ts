@@ -82,6 +82,7 @@ async function readSurvey(name: string): Promise<SurveyFacts | null> {
         speedTests: data.measureSpeed,
         iperfServer: data.iperfServerAdrs,
         testDuration: data.testDuration,
+        udpTests: data.udpTests,
       },
       ssids: points.map((p) => p.wifiData.ssid),
       bssids: [

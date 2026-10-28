@@ -386,6 +386,9 @@ export const surveyFileSchema = z.object({
   measureSpeed: z.boolean().optional().catch(undefined),
   iperfServerAdrs: z.string().catch(""), // the speed test (iperf3) server, host[:port]
   testDuration: finite.catch(5),
+  // The fixed-rate (UDP) tests. Older files ran them on every point,
+  // so a missing value is true; new surveys start without them.
+  udpTests: z.boolean().catch(true),
   apMapping: lenientArray(apMappingSchema),
   nextPointNum: z.int().catch(1),
   dimensions: z
@@ -470,6 +473,7 @@ export const settingsPatchSchema = z
     measureSpeed: z.boolean(),
     iperfServerAdrs: z.string().trim(),
     testDuration: z.int().min(1).max(60),
+    udpTests: z.boolean(),
     /** Replaces the whole list. */
     apMapping: z.array(z.strictObject(apMappingSchema.shape)),
     dimensions: z.strictObject({
@@ -585,6 +589,8 @@ export const startTaskSchema = z.strictObject({
     measureSpeed: z.boolean().optional(),
     iperfServerAdrs: z.string(),
     testDuration: finite,
+    // missing: run them (older clients always did)
+    udpTests: z.boolean().optional(),
     // left out or "": the server uses the password it holds, if any
     // (sudo-session.ts; how MCP-started measurements get one)
     sudoerPassword: z.string().default(""),

@@ -27,6 +27,7 @@ export interface MeasurementSettings {
   measureSpeed: boolean;
   iperfServerAdrs: string;
   testDuration: number;
+  udpTests: boolean;
   iperfCommands: Record<string, string[]>;
 }
 

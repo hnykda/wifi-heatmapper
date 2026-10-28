@@ -98,6 +98,8 @@ export interface PartialHeatmapSettings {
   measureSpeed?: boolean;
   iperfServerAdrs: string;
   testDuration: number;
+  // missing: run the fixed-rate (UDP) tests too
+  udpTests?: boolean;
   sudoerPassword: string;
   iperfCommands: IperfCommands;
 }

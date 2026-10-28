@@ -12,6 +12,7 @@ import {
 import { useSettings } from "@/components/GlobalSettings";
 import { FormRow } from "./FormRow";
 import { NumberField } from "./NumberField";
+import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -232,7 +233,7 @@ export function SpeedSettings({ status }: { status: AppStatus | null }) {
           <FormRow
             id="testDuration"
             label="Test duration (seconds)"
-            help="Each spot runs four short tests: download and upload, once at full speed (TCP) and once at a fixed rate (UDP, for jitter and lost packets). A connection takes a second or two to reach full speed, so 5 seconds each (the default) gives steady numbers; 3 is the least that does."
+            help="Each spot tests download and upload speed. A connection takes a second or two to reach full speed, so 5 seconds per test (the default) gives steady numbers; 3 is the least that does."
           >
             <NumberField
               id="testDuration"
@@ -243,6 +244,22 @@ export function SpeedSettings({ status }: { status: AppStatus | null }) {
               value={settings.testDuration}
               onChange={(n) => updateSettings({ testDuration: Math.round(n) })}
             />
+          </FormRow>
+
+          <FormRow
+            id="udpTests"
+            label="Jitter and lost packets"
+            help="Also send at a fixed rate (UDP) in both directions and record jitter and lost packets, which matter for calls and games. Doubles the time per spot; download and upload speed don't need it."
+          >
+            <label className="flex items-center gap-2.5 text-sm">
+              <Switch
+                id="udpTests"
+                checked={settings.udpTests}
+                onCheckedChange={(on) => updateSettings({ udpTests: on })}
+                data-testid="udp-tests"
+              />
+              {settings.udpTests ? "Measured (UDP tests on)" : "Not measured"}
+            </label>
           </FormRow>
 
           <Accordion type="single" collapsible className="max-w-xl">

@@ -466,6 +466,7 @@ points, is kept as it is.
 | `measureSpeed` | `true` measures signal and speed (iperf3), `false` signal only |
 | `iperfServerAdrs` | the speed test server, `"192.168.1.10"` or `"nas.local:5201"`. Set without `measureSpeed`, `"localhost"` also turns speed off and any other server turns it on, as before |
 | `testDuration` | seconds per iperf3 test, 1 to 60 |
+| `udpTests` | `true` also runs the fixed-rate (UDP) tests for jitter and lost packets (doubles the time per point); `false` (new surveys) TCP download and upload only |
 | `iperfCommands` | extra iperf3 options for any of `tcpDownload`, `tcpUpload`, `udpDownload`, `udpUpload`, one argument per item, e.g. `{ "udpUpload": ["-b", "500M"] }`; the others are kept |
 | `apMapping` | the whole list of `{ "apName", "macAddress" }`; a MAC address may end in `*` to match every BSSID that starts with it |
 | `radiusDivider` | heat spot radius in floor-plan pixels, or `null` for automatic |

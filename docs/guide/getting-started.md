@@ -47,7 +47,7 @@ survey. New surveys start with **Signal only**.
 | Setup | Nothing | iperf3 on two computers; one stays put, wired if possible |
 | Time per spot | About 2 s | About 6–10 s |
 | Tells you | Where coverage is weak | What speed you actually get; catches interference and slow links that look strong |
-| Limits | A strong signal is not always fast | A server on Wi-Fi roughly halves the result; the fixed-rate (UDP) test stops at 100 Mbps by default |
+| Limits | A strong signal is not always fast | A server on Wi-Fi roughly halves the result; the optional fixed-rate (UDP) test stops at 100 Mbps by default |
 
 Start with signal only to find the weak rooms. Add speed when you want to
 know whether the Wi-Fi is really what makes a connection slow, or to compare

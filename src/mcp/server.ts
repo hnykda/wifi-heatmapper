@@ -323,6 +323,8 @@ export function createMcpServer(client: AppClient, version: string): McpServer {
               "true: signal and speed (iperf3 throughput tests); false: signal only.",
             iperfServerAdrs:
               "The speed test (iperf3) server, used when measureSpeed is true.",
+            udpTests:
+              "true: each point also runs the fixed-rate (UDP) tests for jitter and lost packets; false: TCP download and upload only.",
             radiusDivider: `Heat spot radius in floor-plan pixels; null is automatic (currently ${radius}px${automatic ? ", automatic" : ""}).`,
             heatmapRanges:
               "Fixed colour scales per map, in display units (signal %, Mbps, ms, counts). Maps without one scale automatically.",
@@ -366,6 +368,12 @@ export function createMcpServer(client: AppClient, version: string): McpServer {
           .int()
           .optional()
           .describe("Seconds per iperf3 test, 1 to 60"),
+        udpTests: z
+          .boolean()
+          .optional()
+          .describe(
+            "true: also run the fixed-rate (UDP) download and upload tests, for jitter and lost packets (doubles the time per point); false: TCP download and upload only",
+          ),
         iperfCommands: z
           .object({
             tcpDownload: z.array(z.string()).optional(),

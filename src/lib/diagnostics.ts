@@ -66,6 +66,7 @@ export interface DiagnosticsInput {
     speedTests: boolean;
     iperfServer: string;
     testDuration: number;
+    udpTests?: boolean;
   } | null;
   lastMeasurement: {
     at: string;
@@ -144,7 +145,7 @@ export function buildDiagnostics(
     lines.push([
       "Measuring",
       survey.speedTests
-        ? `Signal and speed (server ${survey.iperfServer || "not set"}, ${survey.testDuration} s)`
+        ? `Signal and speed (server ${survey.iperfServer || "not set"}, ${survey.testDuration} s, ${survey.udpTests === false ? "TCP only" : "TCP and UDP"})`
         : "Signal only",
     ]);
     lines.push([

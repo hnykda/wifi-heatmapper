@@ -151,6 +151,20 @@ describe("signal and speed", () => {
     expect(done().fields?.mode).toBe("speed");
   });
 
+  test("udpTests false: TCP down and up only, UDP stays not measured", async () => {
+    const result = await runSurveyTests({
+      ...speed("nas.local"),
+      udpTests: false,
+    });
+    expect(result.warning).toBeUndefined();
+    expect(iperfRuns()).toHaveLength(2);
+    for (const c of iperfRuns()) expect(c).not.toContain(" -u");
+    expect(result.iperfData?.tcpUpload?.bitsPerSecond).toBeGreaterThan(0);
+    expect(result.iperfData?.udpDownload).toBeNull();
+    expect(result.iperfData?.udpUpload).toBeNull();
+    expect(done().fields).toMatchObject({ mode: "speed", udp: "Off" });
+  });
+
   test.each([
     ["[fe80::1]:5202", "-c fe80::1 -p 5202 "],
     ["fe80::1%en0", "-c fe80::1%en0 -t "],

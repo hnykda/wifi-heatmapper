@@ -58,18 +58,28 @@ test("with signal and speed, speed is measured too", async ({ page }) => {
   await expect(panel).toContainText("Measurement saved");
   await expect(panel).toHaveAttribute("data-mode", "speed");
   await expect(panel).toContainText("Download / upload");
+  // new surveys run TCP only
+  await expect(panel).not.toContainText("Fixed rate (UDP)");
 
-  const survey = await readSurvey(
-    page,
-    name,
-    (s) => s.surveyPoints.length === 1,
-  );
+  let survey = await readSurvey(page, name, (s) => s.surveyPoints.length === 1);
+  expect(survey.udpTests).toBe(false);
   expect(
     survey.surveyPoints[0].iperfData.tcpDownload.bitsPerSecond,
   ).toBeGreaterThan(0);
-  expect(
-    survey.surveyPoints[0].iperfData.udpUpload.bitsPerSecond,
-  ).toBeGreaterThan(0);
+  expect(survey.surveyPoints[0].iperfData.udpUpload).toBeNull();
+
+  // turning the UDP tests on adds jitter and lost packets
+  await gotoTab(page, "settings");
+  await page.getByTestId("udp-tests").click();
+  await readSurvey(page, name, (s) => s.udpTests === true);
+  await gotoTab(page, "floorplan");
+  await measureAt(page, 0.2, 0.2);
+  await expect(panel).toContainText("Fixed rate (UDP)");
+  survey = await readSurvey(page, name, (s) => s.surveyPoints.length === 2);
+  const second = survey.surveyPoints.find(
+    (p: { id: string }) => p.id !== survey.surveyPoints[0].id,
+  );
+  expect(second.iperfData.udpUpload.bitsPerSecond).toBeGreaterThan(0);
 });
 
 test("an unreachable speed test server still records the signal, with a warning", async ({
