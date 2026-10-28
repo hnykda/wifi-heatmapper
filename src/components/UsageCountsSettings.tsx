@@ -98,10 +98,11 @@ export function UsageCountsSettings() {
           <p className="max-w-[70ch] text-sm text-muted-foreground">
             A measurement sends exactly this. Install (once) and App start (at
             most once a day) send the same without{" "}
-            <code className={code}>mode</code> and{" "}
-            <code className={code}>speed_ok</code>. The install id is a random
-            id made on this computer; it is only in the User-Agent header, which
-            the server uses to count each install once a day and does not store.
+            <code className={code}>speed_test</code>, which only says whether
+            this survey runs speed tests, never what they measured. The install
+            id is a random id made on this computer; it is only in the
+            User-Agent header, which the server uses to count each install once
+            a day and does not store.
           </p>
           <pre
             className="max-h-80 overflow-auto whitespace-pre-wrap break-all rounded-md border bg-muted/40 p-3 font-mono text-xs"

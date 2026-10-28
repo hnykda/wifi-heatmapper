@@ -2,6 +2,16 @@
 
 _This section follows the precepts of [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) so that future readers can understand the state and evolution of the project._
 
+## Unreleased
+
+### Changed
+
+* **Usage counts send less.** A `Measurement` event now carries only
+  `speed_test` (`on` or `off`: whether the survey runs iperf3 speed tests)
+  instead of `mode` and `speed_ok`, so it no longer says whether a speed
+  test worked. No measured value (signal, speed, noise) was or is ever sent;
+  [Privacy and usage counts](docs/guide/privacy.md) now says so plainly.
+
 ## Version 0.8.1 - 2026-10-28
 
 ### Added

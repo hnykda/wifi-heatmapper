@@ -10,8 +10,8 @@
  *
  *   props: version, os (macos | windows | linux | other), arch,
  *          runs_as (desktop | docker | podman | browser);
- *          Measurement also mode (signal | speed) and
- *          speed_ok (yes | no | skipped)
+ *          Measurement also speed_test (on | off): whether the
+ *          survey runs iperf3 speed tests. Never any measured value.
  *
  * buildEvent() is the only place an event body is made, from fixed fields:
  * no survey data (network names, addresses, results, file names) ever
@@ -96,8 +96,8 @@ export interface Facts {
 }
 
 export interface MeasurementProps {
-  mode: "signal" | "speed";
-  speed_ok: "yes" | "no" | "skipped";
+  /** whether the survey runs speed tests (iperf3); never a result */
+  speed_test: "on" | "off";
 }
 
 export interface PlausibleEvent {
@@ -159,7 +159,7 @@ export function buildEvent(
     domain,
     props:
       name === "Measurement" && measurement
-        ? { ...base, mode: measurement.mode, speed_ok: measurement.speed_ok }
+        ? { ...base, speed_test: measurement.speed_test }
         : base,
   };
 }
@@ -329,14 +329,13 @@ export async function reportAppStart(
 
 /** A measurement point was saved. Fire and forget. */
 export function reportMeasurement(
-  { speedTests, speedSaved }: { speedTests: boolean; speedSaved: boolean },
+  { speedTests }: { speedTests: boolean },
   env: Env = process.env,
 ): void {
   void send(
     "Measurement",
     {
-      mode: speedTests ? "speed" : "signal",
-      speed_ok: !speedTests ? "skipped" : speedSaved ? "yes" : "no",
+      speed_test: speedTests ? "on" : "off",
     },
     env,
   );
@@ -384,8 +383,7 @@ export async function usageCountsInfo(
         "Content-Type": "application/json",
       },
       body: buildEvent("Measurement", facts, eventDomain(env), {
-        mode: "speed",
-        speed_ok: "yes",
+        speed_test: "on",
       }),
     },
   };

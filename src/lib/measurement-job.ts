@@ -338,7 +338,7 @@ async function run(job: Job, settings: PartialHeatmapSettings, runner: Runner) {
     speedTests,
     ...(warning ? { note: `Saved without speed: ${warning}` } : {}),
   });
-  reportMeasurement({ speedTests, speedSaved: !warning }); // if on; background
+  reportMeasurement({ speedTests }); // if on; background
   finish(job, "done", { pointId, ...(warning ? { warning } : {}) }, fields);
 }
 
