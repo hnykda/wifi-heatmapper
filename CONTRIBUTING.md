@@ -36,7 +36,9 @@ Node 20 or newer is required (CI runs on 22).
 
 The first `npm run e2e` needs a browser: `npx playwright install chromium`.
 The e2e server uses port 3100 and its own build directory, so it can run
-while `npm run dev` is up.
+while `npm run dev` is up. A server already listening on that port is reused,
+so when running e2e in two checkouts at once give each its own port:
+`E2E_PORT=3101 npm run e2e`.
 
 Set `LOG_LEVEL=2` (debug) or `LOG_LEVEL=1` (trace) to see every command the
 server runs and its output. Bug reports should include that log.
