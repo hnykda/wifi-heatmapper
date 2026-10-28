@@ -12,8 +12,9 @@ around with a laptop; the heat maps show which rooms have a weak signal, where
 a mesh node or extender would help, and whether a slow connection is really
 the Wi-Fi's fault.
 
-It runs on macOS, Windows and Linux. Everything stays on your computer:
-surveys are plain JSON files, there is no account and no cloud.
+It runs on macOS, Windows and Linux. Your surveys stay on your computer:
+they are plain JSON files, there is no account and no cloud. The app sends
+only [anonymous usage counts](privacy.md), which you can turn off.
 
 ## Install
 

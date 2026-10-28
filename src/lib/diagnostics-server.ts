@@ -7,6 +7,7 @@ import { getAppStatus } from "./app-info";
 import { findOnPath } from "./server-utils";
 import * as surveyStore from "./survey-store";
 import { knownSecrets, recentLogLines } from "./logger";
+import { usageCountsSummary } from "./telemetry";
 import {
   lastMeasurement,
   lastWifiMethod,
@@ -120,6 +121,7 @@ export async function collectDiagnostics(
       runMode: runMode(status),
       mockMode: status.mockMode,
       dataDir: status.dataDir,
+      usageCounts: await usageCountsSummary(),
     },
     wifi: {
       method: method?.method ?? null,

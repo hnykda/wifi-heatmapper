@@ -59,7 +59,7 @@ export function AboutDialog() {
           <DialogTitle>Wi-Fi Heatmapper</DialogTitle>
           <DialogDescription>
             Measures Wi-Fi signal strength, and optionally speed, where you
-            stand, and draws heat maps on your floor plan. Everything stays on
+            stand, and draws heat maps on your floor plan. Your surveys stay on
             this computer.
           </DialogDescription>
         </DialogHeader>

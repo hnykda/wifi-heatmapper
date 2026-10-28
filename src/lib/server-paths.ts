@@ -5,6 +5,8 @@
  *
  *   data/surveys/<floorplan>.json   survey points + settings per floor plan
  *   data/media/<floorplan image>    uploaded floor plan images
+ *   data/usage-counts.json          this computer's usage counts setting and
+ *                                   random install id (telemetry.ts)
  *
  * Set WIFI_HEATMAPPER_DATA_DIR to move the whole directory (used by the
  * e2e tests so they never touch a developer's real surveys).
@@ -29,6 +31,14 @@ export function getSurveysDir(): string {
 
 export function getMediaDir(): string {
   return path.join(getDataDir(), "media");
+}
+
+/**
+ * This computer's usage counts state: the on/off setting, the random
+ * install id and when an event was last sent. Not part of any survey.
+ */
+export function getUsageCountsPath(): string {
+  return path.join(getDataDir(), "usage-counts.json");
 }
 
 /** Where the files that ship with the app live (read-only). */

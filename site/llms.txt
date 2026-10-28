@@ -1,6 +1,6 @@
 # Wi-Fi Heatmapper
 
-> Free, open-source (MIT) desktop app for macOS, Windows and Linux that measures Wi-Fi signal strength, and optionally real speed (TCP/UDP throughput measured with iperf3), at the spot you click on a floor plan, then draws heat maps of the results. Everything stays on the user's computer. Current version: {{VERSION}}.
+> Free, open-source (MIT) desktop app for macOS, Windows and Linux that measures Wi-Fi signal strength, and optionally real speed (TCP/UDP throughput measured with iperf3), at the spot you click on a floor plan, then draws heat maps of the results. Surveys stay on the user's computer; the app sends only anonymous usage counts (installs, app starts, number of measurements), which can be turned off (see the Privacy and usage counts page). Current version: {{VERSION}}.
 
 Source code, issues and releases: https://github.com/hnykda/wifi-heatmapper (repository name `hnykda/wifi-heatmapper`). The documentation is Markdown in that repository (`docs/guide/`), published as HTML at https://wifi-heatmapper.danielalder.cz/docs/<page> with a Markdown copy at /docs/<page>.md, the links below. https://wifi-heatmapper.danielalder.cz/llms-full.txt contains the whole guide in one file.
 
@@ -11,6 +11,7 @@ Key facts:
 - Signal is read with CoreWLAN through a bundled helper on macOS (Location access needed to see the network name), the Native Wifi API (`wlanapi.dll`) on Windows, and `iw` on Linux. Each survey is either "Signal only" (the default, nothing to set up) or "Signal and speed", which needs `iperf3` on this computer and `iperf3 -s` on another computer on the network, ideally wired. If iperf3 is missing or the server cannot be reached, the signal is still saved, with a warning.
 - Workflow: Settings (floor plan, what to measure, speed test server) -> Floor plan (click where you stand to measure) -> Heat maps (adjust radius, fixed colour scales, download PNG) -> Survey points (table, CSV export).
 - Data: one JSON file per floor plan. In the desktop app under the OS's app data folder (see Installing the app); from source in `data/` (override with `WIFI_HEATMAPPER_DATA_DIR`).
+- Usage counts: the app's server sends anonymous events (Install, App start at most once a day, Measurement) with version, os, arch, runs_as and, for measurements, mode and speed_ok to the developer's self-hosted Plausible. No network names, addresses, results or file names. Off with Settings > Usage counts, `WIFI_HEATMAPPER_TELEMETRY=0` or `DO_NOT_TRACK=1`; always off in mock mode, `npm run dev` and CI.
 - Bug reports: in the app, the help button (bottom right) > "Report a problem" prefills https://github.com/hnykda/wifi-heatmapper/issues/new?template=bug_report.yml with redacted diagnostics; the MCP tool `report_problem` does the same.
 
 ## Docs

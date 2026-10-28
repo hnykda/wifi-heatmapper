@@ -62,7 +62,9 @@ docker run --net=host --privileged \
 
 Surveys and floor plans are kept in `./datas` on the host. NetworkManager
 inside the container talks to the host over D-Bus, hence the second mount.
-No sudo password is needed in Docker.
+No sudo password is needed in Docker. The app sends
+[anonymous usage counts](privacy.md); add `-e WIFI_HEATMAPPER_TELEMETRY=0`
+to turn them off.
 
 The app only answers requests addressed to `localhost`, an IP address, a
 one-word host name (`nas`) or a local name (`nas.local`, `.lan`,

@@ -38,6 +38,18 @@ _This section follows the precepts of [Keep a Changelog](https://keepachangelog.
   can use it. `update_settings` and `copy_settings` now accept the same
   speed settings as the app, and a speed test server must be a valid host
   name, IP address or `host:port`. See [the MCP guide](docs/guide/mcp.md).
+* **Anonymous usage counts, on by default.** The app's server (never the
+  browser) now sends three kinds of event to the developer's self-hosted
+  Plausible: `Install` (once), `App start` (at most once a day) and
+  `Measurement` (one per saved point), with the app version, OS, processor
+  type, how the app runs and, for measurements, signal only or speed and
+  whether speed worked. Never network names, addresses, results, file names
+  or anything from a survey; Plausible doesn't store IP addresses. A notice
+  says so the first time the app runs. Turn them off in **Settings > Usage
+  counts**, with `WIFI_HEATMAPPER_TELEMETRY=0` or with `DO_NOT_TRACK=1`;
+  they are always off in mock mode, `npm run dev` and CI. Bug reports say
+  whether they are on. Every field is listed in
+  [Privacy and usage counts](docs/guide/privacy.md).
 * **Set up a second floor plan in fewer steps.** A new survey starts with
   the speed settings (what to measure, speed test server, test duration,
   iperf3 commands) of the survey saved last, instead of the defaults, and
