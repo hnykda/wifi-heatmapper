@@ -1,11 +1,5 @@
 "use client";
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import React, { useEffect, useEffectEvent, useRef, useState } from "react";
 import { FlaskConical, MousePointerClick } from "lucide-react";
 
 import { useSettings } from "./GlobalSettings";
@@ -19,7 +13,7 @@ import {
   getDefaultIperfResults,
   percentageToRssi,
 } from "@/lib/utils";
-import { SurveyPoint } from "@/lib/types";
+import { Gradient, SurveyPoint } from "@/lib/types";
 import { useMeasurement } from "@/hooks/useMeasurement";
 import { cn } from "@/lib/utils";
 
@@ -41,6 +35,67 @@ function markerSizes(imageWidth: number, scale: number) {
   };
 }
 
+/** Draw one point's marker and label on the floor plan canvas. */
+function drawPoint(
+  ctx: CanvasRenderingContext2D,
+  point: SurveyPoint,
+  W: number,
+  scale: number,
+  selected: boolean,
+  gradient: Gradient,
+) {
+  const { R, font, labelOffset, pad } = markerSizes(W, scale);
+  const wifi = point.wifiData;
+  if (!wifi) return;
+
+  ctx.save();
+  // marker
+  ctx.beginPath();
+  ctx.arc(point.x, point.y, R, 0, Math.PI * 2);
+  ctx.fillStyle = point.isEnabled
+    ? objectToRGBAString({
+        ...getColorAt(wifi.signalStrength / 100, gradient),
+        a: 1,
+      })
+    : "rgba(160, 165, 175, 0.9)";
+  ctx.fill();
+  ctx.lineWidth = Math.max(1, R * 0.18);
+  ctx.strokeStyle = "rgba(20, 24, 33, 0.65)";
+  if (!point.isEnabled) ctx.setLineDash([R * 0.6, R * 0.5]);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  if (selected) {
+    ctx.beginPath();
+    ctx.arc(point.x, point.y, R + Math.max(3, R * 0.5), 0, Math.PI * 2);
+    ctx.lineWidth = Math.max(2, R * 0.25);
+    ctx.strokeStyle = "hsl(252 56% 57%)";
+    ctx.stroke();
+  }
+
+  // label
+  const text = `${wifi.signalStrength}%`;
+  ctx.font = `600 ${font}px ui-sans-serif, system-ui, sans-serif`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "top";
+  const w = ctx.measureText(text).width + pad * 2;
+  const h = font * 1.25 + pad * 2;
+  const x = point.x - w / 2;
+  const y = point.y + labelOffset;
+  ctx.fillStyle = "rgba(255, 255, 255, 0.85)";
+  ctx.beginPath();
+  ctx.roundRect(x, y, w, h, pad);
+  ctx.fill();
+  ctx.fillStyle = point.isEnabled ? "#14181f" : "#6b7280";
+  ctx.fillText(text, point.x, y + pad);
+  ctx.restore();
+}
+
+type LoadedImage = {
+  path: string;
+  img: HTMLImageElement | null;
+  error: string | null;
+};
+
 export default function ClickableFloorplan() {
   const {
     settings,
@@ -51,18 +106,29 @@ export default function ClickableFloorplan() {
   } = useSettings();
   const status = useAppStatus();
 
-  const [image, setImage] = useState<HTMLImageElement | null>(null);
-  const [imageError, setImageError] = useState<string | null>(null);
+  // The image and the selected point belong to one floor plan: a new path
+  // shows neither until its own image has loaded.
+  const path = settings.floorplanImagePath;
+  const [loaded, setLoaded] = useState<LoadedImage | null>(null);
+  const image = loaded?.path === path ? loaded.img : null;
+  const imageError = loaded?.path === path ? loaded.error : null;
+  const [selection, setSelection] = useState<{
+    path: string;
+    id: string;
+  } | null>(null);
+  const selectedId = selection?.path === path ? selection.id : null;
+  const setSelectedId = (id: string | null) =>
+    setSelection(id === null ? null : { path, id });
+  const selectedPoint =
+    settings.surveyPoints.find((p) => p.id === selectedId) ?? null;
+
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [scale, setScale] = useState(1);
+  // The container's size in CSS px, kept up to date by a ResizeObserver
+  const [box, setBox] = useState({ width: 0, height: 0 });
+  // CSS px per image px
+  const scale = image && box.width ? box.width / image.naturalWidth : 1;
   const [hoveringPoint, setHoveringPoint] = useState(false);
-
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const selectedPoint = useMemo(
-    () => settings.surveyPoints.find((p) => p.id === selectedId) ?? null,
-    [settings.surveyPoints, selectedId],
-  );
 
   // The server measures and saves the point; reload the survey to show it
   const measurement = useMeasurement(
@@ -78,96 +144,52 @@ export default function ClickableFloorplan() {
 
   /* ---------- image ---------- */
 
+  // Effect events: they read the latest settings, but only a new floor plan
+  // path loads an image. The survey gets the image's real size if it differs.
+  const imageLoaded = useEffectEvent((src: string, img: HTMLImageElement) => {
+    setLoaded({ path: src, img, error: null });
+    if (
+      img.naturalWidth !== settings.dimensions.width ||
+      img.naturalHeight !== settings.dimensions.height
+    ) {
+      updateSettings({
+        dimensions: { width: img.naturalWidth, height: img.naturalHeight },
+      });
+    }
+  });
+  const imageFailed = useEffectEvent((src: string) =>
+    setLoaded({
+      path: src,
+      img: null,
+      error: `The floor plan "${settings.floorplanImageName}" could not be loaded. Pick another one in Settings.`,
+    }),
+  );
+
   useEffect(() => {
-    setImage(null);
-    setImageError(null);
-    setSelectedId(null);
-    if (!settings.floorplanImagePath) return;
+    if (!path) return;
     const img = new Image();
-    img.onload = () => {
-      setImage(img);
-      if (
-        img.naturalWidth !== settings.dimensions.width ||
-        img.naturalHeight !== settings.dimensions.height
-      ) {
-        updateSettings({
-          dimensions: { width: img.naturalWidth, height: img.naturalHeight },
-        });
-      }
+    img.onload = () => imageLoaded(path, img);
+    img.onerror = () => imageFailed(path);
+    img.src = path;
+    return () => {
+      img.onload = null;
+      img.onerror = null;
     };
-    img.onerror = () =>
-      setImageError(
-        `The floor plan "${settings.floorplanImageName}" could not be loaded. Pick another one in Settings.`,
-      );
-    img.src = settings.floorplanImagePath;
-    // dimensions are written by this effect, not read from settings
-    // oxlint-disable-next-line react/exhaustive-deps
-  }, [settings.floorplanImagePath]);
+  }, [path]);
 
   /* ---------- scale to container ---------- */
 
   useEffect(() => {
     const el = containerRef.current;
-    if (!el || !image) return;
-    const update = () => setScale(el.clientWidth / image.naturalWidth);
-    update();
-    const ro = new ResizeObserver(update);
+    if (!el) return;
+    const ro = new ResizeObserver(() =>
+      setBox({ width: el.clientWidth, height: el.clientHeight }),
+    );
     ro.observe(el);
     return () => ro.disconnect();
-  }, [image]);
+  }, []);
 
   /* ---------- drawing ---------- */
-
-  const drawPoint = useCallback(
-    (ctx: CanvasRenderingContext2D, point: SurveyPoint, W: number) => {
-      const { R, font, labelOffset, pad } = markerSizes(W, scale);
-      const wifi = point.wifiData;
-      if (!wifi) return;
-      const selected = point.id === selectedId;
-
-      ctx.save();
-      // marker
-      ctx.beginPath();
-      ctx.arc(point.x, point.y, R, 0, Math.PI * 2);
-      ctx.fillStyle = point.isEnabled
-        ? objectToRGBAString({
-            ...getColorAt(wifi.signalStrength / 100, settings.gradient),
-            a: 1,
-          })
-        : "rgba(160, 165, 175, 0.9)";
-      ctx.fill();
-      ctx.lineWidth = Math.max(1, R * 0.18);
-      ctx.strokeStyle = "rgba(20, 24, 33, 0.65)";
-      if (!point.isEnabled) ctx.setLineDash([R * 0.6, R * 0.5]);
-      ctx.stroke();
-      ctx.setLineDash([]);
-      if (selected) {
-        ctx.beginPath();
-        ctx.arc(point.x, point.y, R + Math.max(3, R * 0.5), 0, Math.PI * 2);
-        ctx.lineWidth = Math.max(2, R * 0.25);
-        ctx.strokeStyle = "hsl(252 56% 57%)";
-        ctx.stroke();
-      }
-
-      // label
-      const text = `${wifi.signalStrength}%`;
-      ctx.font = `600 ${font}px ui-sans-serif, system-ui, sans-serif`;
-      ctx.textAlign = "center";
-      ctx.textBaseline = "top";
-      const w = ctx.measureText(text).width + pad * 2;
-      const h = font * 1.25 + pad * 2;
-      const x = point.x - w / 2;
-      const y = point.y + labelOffset;
-      ctx.fillStyle = "rgba(255, 255, 255, 0.85)";
-      ctx.beginPath();
-      ctx.roundRect(x, y, w, h, pad);
-      ctx.fill();
-      ctx.fillStyle = point.isEnabled ? "#14181f" : "#6b7280";
-      ctx.fillText(text, point.x, y + pad);
-      ctx.restore();
-    },
-    [selectedId, settings.gradient, scale],
-  );
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -178,8 +200,17 @@ export default function ClickableFloorplan() {
     canvas.height = image.naturalHeight;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.drawImage(image, 0, 0);
-    for (const p of settings.surveyPoints) drawPoint(ctx, p, canvas.width);
-  }, [image, settings.surveyPoints, drawPoint]);
+    for (const p of settings.surveyPoints) {
+      drawPoint(
+        ctx,
+        p,
+        canvas.width,
+        scale,
+        p.id === selectedId,
+        settings.gradient,
+      );
+    }
+  }, [image, settings.surveyPoints, scale, selectedId, settings.gradient]);
 
   /* ---------- hit testing ---------- */
 
@@ -215,7 +246,7 @@ export default function ClickableFloorplan() {
     const pt = toImageCoords(e);
     const hit = hitTest(pt);
     if (hit) {
-      setSelectedId((cur) => (cur === hit.id ? null : hit.id));
+      setSelectedId(selectedId === hit.id ? null : hit.id);
       return;
     }
     if (selectedPoint) {
@@ -292,10 +323,10 @@ export default function ClickableFloorplan() {
 
   /* ---------- popup placement ---------- */
 
-  const popupStyle = useMemo((): React.CSSProperties => {
-    if (!selectedPoint || !containerRef.current) return {};
-    const cw = containerRef.current.clientWidth;
-    const ch = containerRef.current.clientHeight;
+  const popupStyle = ((): React.CSSProperties => {
+    if (!selectedPoint) return {};
+    const cw = box.width;
+    const ch = box.height;
     const px = selectedPoint.x * scale;
     const py = selectedPoint.y * scale;
     const POPUP_W = 288; // w-72
@@ -306,7 +337,7 @@ export default function ClickableFloorplan() {
       left: flipX ? px - GAP - POPUP_W : px + GAP,
       top,
     };
-  }, [selectedPoint, scale]);
+  })();
 
   /* ---------- render ---------- */
 

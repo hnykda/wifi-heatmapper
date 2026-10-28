@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import { Moon, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -13,24 +13,36 @@ function systemPrefersDark(): boolean {
  * Light / dark switch. The saved choice is applied before first paint by
  * the inline script in layout.tsx; this component just mirrors and toggles it.
  */
-export function ThemeToggle() {
-  const [dark, setDark] = useState<boolean | null>(null);
+function rememberTheme(dark: boolean) {
+  try {
+    // If the choice matches the OS, forget it so the app keeps following the OS.
+    if (dark === systemPrefersDark()) localStorage.removeItem(STORAGE_KEY);
+    else localStorage.setItem(STORAGE_KEY, dark ? "dark" : "light");
+  } catch {
+    // storage unavailable: the toggle still works for this page
+  }
+}
 
-  useEffect(() => {
-    setDark(document.documentElement.classList.contains("dark"));
-  }, []);
+/** The .dark class on <html>, as a store React can subscribe to. */
+function subscribeToTheme(onChange: () => void) {
+  const observer = new MutationObserver(onChange);
+  observer.observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ["class"],
+  });
+  return () => observer.disconnect();
+}
+const isDark = () => document.documentElement.classList.contains("dark");
+// Unknown while rendering on the server: the button shows no icon yet
+const unknownOnServer = () => null;
+
+export function ThemeToggle() {
+  const dark = useSyncExternalStore(subscribeToTheme, isDark, unknownOnServer);
 
   const toggle = () => {
-    const next = !document.documentElement.classList.contains("dark");
+    const next = !isDark();
     document.documentElement.classList.toggle("dark", next);
-    try {
-      // If the choice matches the OS, forget it so the app keeps following the OS.
-      if (next === systemPrefersDark()) localStorage.removeItem(STORAGE_KEY);
-      else localStorage.setItem(STORAGE_KEY, next ? "dark" : "light");
-    } catch {
-      // storage unavailable: the toggle still works for this page
-    }
-    setDark(next);
+    rememberTheme(next);
   };
 
   return (

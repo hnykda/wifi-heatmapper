@@ -15,6 +15,12 @@ const nextConfig = {
   // from node_modules at runtime instead of bundling it, so the standalone
   // tracer copies it (and its prebuilt .node binaries) into the output.
   serverExternalPackages: ["koffi"],
+  // React Compiler: memoizes components and hooks, so code doesn't need
+  // useMemo/useCallback for speed. all_errors makes the build fail when the
+  // compiler has to skip a component (unsupported syntax, a rule of React
+  // broken) instead of quietly leaving it unoptimized; fix the code, or add
+  // "use no memo" to that component with a comment saying why.
+  reactCompiler: { panicThreshold: "all_errors" },
   // The e2e scripts build into .next-e2e so they can run next to `npm run dev`.
   distDir: process.env.NEXT_DIST_DIR || ".next",
 };

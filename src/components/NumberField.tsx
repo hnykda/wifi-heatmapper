@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Input, InputProps } from "@/components/ui/input";
 
 type NumberFieldProps = Omit<InputProps, "value" | "onChange" | "type"> & {
@@ -24,9 +24,11 @@ export function NumberField({
   const [draft, setDraft] = useState(String(value));
 
   // Follow external changes (e.g. loading another floor plan)
-  useEffect(() => {
-    setDraft((d) => (parseFloat(d) === value ? d : String(value)));
-  }, [value]);
+  const [shown, setShown] = useState(value);
+  if (value !== shown) {
+    setShown(value);
+    if (parseFloat(draft) !== value) setDraft(String(value));
+  }
 
   const commit = (text: string) => {
     setDraft(text);

@@ -1,5 +1,5 @@
 "use client";
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useState } from "react";
 import {
   useTable,
   tableFeatures,
@@ -140,7 +140,7 @@ const SurveyPointsTable: React.FC<SurveyPointsTableProps> = ({
 }) => {
   const { settings } = useSettings();
   // Speed columns would be empty: leave them out until a point has speed
-  const hasSpeed = useMemo(() => data.some(hasSpeedData), [data]);
+  const hasSpeed = data.some(hasSpeedData);
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const [globalFilter, setGlobalFilter] = useState("");
   const [sorting, setSorting] = useState<SortingState>([]);
@@ -161,173 +161,159 @@ const SurveyPointsTable: React.FC<SurveyPointsTableProps> = ({
       udpUploadMbps: false,
     });
 
-  const rows: Row[] = useMemo(
-    () =>
-      data.map((point) => ({
-        origPoint: point,
-        id: point.id,
-        x: point.x,
-        y: point.y,
-        ssid: point.wifiData.ssid,
-        bssid: point.wifiData.bssid,
-        accessPoint: apNameFor(point.wifiData.bssid, apMapping) ?? "",
-        rssi: point.wifiData.rssi,
-        noise: validNoise(point.wifiData.noise),
-        snr: snrOf(point.wifiData),
-        signalQuality:
-          point.wifiData.signalStrength ||
-          rssiToPercentage(point.wifiData.rssi),
-        channel: point.wifiData.channel,
-        security: point.wifiData.security,
-        txRate: point.wifiData.txRate,
-        phyMode: point.wifiData.phyMode,
-        channelWidth: point.wifiData.channelWidth,
-        band: point.wifiData.band ? `${point.wifiData.band} GHz` : "",
-        tcpDownloadMbps: toMbps(point.iperfData.tcpDownload.bitsPerSecond),
-        tcpUploadMbps: toMbps(point.iperfData.tcpUpload.bitsPerSecond),
-        udpDownloadMbps: toMbps(point.iperfData.udpDownload.bitsPerSecond),
-        udpUploadMbps: toMbps(point.iperfData.udpUpload.bitsPerSecond),
-        timestamp: point.timestamp,
-        isEnabled: point.isEnabled,
-      })),
-    [data, apMapping],
-  );
+  const rows: Row[] = data.map((point) => ({
+    origPoint: point,
+    id: point.id,
+    x: point.x,
+    y: point.y,
+    ssid: point.wifiData.ssid,
+    bssid: point.wifiData.bssid,
+    accessPoint: apNameFor(point.wifiData.bssid, apMapping) ?? "",
+    rssi: point.wifiData.rssi,
+    noise: validNoise(point.wifiData.noise),
+    snr: snrOf(point.wifiData),
+    signalQuality:
+      point.wifiData.signalStrength || rssiToPercentage(point.wifiData.rssi),
+    channel: point.wifiData.channel,
+    security: point.wifiData.security,
+    txRate: point.wifiData.txRate,
+    phyMode: point.wifiData.phyMode,
+    channelWidth: point.wifiData.channelWidth,
+    band: point.wifiData.band ? `${point.wifiData.band} GHz` : "",
+    tcpDownloadMbps: toMbps(point.iperfData.tcpDownload.bitsPerSecond),
+    tcpUploadMbps: toMbps(point.iperfData.tcpUpload.bitsPerSecond),
+    udpDownloadMbps: toMbps(point.iperfData.udpDownload.bitsPerSecond),
+    udpUploadMbps: toMbps(point.iperfData.udpUpload.bitsPerSecond),
+    timestamp: point.timestamp,
+    isEnabled: point.isEnabled,
+  }));
 
   const update = surveyPointActions.update;
-  const allColumns: ColumnDef<typeof features, Row>[] = useMemo(
-    () => [
-      {
-        id: "select",
-        header: ({ table }) => (
-          <Checkbox
-            checked={
-              table.getIsAllPageRowsSelected() ||
-              // v9: "some" includes "all", hence the second check
-              (table.getIsSomePageRowsSelected() &&
-                !table.getIsAllPageRowsSelected() &&
-                "indeterminate")
-            }
-            onCheckedChange={(v) => table.toggleAllPageRowsSelected(!!v)}
-            aria-label="Select all rows on this page"
+  const allColumns: ColumnDef<typeof features, Row>[] = [
+    {
+      id: "select",
+      header: ({ table }) => (
+        <Checkbox
+          checked={
+            table.getIsAllPageRowsSelected() ||
+            // v9: "some" includes "all", hence the second check
+            (table.getIsSomePageRowsSelected() &&
+              !table.getIsAllPageRowsSelected() &&
+              "indeterminate")
+          }
+          onCheckedChange={(v) => table.toggleAllPageRowsSelected(!!v)}
+          aria-label="Select all rows on this page"
+        />
+      ),
+      cell: ({ row }) => (
+        <Checkbox
+          checked={row.getIsSelected()}
+          onCheckedChange={(v) => row.toggleSelected(!!v)}
+          aria-label={`Select ${row.original.id}`}
+        />
+      ),
+      enableSorting: false,
+      enableHiding: false,
+    },
+    { accessorKey: "id", header: "Point", meta: { align: "left" } },
+    {
+      id: "enabled",
+      accessorKey: "isEnabled",
+      header: "Used",
+      cell: ({ row }) => (
+        <Switch
+          checked={row.original.isEnabled}
+          onCheckedChange={(v) =>
+            update(row.original.origPoint, { isEnabled: v })
+          }
+          aria-label={`Use ${row.original.id} in heat maps`}
+        />
+      ),
+    },
+    {
+      accessorKey: "signalQuality",
+      header: "Signal %",
+      cell: ({ row, getValue }) => (
+        <span className="inline-flex items-center gap-2">
+          <span
+            className="h-2.5 w-2.5 rounded-full border border-black/15"
+            style={{
+              background: signalColor(getValue<number>(), settings.gradient),
+            }}
           />
-        ),
-        cell: ({ row }) => (
-          <Checkbox
-            checked={row.getIsSelected()}
-            onCheckedChange={(v) => row.toggleSelected(!!v)}
-            aria-label={`Select ${row.original.id}`}
-          />
-        ),
-        enableSorting: false,
-        enableHiding: false,
-      },
-      { accessorKey: "id", header: "Point", meta: { align: "left" } },
-      {
-        id: "enabled",
-        accessorKey: "isEnabled",
-        header: "Used",
-        cell: ({ row }) => (
-          <Switch
-            checked={row.original.isEnabled}
-            onCheckedChange={(v) =>
-              update(row.original.origPoint, { isEnabled: v })
-            }
-            aria-label={`Use ${row.original.id} in heat maps`}
-          />
-        ),
-      },
-      {
-        accessorKey: "signalQuality",
-        header: "Signal %",
-        cell: ({ row, getValue }) => (
-          <span className="inline-flex items-center gap-2">
-            <span
-              className="h-2.5 w-2.5 rounded-full border border-black/15"
-              style={{
-                background: signalColor(getValue<number>(), settings.gradient),
-              }}
-            />
-            {getValue<number>()}
-            {!row.original.isEnabled && (
-              <span className="sr-only"> (ignored)</span>
-            )}
+          {getValue<number>()}
+          {!row.original.isEnabled && (
+            <span className="sr-only"> (ignored)</span>
+          )}
+        </span>
+      ),
+    },
+    { accessorKey: "rssi", header: "Signal dBm" },
+    {
+      accessorKey: "noise",
+      header: "Noise dBm",
+      cell: ({ getValue }) => getValue<number | null>() ?? "—",
+    },
+    {
+      accessorKey: "snr",
+      header: "SNR dB",
+      cell: ({ getValue }) => getValue<number | null>() ?? "—",
+    },
+    { accessorKey: "band", header: "Band" },
+    { accessorKey: "channel", header: "Channel" },
+    {
+      accessorKey: "accessPoint",
+      header: "Access point",
+      meta: { align: "left" },
+      cell: ({ row }) =>
+        row.original.accessPoint ||
+        (row.original.bssid ? (
+          <span className="font-mono text-xs text-muted-foreground">
+            {formatMacAddress(row.original.bssid)}
           </span>
-        ),
-      },
-      { accessorKey: "rssi", header: "Signal dBm" },
-      {
-        accessorKey: "noise",
-        header: "Noise dBm",
-        cell: ({ getValue }) => getValue<number | null>() ?? "—",
-      },
-      {
-        accessorKey: "snr",
-        header: "SNR dB",
-        cell: ({ getValue }) => getValue<number | null>() ?? "—",
-      },
-      { accessorKey: "band", header: "Band" },
-      { accessorKey: "channel", header: "Channel" },
-      {
-        accessorKey: "accessPoint",
-        header: "Access point",
-        meta: { align: "left" },
-        cell: ({ row }) =>
-          row.original.accessPoint ||
-          (row.original.bssid ? (
-            <span className="font-mono text-xs text-muted-foreground">
-              {formatMacAddress(row.original.bssid)}
-            </span>
-          ) : (
-            ""
-          )),
-      },
-      { accessorKey: "ssid", header: "Network", meta: { align: "left" } },
-      {
-        accessorKey: "tcpDownloadMbps",
-        header: "Download Mbps",
-        cell: ({ getValue }) => mbps(getValue<number>()),
-      },
-      {
-        accessorKey: "tcpUploadMbps",
-        header: "Upload Mbps",
-        cell: ({ getValue }) => mbps(getValue<number>()),
-      },
-      {
-        accessorKey: "udpDownloadMbps",
-        header: "UDP download Mbps",
-        cell: ({ getValue }) => mbps(getValue<number>()),
-      },
-      {
-        accessorKey: "udpUploadMbps",
-        header: "UDP upload Mbps",
-        cell: ({ getValue }) => mbps(getValue<number>()),
-      },
-      { accessorKey: "security", header: "Security", meta: { align: "left" } },
-      { accessorKey: "txRate", header: "TX rate" },
-      { accessorKey: "phyMode", header: "Wi-Fi standard" },
-      { accessorKey: "channelWidth", header: "Width MHz" },
-      { accessorKey: "x", header: "X" },
-      { accessorKey: "y", header: "Y" },
-      {
-        accessorKey: "timestamp",
-        header: "Measured",
-        cell: ({ getValue }) => new Date(getValue<number>()).toLocaleString(),
-      },
-    ],
-    [update, settings.gradient],
-  );
-  const columns = useMemo(
-    () =>
-      hasSpeed
-        ? allColumns
-        : allColumns.filter(
-            (c) =>
-              !SPEED_COLUMNS.has(
-                (c as { accessorKey?: string }).accessorKey ?? "",
-              ),
-          ),
-    [allColumns, hasSpeed],
-  );
+        ) : (
+          ""
+        )),
+    },
+    { accessorKey: "ssid", header: "Network", meta: { align: "left" } },
+    {
+      accessorKey: "tcpDownloadMbps",
+      header: "Download Mbps",
+      cell: ({ getValue }) => mbps(getValue<number>()),
+    },
+    {
+      accessorKey: "tcpUploadMbps",
+      header: "Upload Mbps",
+      cell: ({ getValue }) => mbps(getValue<number>()),
+    },
+    {
+      accessorKey: "udpDownloadMbps",
+      header: "UDP download Mbps",
+      cell: ({ getValue }) => mbps(getValue<number>()),
+    },
+    {
+      accessorKey: "udpUploadMbps",
+      header: "UDP upload Mbps",
+      cell: ({ getValue }) => mbps(getValue<number>()),
+    },
+    { accessorKey: "security", header: "Security", meta: { align: "left" } },
+    { accessorKey: "txRate", header: "TX rate" },
+    { accessorKey: "phyMode", header: "Wi-Fi standard" },
+    { accessorKey: "channelWidth", header: "Width MHz" },
+    { accessorKey: "x", header: "X" },
+    { accessorKey: "y", header: "Y" },
+    {
+      accessorKey: "timestamp",
+      header: "Measured",
+      cell: ({ getValue }) => new Date(getValue<number>()).toLocaleString(),
+    },
+  ];
+  const columns = hasSpeed
+    ? allColumns
+    : allColumns.filter(
+        (c) =>
+          !SPEED_COLUMNS.has((c as { accessorKey?: string }).accessorKey ?? ""),
+      );
 
   const table = useTable({
     features,
@@ -335,6 +321,8 @@ const SurveyPointsTable: React.FC<SurveyPointsTableProps> = ({
     columns,
     state: { rowSelection, globalFilter, columnVisibility, sorting },
     enableRowSelection: true,
+    // Selection is keyed by point id, not by row index
+    getRowId: (row) => row.id,
     // v8's default: the filter box searches text and number columns only
     getColumnCanGlobalFilter: (column) => {
       const value = rows[0]?.[column.id as keyof Row];
@@ -347,23 +335,18 @@ const SurveyPointsTable: React.FC<SurveyPointsTableProps> = ({
     initialState: { pagination: { pageIndex: 0, pageSize: 25 } },
   });
 
-  const selectedPoints = useMemo(
-    () => table.getSelectedRowModel().rows.map((r) => r.original.origPoint),
-    // oxlint-disable-next-line react/exhaustive-deps
-    [rowSelection, rows],
-  );
+  const selectedPoints = rows
+    .filter((r) => rowSelection[r.id])
+    .map((r) => r.origPoint);
 
-  const deleteSelected = useCallback(() => {
+  const deleteSelected = () => {
     surveyPointActions.delete(selectedPoints);
     setRowSelection({});
-  }, [selectedPoints, surveyPointActions]);
+  };
 
-  const setSelectedEnabled = useCallback(
-    (enabled: boolean) => {
-      for (const p of selectedPoints) update(p, { isEnabled: enabled });
-    },
-    [selectedPoints, update],
-  );
+  const setSelectedEnabled = (enabled: boolean) => {
+    for (const p of selectedPoints) update(p, { isEnabled: enabled });
+  };
 
   const exportCsv = () => {
     const name =

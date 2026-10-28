@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   Cable,
   Check,
@@ -56,6 +56,28 @@ function installHint(status: AppStatus): string {
   }
 }
 
+/** Ask the app whether iperf3 is installed and the server answers. */
+async function checkConnection(
+  server: string,
+  localIperf3: string | null,
+): Promise<ConnectionCheck> {
+  try {
+    const res = await fetch("/api/speed-test", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ server }),
+    });
+    if (res.ok) return (await res.json()) as ConnectionCheck;
+    return {
+      iperf3: localIperf3,
+      reachable: false,
+      reason: `The app answered ${res.status}.`,
+    };
+  } catch (err) {
+    return { iperf3: localIperf3, reachable: false, reason: String(err) };
+  }
+}
+
 /**
  * "What to measure" and, for speed, the server, test length, a setup
  * checklist and the iperf3 commands. Part of the Measurement section of
@@ -64,38 +86,22 @@ function installHint(status: AppStatus): string {
 export function SpeedSettings({ status }: { status: AppStatus | null }) {
   const { settings, updateSettings } = useSettings();
   const speed = settings.measureSpeed;
-  const [check, setCheck] = useState<ConnectionCheck | null>(null);
+  const [checked, setChecked] = useState<{
+    server: string;
+    result: ConnectionCheck;
+  } | null>(null);
   const [checking, setChecking] = useState(false);
 
   // a result belongs to the address it was made for
-  useEffect(() => setCheck(null), [settings.iperfServerAdrs]);
+  const check =
+    checked?.server === settings.iperfServerAdrs ? checked.result : null;
 
   const testConnection = async () => {
+    const server = settings.iperfServerAdrs;
     setChecking(true);
-    try {
-      const res = await fetch("/api/speed-test", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ server: settings.iperfServerAdrs }),
-      });
-      setCheck(
-        res.ok
-          ? await res.json()
-          : {
-              iperf3: status?.iperf3Version ?? null,
-              reachable: false,
-              reason: `The app answered ${res.status}.`,
-            },
-      );
-    } catch (err) {
-      setCheck({
-        iperf3: status?.iperf3Version ?? null,
-        reachable: false,
-        reason: String(err),
-      });
-    } finally {
-      setChecking(false);
-    }
+    const result = await checkConnection(server, status?.iperf3Version ?? null);
+    setChecked({ server, result });
+    setChecking(false);
   };
 
   const setOptions = (key: IperfTest, value: string[]) =>

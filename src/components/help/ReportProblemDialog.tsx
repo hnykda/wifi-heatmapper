@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Check, Copy, ExternalLink } from "lucide-react";
 import {
   Dialog,
@@ -63,6 +63,23 @@ async function copyText(text: string): Promise<boolean> {
   }
 }
 
+async function fetchDiagnostics(
+  survey: string,
+  problem: string | null | undefined,
+  includeNetwork: boolean,
+): Promise<DiagnosticsReport> {
+  const params = new URLSearchParams();
+  if (survey) params.set("survey", survey);
+  if (problem) params.set("problem", problem);
+  if (includeNetwork) params.set("network", "include");
+  const res = await fetch(`/api/diagnostics?${params}`);
+  if (!res.ok) throw new Error(`The server answered ${res.status}.`);
+  return (await res.json()) as DiagnosticsReport;
+}
+
+const errorMessage = (err: unknown) =>
+  err instanceof Error ? err.message : String(err);
+
 /**
  * "Report a problem": shows exactly what would be shared (diagnostics and
  * recent log, redacted), then opens a prefilled GitHub issue in the browser
@@ -79,31 +96,40 @@ export function ReportProblemDialog() {
   const survey = settings.floorplanImageName;
   const password = settings.sudoerPassword;
 
-  const load = useCallback(async () => {
+  const load = () => {
     setLoadError(null);
-    const params = new URLSearchParams();
-    if (survey) params.set("survey", survey);
-    if (problem) params.set("problem", problem);
-    if (includeNetwork) params.set("network", "include");
-    try {
-      const res = await fetch(`/api/diagnostics?${params}`);
-      if (!res.ok) throw new Error(`The server answered ${res.status}.`);
-      setReport((await res.json()) as DiagnosticsReport);
-    } catch (err) {
-      setReport(null);
-      setLoadError(err instanceof Error ? err.message : String(err));
-    }
-  }, [survey, problem, includeNetwork]);
+    return fetchDiagnostics(survey, problem, includeNetwork).then(
+      (r) => setReport(r),
+      (err: unknown) => {
+        setReport(null);
+        setLoadError(errorMessage(err));
+      },
+    );
+  };
 
+  // (Re)load whenever the dialog opens or what goes into the report changes
   useEffect(() => {
-    if (open) void load();
-  }, [open, load]);
+    if (!open) return;
+    let current = true;
+    fetchDiagnostics(survey, problem, includeNetwork).then(
+      (r) => {
+        if (!current) return;
+        setReport(r);
+        setLoadError(null);
+      },
+      (err: unknown) => {
+        if (!current) return;
+        setReport(null);
+        setLoadError(errorMessage(err));
+      },
+    );
+    return () => {
+      current = false;
+    };
+  }, [open, survey, problem, includeNetwork]);
 
-  const safe = useMemo(
-    () => (report ? withoutPassword(report, password) : null),
-    [report, password],
-  );
-  const link = useMemo(() => (safe ? buildIssueUrl(safe) : null), [safe]);
+  const safe = report ? withoutPassword(report, password) : null;
+  const link = safe ? buildIssueUrl(safe) : null;
 
   const copy = async () => {
     if (!safe) return false;
