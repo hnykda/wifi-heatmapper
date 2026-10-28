@@ -101,7 +101,7 @@ export default function ClickableFloorplan() {
       );
     img.src = settings.floorplanImagePath;
     // dimensions are written by this effect, not read from settings
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // oxlint-disable-next-line react/exhaustive-deps
   }, [settings.floorplanImagePath]);
 
   /* ---------- scale to container ---------- */

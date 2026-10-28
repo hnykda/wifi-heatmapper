@@ -309,7 +309,7 @@ const SurveyPointsTable: React.FC<SurveyPointsTableProps> = ({
 
   const selectedPoints = useMemo(
     () => table.getSelectedRowModel().rows.map((r) => r.original.origPoint),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // oxlint-disable-next-line react/exhaustive-deps
     [rowSelection, rows],
   );
 
@@ -448,8 +448,7 @@ const SurveyPointsTable: React.FC<SurveyPointsTableProps> = ({
                 {headerGroup.headers.map((header) => {
                   const align = (
                     header.column.columnDef.meta as
-                      | { align?: string }
-                      | undefined
+                      { align?: string } | undefined
                   )?.align;
                   const canSort = header.column.getCanSort();
                   return (
@@ -506,8 +505,7 @@ const SurveyPointsTable: React.FC<SurveyPointsTableProps> = ({
                   {row.getVisibleCells().map((cell) => {
                     const align = (
                       cell.column.columnDef.meta as
-                        | { align?: string }
-                        | undefined
+                        { align?: string } | undefined
                     )?.align;
                     return (
                       <TableCell

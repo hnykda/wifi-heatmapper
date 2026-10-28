@@ -1,0 +1,13 @@
+# Generated, vendored or data files; npm run lint/check only format src, __tests__, e2e
+.next*/
+desktop/server/
+desktop/src-tauri/target/
+desktop/.cache/
+data/
+_site/
+dist/
+__tests__/data/
+.e2e-data/
+playwright-report/
+test-results/
+package-lock.json

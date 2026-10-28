@@ -19,12 +19,7 @@ import type {
 import { onMeasurementEvent } from "@/lib/measurement-events";
 
 export type MeasurementPhase =
-  | "idle"
-  | "connecting"
-  | "running"
-  | "done"
-  | "cancelled"
-  | "error";
+  "idle" | "connecting" | "running" | "done" | "cancelled" | "error";
 
 export interface WatchedJob {
   id: string | null; // null until the server has answered the start

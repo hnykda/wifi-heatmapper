@@ -12,8 +12,8 @@
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "lint": "eslint src __tests__ e2e --fix",
-    "check": "eslint src __tests__ e2e",
+    "lint": "oxlint --fix src __tests__ e2e playwright.config.ts && prettier --write src __tests__ e2e playwright.config.ts",
+    "check": "oxlint src __tests__ e2e playwright.config.ts && prettier --check src __tests__ e2e playwright.config.ts",
     "dev:mock": "cross-env WIFI_HEATMAPPER_MOCK=1 next dev --turbopack",
     "test:watch": "vitest",
     "e2e": "playwright test",
@@ -64,7 +64,6 @@
     "zod": "4.6.7"
   },
   "devDependencies": {
-    "@eslint/js": "^9.28.0",
     "@modelcontextprotocol/sdk": "1.32.2",
     "@playwright/test": "^1.64.1",
     "@types/node": "^26.6.5",
@@ -72,16 +71,11 @@
     "@types/react-dom": "19.3.0",
     "cross-env": "^10.1.0",
     "esbuild": "0.25.5",
-    "eslint": "^9.28.0",
-    "eslint-config-prettier": "^10.1.5",
-    "eslint-plugin-prettier": "^5.4.1",
-    "eslint-plugin-react": "^7.37.5",
-    "eslint-plugin-react-hooks": "^7.1.1",
-    "eslint-plugin-unused-imports": "^4.1.4",
+    "oxlint": "^1.90.0",
     "postcss": "^8.5.32",
+    "prettier": "^3.9.10",
     "tailwindcss": "^3.4.19",
     "typescript": "^5.8.3",
-    "typescript-eslint": "^8.33.1",
     "vitest": "^3.2.7"
   }
 }

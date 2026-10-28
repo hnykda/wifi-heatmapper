@@ -48,9 +48,8 @@ vi.mock("child_process", async (importOriginal) => {
   return { ...actual, spawn, default: { ...actual, spawn } };
 });
 
-const { runWithSudo, checkSudoPassword, forgetSudoPassword } = await import(
-  "../src/lib/sudo"
-);
+const { runWithSudo, checkSudoPassword, forgetSudoPassword } =
+  await import("../src/lib/sudo");
 
 let goodPassword: string;
 beforeEach(() => {
