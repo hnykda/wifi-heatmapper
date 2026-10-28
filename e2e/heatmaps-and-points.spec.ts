@@ -318,10 +318,10 @@ test.describe("with sample points", () => {
     await expect(rows).toHaveCount(6); // Point_2, Point_20..24
     await page.getByLabel("Filter points").fill("");
 
-    // sort by point name: ascending, then descending
+    // sort by name (the id until a point is named): ascending, then descending
     const pointHeader = page
       .getByTestId("points-table")
-      .getByRole("button", { name: "Point", exact: true });
+      .getByRole("button", { name: "Name", exact: true });
     await pointHeader.click();
     await expect(rows.first()).toContainText("Point_1");
     await pointHeader.click();

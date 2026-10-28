@@ -7,7 +7,8 @@ import {
   SurveyPointActions,
 } from "@/lib/types";
 import { formatMacAddress, snrOf, validNoise } from "@/lib/utils";
-import { apNameFor } from "@/lib/apName";
+import { apHues, apKeyFor, apNameFor } from "@/lib/apName";
+import { ApChip } from "./ApChip";
 import { pointName } from "@/lib/point-label";
 import { PointLabel } from "@/components/PointLabel";
 import { hasSpeedData } from "@/lib/measurement-mode";
@@ -56,9 +57,20 @@ const PopupDetails: React.FC<PopupDetailsProps> = ({
     ["Network", wifi.ssid || "not available"],
     [
       "Access point",
-      apName
-        ? `${apName}`
-        : formatMacAddress(wifi.bssid || "") || "not available",
+      wifi.bssid || apName ? (
+        <ApChip
+          key="ap"
+          hue={apHues(
+            settings.surveyPoints.map((p) => p.wifiData.bssid),
+            settings.apMapping,
+          ).get(apKeyFor(wifi.bssid, settings.apMapping))}
+          mono={!apName}
+        >
+          {apName ?? formatMacAddress(wifi.bssid)}
+        </ApChip>
+      ) : (
+        "not available"
+      ),
     ],
     [
       "Channel",

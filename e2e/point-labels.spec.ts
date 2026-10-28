@@ -84,7 +84,9 @@ test("a point can be named in its popup and in the table, and the CSV has it", a
   await gotoTab(page, "points");
   const row = page.getByTestId("points-row");
   await expect(row).toHaveCount(1);
-  await expect(row).toContainText("Point_1");
+  // the id column is hidden by default: the name stands in for it
+  await expect(row).toContainText("Kitchen table");
+  await expect(row).not.toContainText("Point_1");
   await row.getByTestId("point-name").click();
   await row.getByTestId("point-name-input").fill("Hall");
   await row.getByTestId("point-name-input").press("Enter");

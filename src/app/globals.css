@@ -107,6 +107,13 @@
   @apply h-9 w-full rounded-md border border-input bg-surface px-3 text-sm text-foreground shadow-none placeholder:text-muted-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50;
 }
 
+@utility ap-chip {
+  /* One access point's tag; the hue comes from apHue() (lib/apName.ts) */
+  background-color: hsl(var(--ap-hue) var(--ap-chip-bg));
+  color: hsl(var(--ap-hue) var(--ap-chip-fg));
+  border: 1px solid hsl(var(--ap-hue) var(--ap-chip-border));
+}
+
 @utility measuring-dot {
   /* Pulse used only while a measurement is running */
   animation: measuring-pulse 1.4s ease-out infinite;
@@ -158,6 +165,11 @@
     /* survey plate: the dotted grid behind the floor plan */
     --plate: 220 14% 99%;
     --plate-dot: 220 13% 82%;
+
+    /* access point chips: a muted tint of --ap-hue (set per chip) */
+    --ap-chip-bg: 32% 92%;
+    --ap-chip-fg: 30% 30%;
+    --ap-chip-border: 25% 82%;
   }
 
   .dark {
@@ -195,6 +207,10 @@
 
     --plate: 222 14% 11%;
     --plate-dot: 222 10% 24%;
+
+    --ap-chip-bg: 18% 20%;
+    --ap-chip-fg: 30% 78%;
+    --ap-chip-border: 16% 30%;
   }
 }
 
