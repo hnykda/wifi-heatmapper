@@ -1,6 +1,6 @@
 ---
 title: FAQ
-description: Floor plans, hidden network names on macOS, backups, and how to report a problem.
+description: Floor plans, how it compares to paid Wi-Fi site survey tools, hidden network names on macOS, backups, and how to report a problem.
 order: 7
 ---
 
@@ -61,6 +61,14 @@ Yes. The app is MIT licensed and has no ads, accounts or paid tier. If it
 helped you, star the
 [repository](https://github.com/hnykda/wifi-heatmapper) so others find it, or
 [help out](https://wifi-heatmapper.danielalder.cz/#contribute).
+
+## How does it compare to NetSpot or Ekahau?
+
+Those are commercial Wi-Fi site survey tools with much more: planning
+before you install anything, scans of every network around you, and
+reports for clients. Wi-Fi Heatmapper does the part a home or small office
+needs, a coverage map of the network you're connected to, with real speed
+if you want it, and it is free and open source.
 
 ## Does it send anything?
 

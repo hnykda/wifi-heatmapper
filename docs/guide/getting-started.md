@@ -1,6 +1,6 @@
 ---
 title: Getting started
-description: Install the app and survey your first floor plan in about ten minutes.
+description: Install the app and map the Wi-Fi coverage of your first floor plan in about ten minutes.
 order: 1
 ---
 
@@ -78,6 +78,14 @@ the heat map look too, use **Copy settings from…** under **Floor plan**.
 Green is good. The scale runs green, turquoise, blue for acceptable signal,
 then yellow and red where it gets poor. [Using the app](using-the-app.md)
 explains every tab and setting.
+
+**Reading the map.** Red and yellow patches are the weak spots and dead
+zones. If a whole wing is weak, move the router towards it or add a mesh
+node or access point about halfway between the router and that area, then
+survey again with the same [colour scales](using-the-app.md#heat-maps) to
+see the difference. If the signal is strong but the speed is low, coverage
+is not the problem: look at a crowded channel, interference, or the
+connection behind the router.
 
 **Rather be guided?** An AI agent such as Claude can plan the survey, tell
 you where to stand, take each measurement once you say you're there, and
