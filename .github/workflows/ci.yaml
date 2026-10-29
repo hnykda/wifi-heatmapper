@@ -34,6 +34,11 @@ jobs:
       - run: npm run e2e
         env:
           CI: "1"
+      # Only `next dev` refuses pages opened by IP address (#140)
+      - run: npx playwright test e2e/open-by-address.spec.ts
+        env:
+          CI: "1"
+          E2E_SERVER: dev
       - uses: actions/upload-artifact@v7
         if: failure()
         with:

@@ -8,6 +8,7 @@ import { defineConfig, devices } from "@playwright/test";
  *
  * Locally:   npm run e2e          (starts `next dev` on :3100 for you)
  * In CI:     npm run e2e:build && CI=1 npm run e2e   (uses `next start`)
+ * E2E_SERVER=dev|prod overrides that choice (CI runs one spec on dev).
  * The e2e server builds into .next-e2e, so it can run next to `npm run dev`.
  * E2E_PORT picks another port (default 3100), e.g. for parallel checkouts:
  * a server already on the port is reused, so two checkouts sharing one
@@ -16,6 +17,7 @@ import { defineConfig, devices } from "@playwright/test";
  */
 const PORT = Number(process.env.E2E_PORT || 3100);
 const baseURL = `http://localhost:${PORT}`;
+const SERVER = process.env.E2E_SERVER || (process.env.CI ? "prod" : "dev");
 
 export default defineConfig({
   testDir: "./e2e",
@@ -44,7 +46,7 @@ export default defineConfig({
   ],
   webServer: {
     // npm run e2e:serve:<mode>, its output also in .e2e-data/server.log
-    command: `node e2e/serve.mjs ${process.env.CI ? "prod" : "dev"} ${PORT}`,
+    command: `node e2e/serve.mjs ${SERVER} ${PORT}`,
     url: `${baseURL}/api/status`,
     reuseExistingServer: !process.env.CI,
     timeout: 180_000,
