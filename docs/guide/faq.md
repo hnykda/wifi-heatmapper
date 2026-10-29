@@ -62,13 +62,26 @@ helped you, star the
 [repository](https://github.com/hnykda/wifi-heatmapper) so others find it, or
 [help out](https://wifi-heatmapper.danielalder.cz/#contribute).
 
-## How does it compare to NetSpot or Ekahau?
+## How does it compare to NetSpot, Ekahau and other site survey tools?
 
-Those are commercial Wi-Fi site survey tools with much more: planning
-before you install anything, scans of every network around you, and
-reports for clients. Wi-Fi Heatmapper does the part a home or small office
-needs, a coverage map of the network you're connected to, with real speed
-if you want it, and it is free and open source.
+NetSpot, Ekahau, Hamina, TamoGraph and Acrylic Wi-Fi Heatmaps are
+commercial Wi-Fi site survey tools, mostly built for IT teams and
+installers. On top of measuring, they plan a network before it's
+installed, analyse the radio spectrum with extra hardware, and produce
+reports for clients.
+
+If you want to know whether your home or office Wi-Fi reaches every room,
+and how fast it really is there, you don't need most of that. That's
+exactly what Wi-Fi Heatmapper measures. It maps the signal and real
+download and upload speed of the network you use, on your own floor plan.
+It compares before and after you move the router or add a mesh node. It
+names your access points, so you see which one serves each room. It's
+free, open source and runs offline on macOS, Windows and Linux.
+
+To see the other networks around you, for example to pick a less crowded
+channel, use a free Wi-Fi scanner, such as Wireless Diagnostics on a Mac or
+a Wi-Fi analyzer app. Most routers and mesh systems pick their channel on
+their own anyway.
 
 ## Does it send anything?
 
