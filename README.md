@@ -4,9 +4,11 @@
 
 Walk around with a laptop and click where you stand on your floor plan:
 Wi-Fi Heatmapper measures the Wi-Fi signal there, and optionally the real
-speed. A few rooms later you have heat maps that show which rooms need a
-mesh node or an extender, and whether a slow connection is really the
-Wi-Fi's fault. Free and open source (MIT), for macOS, Windows and Linux.
+speed. A few rooms later you have a Wi-Fi coverage map of your home or
+office: heat maps that show the dead zones, which rooms need a mesh node or
+an extender, and whether a slow connection is really the Wi-Fi's fault.
+A free, open-source (MIT) Wi-Fi site survey tool for macOS, Windows and
+Linux.
 
 **Website and guide: <https://wifi-heatmapper.danielalder.cz>**
 
