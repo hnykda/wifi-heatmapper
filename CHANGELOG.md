@@ -2,6 +2,18 @@
 
 _This section follows the precepts of [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) so that future readers can understand the state and evolution of the project._
 
+## Unreleased
+
+### Fixed
+
+* **`npm run dev` opened by LAN address** (for example
+  `http://192.168.1.20:3000`) showed the page, but buttons and tabs did
+  nothing: Next's dev server refused its scripts to any host but
+  `localhost`. Private IP addresses and local names (`.local`, `.lan`,
+  `.home.arpa`, `.internal`) now work, plus anything in
+  `WIFI_HEATMAPPER_ALLOWED_HOSTS`. The desktop app and `npm start` were not
+  affected. ([#140](https://github.com/hnykda/wifi-heatmapper/issues/140))
+
 ## Version 0.8.2 - 2026-10-28
 
 ### Added

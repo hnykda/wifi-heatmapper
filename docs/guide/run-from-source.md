@@ -21,6 +21,12 @@ npm run dev
 Open [http://localhost:3000](http://localhost:3000) and follow
 [your first survey](getting-started.md#your-first-survey).
 
+You can also open it by this computer's LAN address (the `Network:` line
+that `npm run dev` prints) or a `.local` or `.lan` name, on this or another
+device on your network. A one-word host name such as `http://nas:3000`
+needs `WIFI_HEATMAPPER_ALLOWED_HOSTS=nas npm run dev`; without it the page
+loads but its buttons do nothing.
+
 What else each system needs:
 
 - **macOS:** enter your sudo password in Settings: `wdutil` needs it to read
