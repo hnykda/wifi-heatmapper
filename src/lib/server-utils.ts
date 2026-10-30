@@ -44,7 +44,7 @@ export function showCommand(file: string, args: readonly string[]): string {
  * is opened (the desktop app runs node without one).
  *
  * A non-zero exit rejects with a CommandError carrying stdout and stderr
- * (netsh prints why it was denied on stdout). `input` is written to stdin
+ * (some tools print why they failed on stdout). `input` is written to stdin
  * and never logged; `signal` kills the program.
  */
 export function execAsync(

@@ -98,8 +98,8 @@ or with `WIFI_HEATMAPPER_TELEMETRY=0` or `DO_NOT_TRACK=1`.
 
 Please do. Wi-Fi works differently on every system and version (macOS
 needs Location access and changes what it reports from one release to the
-next, Windows has two ways in, Linux drivers each report a little
-differently), and the developers can't test them all. Reports like yours
+next, Windows versions differ in what they share, Linux drivers each
+report a little differently), and the developers can't test them all. Reports like yours
 are how it gets fixed.
 
 The quickest way is from the app:
@@ -111,7 +111,7 @@ The quickest way is from the app:
 2. The dialog shows exactly what would be shared: the app version, your
    system and version, how the app runs (desktop app, from source, Docker,
    mock mode), how it reads Wi-Fi on your system (for example the macOS
-   Wi-Fi helper, `wdutil`, `iw`, the Windows WLAN API or `netsh`), whether
+   Wi-Fi helper, `wdutil`, `iw` or the Windows WLAN API), whether
    iperf3 is installed, whether the survey measures signal only or signal
    and speed, the last measurement and why it failed or had no speed,
    and the last few hundred lines of the app's log.

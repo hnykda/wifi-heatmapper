@@ -49,7 +49,7 @@ function expectedWifiMethod(status: AppStatus): string {
         ? "macOS Wi-Fi helper (CoreWLAN), wdutil with sudo if it fails"
         : "wdutil with sudo (the Wi-Fi helper is not built)";
     case "win32":
-      return "Windows WLAN API, netsh if it fails";
+      return "Windows WLAN API";
     case "linux":
       return "iw (with sudo if it is refused)";
     default:

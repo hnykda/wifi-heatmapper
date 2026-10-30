@@ -1,11 +1,13 @@
 /**
  * wlan-api.ts - read Wi-Fi details on Windows from wlanapi.dll (the Native
- * Wifi API) through koffi, instead of parsing localized `netsh` output.
+ * Wifi API) through koffi. It is the only way the app reads Wi-Fi on Windows,
+ * and nothing depends on the display language.
  *
  * koffi is loaded lazily, on Windows only, the first time a function here is
  * called; macOS, Linux and the unit tests never load it. If it cannot be
- * loaded the returned promise rejects and the Windows scanner falls back to
- * netsh. Struct decoding lives in wlan-api-parse.ts (pure, tested everywhere).
+ * loaded the returned promise rejects with a WlanLoadError, and the Windows
+ * scanner shows that error. Struct decoding lives in wlan-api-parse.ts (pure,
+ * tested everywhere).
  *
  * @see https://learn.microsoft.com/en-us/windows/win32/nativewifi/native-wifi-api
  */
@@ -43,6 +45,20 @@ export class WlanApiError extends Error {
   }
 }
 
+/** koffi or wlanapi.dll could not be loaded */
+export class WlanLoadError extends Error {
+  constructor(cause: unknown) {
+    super(
+      `koffi could not load wlanapi.dll: ${cause instanceof Error ? cause.message : String(cause)}`,
+      { cause },
+    );
+    this.name = "WlanLoadError";
+  }
+}
+
+/** scanNetworks() found no Wi-Fi adapter: not a bug, nothing to scan with */
+export const NO_WIFI_ADAPTER_MESSAGE = "No Wi-Fi adapter found.";
+
 /**
  * Drivers must finish a WlanScan within 4 seconds (Windows logo
  * requirement), so wait that long rather than polling the cached list, which
@@ -70,7 +86,9 @@ let nativePromise: Promise<Native> | null = null;
 
 /** Load koffi and wlanapi.dll once; a failure is remembered (no retries). */
 export function loadWlanApi(): Promise<Native> {
-  nativePromise ??= loadNative();
+  nativePromise ??= loadNative().catch((err) => {
+    throw new WlanLoadError(err);
+  });
   return nativePromise;
 }
 
@@ -277,7 +295,7 @@ export async function scanNetworks(): Promise<WifiResults[]> {
   return withHandle(async (api, handle) => {
     const interfaces = connectedFirst(enumInterfaces(api, handle));
     const iface = interfaces[0];
-    if (!iface) throw new Error("No Wi-Fi adapter found.");
+    if (!iface) throw new Error(NO_WIFI_ADAPTER_MESSAGE);
 
     if (Date.now() - lastScanAt > RESCAN_AFTER_MS) {
       // If the scan cannot start (radio busy, say), use the cached list

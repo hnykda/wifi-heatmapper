@@ -247,27 +247,26 @@ test("iperf3 failing midway: what was measured is kept, with a warning", async (
   expect(csvCell("udp_upload_mbps")).toBe("");
 });
 
-test("the report names the netsh fallback when the WLAN API failed", async ({
+test("the WLAN API failing is one clear error, and the report has it", async ({
   page,
   mock,
 }) => {
-  await mock.set({ wifiMethod: "netsh-fallback" });
+  await mock.set({ wifiMethod: "wlan-api-error" });
   await uploadFloorplan(page);
-  await measureUntil(page, "done");
-  await page
-    .getByTestId("measurement-panel")
-    .getByRole("button", {
-      name: "Dismiss",
-    })
-    .click();
-  await page.getByTestId("help-button").click();
-  await page.getByTestId("help-report").click();
+  const panel = await measureUntil(page, "error");
+  await expect(panel).toContainText(
+    "Can't read Wi-Fi through the Windows WLAN API (koffi could not load wlanapi.dll: Cannot find module 'koffi')",
+  );
+  await expect(panel).toContainText("Report a problem");
+  await panel.getByTestId("measurement-report").click();
   const preview = page.getByTestId("report-preview");
   await expect(preview).toContainText(
-    "Wi-Fi reading: netsh (fallback) (the WLAN API failed: koffi could not load wlanapi.dll)",
+    "Wi-Fi reading: Windows WLAN API (connection query failed: koffi could not load wlanapi.dll: Cannot find module 'koffi')",
   );
   const report = await (await page.request.get("/api/diagnostics")).json();
-  expect(report.wifiMethod).toContain("netsh (fallback)");
+  expect(report.wifiMethod).toContain("Windows WLAN API");
+  expect(report.wifiMethod).toContain("koffi could not load wlanapi.dll");
+  expect(report.wifiMethod).not.toContain("netsh");
 });
 
 test("no noise reading: the point has none and the SNR map is off", async ({
