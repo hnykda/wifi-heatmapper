@@ -147,7 +147,7 @@ describe("on the e2e server", () => {
     expect(mockScenario()).toEqual({});
   });
 
-  it("DELETE /api/e2e/data leaves only the bundled floor plans", async () => {
+  it("DELETE /api/e2e/data leaves only the bundled floor plans and demo survey", async () => {
     mkdirSync(join(dataDir, "surveys"), { recursive: true });
     mkdirSync(join(dataDir, "media"), { recursive: true });
     writeFileSync(join(dataDir, "surveys", "mine.png.json"), "{}");
@@ -157,7 +157,9 @@ describe("on the e2e server", () => {
 
     const res = await dataRoute.DELETE();
     expect(res.status).toBe(200);
-    expect(readdirSync(join(dataDir, "surveys"))).toEqual([]);
+    expect(readdirSync(join(dataDir, "surveys"))).toEqual([
+      "EmptyFloorPlan.png.json",
+    ]);
     expect(readdirSync(join(dataDir, "media")).sort()).toEqual([
       "EmptyFloorPlan.png",
       "House & Garage.jpg",

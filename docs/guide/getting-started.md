@@ -42,12 +42,12 @@ actually moves between this laptop and a second computer on your network.
 You choose under **What to measure** in Settings, separately for each
 survey. New surveys start with **Signal only**.
 
-| | Signal only | Signal and speed |
-|---|---|---|
-| Setup | Nothing | iperf3 on two computers; one stays put, wired if possible |
-| Time per spot | About 2 s | About 6–10 s |
-| Tells you | Where coverage is weak | What speed you actually get; catches interference and slow links that look strong |
-| Limits | A strong signal is not always fast | A server on Wi-Fi roughly halves the result; the optional fixed-rate (UDP) test stops at 100 Mbps by default |
+|               | Signal only                        | Signal and speed                                                                                             |
+| ------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| Setup         | Nothing                            | iperf3 on two computers; one stays put, wired if possible                                                    |
+| Time per spot | About 2 s                          | About 6–10 s                                                                                                 |
+| Tells you     | Where coverage is weak             | What speed you actually get; catches interference and slow links that look strong                            |
+| Limits        | A strong signal is not always fast | A server on Wi-Fi roughly halves the result; the optional fixed-rate (UDP) test stops at 100 Mbps by default |
 
 Start with signal only to find the weak rooms. Add speed when you want to
 know whether the Wi-Fi is really what makes a connection slow, or to compare
@@ -56,11 +56,12 @@ setup.
 
 ## Your first survey
 
-The app opens on the **Floor plan** tab with a blank grid, ready to measure.
+The app opens on the **Floor plan** tab with a demo flat and sample
+measurements, so you can look at the **Heat maps** tab before you measure
+anything.
 
-1. **Your floor plan.** Click **Upload your floor plan** at the top, or just
-   measure on the blank grid to try it. A photo of a pencil sketch is fine;
-   it does not need to be to scale (see the
+1. **Your floor plan.** Click **Upload your floor plan** at the top. A
+   photo of a pencil sketch is fine; it does not need to be to scale (see the
    [FAQ](faq.md#how-do-i-make-a-floor-plan)). **Measuring** starts at
    **Signal only**; to measure speed too, [set up speed tests](throughput.md).
 2. **Measure.** Stand somewhere, click that spot. The app measures the

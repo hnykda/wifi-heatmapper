@@ -1,0 +1,798 @@
+{
+  "surveyPoints": [
+    {
+      "x": 120,
+      "y": 100,
+      "id": "Point_1",
+      "wifiData": {
+        "ssid": "Demo Network",
+        "bssid": "9e05d696e830",
+        "rssi": -52,
+        "noise": -92,
+        "signalStrength": 80,
+        "channel": 44,
+        "security": "WPA3 Personal",
+        "txRate": 960,
+        "phyMode": "11ax",
+        "channelWidth": 80,
+        "band": 5,
+        "currentSSID": true,
+        "strongestSSID": null
+      },
+      "iperfData": {
+        "tcpDownload": {
+          "bitsPerSecond": 544000000,
+          "retransmits": 0,
+          "jitterMs": null,
+          "lostPackets": null,
+          "packetsReceived": null,
+          "signalStrength": 0
+        },
+        "tcpUpload": {
+          "bitsPerSecond": 384000000,
+          "retransmits": 0,
+          "jitterMs": null,
+          "lostPackets": null,
+          "packetsReceived": null,
+          "signalStrength": 0
+        },
+        "udpDownload": null,
+        "udpUpload": null
+      },
+      "timestamp": 1792922400000,
+      "isEnabled": true
+    },
+    {
+      "x": 400,
+      "y": 90,
+      "id": "Point_2",
+      "wifiData": {
+        "ssid": "Demo Network",
+        "bssid": "9e05d696e830",
+        "rssi": -36,
+        "noise": -93,
+        "signalStrength": 100,
+        "channel": 44,
+        "security": "WPA3 Personal",
+        "txRate": 1200,
+        "phyMode": "11ax",
+        "channelWidth": 80,
+        "band": 5,
+        "currentSSID": true,
+        "strongestSSID": null
+      },
+      "iperfData": {
+        "tcpDownload": {
+          "bitsPerSecond": 850000000,
+          "retransmits": 0,
+          "jitterMs": null,
+          "lostPackets": null,
+          "packetsReceived": null,
+          "signalStrength": 0
+        },
+        "tcpUpload": {
+          "bitsPerSecond": 600000000,
+          "retransmits": 0,
+          "jitterMs": null,
+          "lostPackets": null,
+          "packetsReceived": null,
+          "signalStrength": 0
+        },
+        "udpDownload": null,
+        "udpUpload": null
+      },
+      "timestamp": 1792922445000,
+      "isEnabled": true
+    },
+    {
+      "x": 130,
+      "y": 320,
+      "id": "Point_3",
+      "wifiData": {
+        "ssid": "Demo Network",
+        "bssid": "9e05d696e830",
+        "rssi": -50,
+        "noise": -94,
+        "signalStrength": 83,
+        "channel": 44,
+        "security": "WPA3 Personal",
+        "txRate": 996,
+        "phyMode": "11ax",
+        "channelWidth": 80,
+        "band": 5,
+        "currentSSID": true,
+        "strongestSSID": null
+      },
+      "iperfData": {
+        "tcpDownload": {
+          "bitsPerSecond": 585565000,
+          "retransmits": 0,
+          "jitterMs": null,
+          "lostPackets": null,
+          "packetsReceived": null,
+          "signalStrength": 0
+        },
+        "tcpUpload": {
+          "bitsPerSecond": 413340000,
+          "retransmits": 0,
+          "jitterMs": null,
+          "lostPackets": null,
+          "packetsReceived": null,
+          "signalStrength": 0
+        },
+        "udpDownload": null,
+        "udpUpload": null
+      },
+      "timestamp": 1792922490000,
+      "isEnabled": true
+    },
+    {
+      "x": 330,
+      "y": 330,
+      "id": "Point_4",
+      "wifiData": {
+        "ssid": "Demo Network",
+        "bssid": "9e05d696e830",
+        "rssi": -49,
+        "noise": -95,
+        "signalStrength": 85,
+        "channel": 44,
+        "security": "WPA3 Personal",
+        "txRate": 1020,
+        "phyMode": "11ax",
+        "channelWidth": 80,
+        "band": 5,
+        "currentSSID": true,
+        "strongestSSID": null
+      },
+      "iperfData": {
+        "tcpDownload": {
+          "bitsPerSecond": 614125000,
+          "retransmits": 0,
+          "jitterMs": null,
+          "lostPackets": null,
+          "packetsReceived": null,
+          "signalStrength": 0
+        },
+        "tcpUpload": {
+          "bitsPerSecond": 433500000,
+          "retransmits": 0,
+          "jitterMs": null,
+          "lostPackets": null,
+          "packetsReceived": null,
+          "signalStrength": 0
+        },
+        "udpDownload": null,
+        "udpUpload": null
+      },
+      "timestamp": 1792922535000,
+      "isEnabled": true
+    },
+    {
+      "x": 560,
+      "y": 300,
+      "id": "Point_5",
+      "wifiData": {
+        "ssid": "Demo Network",
+        "bssid": "9e05d696e830",
+        "rssi": -56,
+        "noise": -92,
+        "signalStrength": 73,
+        "channel": 44,
+        "security": "WPA3 Personal",
+        "txRate": 876,
+        "phyMode": "11ax",
+        "channelWidth": 80,
+        "band": 5,
+        "currentSSID": true,
+        "strongestSSID": null
+      },
+      "iperfData": {
+        "tcpDownload": {
+          "bitsPerSecond": 452965000,
+          "retransmits": 0,
+          "jitterMs": null,
+          "lostPackets": null,
+          "packetsReceived": null,
+          "signalStrength": 0
+        },
+        "tcpUpload": {
+          "bitsPerSecond": 319740000,
+          "retransmits": 0,
+          "jitterMs": null,
+          "lostPackets": null,
+          "packetsReceived": null,
+          "signalStrength": 0
+        },
+        "udpDownload": null,
+        "udpUpload": null
+      },
+      "timestamp": 1792922580000,
+      "isEnabled": true
+    },
+    {
+      "x": 700,
+      "y": 240,
+      "id": "Point_6",
+      "wifiData": {
+        "ssid": "Demo Network",
+        "bssid": "9e05d696e830",
+        "rssi": -61,
+        "noise": -93,
+        "signalStrength": 65,
+        "channel": 44,
+        "security": "WPA3 Personal",
+        "txRate": 780,
+        "phyMode": "11ax",
+        "channelWidth": 80,
+        "band": 5,
+        "currentSSID": true,
+        "strongestSSID": null
+      },
+      "iperfData": {
+        "tcpDownload": {
+          "bitsPerSecond": 359125000,
+          "retransmits": 0,
+          "jitterMs": null,
+          "lostPackets": null,
+          "packetsReceived": null,
+          "signalStrength": 0
+        },
+        "tcpUpload": {
+          "bitsPerSecond": 253500000,
+          "retransmits": 0,
+          "jitterMs": null,
+          "lostPackets": null,
+          "packetsReceived": null,
+          "signalStrength": 0
+        },
+        "udpDownload": null,
+        "udpUpload": null
+      },
+      "timestamp": 1792922625000,
+      "isEnabled": true
+    },
+    {
+      "x": 690,
+      "y": 350,
+      "id": "Point_7",
+      "wifiData": {
+        "ssid": "Demo Network",
+        "bssid": "9e05d696e830",
+        "rssi": -61,
+        "noise": -94,
+        "signalStrength": 65,
+        "channel": 44,
+        "security": "WPA3 Personal",
+        "txRate": 780,
+        "phyMode": "11ax",
+        "channelWidth": 80,
+        "band": 5,
+        "currentSSID": true,
+        "strongestSSID": null
+      },
+      "iperfData": {
+        "tcpDownload": {
+          "bitsPerSecond": 359125000,
+          "retransmits": 0,
+          "jitterMs": null,
+          "lostPackets": null,
+          "packetsReceived": null,
+          "signalStrength": 0
+        },
+        "tcpUpload": {
+          "bitsPerSecond": 253500000,
+          "retransmits": 0,
+          "jitterMs": null,
+          "lostPackets": null,
+          "packetsReceived": null,
+          "signalStrength": 0
+        },
+        "udpDownload": null,
+        "udpUpload": null
+      },
+      "timestamp": 1792922670000,
+      "isEnabled": true
+    },
+    {
+      "x": 800,
+      "y": 340,
+      "id": "Point_8",
+      "wifiData": {
+        "ssid": "Demo Network",
+        "bssid": "9e05d696e830",
+        "rssi": -61,
+        "noise": -95,
+        "signalStrength": 65,
+        "channel": 44,
+        "security": "WPA3 Personal",
+        "txRate": 780,
+        "phyMode": "11ax",
+        "channelWidth": 80,
+        "band": 5,
+        "currentSSID": true,
+        "strongestSSID": null
+      },
+      "iperfData": {
+        "tcpDownload": {
+          "bitsPerSecond": 359125000,
+          "retransmits": 0,
+          "jitterMs": null,
+          "lostPackets": null,
+          "packetsReceived": null,
+          "signalStrength": 0
+        },
+        "tcpUpload": {
+          "bitsPerSecond": 253500000,
+          "retransmits": 0,
+          "jitterMs": null,
+          "lostPackets": null,
+          "packetsReceived": null,
+          "signalStrength": 0
+        },
+        "udpDownload": null,
+        "udpUpload": null
+      },
+      "timestamp": 1792922715000,
+      "isEnabled": true
+    },
+    {
+      "x": 930,
+      "y": 200,
+      "id": "Point_9",
+      "wifiData": {
+        "ssid": "Demo Network",
+        "bssid": "9e05d696e830",
+        "rssi": -74,
+        "noise": -92,
+        "signalStrength": 43,
+        "channel": 44,
+        "security": "WPA3 Personal",
+        "txRate": 516,
+        "phyMode": "11ax",
+        "channelWidth": 80,
+        "band": 5,
+        "currentSSID": true,
+        "strongestSSID": null
+      },
+      "iperfData": {
+        "tcpDownload": {
+          "bitsPerSecond": 157165000,
+          "retransmits": 0,
+          "jitterMs": null,
+          "lostPackets": null,
+          "packetsReceived": null,
+          "signalStrength": 0
+        },
+        "tcpUpload": {
+          "bitsPerSecond": 110940000,
+          "retransmits": 0,
+          "jitterMs": null,
+          "lostPackets": null,
+          "packetsReceived": null,
+          "signalStrength": 0
+        },
+        "udpDownload": null,
+        "udpUpload": null
+      },
+      "timestamp": 1792922760000,
+      "isEnabled": true
+    },
+    {
+      "x": 110,
+      "y": 460,
+      "id": "Point_10",
+      "wifiData": {
+        "ssid": "Demo Network",
+        "bssid": "9e05d696e830",
+        "rssi": -53,
+        "noise": -93,
+        "signalStrength": 78,
+        "channel": 44,
+        "security": "WPA3 Personal",
+        "txRate": 936,
+        "phyMode": "11ax",
+        "channelWidth": 80,
+        "band": 5,
+        "currentSSID": true,
+        "strongestSSID": null
+      },
+      "iperfData": {
+        "tcpDownload": {
+          "bitsPerSecond": 517140000,
+          "retransmits": 0,
+          "jitterMs": null,
+          "lostPackets": null,
+          "packetsReceived": null,
+          "signalStrength": 0
+        },
+        "tcpUpload": {
+          "bitsPerSecond": 365040000,
+          "retransmits": 0,
+          "jitterMs": null,
+          "lostPackets": null,
+          "packetsReceived": null,
+          "signalStrength": 0
+        },
+        "udpDownload": null,
+        "udpUpload": null
+      },
+      "timestamp": 1792922805000,
+      "isEnabled": true
+    },
+    {
+      "x": 280,
+      "y": 600,
+      "id": "Point_11",
+      "wifiData": {
+        "ssid": "Demo Network",
+        "bssid": "9e05d696e830",
+        "rssi": -66,
+        "noise": -94,
+        "signalStrength": 57,
+        "channel": 44,
+        "security": "WPA3 Personal",
+        "txRate": 684,
+        "phyMode": "11ax",
+        "channelWidth": 80,
+        "band": 5,
+        "currentSSID": true,
+        "strongestSSID": null
+      },
+      "iperfData": {
+        "tcpDownload": {
+          "bitsPerSecond": 276165000,
+          "retransmits": 0,
+          "jitterMs": null,
+          "lostPackets": null,
+          "packetsReceived": null,
+          "signalStrength": 0
+        },
+        "tcpUpload": {
+          "bitsPerSecond": 194940000,
+          "retransmits": 0,
+          "jitterMs": null,
+          "lostPackets": null,
+          "packetsReceived": null,
+          "signalStrength": 0
+        },
+        "udpDownload": null,
+        "udpUpload": null
+      },
+      "timestamp": 1792922850000,
+      "isEnabled": true
+    },
+    {
+      "x": 150,
+      "y": 580,
+      "id": "Point_12",
+      "wifiData": {
+        "ssid": "Demo Network",
+        "bssid": "9e05d696e830",
+        "rssi": -65,
+        "noise": -95,
+        "signalStrength": 58,
+        "channel": 44,
+        "security": "WPA3 Personal",
+        "txRate": 696,
+        "phyMode": "11ax",
+        "channelWidth": 80,
+        "band": 5,
+        "currentSSID": true,
+        "strongestSSID": null
+      },
+      "iperfData": {
+        "tcpDownload": {
+          "bitsPerSecond": 285940000,
+          "retransmits": 0,
+          "jitterMs": null,
+          "lostPackets": null,
+          "packetsReceived": null,
+          "signalStrength": 0
+        },
+        "tcpUpload": {
+          "bitsPerSecond": 201840000,
+          "retransmits": 0,
+          "jitterMs": null,
+          "lostPackets": null,
+          "packetsReceived": null,
+          "signalStrength": 0
+        },
+        "udpDownload": null,
+        "udpUpload": null
+      },
+      "timestamp": 1792922895000,
+      "isEnabled": true
+    },
+    {
+      "x": 540,
+      "y": 450,
+      "id": "Point_13",
+      "wifiData": {
+        "ssid": "Demo Network",
+        "bssid": "9e05d696e830",
+        "rssi": -59,
+        "noise": -92,
+        "signalStrength": 68,
+        "channel": 44,
+        "security": "WPA3 Personal",
+        "txRate": 816,
+        "phyMode": "11ax",
+        "channelWidth": 80,
+        "band": 5,
+        "currentSSID": true,
+        "strongestSSID": null
+      },
+      "iperfData": {
+        "tcpDownload": {
+          "bitsPerSecond": 393040000,
+          "retransmits": 0,
+          "jitterMs": null,
+          "lostPackets": null,
+          "packetsReceived": null,
+          "signalStrength": 0
+        },
+        "tcpUpload": {
+          "bitsPerSecond": 277440000,
+          "retransmits": 0,
+          "jitterMs": null,
+          "lostPackets": null,
+          "packetsReceived": null,
+          "signalStrength": 0
+        },
+        "udpDownload": null,
+        "udpUpload": null
+      },
+      "timestamp": 1792922940000,
+      "isEnabled": true
+    },
+    {
+      "x": 540,
+      "y": 640,
+      "id": "Point_14",
+      "wifiData": {
+        "ssid": "Demo Network",
+        "bssid": "9e05d696e830",
+        "rssi": -84,
+        "noise": -93,
+        "signalStrength": 27,
+        "channel": 44,
+        "security": "WPA3 Personal",
+        "txRate": 324,
+        "phyMode": "11ax",
+        "channelWidth": 80,
+        "band": 5,
+        "currentSSID": true,
+        "strongestSSID": null
+      },
+      "iperfData": {
+        "tcpDownload": {
+          "bitsPerSecond": 61965000,
+          "retransmits": 0,
+          "jitterMs": null,
+          "lostPackets": null,
+          "packetsReceived": null,
+          "signalStrength": 0
+        },
+        "tcpUpload": {
+          "bitsPerSecond": 43740000,
+          "retransmits": 0,
+          "jitterMs": null,
+          "lostPackets": null,
+          "packetsReceived": null,
+          "signalStrength": 0
+        },
+        "udpDownload": null,
+        "udpUpload": null
+      },
+      "timestamp": 1792922985000,
+      "isEnabled": true
+    },
+    {
+      "x": 680,
+      "y": 470,
+      "id": "Point_15",
+      "wifiData": {
+        "ssid": "Demo Network",
+        "bssid": "9e05d696e830",
+        "rssi": -62,
+        "noise": -94,
+        "signalStrength": 63,
+        "channel": 44,
+        "security": "WPA3 Personal",
+        "txRate": 756,
+        "phyMode": "11ax",
+        "channelWidth": 80,
+        "band": 5,
+        "currentSSID": true,
+        "strongestSSID": null
+      },
+      "iperfData": {
+        "tcpDownload": {
+          "bitsPerSecond": 337365000,
+          "retransmits": 0,
+          "jitterMs": null,
+          "lostPackets": null,
+          "packetsReceived": null,
+          "signalStrength": 0
+        },
+        "tcpUpload": {
+          "bitsPerSecond": 238140000,
+          "retransmits": 0,
+          "jitterMs": null,
+          "lostPackets": null,
+          "packetsReceived": null,
+          "signalStrength": 0
+        },
+        "udpDownload": null,
+        "udpUpload": null
+      },
+      "timestamp": 1792923030000,
+      "isEnabled": true
+    },
+    {
+      "x": 680,
+      "y": 650,
+      "id": "Point_16",
+      "wifiData": {
+        "ssid": "Demo Network",
+        "bssid": "9e05d696e830",
+        "rssi": -77,
+        "noise": -95,
+        "signalStrength": 38,
+        "channel": 44,
+        "security": "WPA3 Personal",
+        "txRate": 456,
+        "phyMode": "11ax",
+        "channelWidth": 80,
+        "band": 5,
+        "currentSSID": true,
+        "strongestSSID": null
+      },
+      "iperfData": {
+        "tcpDownload": {
+          "bitsPerSecond": 122740000,
+          "retransmits": 0,
+          "jitterMs": null,
+          "lostPackets": null,
+          "packetsReceived": null,
+          "signalStrength": 0
+        },
+        "tcpUpload": {
+          "bitsPerSecond": 86640000,
+          "retransmits": 0,
+          "jitterMs": null,
+          "lostPackets": null,
+          "packetsReceived": null,
+          "signalStrength": 0
+        },
+        "udpDownload": null,
+        "udpUpload": null
+      },
+      "timestamp": 1792923075000,
+      "isEnabled": true
+    },
+    {
+      "x": 810,
+      "y": 460,
+      "id": "Point_17",
+      "wifiData": {
+        "ssid": "Demo Network",
+        "bssid": "9e05d696e830",
+        "rssi": -82,
+        "noise": -92,
+        "signalStrength": 30,
+        "channel": 44,
+        "security": "WPA3 Personal",
+        "txRate": 360,
+        "phyMode": "11ax",
+        "channelWidth": 80,
+        "band": 5,
+        "currentSSID": true,
+        "strongestSSID": null
+      },
+      "iperfData": {
+        "tcpDownload": {
+          "bitsPerSecond": 76500000,
+          "retransmits": 0,
+          "jitterMs": null,
+          "lostPackets": null,
+          "packetsReceived": null,
+          "signalStrength": 0
+        },
+        "tcpUpload": {
+          "bitsPerSecond": 54000000,
+          "retransmits": 0,
+          "jitterMs": null,
+          "lostPackets": null,
+          "packetsReceived": null,
+          "signalStrength": 0
+        },
+        "udpDownload": null,
+        "udpUpload": null
+      },
+      "timestamp": 1792923120000,
+      "isEnabled": true
+    },
+    {
+      "x": 860,
+      "y": 650,
+      "id": "Point_18",
+      "wifiData": {
+        "ssid": "Demo Network",
+        "bssid": "9e05d696e830",
+        "rssi": -74,
+        "noise": -93,
+        "signalStrength": 43,
+        "channel": 44,
+        "security": "WPA3 Personal",
+        "txRate": 516,
+        "phyMode": "11ax",
+        "channelWidth": 80,
+        "band": 5,
+        "currentSSID": true,
+        "strongestSSID": null
+      },
+      "iperfData": {
+        "tcpDownload": {
+          "bitsPerSecond": 157165000,
+          "retransmits": 0,
+          "jitterMs": null,
+          "lostPackets": null,
+          "packetsReceived": null,
+          "signalStrength": 0
+        },
+        "tcpUpload": {
+          "bitsPerSecond": 110940000,
+          "retransmits": 0,
+          "jitterMs": null,
+          "lostPackets": null,
+          "packetsReceived": null,
+          "signalStrength": 0
+        },
+        "udpDownload": null,
+        "udpUpload": null
+      },
+      "timestamp": 1792923165000,
+      "isEnabled": true
+    }
+  ],
+  "floorplanImageName": "EmptyFloorPlan.png",
+  "floorplanImagePath": "/api/media/EmptyFloorPlan.png",
+  "measureSpeed": false,
+  "iperfServerAdrs": "",
+  "apMapping": [],
+  "testDuration": 5,
+  "udpTests": false,
+  "nextPointNum": 19,
+  "dimensions": {
+    "width": 1024,
+    "height": 763
+  },
+  "radiusDivider": null,
+  "maxOpacity": 0.7,
+  "minOpacity": 0.2,
+  "blur": 0.99,
+  "gradient": {
+    "0": "rgba(255, 0, 0, 0.6)",
+    "1": "rgba(0, 255, 0, 0.6)",
+    "0.45": "rgba(255, 255, 0, 0.6)",
+    "0.5": "rgba(0, 0, 255, 0.6)",
+    "0.6": "rgba(0, 255, 255, 0.6)",
+    "0.75": "rgba(0, 255, 0, 0.6)",
+    "0.9": "rgba(0, 255, 0, 0.6)"
+  },
+  "heatmapRanges": {},
+  "iperfCommands": {
+    "tcpDownload": [],
+    "tcpUpload": [],
+    "udpDownload": [
+      "-b",
+      "100M"
+    ],
+    "udpUpload": [
+      "-b",
+      "100M"
+    ]
+  }
+}
