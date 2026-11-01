@@ -237,7 +237,8 @@ jobs:
             Or with Homebrew, within a day of this release:
             `brew install --cask hnykda/tap/wifi-heatmapper`
 
-            In the Settings tab, click **Allow Location access**: macOS asks
+            When the app offers it above the floor plan (or in Settings),
+            click **Allow Location access**: macOS asks
             whether **"WiFi Heatmapper Helper"** may use your location. The
             helper is the part of the app that
             reads Wi-Fi signal, and macOS only tells apps with Location
