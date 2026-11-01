@@ -343,7 +343,7 @@ test("each test starts from the seeded data", async ({ request }) => {
     await request.get("/api/settings?list=true")
   ).json();
   // at most the default floor plan's survey, made when a page opens it
-  expect(surveys.filter((s: string) => s !== "EmptyFloorPlan.png")).toEqual([]);
+  expect(surveys.filter((s: string) => s !== "Demo_flat.png")).toEqual([]);
   const { files } = await (await request.get("/api/media")).json();
-  expect(files).toEqual(["EmptyFloorPlan.png", "House & Garage.jpg"]);
+  expect(files).toEqual(["Demo flat.png", "House & Garage.jpg"]);
 });

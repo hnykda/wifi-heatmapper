@@ -37,7 +37,7 @@ import {
   updatePoint,
 } from "../lib/survey-ops";
 
-export const DEFAULT_FLOORPLAN = "EmptyFloorPlan.png";
+export const DEFAULT_FLOORPLAN = "Demo flat.png";
 
 /** How long to wait after the last settings change before sending it. */
 const SAVE_DEBOUNCE_MS = 400;

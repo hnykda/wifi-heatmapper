@@ -757,8 +757,8 @@
       "isEnabled": true
     }
   ],
-  "floorplanImageName": "EmptyFloorPlan.png",
-  "floorplanImagePath": "/api/media/EmptyFloorPlan.png",
+  "floorplanImageName": "Demo flat.png",
+  "floorplanImagePath": "/api/media/Demo%20flat.png",
   "measureSpeed": false,
   "iperfServerAdrs": "",
   "apMapping": [],

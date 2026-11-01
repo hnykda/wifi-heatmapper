@@ -183,7 +183,7 @@ test("deleting a floor plan removes it and its survey", async ({ page }) => {
   await page.getByTestId("floorplan-delete").click();
   await page.getByRole("button", { name: "Delete floor plan" }).click();
   await expect(page.getByTestId("summary-floorplan")).toContainText(
-    "EmptyFloorPlan.png",
+    "Demo flat.png",
   );
   const res = await page.request.get(
     `/api/settings?name=${encodeURIComponent(name)}`,

@@ -158,10 +158,10 @@ describe("on the e2e server", () => {
     const res = await dataRoute.DELETE();
     expect(res.status).toBe(200);
     expect(readdirSync(join(dataDir, "surveys"))).toEqual([
-      "EmptyFloorPlan.png.json",
+      "Demo_flat.png.json",
     ]);
     expect(readdirSync(join(dataDir, "media")).sort()).toEqual([
-      "EmptyFloorPlan.png",
+      "Demo flat.png",
       "House & Garage.jpg",
     ]);
     expect(mockScenario()).toEqual({});

@@ -206,7 +206,7 @@ async function run(label, quit) {
         `${err.message}: node ${alive(pids.node)}, ping ${alive(pids.grandchild)}`,
       );
     }
-    if (existsSync(join(dataDir, "media", "EmptyFloorPlan.png")))
+    if (existsSync(join(dataDir, "media", "Demo flat.png")))
       ok("floor plans seeded in the data dir");
     else fail(`no floor plans in ${dataDir}`);
   } catch (err) {

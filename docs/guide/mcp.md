@@ -366,7 +366,7 @@ macOS whether the Wi-Fi helper makes it unnecessary.
 ## Tools
 
 Survey names are floor plan file names, as `list_surveys` returns them
-(for example `EmptyFloorPlan.png`). Positions are in floor-plan image
+(for example `Demo flat.png`). Positions are in floor-plan image
 pixels, with the origin at the top left. Throughput is in Mbps.
 
 | Tool | What it does |
@@ -445,7 +445,7 @@ are in the map's units and are not clamped; the colour scale is returned
 separately.
 
 ```
-> get_heatmap_grid {"name":"EmptyFloorPlan.png","metric":"signalStrength","cells":8}
+> get_heatmap_grid {"name":"Demo flat.png","metric":"signalStrength","cells":8}
 {"unit":"%","pointsUsed":25,"radius":{"pixels":156,"automatic":true},
  "floorPlan":{"width":1024,"height":763},
  "colourScale":{"min":0,"max":100,"fixed":false},
@@ -476,7 +476,7 @@ points, is kept as it is.
 Example:
 
 ```
-> update_settings {"name":"EmptyFloorPlan.png","testDuration":2,
+> update_settings {"name":"Demo flat.png","testDuration":2,
     "heatmapRanges":{"tcpDownload-bitsPerSecond":{"min":0,"max":600,"enabled":true}}}
 {"saved":true,"changed":["testDuration","heatmapRanges"], ...}
 ```

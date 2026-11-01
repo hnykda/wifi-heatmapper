@@ -2,9 +2,11 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { parseSurveyFile } from "@/lib/schema";
 import { DEFAULT_FLOORPLAN } from "@/components/GlobalSettings";
+import { sanitizeFilename } from "@/lib/utils";
 
 // The demo survey new users open on (assets/surveys, seeded at start)
-const file = `assets/surveys/${DEFAULT_FLOORPLAN}.json`;
+// named the way survey-store.ts names survey files
+const file = `assets/surveys/${sanitizeFilename(DEFAULT_FLOORPLAN)}.json`;
 const raw = JSON.parse(readFileSync(file, "utf-8"));
 
 /** Width and height from a PNG's IHDR chunk. */
