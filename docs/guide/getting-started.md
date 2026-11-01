@@ -56,11 +56,14 @@ setup.
 
 ## Your first survey
 
-1. **Settings.** Pick the bundled floor plan or upload your own image. A
-   photo of a pencil sketch is fine; it does not need to be to scale (see the
-   [FAQ](faq.md#how-do-i-make-a-floor-plan)). Leave **What to measure** at
-   **Signal only**, or [set up speed tests](throughput.md) first.
-2. **Floor plan.** Stand somewhere, click that spot. The app measures the
+The app opens on the **Floor plan** tab with a blank grid, ready to measure.
+
+1. **Your floor plan.** Click **Upload your floor plan** at the top, or just
+   measure on the blank grid to try it. A photo of a pencil sketch is fine;
+   it does not need to be to scale (see the
+   [FAQ](faq.md#how-do-i-make-a-floor-plan)). **Measuring** starts at
+   **Signal only**; to measure speed too, [set up speed tests](throughput.md).
+2. **Measure.** Stand somewhere, click that spot. The app measures the
    signal (and speed, if the survey measures it) and drops a coloured dot
    there. Do this in every room, twice in big ones, and near the outer walls.
 3. **Heat maps.** Drag the radius until neighbouring spots merge into one
@@ -68,10 +71,11 @@ setup.
 4. **Survey points.** Check, switch off or delete individual measurements,
    or export everything as CSV.
 
-**A second floor (or house)?** Upload its floor plan in Settings. The new
+**A second floor (or house)?** Upload its floor plan at the top of the page. The new
 survey starts with the speed settings of the one you used last, so the
 speed test server is already filled in. To bring over access point names or
-the heat map look too, use **Copy settings from…** under **Floor plan**.
+the heat map look too, use **Copy settings from…** in Settings, under
+**This survey**.
 
 ![Signal strength heat map](../images/heatmap.jpg)
 

@@ -6,11 +6,22 @@ order: 3
 
 # Using the app
 
-wifi-heatmapper has four sections, shown as tabs in the header. The strip
-under the header always shows which floor plan you are working on, how many
-points it has, and what it measures: **Signal only**, or **Signal and speed**
-with the server's address. In a speed survey it also warns when no server is
-set or the newest point was saved without speed.
+wifi-heatmapper has four sections, shown as tabs in the header: **Floor
+plan** (where the app opens), **Heat maps**, **Survey points** and
+**Settings**.
+
+The bar above every tab shows the survey you are working on:
+
+* **Floor plan** – the image you click on. Pick a saved one from the menu, or
+  **Upload your floor plan** (PNG, JPEG or WebP; a photo of a sketch works
+  fine). Each floor plan keeps its own survey in
+  `data/surveys/<name>.json`. The app starts with a blank grid you can
+  measure on straight away.
+* **Measuring** – **Signal only** or **Signal and speed** (with the speed test
+  server's address). Choosing speed without a server set takes you to
+  Settings to enter one.
+* **Points** and when the last one was measured. In a speed survey a warning
+  appears when no server is set or the newest point was saved without speed.
 
 The header also has a light/dark switch and an "i" button that opens the
 About dialog with the version, OS and iperf3 details. The **?** in the
@@ -18,17 +29,24 @@ bottom-right corner opens the guide for the tab you are on, what's new, and
 **Report a problem**, which fills in a bug report for you (see the
 [FAQ](faq.md#something-went-wrong-how-do-i-report-it)).
 
-The first time you open the app a short welcome message explains the
-workflow. "Got it" hides it for good; the About dialog can show it again.
+There is no separate tutorial: a hint on the floor plan says what to do
+next. Click where you are standing, then walk to another room and click
+again, and after a few spots it points you to the heat maps. It disappears
+once the survey has a dozen points. In the desktop app on macOS, **About
+WiFi Heatmapper** in the app menu opens the same About dialog.
 
 ## Settings
 
 ![Settings](../images/settings.png)
 
-* **Floor plan** – the image you click on. Choose one of the bundled plans or
-  upload a PNG, JPEG or WebP. Each floor plan keeps its own survey in
-  `data/surveys/<name>.json`. The trash button deletes the image and its
-  survey.
+Settings has three parts: **Measurement**, **This survey**, and an
+**Advanced** group (access point names, usage counts). The heat map colours
+are on the [Heat maps](#heat-maps) tab.
+
+* **Survey file** – where this floor plan's survey is saved, with
+  **Download** for a copy.
+* **Delete this floor plan** – removes the image and its survey, after
+  asking.
 * **Settings from another survey** – **Copy settings from…** copies settings
   of another floor plan's survey into this one. Pick the survey, then tick
   what to copy:
@@ -69,7 +87,9 @@ workflow. "Got it" hides it for good; the About dialog can show it again.
     (pipes, `;`, redirects) is replaced by the defaults.
 * **sudo password** – needed only where reading the signal needs it: on
   macOS without the Wi-Fi helper (running from source) and on Linux when
-  `iw` is refused. The app's server holds it in memory for as long as the
+  `iw` is refused. You don't have to set it up front: when a measurement
+  needs it, the measurement panel asks for it and measures the same spot
+  again. The app's server holds it in memory for as long as the
   app runs, so measurements an [AI agent](mcp.md) starts can use it too. It
   is never written to disk, never sent back to the page, and gone when the
   app restarts; emptying the field forgets it. Not shown on Windows, in
@@ -80,8 +100,6 @@ workflow. "Got it" hides it for good; the About dialog can show it again.
   address with `*` (for example `aa:bb:cc:dd:ee:*`) to name every BSSID that
   starts with it, such as the per-band BSSIDs of one access point. An exact
   MAC address wins over a prefix, and a longer prefix wins over a shorter one.
-* **Heat map colours** – the colour stops for signal strength (0% = -100 dBm,
-  100% = -40 dBm) and the opacity range of the overlay.
 * **Usage counts** – turns the anonymous usage counts (installs, app starts,
   number of measurements) on or off for this computer, shows the exact event
   that is sent and when the last one went out, and says why they are off if
@@ -92,7 +110,12 @@ workflow. "Got it" hides it for good; the About dialog can show it again.
 
 ![Floor plan](../images/floorplan.png)
 
-Stand where you want to measure and click that spot. A pulsing dot marks the
+Stand where you want to measure and click that spot. On macOS, if the Wi-Fi
+helper can't see network names yet, a note above the plan offers **Allow
+Location access**: macOS shares the network name and access point only with
+apps that have Location access (your location itself is not used).
+
+A pulsing dot marks the
 spot while the measurement runs; the panel in the corner shows progress and
 has a Cancel button. In a signal-only survey it shows the signal and "Speed:
 not measured (signal only)"; with speed it shows download / upload (and the
@@ -184,6 +207,10 @@ values, so lower jitter, packet loss and retransmits are better even though
 they appear toward the red end. Turn off the fixed scale to restore automatic
 scaling. Your saved bounds are retained while off, including across reloads;
 turning it on again restores them rather than freezing a new automatic range.
+
+**Colours and opacity** opens the colour stops for signal strength (0% =
+-100 dBm, 100% = -40 dBm) and how much the overlay covers the floor plan at
+the strongest and weakest signal.
 
 **Radius** controls how far each point's influence reaches. It starts at an
 automatic value based on how spread out your points are; drag it until
