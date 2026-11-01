@@ -2,7 +2,7 @@
 
 _This section follows the precepts of [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) so that future readers can understand the state and evolution of the project._
 
-## Unreleased
+## Version 0.9.0 - 2026-11-01
 
 First-run changes from the feedback in
 [#144](https://github.com/hnykda/wifi-heatmapper/issues/144).
