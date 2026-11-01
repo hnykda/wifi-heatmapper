@@ -5,11 +5,9 @@ import { useMacosHelper } from "@/hooks/useMacosHelper";
 import { MacosHelperNotice } from "./MacosHelperNotice";
 import { PasswordInput } from "./PasswordInput";
 import { FormRow, FormSection } from "./FormRow";
-import { NumberField } from "./NumberField";
 import { SpeedSettings } from "./SpeedSettings";
 import { toast } from "@/components/ui/use-toast";
-import FloorplanPicker from "./MediaDropdown";
-import { GradientEditor } from "./GradientEditor";
+import { DeleteFloorplanButton } from "./MediaDropdown";
 import EditableApMapping from "./ApMapping";
 import { CopySettingsDialog } from "./CopySettingsDialog";
 import { UsageCountsSettings } from "./UsageCountsSettings";
@@ -68,49 +66,6 @@ export default function SettingsEditor() {
   return (
     <div className="mx-auto max-w-5xl">
       <FormSection
-        title="Floor plan"
-        description="The image you click on to place measurements. Each floor plan keeps its own survey."
-      >
-        <FormRow
-          label="Current floor plan"
-          help="Pick an image, or upload a PNG, JPEG or WebP. A photo of a sketch works fine: heat maps are approximate by nature."
-          hint={
-            settings.floorplanImageName && (
-              <>
-                Survey saved as{" "}
-                <code className="break-all rounded bg-muted px-1 py-0.5 font-mono text-[11px]">
-                  {surveyPath(status, settings.floorplanImageName)}
-                </code>{" "}
-                <ExportSurveyButton
-                  floorplan={settings.floorplanImageName}
-                  variant="link"
-                  testId="export-json-settings"
-                  className="h-auto p-0 text-[11px]"
-                >
-                  Download
-                </ExportSurveyButton>
-              </>
-            )
-          }
-        >
-          <FloorplanPicker
-            value={settings.floorplanImageName}
-            pointCount={settings.surveyPoints.length}
-            onChange={readNewSettingsFromFile}
-            onDelete={deleteFloorplan}
-          />
-        </FormRow>
-        <FormRow
-          label="Settings from another survey"
-          help="Copy the speed settings, access point names or heat map look of another floor plan's survey into this one. Points and the floor plan stay as they are."
-        >
-          <div>
-            <CopySettingsDialog />
-          </div>
-        </FormRow>
-      </FormSection>
-
-      <FormSection
         title="Measurement"
         description="What happens when you click the floor plan. The signal is always measured; speed is optional and needs a second computer. Each survey keeps its own choice."
       >
@@ -152,7 +107,7 @@ export default function SettingsEditor() {
           <FormRow
             id="sudoPassword"
             label="sudo password"
-            help="macOS (wdutil) needs administrator rights to read the Wi-Fi signal. Linux (iw) usually doesn't; the survey asks for the password if it does. The password is kept in memory only, until the app quits, and never written to disk. Measurements an AI agent starts use it too."
+            help="macOS (wdutil) needs administrator rights to read the Wi-Fi signal. Linux (iw) usually doesn't. If a measurement needs it, the app asks for it then. The password is kept in memory only, until the app quits, and never written to disk. Measurements an AI agent starts use it too."
             hint={
               status?.platform === "darwin"
                 ? macHelper.helper?.error
@@ -160,7 +115,7 @@ export default function SettingsEditor() {
                   : status.desktopApp
                     ? "Required: the app's Wi-Fi helper is missing, so the signal is read with wdutil. Not saved."
                     : "Required, unless you build the Wi-Fi helper (npm run build:macos-helper). Not saved."
-                : "On Linux, only if the survey asks for it. Not saved."
+                : "On Linux, only if a measurement asks for it. Not saved."
             }
           >
             <div className="max-w-sm">
@@ -175,6 +130,63 @@ export default function SettingsEditor() {
       </FormSection>
 
       <FormSection
+        title="This survey"
+        description="Each floor plan keeps its own survey. Pick or upload a floor plan at the top of the page."
+      >
+        <FormRow
+          label="Survey file"
+          hint="Points and settings of this floor plan. Download it to keep a copy or share it."
+        >
+          {settings.floorplanImageName ? (
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+              <code
+                className="break-all rounded bg-muted px-1.5 py-0.5 font-mono text-xs"
+                data-testid="survey-path"
+              >
+                {surveyPath(status, settings.floorplanImageName)}
+              </code>
+              <ExportSurveyButton
+                floorplan={settings.floorplanImageName}
+                variant="outline"
+                testId="export-json-settings"
+              >
+                Download
+              </ExportSurveyButton>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">No floor plan yet.</p>
+          )}
+        </FormRow>
+        <FormRow
+          label="Settings from another survey"
+          help="Copy the speed settings, access point names or heat map look of another floor plan's survey into this one. Points and the floor plan stay as they are."
+        >
+          <div>
+            <CopySettingsDialog />
+          </div>
+        </FormRow>
+        <FormRow
+          label="Delete"
+          hint="Removes the floor plan image and all its points."
+        >
+          <div>
+            <DeleteFloorplanButton
+              value={settings.floorplanImageName}
+              pointCount={settings.surveyPoints.length}
+              onDelete={deleteFloorplan}
+            />
+          </div>
+        </FormRow>
+      </FormSection>
+
+      <h2
+        className="border-b pb-3 pt-6 text-sm font-medium uppercase tracking-wide text-muted-foreground"
+        data-testid="settings-advanced"
+      >
+        Advanced
+      </h2>
+
+      <FormSection
         title="Access point names"
         description="Optional. Name your access points by MAC address and the survey shows the name instead of the address."
       >
@@ -182,48 +194,6 @@ export default function SettingsEditor() {
           apMapping={settings.apMapping}
           onSave={(apMapping) => updateSettings({ apMapping })}
         />
-      </FormSection>
-
-      <FormSection
-        title="Heat map colours"
-        description="Green is good. The scale runs from 0% (no signal, -100 dBm) to 100% (-40 dBm). Speed maps reuse the same colours across their own range, or a fixed one set on the Heat maps tab."
-      >
-        <FormRow label="Colour stops">
-          <GradientEditor
-            gradient={settings.gradient}
-            onChange={(gradient) => updateSettings({ gradient })}
-          />
-        </FormRow>
-        <div className="grid gap-5 sm:grid-cols-2">
-          <FormRow
-            id="maxOpacity"
-            label="Opacity at strongest"
-            help="How much the heat map covers the floor plan where the signal is strongest. 0 is invisible, 1 is solid."
-          >
-            <NumberField
-              id="maxOpacity"
-              min={0}
-              max={1}
-              step={0.1}
-              value={settings.maxOpacity}
-              onChange={(n) => updateSettings({ maxOpacity: n })}
-            />
-          </FormRow>
-          <FormRow
-            id="minOpacity"
-            label="Opacity at weakest"
-            help="Opacity where the signal is weakest."
-          >
-            <NumberField
-              id="minOpacity"
-              min={0}
-              max={1}
-              step={0.1}
-              value={settings.minOpacity}
-              onChange={(n) => updateSettings({ minOpacity: n })}
-            />
-          </FormRow>
-        </div>
       </FormSection>
 
       <UsageCountsSettings />

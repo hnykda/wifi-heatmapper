@@ -1,11 +1,13 @@
 "use client";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Check, CircleAlert, TriangleAlert, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { MeasurementFields } from "@/lib/types";
 import type { MeasurementPhase } from "@/hooks/useMeasurement";
 import { cn } from "@/lib/utils";
 import { openReport } from "@/components/help/report-store";
+import { PasswordInput } from "@/components/PasswordInput";
+import { needsSudoPassword } from "@/lib/sudo-messages";
 
 interface MeasurementPanelProps {
   phase: Exclude<MeasurementPhase, "idle">;
@@ -21,6 +23,8 @@ interface MeasurementPanelProps {
   onCancel: () => void;
   /** The survey's choice, shown until the server confirms it. */
   measureSpeed?: boolean;
+  /** Measure the same spot again with this sudo password. */
+  onRetryWithPassword?: (password: string) => void;
 }
 
 const DONE_AUTOCLOSE_MS = 2500;
@@ -39,7 +43,9 @@ export default function MeasurementPanel({
   onClose,
   onCancel,
   measureSpeed = false,
+  onRetryWithPassword,
 }: MeasurementPanelProps) {
+  const [password, setPassword] = useState("");
   const fields = shown ?? NO_FIELDS;
   const mode = shown?.mode ?? (measureSpeed ? "speed" : "signal");
 
@@ -105,7 +111,41 @@ export default function MeasurementPanel({
         )}
       </div>
 
-      {phase === "error" || phase === "cancelled" ? (
+      {phase === "error" &&
+      onRetryWithPassword &&
+      needsSudoPassword(message) ? (
+        <form
+          className="space-y-3 px-4 py-3 text-sm"
+          data-testid="measurement-sudo"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (password) onRetryWithPassword(password);
+          }}
+        >
+          <p>
+            {message.includes("valid")
+              ? "That password did not work. Enter the password you log in to this computer with."
+              : "Reading the Wi-Fi signal here needs your computer's administrator (sudo) password."}
+          </p>
+          <PasswordInput
+            id="measurement-sudo-password"
+            value={password}
+            onChange={setPassword}
+          />
+          <p className="text-xs text-muted-foreground">
+            Kept in memory until the app quits, never saved.
+          </p>
+          <Button
+            type="submit"
+            size="sm"
+            variant="brand"
+            disabled={!password}
+            data-testid="measurement-sudo-retry"
+          >
+            Measure again
+          </Button>
+        </form>
+      ) : phase === "error" || phase === "cancelled" ? (
         <div className="px-4 py-3 text-sm">
           <p className="whitespace-pre-line">{message}</p>
           {phase === "error" && (

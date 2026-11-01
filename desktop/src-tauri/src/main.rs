@@ -450,6 +450,55 @@ fn open_log(app: &tauri::AppHandle) -> Option<(PathBuf, File)> {
     Some((path, file))
 }
 
+/// The app menu's About item: opens the page's own About dialog (version,
+/// data folder, links) instead of the native panel, which says nothing useful.
+const ABOUT_MENU_ID: &str = "about";
+
+/// Ask the page to open About (src/components/layout/AboutDialog.tsx).
+/// Before the app's page has loaded (the launcher) nothing listens; fine.
+fn show_about(app: &tauri::AppHandle) {
+    if let Some(window) = app.get_webview_window("main") {
+        let _ = window.show();
+        let _ = window.set_focus();
+        let _ = window.eval("window.dispatchEvent(new Event('wifi-heatmapper:show-about'))");
+    }
+}
+
+/// Tauri's default macOS menu, with our own About item.
+#[cfg(target_os = "macos")]
+fn macos_menu(app: &tauri::AppHandle) -> tauri::Result<tauri::menu::Menu<tauri::Wry>> {
+    use tauri::menu::{MenuBuilder, MenuItem, SubmenuBuilder};
+    let about = MenuItem::with_id(app, ABOUT_MENU_ID, format!("About {WINDOW_TITLE}"), true, None::<&str>)?;
+    let app_menu = SubmenuBuilder::new(app, WINDOW_TITLE)
+        .item(&about)
+        .separator()
+        .services()
+        .separator()
+        .hide()
+        .hide_others()
+        .show_all()
+        .separator()
+        .quit()
+        .build()?;
+    let edit = SubmenuBuilder::new(app, "Edit")
+        .undo()
+        .redo()
+        .separator()
+        .cut()
+        .copy()
+        .paste()
+        .select_all()
+        .build()?;
+    let view = SubmenuBuilder::new(app, "View").fullscreen().build()?;
+    let window = SubmenuBuilder::new(app, "Window")
+        .minimize()
+        .maximize()
+        .separator()
+        .close_window()
+        .build()?;
+    MenuBuilder::new(app).items(&[&app_menu, &edit, &view, &window]).build()
+}
+
 fn main() {
     tauri::Builder::default()
         .manage(Server {
@@ -460,7 +509,14 @@ fn main() {
             log_path: Mutex::new(None),
         })
         .invoke_handler(tauri::generate_handler![server_status, relaunch, reveal_log])
+        .on_menu_event(|app, event| {
+            if event.id() == ABOUT_MENU_ID {
+                show_about(app);
+            }
+        })
         .setup(|app| {
+            #[cfg(target_os = "macos")]
+            app.set_menu(macos_menu(app.handle())?)?;
             let handle = app.handle().clone();
             let server = app.state::<Server>();
             let server_dir = app.path().resource_dir()?.join("server");

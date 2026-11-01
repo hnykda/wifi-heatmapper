@@ -97,3 +97,50 @@ export function MacosHelperNotice({
     </div>
   );
 }
+
+/**
+ * On the Floor plan tab, before the first click: macOS hides the network
+ * name and access point from the Wi-Fi helper until it has Location access.
+ * Shown only while that is missing; the full story is in Settings.
+ */
+export function LocationBanner({
+  helper,
+  asking,
+  error,
+  onAuthorize,
+}: {
+  helper: MacosHelperStatus;
+  asking: boolean;
+  error: string | null;
+  onAuthorize: () => void;
+}) {
+  if (!helper.available || helper.locationAuthorized) return null;
+  const blocked =
+    helper.locationStatus === "denied" ||
+    helper.locationStatus === "restricted" ||
+    helper.locationServicesEnabled === false;
+  return (
+    <div
+      className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-md border border-brand/30 bg-brand-soft/60 px-4 py-3 text-sm"
+      data-testid="floorplan-location"
+    >
+      <MapPin className="h-4 w-4 shrink-0 text-brand" />
+      <p className="min-w-0 flex-1">
+        To record the network name and access point of each spot, allow Location
+        access for {APP_NAME}. Your location itself is not used.
+        {asking && " Answer the macOS dialog; it can open behind this window."}
+        {error && <span className="text-destructive"> {error}</span>}
+      </p>
+      <Button
+        type="button"
+        variant="brand"
+        size="sm"
+        onClick={onAuthorize}
+        disabled={asking}
+        data-testid="floorplan-location-allow"
+      >
+        {blocked ? "Open Location settings" : "Allow Location access"}
+      </Button>
+    </div>
+  );
+}

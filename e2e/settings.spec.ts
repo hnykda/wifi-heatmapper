@@ -8,7 +8,7 @@ import {
 
 test("uploading a floor plan creates its own survey file", async ({ page }) => {
   const name = await uploadFloorplan(page);
-  await expect(page.getByTestId("floorplan-preview")).toBeVisible();
+  await expect(page.getByTestId("survey-path")).toContainText(name);
 
   const survey = await readSurvey(
     page,

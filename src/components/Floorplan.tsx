@@ -1,9 +1,16 @@
 "use client";
 import React, { useEffect, useEffectEvent, useRef, useState } from "react";
-import { FlaskConical, MousePointerClick } from "lucide-react";
+import {
+  ChartArea,
+  FlaskConical,
+  Footprints,
+  MousePointerClick,
+} from "lucide-react";
 
 import { useSettings } from "./GlobalSettings";
 import { useAppStatus } from "@/hooks/useAppStatus";
+import { useMacosHelper } from "@/hooks/useMacosHelper";
+import { LocationBanner } from "@/components/MacosHelperNotice";
 import MeasurementPanel from "@/components/MeasurementPanel";
 import PopupDetails from "@/components/PopupDetails";
 import { ZoomPanViewport } from "@/components/ZoomPanViewport";
@@ -111,6 +118,14 @@ export default function ClickableFloorplan() {
     reloadSettings,
   } = useSettings();
   const status = useAppStatus();
+  // macOS: the Wi-Fi helper needs Location access to see network names.
+  // Ask here, before the first click, not only in Settings.
+  const macHelper = useMacosHelper(
+    !!status &&
+      status.platform === "darwin" &&
+      !status.mockMode &&
+      !!status.macosHelper,
+  );
 
   // The image and the selected point belong to one floor plan: a new path
   // shows neither until its own image has loaded.
@@ -130,14 +145,14 @@ export default function ClickableFloorplan() {
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   // Zoom and pan; back to fit for another floor plan. The frame fits the
-  // width and the window's height below the header, the survey strip and
-  // the title (about 190 px), so the whole plan is in view without scrolling.
+  // width and the window's height below the header, the survey bar and
+  // the title (about 250 px), so the whole plan is in view without scrolling.
   const zp = useZoomPan({
     image: image
       ? { width: image.naturalWidth, height: image.naturalHeight }
       : null,
     resetKey: path,
-    maxHeight: (h) => Math.max(240, h - 190),
+    maxHeight: (h) => Math.max(240, h - 250),
   });
   const { frame, scale, offsetX, offsetY, fit, zoom } = zp;
   const imageWidth = image?.naturalWidth ?? 0;
@@ -174,7 +189,7 @@ export default function ClickableFloorplan() {
     setLoaded({
       path: src,
       img: null,
-      error: `The floor plan "${settings.floorplanImageName}" could not be loaded. Pick another one in Settings.`,
+      error: `The floor plan "${settings.floorplanImageName}" could not be loaded. Pick another one at the top of the page.`,
     }),
   );
 
@@ -279,14 +294,24 @@ export default function ClickableFloorplan() {
     if (x < 0 || y < 0 || x > image.naturalWidth || y > image.naturalHeight) {
       return;
     }
-    void measurement.start(x, y, {
-      measureSpeed: settings.measureSpeed,
-      iperfServerAdrs: settings.iperfServerAdrs,
-      testDuration: settings.testDuration,
-      udpTests: settings.udpTests,
-      sudoerPassword: settings.sudoerPassword,
-      iperfCommands: settings.iperfCommands,
-    });
+    void measurement.start(x, y, measureOptions(settings.sudoerPassword));
+  };
+
+  const measureOptions = (sudoerPassword: string) => ({
+    measureSpeed: settings.measureSpeed,
+    iperfServerAdrs: settings.iperfServerAdrs,
+    testDuration: settings.testDuration,
+    udpTests: settings.udpTests,
+    sudoerPassword,
+    iperfCommands: settings.iperfCommands,
+  });
+
+  /** The measurement asked for the sudo password: keep it, measure again. */
+  const retryWithPassword = (password: string) => {
+    const job = measurement.job;
+    if (!job) return;
+    updateSettings({ sudoerPassword: password });
+    void measurement.start(job.x, job.y, measureOptions(password));
   };
 
   const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -394,6 +419,15 @@ export default function ClickableFloorplan() {
         )}
       </div>
 
+      {macHelper.helper && (
+        <LocationBanner
+          helper={macHelper.helper}
+          asking={macHelper.asking}
+          error={macHelper.error}
+          onAuthorize={macHelper.authorize}
+        />
+      )}
+
       {imageError && (
         <div
           role="alert"
@@ -404,14 +438,7 @@ export default function ClickableFloorplan() {
       )}
 
       <div className="survey-plate relative rounded-lg border p-3 sm:p-5">
-        {points.length === 0 && image && !measuring && (
-          <div className="pointer-events-none absolute inset-x-0 top-6 z-10 flex justify-center">
-            <div className="flex items-center gap-2 rounded-full border bg-popover/95 px-3.5 py-1.5 text-sm shadow-float">
-              <MousePointerClick className="h-4 w-4 text-brand" />
-              Click where you are standing to take the first measurement
-            </div>
-          </div>
-        )}
+        {image && !measuring && <NextStepHint points={points.length} />}
 
         {!image && !imageError && (
           <div className="flex aspect-2/1 items-center justify-center text-sm text-muted-foreground">
@@ -475,8 +502,54 @@ export default function ClickableFloorplan() {
           onClose={measurement.dismiss}
           onCancel={measurement.cancel}
           measureSpeed={settings.measureSpeed}
+          onRetryWithPassword={retryWithPassword}
         />
       )}
+    </div>
+  );
+}
+
+/** Enough points for a heat map worth looking at; the hints stop here. */
+const ENOUGH_POINTS = 12;
+
+/**
+ * What to do next, on the plan itself: the first click, then the next
+ * room, then the heat maps. It follows the survey, so there is nothing to
+ * dismiss, and a survey that already has points skips the early steps.
+ */
+function NextStepHint({ points }: { points: number }) {
+  if (points >= ENOUGH_POINTS) return null;
+  const [Icon, text] =
+    points === 0
+      ? [
+          MousePointerClick,
+          "Click where you are standing to take the first measurement",
+        ]
+      : points < 3
+        ? [Footprints, "Now walk to another room and click where you are"]
+        : [
+            ChartArea,
+            `${points} spots so far. A dozen or so, spread over the plan, make a good map.`,
+          ];
+  return (
+    <div className="pointer-events-none absolute inset-x-0 top-6 z-10 flex justify-center px-4">
+      <div
+        className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 rounded-full border bg-popover/95 px-3.5 py-1.5 text-sm shadow-float"
+        data-testid="next-step-hint"
+        data-step={points === 0 ? 1 : points < 3 ? 2 : 3}
+      >
+        <Icon className="h-4 w-4 shrink-0 text-brand" />
+        {text}
+        {points >= 3 && (
+          <a
+            href="#heatmaps"
+            className="prose-link pointer-events-auto font-medium"
+            data-testid="next-step-heatmaps"
+          >
+            See the heat map
+          </a>
+        )}
+      </div>
     </div>
   );
 }
