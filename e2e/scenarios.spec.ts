@@ -83,12 +83,15 @@ test("sudo password needed: Settings asks for it, the panel and MCP say so", asy
 }) => {
   await mock.set({ wifi: "needs-sudo", sudoPassword: "letmein" });
   const name = await uploadFloorplan(page);
+  await gotoTab(page, "settings");
   await expect(page.getByLabel("sudo password")).toBeVisible();
   await expect(page.getByTestId("sudo-not-needed")).toHaveCount(0);
 
   const panel = await measureUntil(page, "error");
   await expect(panel).toContainText("Could not measure");
-  await expect(panel).toContainText("Please set sudo password");
+  await expect(panel.getByTestId("measurement-sudo")).toContainText(
+    "administrator (sudo) password",
+  );
 
   // an AI agent gets the plain message, and is told not to ask in chat
   const mcp = await measureLikeMcp(page, baseURL!, name);
@@ -111,6 +114,31 @@ test("sudo password needed: Settings asks for it, the panel and MCP say so", asy
   expect(JSON.stringify(file)).not.toContain("letmein");
 });
 
+test("the measurement panel asks for the sudo password and measures again", async ({
+  page,
+  mock,
+}) => {
+  await mock.set({ wifi: "needs-sudo", sudoPassword: "letmein" });
+  const name = await uploadFloorplan(page);
+  const panel = await measureUntil(page, "error", 0.4, 0.6);
+  const form = panel.getByTestId("measurement-sudo");
+  await form.getByPlaceholder("Enter password").fill("letmein");
+  await form.getByTestId("measurement-sudo-retry").click();
+  await expect(panel).toHaveAttribute("data-phase", "done", {
+    timeout: 30_000,
+  });
+  const survey = await readSurvey(
+    page,
+    name,
+    (s) => s.surveyPoints.length === 1,
+  );
+  expect(JSON.stringify(survey)).not.toContain("letmein");
+  // the server holds it for the next measurements
+  await expect
+    .poll(async () => (await page.request.get("/api/sudo-password")).json())
+    .toEqual({ held: true });
+});
+
 test("a wrong sudo password is refused, with a plain message", async ({
   page,
   mock,
@@ -120,7 +148,7 @@ test("a wrong sudo password is refused, with a plain message", async ({
   const name = await uploadFloorplan(page);
   await enterSudoPassword(page, "not-it");
   const panel = await measureUntil(page, "error");
-  await expect(panel).toContainText("Please enter a valid sudo password.");
+  await expect(panel).toContainText("That password did not work");
 
   const mcp = await measureLikeMcp(page, baseURL!, name);
   expect(mcp.value).toMatchObject({
@@ -315,7 +343,7 @@ test("each test starts from the seeded data", async ({ request }) => {
     await request.get("/api/settings?list=true")
   ).json();
   // at most the default floor plan's survey, made when a page opens it
-  expect(surveys.filter((s: string) => s !== "EmptyFloorPlan.png")).toEqual([]);
+  expect(surveys.filter((s: string) => s !== "Demo_flat.png")).toEqual([]);
   const { files } = await (await request.get("/api/media")).json();
-  expect(files).toEqual(["EmptyFloorPlan.png", "House & Garage.jpg"]);
+  expect(files).toEqual(["Demo flat.png", "House & Garage.jpg"]);
 });

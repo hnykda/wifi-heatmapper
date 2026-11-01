@@ -56,7 +56,8 @@ You will have to do this again after each update, for the same reason.
 ### Location access
 
 macOS only tells apps the name of your Wi-Fi network if they have Location
-access. In the app's Settings tab, click **Allow Location access**; macOS
+access. Above the floor plan (or in Settings), click **Allow Location
+access**; macOS
 asks whether **WiFi Heatmapper Helper** may use your location. Click
 **Allow**. The helper is the small part of the app that reads
 the Wi-Fi signal. It never looks up where you are.

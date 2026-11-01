@@ -9,8 +9,7 @@ import { useAppStatus } from "@/hooks/useAppStatus";
 import { BrandMark } from "./BrandMark";
 import { GithubIcon } from "./GithubIcon";
 import { AboutDialog } from "./AboutDialog";
-import { SurveySummary } from "./SurveySummary";
-import { WelcomePanel } from "./WelcomePanel";
+import { SurveyBar } from "./SurveyBar";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import SettingsEditor from "@/components/SettingsEditor";
 import ClickableFloorplan from "@/components/Floorplan";
@@ -20,10 +19,10 @@ import { HelpMenu } from "@/components/help/HelpMenu";
 import { cn } from "@/lib/utils";
 
 export const TABS = [
-  { id: "settings", label: "Settings" },
   { id: "floorplan", label: "Floor plan" },
   { id: "heatmaps", label: "Heat maps" },
   { id: "points", label: "Survey points" },
+  { id: "settings", label: "Settings" },
 ] as const;
 export type TabId = (typeof TABS)[number]["id"];
 
@@ -54,7 +53,7 @@ function useHashTab(defaultTab: TabId): [TabId, (t: TabId) => void] {
 }
 
 export default function AppShell() {
-  const [tab, setTab] = useHashTab("settings");
+  const [tab, setTab] = useHashTab("floorplan");
   const { settings, surveyPointActions } = useSettings();
   const status = useAppStatus();
 
@@ -67,8 +66,8 @@ export default function AppShell() {
       <header className="sticky top-0 z-30 border-b bg-background/95 backdrop-blur-sm supports-backdrop-filter:bg-background/80">
         <div className="mx-auto flex max-w-[1440px] flex-wrap items-center gap-x-6 px-4 sm:h-14 sm:flex-nowrap sm:px-6">
           <a
-            href="#settings"
-            onClick={() => setTab("settings")}
+            href="#floorplan"
+            onClick={() => setTab("floorplan")}
             className="order-1 flex h-14 shrink-0 items-center gap-2 rounded-md text-[15px] font-semibold tracking-tight"
           >
             <BrandMark className="h-6 w-6" />
@@ -129,10 +128,8 @@ export default function AppShell() {
         </div>
       </header>
 
-      <SurveySummary onNavigate={setTab} />
-
       <main className="mx-auto w-full max-w-[1440px] flex-1 px-4 py-6 sm:px-6">
-        <WelcomePanel />
+        <SurveyBar onNavigate={setTab} />
         <Tabs.Content value="settings" className="outline-hidden">
           <SettingsEditor />
         </Tabs.Content>

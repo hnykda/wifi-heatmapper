@@ -1,4 +1,5 @@
 import { test, expect } from "./fixtures";
+import { gotoTab, measureAt, uploadFloorplan } from "./helpers";
 
 test("server reports mock mode and a version", async ({ request }) => {
   const res = await request.get("/api/status");
@@ -50,21 +51,40 @@ test("theme toggle switches to dark and is remembered", async ({ page }) => {
   await expect(html).not.toHaveClass(/dark/);
 });
 
-test("welcome message can be dismissed and brought back", async ({ page }) => {
+test("opens on the floor plan, Settings last", async ({ page }) => {
   await page.goto("/");
-  const welcome = page.getByTestId("welcome-panel");
-  await expect(welcome).toBeVisible();
-  await expect(welcome).toContainText("iperf3 -s");
-  await expect(page.getByTestId("welcome-mock-note")).toContainText(
-    "npm run dev",
+  await expect(page.getByTestId("tab-floorplan")).toHaveAttribute(
+    "data-state",
+    "active",
   );
-  await page.getByTestId("welcome-dismiss").click();
-  await expect(welcome).toHaveCount(0);
-  await page.reload();
-  await expect(page.getByTestId("tab-settings")).toBeVisible();
-  await expect(page.getByTestId("welcome-panel")).toHaveCount(0);
+  await expect(page.getByTestId("floorplan-canvas")).toBeVisible();
+  const tabs = await page.getByRole("tab").allInnerTexts();
+  expect(tabs.at(-1)).toBe("Settings");
+});
 
-  await page.getByRole("button", { name: "About Wi-Fi Heatmapper" }).click();
-  await page.getByTestId("show-welcome-again").click();
-  await expect(page.getByTestId("welcome-panel")).toBeVisible();
+test("a hint on the plan says what to do next", async ({ page }) => {
+  await uploadFloorplan(page);
+  await gotoTab(page, "floorplan");
+  const hint = page.getByTestId("next-step-hint");
+  await expect(hint).toHaveAttribute("data-step", "1");
+  await expect(hint).toContainText("Click where you are standing");
+
+  await measureAt(page, 0.3, 0.3);
+  await expect(hint).toHaveAttribute("data-step", "2");
+  await expect(hint).toContainText("another room");
+
+  await measureAt(page, 0.5, 0.5);
+  await measureAt(page, 0.7, 0.7);
+  await expect(hint).toHaveAttribute("data-step", "3");
+  await page.getByTestId("next-step-heatmaps").click();
+  await expect(page.getByTestId("tab-heatmaps")).toHaveAttribute(
+    "data-state",
+    "active",
+  );
+
+  // a survey with enough points shows no hint
+  await page.getByTestId("tab-floorplan").click();
+  await page.getByTestId("add-sample-points").click();
+  await expect(page.getByTestId("summary-points")).toContainText("27");
+  await expect(hint).toHaveCount(0);
 });

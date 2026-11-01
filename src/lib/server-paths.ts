@@ -52,6 +52,14 @@ export function getBundledFloorplansDir(): string {
   return path.join(getResourcesDir(), "assets", "floorplans");
 }
 
+/**
+ * Surveys bundled with the app (the demo plan's sample points), copied into
+ * the surveys dir when that floor plan has no survey yet.
+ */
+export function getBundledSurveysDir(): string {
+  return path.join(getResourcesDir(), "assets", "surveys");
+}
+
 /** Versions before 0.5.0 stored uploads here; they are migrated on start. */
 export function getLegacyMediaDir(): string {
   return path.join(process.cwd(), "public", "media");

@@ -35,6 +35,7 @@ import {
 } from "@/components/ui/accordion";
 import { HeatmapSlider } from "./Slider";
 import { HeatmapScaleControl } from "./HeatmapScaleControl";
+import { HeatmapLookSettings } from "./HeatmapLookSettings";
 import {
   heatmapKey,
   resolveHeatmapRange,
@@ -646,6 +647,8 @@ export function Heatmaps() {
               </AccordionContent>
             </AccordionItem>
           </Accordion>
+
+          <HeatmapLookSettings />
 
           <HeatmapSlider
             value={radius}

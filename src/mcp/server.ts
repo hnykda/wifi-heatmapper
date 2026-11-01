@@ -124,9 +124,7 @@ async function loadSurvey(client: AppClient, name: string) {
 const nameArg = z
   .string()
   .min(1)
-  .describe(
-    'Floor plan name as list_surveys returns it, e.g. "EmptyFloorPlan.png"',
-  );
+  .describe('Floor plan name as list_surveys returns it, e.g. "Demo flat.png"');
 
 export function createMcpServer(client: AppClient, version: string): McpServer {
   const server = new McpServer(

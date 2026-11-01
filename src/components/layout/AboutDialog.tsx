@@ -1,4 +1,5 @@
 "use client";
+import { useEffect, useState } from "react";
 import { Info } from "lucide-react";
 import {
   Dialog,
@@ -10,11 +11,16 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useAppStatus } from "@/hooks/useAppStatus";
-import { showWelcomeAgain } from "./WelcomePanel";
 import { DialogClose } from "@/components/ui/dialog";
 import { openReport } from "@/components/help/report-store";
 
 const SITE = "https://wifi-heatmapper.danielalder.cz";
+
+/**
+ * Dispatched on `window` to open About. The desktop app's native
+ * "About WiFi Heatmapper" menu item sends it (desktop/src-tauri/src/main.rs).
+ */
+export const SHOW_ABOUT_EVENT = "wifi-heatmapper:show-about";
 
 /**
  * About: what is running, where the data lives, where to get help.
@@ -22,6 +28,14 @@ const SITE = "https://wifi-heatmapper.danielalder.cz";
  */
 export function AboutDialog() {
   const status = useAppStatus();
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    const show = () => setOpen(true);
+    window.addEventListener(SHOW_ABOUT_EVENT, show);
+    return () => window.removeEventListener(SHOW_ABOUT_EVENT, show);
+  }, []);
+
   const rows: [string, string][] = status
     ? [
         ["Version", status.version],
@@ -43,7 +57,7 @@ export function AboutDialog() {
     : [];
 
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button
           variant="ghost"
@@ -103,17 +117,6 @@ export function AboutDialog() {
           </a>
           .
         </p>
-        <DialogClose asChild>
-          <Button
-            variant="link"
-            size="sm"
-            className="h-auto justify-start p-0"
-            onClick={showWelcomeAgain}
-            data-testid="show-welcome-again"
-          >
-            Show the welcome message again
-          </Button>
-        </DialogClose>
       </DialogContent>
     </Dialog>
   );

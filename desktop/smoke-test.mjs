@@ -140,16 +140,16 @@ await check("/ and its static assets", async () => {
 
 await check("bundled floor plans are seeded into the data dir", async () => {
   const { files } = await (await get("/api/media")).json();
-  assert(files.includes("EmptyFloorPlan.png"), `files: ${files}`);
-  assert(existsSync(join(dataDir, "media", "EmptyFloorPlan.png")), "not on disk");
-  await get("/api/media/EmptyFloorPlan.png");
+  assert(files.includes("Demo flat.png"), `files: ${files}`);
+  assert(existsSync(join(dataDir, "media", "Demo flat.png")), "not on disk");
+  await get("/api/media/Demo%20flat.png");
 });
 
 await check("a survey can be saved", async () => {
   await get("/api/settings", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ floorplanImageName: "EmptyFloorPlan.png" }),
+    body: JSON.stringify({ floorplanImageName: "Demo flat.png" }),
   });
   const surveys = readdirSync(join(dataDir, "surveys"));
   assert(surveys.length === 1, `surveys dir: ${surveys}`);
@@ -198,7 +198,7 @@ await check("the MCP server lists surveys through the app", async () => {
     assert(!result.isError, JSON.stringify(result));
     const { surveys } = JSON.parse(result.content[0].text);
     assert(
-      surveys.some((s) => s.name === "EmptyFloorPlan.png" && s.hasSurvey),
+      surveys.some((s) => s.name === "Demo flat.png" && s.hasSurvey),
       `surveys: ${JSON.stringify(surveys)}`,
     );
   } finally {

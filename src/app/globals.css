@@ -143,7 +143,7 @@
     --secondary: 220 14% 93%;
     --secondary-foreground: 222 20% 14%;
     --muted: 220 14% 94%;
-    --muted-foreground: 220 9% 44%;
+    --muted-foreground: 220 10% 36%;
     --accent: 220 14% 93%;
     --accent-foreground: 222 20% 14%;
 
@@ -188,7 +188,7 @@
     --secondary: 222 12% 18%;
     --secondary-foreground: 220 14% 92%;
     --muted: 222 12% 17%;
-    --muted-foreground: 220 9% 62%;
+    --muted-foreground: 220 10% 70%;
     --accent: 222 12% 19%;
     --accent-foreground: 220 14% 92%;
 
@@ -233,7 +233,7 @@
       "Helvetica Neue",
       Arial,
       sans-serif;
-    font-size: 14px;
+    font-size: 16px;
     -webkit-text-size-adjust: 100%;
   }
   body {

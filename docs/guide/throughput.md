@@ -59,8 +59,8 @@ On Windows, running from source, you may need to add iperf3's folder to
 The signal is always saved. If iperf3 is not installed on this laptop, no
 server is set, or the server does not answer, the app skips the speed test,
 saves the signal reading, and says so: the panel in the corner shows **Saved
-without speed** with the reason instead of a green tick, and the strip under
-the header warns that the newest point has no speed. The same happens if a
+without speed** with the reason instead of a green tick, and the bar above
+the tabs' content warns that the newest point has no speed. The same happens if a
 test fails part way, for example because the server is busy with another
 test. This works the same on macOS, Windows and Linux.
 

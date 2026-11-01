@@ -12,6 +12,7 @@ import { getAppStatus } from "./app-info";
 import { reportAppStart } from "./telemetry";
 import {
   getBundledFloorplansDir,
+  getBundledSurveysDir,
   getLegacyMediaDir,
   getMediaDir,
   getSurveysDir,
@@ -50,10 +51,15 @@ async function logSystemInfo(): Promise<void> {
 }
 
 /**
- * copyMissing() - copy every image from `from` into `to` unless a file with
- * the same name already exists there. Returns the number copied.
+ * copyMissing() - copy every file `wanted` accepts (images by default) from
+ * `from` into `to` unless a file with the same name already exists there.
+ * Returns the number copied.
  */
-async function copyMissing(from: string, to: string): Promise<number> {
+async function copyMissing(
+  from: string,
+  to: string,
+  wanted: (name: string) => boolean = isImageFileName,
+): Promise<number> {
   let names: string[];
   try {
     names = await fs.readdir(from);
@@ -61,7 +67,7 @@ async function copyMissing(from: string, to: string): Promise<number> {
     return 0; // source dir doesn't exist
   }
   let copied = 0;
-  for (const name of names.filter(isImageFileName)) {
+  for (const name of names.filter(wanted)) {
     const dest = path.join(to, name);
     try {
       await fs.access(dest);
@@ -73,9 +79,17 @@ async function copyMissing(from: string, to: string): Promise<number> {
   return copied;
 }
 
-/** Copy the bundled floor plans into the media dir (those not there yet). */
-export function seedBundledFloorplans(): Promise<number> {
-  return copyMissing(getBundledFloorplansDir(), getMediaDir());
+/**
+ * Copy the bundled floor plans into the media dir, and the demo survey into
+ * the surveys dir, unless they are there already: a survey the user has
+ * changed (or the demo plan's survey from an older version) is kept.
+ */
+export async function seedBundledFloorplans(): Promise<number> {
+  const copied = await copyMissing(getBundledFloorplansDir(), getMediaDir());
+  await copyMissing(getBundledSurveysDir(), getSurveysDir(), (name) =>
+    name.endsWith(".json"),
+  );
+  return copied;
 }
 
 let initPromise: Promise<void> | null = null;
@@ -84,7 +98,7 @@ let initPromise: Promise<void> | null = null;
  * initServer() - idempotent start-up work:
  * - log system information
  * - create the data directories
- * - seed the bundled floor plans
+ * - seed the bundled floor plans and the demo survey
  * - migrate floor plans uploaded by versions < 0.5.0 (public/media)
  * - load Windows localization tables
  * - send the anonymous usage counts, if on (telemetry.ts, in the background)

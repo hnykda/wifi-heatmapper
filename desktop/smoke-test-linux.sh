@@ -61,8 +61,8 @@ echo "ok   /api/status: mock mode, data in $data"
 curl -fsS "$base/" | grep -q "/_next/static/" || fail "/ has no /_next/static assets"
 echo "ok   /"
 
-curl -fsS "$base/api/media" | grep -q EmptyFloorPlan.png || fail "floor plans not seeded"
-[ -f "$data/media/EmptyFloorPlan.png" ] || fail "floor plan not on disk"
+curl -fsS "$base/api/media" | grep -q "Demo flat.png" || fail "floor plans not seeded"
+[ -f "$data/media/Demo flat.png" ] || fail "floor plan not on disk"
 echo "ok   bundled floor plans seeded"
 
 # The bundled node processes (AppImage: the extracted copy; .deb:

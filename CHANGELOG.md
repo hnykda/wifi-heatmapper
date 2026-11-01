@@ -4,6 +4,40 @@ _This section follows the precepts of [Keep a Changelog](https://keepachangelog.
 
 ## Unreleased
 
+First-run changes from the feedback in
+[#144](https://github.com/hnykda/wifi-heatmapper/issues/144).
+
+### Added
+
+* **A demo to start from.** New installs open on "Demo flat.png", a simple
+  flat with 18 sample measurements, so the **Heat maps** tab shows a
+  finished map before you measure anything. Upload your own plan at the
+  top of the page to start. Existing surveys are never replaced.
+* **Hints on the floor plan** say what to do next on a new plan: click
+  where you are standing, walk to another room, then see the heat map.
+  They go away once a plan has a dozen points.
+* **The sudo password is asked where it is needed.** If a measurement
+  needs it, the measurement panel asks for it and measures the same spot
+  again. It is still kept in memory only.
+* **macOS: Location access** is offered above the floor plan when the Wi-Fi
+  helper can't see network names, not only in Settings.
+
+### Changed
+
+* **The app opens on the Floor plan tab**, and Settings is now the last
+  tab.
+* **A bar above every tab** holds the floor plan picker, **Upload your
+  floor plan**, the **Measuring** choice (Signal only / Signal and speed),
+  the point count and the speed warning. It replaces the welcome panel
+  and the summary strip.
+* **Settings is grouped** into Measurement, This survey and Advanced. Heat
+  map colours and opacity moved to the **Heat maps** tab (**Colours and
+  opacity**).
+* **Larger text**: the base font size is 16px instead of 14px, and
+  secondary text is darker.
+* **macOS desktop app:** About in the app menu opens the app's own About
+  dialog.
+
 ### Fixed
 
 * **`npm run dev` opened by LAN address** (for example

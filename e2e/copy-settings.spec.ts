@@ -1,6 +1,7 @@
 import type { Page } from "@playwright/test";
 import { test, expect } from "./fixtures";
 import {
+  gotoTab,
   readSurvey,
   uniqueName,
   uploadFloorplan,
@@ -138,8 +139,10 @@ test("copy settings from: heat map look", async ({ page }) => {
   const from = await sourceSurvey(page);
   await copyOnly(page, from, "heatmapLook");
 
-  await expect(page.getByLabel("Opacity at strongest")).toHaveValue("0.4");
   await expect(page.getByLabel("Signal only")).toBeChecked();
+  await gotoTab(page, "heatmaps");
+  await page.getByTestId("heatmap-look-open").click();
+  await expect(page.getByLabel("Opacity at strongest")).toHaveValue("0.4");
   const survey = await readSurvey(page, to, (s) => s.maxOpacity === 0.4);
   expect(survey).toMatchObject({
     heatmapRanges: { signalStrength: { min: 20, max: 80, enabled: true } },

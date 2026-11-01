@@ -4,7 +4,7 @@ import { getDefaults } from "../../src/components/GlobalSettings";
 import { HeatmapSettings } from "../../src/lib/types";
 
 beforeAll(() => {
-  settings = getDefaults("EmptyFloorPlan.png");
+  settings = getDefaults("Demo flat.png");
 });
 
 let settings: HeatmapSettings;
