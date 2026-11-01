@@ -26,7 +26,8 @@ are filled in by the heat map, so even coverage matters more than many points.
 
 macOS 15 and later only give apps the network name (SSID) and access point
 address (BSSID) if they have Location access. In the desktop app, click
-**Allow Location access** in Settings and **Allow** in the macOS dialog. When
+**Allow Location access** (offered above the floor plan, and in Settings) and
+**Allow** in the macOS dialog. When
 running from source, build the Wi-Fi helper first
 (`npm run build:macos-helper`), then do the same. The helper uses the
 permission only to see the network name; it never looks up where you are.

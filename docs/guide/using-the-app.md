@@ -15,8 +15,8 @@ The bar above every tab shows the survey you are working on:
 * **Floor plan** – the image you click on. Pick a saved one from the menu, or
   **Upload your floor plan** (PNG, JPEG or WebP; a photo of a sketch works
   fine). Each floor plan keeps its own survey in
-  `data/surveys/<name>.json`. The app starts with a blank grid you can
-  measure on straight away.
+  `data/surveys/<name>.json`. The app starts on "Demo flat.png", a demo
+  plan with sample measurements; upload your own to start a real survey.
 * **Measuring** – **Signal only** or **Signal and speed** (with the speed test
   server's address). Choosing speed without a server set takes you to
   Settings to enter one.

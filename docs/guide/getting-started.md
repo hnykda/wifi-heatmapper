@@ -32,8 +32,9 @@ The apps are not signed, so macOS and Windows warn you the first time you open
 them. [Installing the app](install.md) walks through that for each system.
 Prefer a terminal? See [running from source](run-from-source.md).
 
-On a Mac, click **Allow Location access** in Settings once: macOS then lets
-the app see your network's name. Your location itself is not used.
+On a Mac, click **Allow Location access** once (the app offers it above the
+floor plan, and it is in Settings): macOS then lets the app see your
+network's name. Your location itself is not used.
 
 ## Signal only or with speed?
 
