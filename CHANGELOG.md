@@ -33,6 +33,9 @@ First-run changes from the feedback in
 * **Settings is grouped** into Measurement, This survey and Advanced. Heat
   map colours and opacity moved to the **Heat maps** tab (**Colours and
   opacity**).
+  * **Simpler Wi-Fi signal colours:** the default heatmap now uses red for weak
+  signal (below 40%), yellow for warning (40–69%) and green for good signal
+  (70–100%).
 * **Larger text**: the base font size is 16px instead of 14px, and
   secondary text is darker.
 * **macOS desktop app:** About in the app menu opens the app's own About

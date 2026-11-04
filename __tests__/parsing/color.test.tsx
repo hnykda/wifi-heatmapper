@@ -24,14 +24,14 @@ test("Specific color value: 0.0", () => {
 });
 test("Specific color value: 0.25", () => {
   expect(getColorAt(0.25, settings.gradient)).toStrictEqual(
-    { r: 255, g: 142, b: 0, a: 0.6 },
+    { r: 255, g: 159, b: 0, a: 0.6 },
     //  "rgba(255, 142, 0, 0.60)",
   );
 });
 
 test("Specific color value: 0.50", () => {
   expect(getColorAt(0.5, settings.gradient)).toStrictEqual(
-    { r: 0, g: 0, b: 255, a: 0.6 },
+    { r: 170, g: 255, b: 0, a: 0.6 },
     // "rgba(0, 0, 255, 0.60)",
   );
 });

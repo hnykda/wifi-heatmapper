@@ -8,15 +8,11 @@ import { mediaUrlFor } from "./media-url";
 import type { Gradient, SurveyDocument, WifiResults } from "./types";
 
 export const defaultGradient = (): Gradient => ({
-  0: "rgba(255, 0, 0, 0.6)", // 0%, -100 dBm
-  0.45: "rgba(255, 255, 0, 0.6)", // 45%, -73 dBm
-  0.5: "rgba(0, 0, 255, 0.6)", // 50%, -70 dBm
-  0.6: "rgba(0, 255, 255, 0.6)", // 60%, -64 dBm
-  0.75: "rgba(0, 255, 0, 0.6)", // 75%, -55 dBm
-  0.9: "rgba(0, 255, 0, 0.6)", // 90%, -46 dBm
-  1.0: "rgba(0, 255, 0, 0.6)", // 100%, -40 dBm
+  0: "rgba(255, 0, 0, 0.6)", // Poor signal: 0%
+  0.4: "rgba(255, 255, 0, 0.6)", // Warning: 40%
+  0.7: "rgba(0, 255, 0, 0.6)", // Good signal: 70%
+  1.0: "rgba(0, 255, 0, 0.6)", // Good signal: 100%
 });
-
 export const emptyWifiResults = (): WifiResults => ({
   ssid: "",
   bssid: "",

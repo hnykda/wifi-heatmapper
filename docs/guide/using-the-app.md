@@ -209,8 +209,10 @@ scaling. Your saved bounds are retained while off, including across reloads;
 turning it on again restores them rather than freezing a new automatic range.
 
 **Colours and opacity** opens the colour stops for signal strength (0% =
--100 dBm, 100% = -40 dBm) and how much the overlay covers the floor plan at
-the strongest and weakest signal.
+-100 dBm, 100% = -40 dBm). By default, the heat map transitions from red
+for weak signal (0–40%), through yellow (40–70%), to green for good signal
+(70–100%). You can customise the colour stops and control how much the
+overlay covers the floor plan at the strongest and weakest signal.
 
 **Radius** controls how far each point's influence reaches. It starts at an
 automatic value based on how spread out your points are; drag it until
