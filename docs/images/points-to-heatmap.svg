@@ -1,14 +1,15 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 240" width="520" height="240" role="img" aria-labelledby="t d">
 <title id="t">From points to a heat map</title>
-<desc id="d">Coloured dots, one per measurement, appear on a floor plan: green near the router, blue and yellow further away, orange in the far corner. Then the colours spread out from each dot and blend into one continuous heat map.</desc>
+<desc id="d">Coloured dots, one per measurement, appear on a floor plan: green near the router, yellow further away, red in the far corner. Then the colours spread out from each dot and blend into one continuous heat map.</desc>
 <defs>
   <clipPath id="plan"><rect x="16" y="16" width="400" height="208" rx="3"/></clipPath>
   <filter id="blend" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="22"/></filter>
   <linearGradient id="scale" x1="0" y1="0" x2="0" y2="1">
     <stop offset="0" stop-color="#18d34a"/>
-    <stop offset="0.3" stop-color="#14d6d0"/>
-    <stop offset="0.5" stop-color="#2440ff"/>
-    <stop offset="0.56" stop-color="#f2e200"/>
+    <stop offset="0.43" stop-color="#18d34a"/>
+    <stop offset="0.46" stop-color="#f2dc00"/>
+    <stop offset="0.6" stop-color="#f2dc00"/>
+    <stop offset="0.63" stop-color="#ef2a1a"/>
     <stop offset="1" stop-color="#ef2a1a"/>
   </linearGradient>
 </defs>
@@ -54,12 +55,12 @@
   <g class="heat" filter="url(#blend)">
     <circle class="blob" cx="60" cy="110" r="70" fill="#18d34a"/>
     <circle class="blob" cx="140" cy="60" r="62" fill="#22d64e"/>
-    <circle class="blob" cx="140" cy="175" r="60" fill="#1fd68a"/>
-    <circle class="blob" cx="58" cy="196" r="54" fill="#18d6b0"/>
-    <circle class="blob" cx="262" cy="70" r="62" fill="#14c8e6"/>
-    <circle class="blob" cx="370" cy="66" r="58" fill="#2c4cff"/>
+    <circle class="blob" cx="140" cy="175" r="60" fill="#1fd64a"/>
+    <circle class="blob" cx="58" cy="196" r="54" fill="#22d34e"/>
+    <circle class="blob" cx="262" cy="70" r="62" fill="#2ad450"/>
+    <circle class="blob" cx="370" cy="66" r="58" fill="#f2dc00"/>
     <circle class="blob" cx="268" cy="182" r="58" fill="#f2dc00"/>
-    <circle class="blob" cx="382" cy="190" r="56" fill="#f05a1a"/>
+    <circle class="blob" cx="382" cy="190" r="56" fill="#ef2a1a"/>
   </g>
 </g>
 
@@ -74,12 +75,12 @@
 <g>
   <g class="p"><circle class="dot" cx="60" cy="110" r="7" fill="#18d34a"/><text class="pct" x="60" y="130" text-anchor="middle">92%</text></g>
   <g class="p"><circle class="dot" cx="140" cy="60" r="7" fill="#22d64e"/><text class="pct" x="140" y="80" text-anchor="middle">85%</text></g>
-  <g class="p"><circle class="dot" cx="140" cy="175" r="7" fill="#1fd68a"/><text class="pct" x="140" y="195" text-anchor="middle">74%</text></g>
-  <g class="p"><circle class="dot" cx="58" cy="196" r="7" fill="#18d6b0"/><text class="pct" x="58" y="216" text-anchor="middle">68%</text></g>
-  <g class="p"><circle class="dot" cx="262" cy="70" r="7" fill="#14c8e6"/><text class="pct" x="262" y="90" text-anchor="middle">60%</text></g>
-  <g class="p"><circle class="dot" cx="370" cy="66" r="7" fill="#2c4cff"/><text class="pct" x="370" y="86" text-anchor="middle">50%</text></g>
+  <g class="p"><circle class="dot" cx="140" cy="175" r="7" fill="#1fd64a"/><text class="pct" x="140" y="195" text-anchor="middle">74%</text></g>
+  <g class="p"><circle class="dot" cx="58" cy="196" r="7" fill="#22d34e"/><text class="pct" x="58" y="216" text-anchor="middle">68%</text></g>
+  <g class="p"><circle class="dot" cx="262" cy="70" r="7" fill="#2ad450"/><text class="pct" x="262" y="90" text-anchor="middle">60%</text></g>
+  <g class="p"><circle class="dot" cx="370" cy="66" r="7" fill="#f2dc00"/><text class="pct" x="370" y="86" text-anchor="middle">50%</text></g>
   <g class="p"><circle class="dot" cx="268" cy="182" r="7" fill="#f2dc00"/><text class="pct" x="268" y="202" text-anchor="middle">44%</text></g>
-  <g class="p"><circle class="dot" cx="382" cy="190" r="7" fill="#f05a1a"/><text class="pct" x="382" y="210" text-anchor="middle">24%</text></g>
+  <g class="p"><circle class="dot" cx="382" cy="190" r="7" fill="#ef2a1a"/><text class="pct" x="382" y="210" text-anchor="middle">24%</text></g>
 </g>
 
 <!-- legend -->

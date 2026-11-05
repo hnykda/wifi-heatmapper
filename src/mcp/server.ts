@@ -238,7 +238,7 @@ export function createMcpServer(client: AppClient, version: string): McpServer {
           .max(100)
           .optional()
           .describe(
-            `Signal below this is weak (default ${DEFAULT_THRESHOLDS.weakSignalPercent}%, about -70 dBm)`,
+            `Signal below this is weak (default ${DEFAULT_THRESHOLDS.weakSignalPercent}%, -67 dBm)`,
           ),
         deadSignalPercent: z
           .number()
