@@ -31,7 +31,8 @@ const PARTS: Record<CopyPart, { label: string; detail: string }> = {
   },
   heatmapLook: {
     label: "Heat map look",
-    detail: "Spot size, opacity, colours and fixed colour scales",
+    detail:
+      "Spot size, opacity, reading labels, colours and fixed colour scales",
   },
 };
 

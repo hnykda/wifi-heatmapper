@@ -175,6 +175,10 @@ describe("reading survey files (lenient)", () => {
     expect(survey.maxOpacity).toBe(0.7);
     expect(survey.minOpacity).toBe(0.2); // missing
     expect(survey.blur).toBe(0.99);
+    expect(survey.showPointValues).toBe(false); // missing
+    expect(survey.pointValueScale).toBe(75);
+    expect(survey.pointValueOpacity).toBe(0.5);
+    expect(survey.pointValueColor).toBe("#14181f");
     expect(survey.apMapping).toEqual([
       { apName: "Hall", macAddress: "aabbccddee01" },
     ]);
@@ -220,6 +224,10 @@ describe("request bodies (strict)", () => {
       settingsPatchSchema.parse({
         testDuration: 3,
         maxOpacity: 0.5,
+        showPointValues: true,
+        pointValueScale: 80,
+        pointValueOpacity: 0.4,
+        pointValueColor: "#ff0000",
         iperfServerAdrs: " 10.0.0.2 ",
         iperfCommands: { tcpUpload: ["-P", "4"] },
         heatmapRanges: {
@@ -239,6 +247,11 @@ describe("request bodies (strict)", () => {
       { testDuration: 1.5 },
       { maxOpacity: 2 },
       { maxOpacity: null },
+      { showPointValues: "yes" },
+      { pointValueScale: 20 },
+      { pointValueScale: 75.5 },
+      { pointValueOpacity: 1.2 },
+      { pointValueColor: "red" },
       { radiusDivider: -1 },
       { dimensions: { width: 0, height: 10 } },
       { gradient: {} },

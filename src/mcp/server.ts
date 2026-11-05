@@ -455,7 +455,7 @@ export function createMcpServer(client: AppClient, version: string): McpServer {
       description:
         "Copy settings from one survey to another and save the target survey, e.g. to set up a second floor plan like the first. " +
         "parts: speed (measure signal only or signal and speed, iperf3 server, test duration, extra iperf3 options), " +
-        "apNames (access point names), heatmapLook (heat spot radius, opacity, blur, colours, fixed colour scales). " +
+        "apNames (access point names), heatmapLook (heat spot radius, opacity, blur, reading labels, colours, fixed colour scales). " +
         "Points, the floor plan, its size and the sudo password are never copied. Changes are real.",
       inputSchema: {
         from: nameArg.describe("Survey to copy from, as list_surveys names it"),

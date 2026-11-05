@@ -2,6 +2,17 @@
 
 _This section follows the precepts of [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) so that future readers can understand the state and evolution of the project._
 
+## Unreleased
+
+### Added
+
+* **Readings at points on the heat maps.** A **Show readings at points**
+  switch on the Heat maps tab labels each measurement with the value its
+  map shows, so individual readings can be checked against the colours.
+  Each label sits on a translucent version of its point's floor-plan dot
+  colour, with controls for text size, background opacity and text colour.
+  The choice is saved with the survey and appears in downloaded PNGs.
+
 ## Version 0.9.0 - 2026-11-01
 
 First-run changes from the feedback in
