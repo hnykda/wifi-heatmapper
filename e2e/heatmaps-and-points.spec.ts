@@ -51,6 +51,60 @@ test.describe("with sample points", () => {
     await page.keyboard.press("Escape");
   });
 
+  test("reading labels can be shown at points and are saved", async ({
+    page,
+  }) => {
+    await gotoTab(page, "heatmaps");
+    const image = page.getByTestId("heatmap-signalStrength").locator("img");
+    await expect(image).toBeVisible({ timeout: 30_000 });
+    const withoutLabels = await image.getAttribute("src");
+
+    await page.getByTestId("show-point-values").click();
+    await readSurvey(page, name, (s) => s.showPointValues === true);
+    await expect
+      .poll(() => image.getAttribute("src"), { timeout: 30_000 })
+      .not.toBe(withoutLabels);
+    await expect(page.getByText(/of 24 points used/)).not.toContainText(
+      "rendering",
+    );
+
+    const size = page.getByRole("slider", { name: "Reading text size" });
+    await size.focus();
+    await page.keyboard.press("ArrowRight");
+    const opacity = page.getByRole("slider", {
+      name: "Reading background opacity",
+    });
+    await opacity.focus();
+    await page.keyboard.press("ArrowLeft");
+    await page.getByLabel("Text colour").fill("#ff0000");
+    await readSurvey(
+      page,
+      name,
+      (s) =>
+        s.pointValueScale === 80 &&
+        Math.abs(s.pointValueOpacity - 0.45) < 1e-9 &&
+        s.pointValueColor === "#ff0000",
+    );
+
+    await page.reload();
+    await gotoTab(page, "settings");
+    await page.getByTestId("floorplan-picker").click();
+    await page.getByRole("menuitem", { name }).click();
+    await expect(page.getByTestId("summary-floorplan")).toContainText(name);
+    await gotoTab(page, "heatmaps");
+    await expect(page.getByTestId("show-point-values")).toBeChecked();
+    await expect(
+      page.getByRole("slider", { name: "Reading text size" }),
+    ).toHaveAttribute("aria-valuenow", "80");
+    await expect(
+      page.getByRole("slider", { name: "Reading background opacity" }),
+    ).toHaveAttribute("aria-valuenow", /^0\.45/);
+    await expect(page.getByLabel("Text colour")).toHaveValue("#ff0000");
+    await expect(
+      page.getByTestId("heatmap-signalStrength").locator("img"),
+    ).toBeVisible({ timeout: 30_000 });
+  });
+
   test("signal-to-noise ratio map renders from points with noise", async ({
     page,
   }) => {

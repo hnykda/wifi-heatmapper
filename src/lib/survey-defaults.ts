@@ -17,6 +17,13 @@ export const defaultGradient = (): Gradient => ({
   1.0: "rgba(0, 255, 0, 0.6)", // 100%, -40 dBm
 });
 
+/** Reading-label size as a percentage of the map's caption font. */
+export const defaultPointValueScale = 75;
+/** Opacity of each reading label's background. */
+export const defaultPointValueOpacity = 0.5;
+/** Reading-label text colour (hex). */
+export const defaultPointValueColor = "#14181f";
+
 export const emptyWifiResults = (): WifiResults => ({
   ssid: "",
   bssid: "",
@@ -49,6 +56,10 @@ export function defaultSurvey(floorPlan: string): SurveyDocument {
     maxOpacity: 0.7,
     minOpacity: 0.2,
     blur: 0.99,
+    showPointValues: false,
+    pointValueScale: defaultPointValueScale,
+    pointValueOpacity: defaultPointValueOpacity,
+    pointValueColor: defaultPointValueColor,
     gradient: defaultGradient(),
     heatmapRanges: {},
     iperfCommands: { ...defaultIperfCommands },

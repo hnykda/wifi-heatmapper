@@ -19,6 +19,7 @@ import {
   HeatmapProperty,
   HeatmapRange,
   HeatmapScale,
+  Gradient,
 } from "@/lib/types";
 import { getColorAt, objectToRGBAString } from "@/lib/utils-gradient";
 import { cn, metricFormatter, percentageToRssi, snrOf } from "@/lib/utils";
@@ -36,6 +37,7 @@ import {
 import { HeatmapSlider } from "./Slider";
 import { HeatmapScaleControl } from "./HeatmapScaleControl";
 import { HeatmapLookSettings } from "./HeatmapLookSettings";
+import { ReadingLabelSettings } from "./ReadingLabelSettings";
 import {
   heatmapKey,
   resolveHeatmapRange,
@@ -44,6 +46,7 @@ import {
 import HeatmapImage from "./HeatmapImage";
 import HeatmapModal from "./HeatmapModal";
 import { hasSpeedData } from "@/lib/measurement-mode";
+import { labelFontSize, pointValueText } from "@/lib/heatmap-label";
 
 const logger = getLogger("Heatmaps");
 
@@ -111,6 +114,53 @@ const singleMapTitles: Partial<Record<HeatmapProperty, string>> = {
   signalStrength: "Signal strength (%)",
   snr: "Signal-to-noise ratio (dB)",
 };
+
+type HeatmapDatum = {
+  x: number;
+  y: number;
+  value: number;
+  /** The value whose colour the floor plan gives this point's dot. */
+  signalStrength: number;
+};
+
+/** Draw each measurement's value over the spot where it was taken. */
+function drawPointValues(
+  ctx: CanvasRenderingContext2D,
+  data: HeatmapDatum[],
+  metric: MeasurementTestType,
+  property: HeatmapProperty,
+  asPercentage: boolean,
+  offsetX: number,
+  offsetY: number,
+  fontPx: number,
+  gradient: Gradient,
+  scale: number,
+  backgroundOpacity: number,
+  textColor: string,
+) {
+  const font = labelFontSize(fontPx, scale);
+  const padX = Math.round(font * 0.4);
+  const padY = Math.round(font * 0.2);
+  ctx.save();
+  ctx.font = `600 ${font}px ui-sans-serif, system-ui, sans-serif`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  for (const { x, y, value, signalStrength } of data) {
+    const text = pointValueText(value, metric, property, asPercentage);
+    const width = ctx.measureText(text).width + padX * 2;
+    const height = font + padY * 2;
+    const cx = offsetX + x;
+    const cy = offsetY + y;
+    const dotColour = getColorAt(signalStrength / 100, gradient);
+    ctx.fillStyle = objectToRGBAString({ ...dotColour, a: backgroundOpacity });
+    ctx.beginPath();
+    ctx.roundRect(cx - width / 2, cy - height / 2, width, height, height / 2);
+    ctx.fill();
+    ctx.fillStyle = textColor;
+    ctx.fillText(text, cx, cy);
+  }
+  ctx.restore();
+}
 
 /**
  * Heatmaps - renders one heat map per selected metric/property
@@ -181,11 +231,16 @@ export function Heatmaps() {
       enabledPoints
         .map((p) => {
           const value = getMetricValue(p, metric, property);
-          return value === null ? null : { x: p.x, y: p.y, value };
+          return value === null
+            ? null
+            : {
+                x: p.x,
+                y: p.y,
+                value,
+                signalStrength: p.wifiData.signalStrength,
+              };
         })
-        .filter(
-          (v): v is { x: number; y: number; value: number } => v !== null,
-        ),
+        .filter((v): v is HeatmapDatum => v !== null),
     [enabledPoints, getMetricValue],
   );
 
@@ -265,8 +320,28 @@ export function Heatmaps() {
       const fontPx = Math.max(13, Math.round(Math.min(W, H) * 0.022));
       const legendBar = Math.round(fontPx * 1.8);
       const legendWidth = legendBar + fontPx * 7;
-      const margin = Math.round(fontPx * 1.2);
       const captionH = Math.round(fontPx * 2.2);
+      // A reading label is centred on its point, so leave room for half of
+      // the widest one before the floor plan (and legend) begins.
+      let margin = Math.round(fontPx * 1.2);
+      if (settings.showPointValues) {
+        const measure = document.createElement("canvas").getContext("2d");
+        if (measure) {
+          const font = labelFontSize(fontPx, settings.pointValueScale);
+          measure.font = `600 ${font}px ui-sans-serif, system-ui, sans-serif`;
+          const widest = data.reduce((max, point) => {
+            const text = pointValueText(
+              point.value,
+              metric,
+              property,
+              asPercentage,
+            );
+            return Math.max(max, measure.measureText(text).width);
+          }, 0);
+          const padX = Math.round(font * 0.4);
+          margin = Math.max(margin, Math.ceil(widest / 2 + padX + 2));
+        }
+      }
 
       const out = document.createElement("canvas");
       out.width = W + margin * 2 + legendWidth;
@@ -305,6 +380,23 @@ export function Heatmaps() {
       ctx.drawImage(glCanvas, margin, margin);
       ctx.strokeStyle = "rgba(20,24,33,0.15)";
       ctx.strokeRect(margin + 0.5, margin + 0.5, W - 1, H - 1);
+
+      if (settings.showPointValues) {
+        drawPointValues(
+          ctx,
+          data,
+          metric,
+          property,
+          asPercentage,
+          margin,
+          margin,
+          fontPx,
+          settings.gradient,
+          settings.pointValueScale,
+          settings.pointValueOpacity,
+          settings.pointValueColor,
+        );
+      }
 
       drawLegend(
         ctx,
@@ -352,6 +444,10 @@ export function Heatmaps() {
       settings.gradient,
       settings.maxOpacity,
       settings.minOpacity,
+      settings.showPointValues,
+      settings.pointValueScale,
+      settings.pointValueOpacity,
+      settings.pointValueColor,
       settings.floorplanImagePath,
       settings.floorplanImageName,
       generateHeatmapData,
@@ -649,6 +745,8 @@ export function Heatmaps() {
           </Accordion>
 
           <HeatmapLookSettings />
+
+          <ReadingLabelSettings />
 
           <HeatmapSlider
             value={radius}
