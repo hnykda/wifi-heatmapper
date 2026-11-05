@@ -12,7 +12,7 @@ Linux.
 
 **Website and guide: <https://wifi-heatmapper.danielalder.cz>**
 
-![The Heat maps tab: signal strength and download speed heat maps over a house and garage, green near the house, yellow and blue toward the garage](docs/images/heatmaps.png)
+![The Heat maps tab: signal strength and download speed heat maps over a house and garage, green near the house, yellow and red toward the garage](docs/images/heatmaps.png)
 
 ## Download
 

@@ -139,7 +139,10 @@ export function stats(values: number[], digits = 1): Stats | null {
 }
 
 export interface SummaryThresholds {
-  /** Signal below this (%) is weak. 50% is about -70 dBm. */
+  /**
+   * Signal below this (%) is weak. 55% is -67 dBm, where the heat map's
+   * default colours turn from yellow to green (survey-defaults.ts).
+   */
   weakSignalPercent: number;
   /** Signal below this (%) is a dead zone. 25% is about -85 dBm. */
   deadSignalPercent: number;
@@ -148,7 +151,7 @@ export interface SummaryThresholds {
 }
 
 export const DEFAULT_THRESHOLDS: SummaryThresholds = {
-  weakSignalPercent: 50,
+  weakSignalPercent: 55,
   deadSignalPercent: 25,
   slowDownloadMbps: 25,
 };

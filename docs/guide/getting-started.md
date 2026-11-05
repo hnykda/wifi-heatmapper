@@ -81,8 +81,8 @@ the heat map look too, use **Copy settings from…** in Settings, under
 
 ![Signal strength heat map](../images/heatmap.jpg)
 
-Green is good. The scale runs green, turquoise, blue for acceptable signal,
-then yellow and red where it gets poor. [Using the app](using-the-app.md)
+Green is good: -67 dBm or better, enough for video calls. Yellow is usable
+but shaky, and red is too weak for a reliable connection. [Using the app](using-the-app.md)
 explains every tab and setting.
 
 **Reading the map.** Red and yellow patches are the weak spots and dead

@@ -372,7 +372,7 @@ pixels, with the origin at the top left. Throughput is in Mbps.
 | Tool | What it does |
 | --- | --- |
 | `list_surveys` | Floor plans, and for each survey its point count, whether throughput tests are on, and when it was last saved. A survey file that cannot be read is listed with `unreadable: true`. |
-| `get_survey(name)` | All points and a summary. Optional thresholds: `weakSignalPercent` (default 50, about -70 dBm), `deadSignalPercent` (25, about -85 dBm), `slowDownloadMbps` (25). `includePoints: false` returns the summary only. |
+| `get_survey(name)` | All points and a summary. Optional thresholds: `weakSignalPercent` (default 55, -67 dBm, where the heat map turns green), `deadSignalPercent` (25, about -85 dBm), `slowDownloadMbps` (25). `includePoints: false` returns the summary only. |
 | `get_settings(name)` | The settings `update_settings` can change. |
 | `update_settings(name, ...)` | Change some of them and save the survey. |
 | `copy_settings(from, to, parts?)` | Copy settings from one survey to another and save it. |

@@ -210,7 +210,11 @@ turning it on again restores them rather than freezing a new automatic range.
 
 **Colours and opacity** opens the colour stops for signal strength (0% =
 -100 dBm, 100% = -40 dBm) and how much the overlay covers the floor plan at
-the strongest and weakest signal.
+the strongest and weakest signal. By default the map is red below 40%
+(-76 dBm), yellow up to 55% (-67 dBm) and green from there; see
+[Signal strength in percent and dBm](how-it-works.md#signal-strength-in-percent-and-dbm)
+for why. **Reset to default** brings back these colours after you change
+them.
 
 **Show readings at points** puts each measurement's value on the spot where
 it was taken. The units follow the map: percent or dBm for signal strength,

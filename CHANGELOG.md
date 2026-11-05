@@ -13,6 +13,18 @@ _This section follows the precepts of [Keep a Changelog](https://keepachangelog.
   colour, with controls for text size, background opacity and text colour.
   The choice is saved with the survey and appears in downloaded PNGs.
 
+### Changed
+
+* **Signal colours are red, yellow and green** ([#147](https://github.com/hnykda/wifi-heatmapper/issues/147)).
+  Green from -67 dBm (55%), the usual minimum for reliable video calls;
+  yellow down to -76 dBm (40%); red below that. Blue and turquoise are
+  gone, and each colour holds across its band, so 50% (-70 dBm) now shows
+  as yellow instead of blue. Surveys still on the old default colours
+  switch to the new ones when opened; colours you changed are kept, and
+  **Reset to default** in **Colours and opacity** applies the new ones.
+* **MCP:** `get_survey` counts a point as weak below 55% (-67 dBm) instead
+  of 50%, to match the green band.
+
 ## Version 0.9.0 - 2026-11-01
 
 First-run changes from the feedback in

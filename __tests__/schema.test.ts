@@ -201,6 +201,26 @@ describe("reading survey files (lenient)", () => {
     );
   });
 
+  it("moves a survey on the old default colours to the new ones", () => {
+    const oldDefault = {
+      "0": "rgba(255, 0, 0, 0.6)",
+      "1": "rgba(0, 255, 0, 0.6)",
+      "0.45": "rgba(255, 255, 0, 0.6)",
+      "0.5": "rgba(0, 0, 255, 0.6)",
+      "0.6": "rgba(0, 255, 255, 0.6)",
+      "0.75": "rgba(0, 255, 0, 0.6)",
+      "0.9": "rgba(0, 255, 0, 0.6)",
+    };
+    expect(parseSurveyFile({ gradient: oldDefault }, "a.png").gradient).toEqual(
+      defaultSurvey("a.png").gradient,
+    );
+    // someone who changed a colour keeps their gradient
+    const custom = { ...oldDefault, "0.5": "rgba(128, 0, 255, 0.6)" };
+    expect(parseSurveyFile({ gradient: custom }, "a.png").gradient).toEqual(
+      custom,
+    );
+  });
+
   it("keeps the stored spelling of the name when it is the same file", () => {
     const same = (a: string, b: string) =>
       a.replace(/ /g, "_") === b.replace(/ /g, "_");

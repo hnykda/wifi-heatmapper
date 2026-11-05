@@ -42,6 +42,7 @@ import {
   defaultPointValueOpacity,
   defaultPointValueScale,
   emptyWifiResults,
+  isPreviousDefaultGradient,
 } from "./survey-defaults";
 import { mediaUrlFor } from "./media-url";
 import { migrateMeasurementMode } from "./measurement-mode";
@@ -354,7 +355,10 @@ const gradientSchema = z
   })
   .transform((g) => g as Gradient);
 
-/** Bad stops are dropped; with none left, the default gradient. */
+/**
+ * Bad stops are dropped; with none left, the default gradient. A survey
+ * still on an earlier version's default gets the current one.
+ */
 const gradientLenient = z
   .unknown()
   .optional()
@@ -363,9 +367,9 @@ const gradientLenient = z
     const stops = Object.entries(value).filter(([k, c]) =>
       isGradientStop(k, c),
     );
-    return stops.length
-      ? (Object.fromEntries(stops) as Gradient)
-      : defaultGradient();
+    if (!stops.length) return defaultGradient();
+    const gradient = Object.fromEntries(stops) as Gradient;
+    return isPreviousDefaultGradient(gradient) ? defaultGradient() : gradient;
   });
 
 export const surveyFileMetaSchema = z.object({

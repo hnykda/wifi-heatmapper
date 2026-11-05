@@ -48,10 +48,18 @@ Each point stores both the RSSI in dBm and a percentage. The app treats
 -40 dBm, typical a couple of feet from an access point, as 100%, and
 -100 dBm as 0%, in a straight line between them.
 
-- **75% and up** (-55 dBm and better): excellent. Green on the heat map.
-- **50–75%** (-70 to -55 dBm): acceptable, turquoise to blue.
-- **Below 45%** (-73 dBm and worse): too weak for a reliable connection,
-  yellow to red.
+The default heat map colours use three bands:
+
+- **Green, 55% and up** (-67 dBm and better): good. Video calls and
+  streaming work reliably. -67 dBm is the usual minimum that Wi-Fi network
+  designers plan for, for example in Cisco's guides for Wi-Fi phones.
+- **Yellow, 40–55%** (-76 to -67 dBm): usable, but calls can stutter and
+  speed drops. Devices start looking for a better access point here.
+- **Red, below 40%** (worse than -76 dBm): too weak for a reliable
+  connection.
+
+Each colour blends into the next over a couple of dB just below the line, so
+the band edges show up on the map as soft contour lines.
 
 | dBm | Percent |
 |---|---|
@@ -60,15 +68,16 @@ Each point stores both the RSSI in dBm and a percentage. The app treats
 | -55 | 75% |
 | -60 | 67% |
 | -65 | 58% |
+| -67 | 55% |
 | -70 | 50% |
-| -75 | 42% |
+| -76 | 40% |
 | -80 | 33% |
 | -90 | 17% |
 | -100 | 0% |
 
 Each 3 dB drop halves the received power, so 75% (-55 dBm) is already about
 one thirtieth of the power at 100%. The colour stops are editable under
-**Heat map colours** in Settings.
+**Colours and opacity** on the Heat maps tab.
 
 ## How the heat map is drawn
 
