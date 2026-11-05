@@ -216,6 +216,18 @@ the strongest and weakest signal. By default the map is red below 40%
 for why. **Reset to default** brings back these colours after you change
 them.
 
+**Show readings at points** puts each measurement's value on the spot where
+it was taken. The units follow the map: percent or dBm for signal strength,
+dB for signal-to-noise ratio, Mbps for speed, and so on. Each map labels its
+own reading, so the numbers match its colours. The label sits on a translucent
+version of the point's dot colour from the floor plan, at 50% opacity by
+default. Under the switch, **Text size** makes the numbers smaller or larger,
+**Background opacity** changes how much of the map shows through, and **Text
+colour** sets the number's colour. Turn it off to keep the map clean;
+downloaded PNGs include the labels when it is on.
+
+![Readings at points](../images/heatmap-reading-labels.png)
+
 **Radius** controls how far each point's influence reaches. It starts at an
 automatic value based on how spread out your points are; drag it until
 neighbouring spots merge into one surface.

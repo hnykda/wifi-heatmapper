@@ -25,6 +25,10 @@ export const SETTINGS_PATCH_KEYS = [
   "maxOpacity",
   "minOpacity",
   "blur",
+  "showPointValues",
+  "pointValueScale",
+  "pointValueOpacity",
+  "pointValueColor",
   "gradient",
   "heatmapRanges",
   "iperfCommands",
@@ -45,12 +49,16 @@ export const COPY_PARTS = {
   ],
   /** Access point names */
   apNames: ["apMapping"],
-  /** Heat spot radius, opacity, blur, colours and fixed colour scales */
+  /** Heat spot radius, opacity, labels, colours and fixed colour scales */
   heatmapLook: [
     "radiusDivider",
     "maxOpacity",
     "minOpacity",
     "blur",
+    "showPointValues",
+    "pointValueScale",
+    "pointValueOpacity",
+    "pointValueColor",
     "gradient",
     "heatmapRanges",
   ],

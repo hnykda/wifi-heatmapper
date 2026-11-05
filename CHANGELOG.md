@@ -4,6 +4,15 @@ _This section follows the precepts of [Keep a Changelog](https://keepachangelog.
 
 ## Unreleased
 
+### Added
+
+* **Readings at points on the heat maps.** A **Show readings at points**
+  switch on the Heat maps tab labels each measurement with the value its
+  map shows, so individual readings can be checked against the colours.
+  Each label sits on a translucent version of its point's floor-plan dot
+  colour, with controls for text size, background opacity and text colour.
+  The choice is saved with the survey and appears in downloaded PNGs.
+
 ### Changed
 
 * **Signal colours are red, yellow and green** ([#147](https://github.com/hnykda/wifi-heatmapper/issues/147)).

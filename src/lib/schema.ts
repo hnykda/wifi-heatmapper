@@ -38,6 +38,9 @@ import {
 import { getLogger } from "./logger";
 import {
   defaultGradient,
+  defaultPointValueColor,
+  defaultPointValueOpacity,
+  defaultPointValueScale,
   emptyWifiResults,
   isPreviousDefaultGradient,
 } from "./survey-defaults";
@@ -317,6 +320,9 @@ const heatmapRangesLenient = z
   .optional()
   .transform(normalizeHeatmapRanges);
 
+/** A reading label's text colour, as a hex colour the browser's picker gives. */
+const hexColour = z.string().regex(/^#[0-9a-fA-F]{6}$/);
+
 function isGradientStop(key: string, color: unknown): color is string {
   const stop = Number(key);
   return (
@@ -405,6 +411,11 @@ export const surveyFileSchema = z.object({
   maxOpacity: finite.catch(0.7),
   minOpacity: finite.catch(0.2),
   blur: finite.catch(0.99),
+  // label every measurement with the value its map shows
+  showPointValues: z.boolean().catch(false),
+  pointValueScale: z.int().min(40).max(160).catch(defaultPointValueScale),
+  pointValueOpacity: finite.min(0).max(1).catch(defaultPointValueOpacity),
+  pointValueColor: hexColour.catch(defaultPointValueColor),
   gradient: gradientLenient,
   heatmapRanges: heatmapRangesLenient,
   iperfCommands: iperfCommandsLenient,
@@ -491,6 +502,10 @@ export const settingsPatchSchema = z
     maxOpacity: finite.min(0).max(1),
     minOpacity: finite.min(0).max(1),
     blur: finite.min(0),
+    showPointValues: z.boolean(),
+    pointValueScale: z.int().min(40).max(160),
+    pointValueOpacity: finite.min(0).max(1),
+    pointValueColor: hexColour,
     gradient: gradientSchema,
     /** Per map; null removes that map's scale, maps not given are kept. */
     heatmapRanges: z

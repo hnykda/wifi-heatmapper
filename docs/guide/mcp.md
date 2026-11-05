@@ -501,7 +501,7 @@ Copies settings from the survey `from` into the survey `to`, as
 | --- | --- |
 | `speed` (the default) | signal only or signal and speed, the iperf3 server, test duration and extra iperf3 options |
 | `apNames` | access point names |
-| `heatmapLook` | heat spot radius, opacity, blur, colour gradient and fixed colour scales |
+| `heatmapLook` | heat spot radius, opacity, blur, reading labels, colour gradient and fixed colour scales |
 
 Points, the floor plan, its size and the sudo password are never copied. If
 `to` has no survey yet, it is created. The answer says which settings
