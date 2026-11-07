@@ -19,6 +19,12 @@ universal binary (arm64 + x86_64, macOS 11+), ad-hoc signed by default
 (`codesign -s -`); releases sign it with a certificate, see "Signing". On
 other platforms the npm script prints a message and exits 0.
 
+The command line tools for macOS 27 (Apple silicon only) have no x86_64
+Swift libraries, so the Intel half doesn't link there. Outside CI the build
+then makes an arm64-only helper and prints a note; in CI (`CI` set) it
+fails, so releases stay universal. `MACOS_HELPER_ARCHS=arm64` (or `x86_64`)
+builds just that one.
+
 ## Why an app bundle
 
 CoreWLAN gives RSSI, noise, channel, band, channel width, tx rate, PHY mode
