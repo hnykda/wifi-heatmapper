@@ -52,7 +52,7 @@ jobs:
       fail-fast: false
       matrix:
         # Windows: the bundle ships node.exe from the official .zip, and
-        # netsh/cmd paths differ; see also the installed-app test in release.yml
+        # Windows paths differ; see also the installed-app test in release.yml
         os: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:

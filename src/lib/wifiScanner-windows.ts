@@ -1,45 +1,97 @@
-import {
-  PartialHeatmapSettings,
-  WifiResults,
-  WifiScanResults,
-  WifiActions,
-} from "./types";
-import { execAsync, delay } from "./server-utils";
-import {
-  getDefaultWifiResults,
-  isValidMacAddress,
-  normalizeMacAddress,
-  percentageToRssi,
-  channelToBand,
-  bySignalStrength,
-} from "./utils";
-import { initLocalization } from "./localization";
+import { PartialHeatmapSettings, WifiScanResults, WifiActions } from "./types";
+import { delay } from "./server-utils";
 import * as wlanApi from "./wlan-api";
 import { ERROR_ACCESS_DENIED } from "./wlan-api-parse";
 import { getLogger } from "./logger";
 import { recordWifiMethod, WIFI_METHOD } from "./diagnostics-state";
-// import { getLogger } from "./logger";
-// const logger = getLogger("wifi-Windows");
-
-const localizer = await initLocalization();
 
 /**
- * Reads Wi-Fi details by parsing (localized) `netsh` output. This is now
- * the fallback: WindowsWifiActions (end of this file) uses the WLAN API
- * and only calls these methods when that fails.
+ * Windows 11 24H2 and later answer ERROR_ACCESS_DENIED for the connection
+ * and the network lists until the user lets desktop apps use their location.
+ * Windows never shows its one-time location prompt for an unpackaged desktop
+ * app, so the user has to switch it on in Settings.
  */
-export class NetshWifiActions implements WifiActions {
-  nameOfWifi: string = ""; // OS-specific name of the current wifi interface
-  currentSSIDName: string = ""; // name of the current SSID
-  strongestSSID: WifiResults | null = null; // strongest SSID if not currentSSID
+export const LOCATION_PERMISSION_MESSAGE =
+  "Windows needs location access to share Wi-Fi details. Open Settings → Privacy & security → Location, turn on Location services and “Let desktop apps access your location”, then try again.";
+
+const NOT_CONNECTED_MESSAGE =
+  "Wi-Fi is not connected. Connect to a Wi-Fi network and try again.";
+
+/**
+ * What failed, in a few words: koffi or wlanapi.dll not loading, a WLAN API
+ * call returning an error code, or anything else the API code threw.
+ */
+export function describeWlanApiError(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  return String(err);
+}
+
+/**
+ * The error to show when reading Wi-Fi through the WLAN API fails for a
+ * reason the user cannot fix themselves. There is no other way to read
+ * Wi-Fi on Windows, so ask for a report: the diagnostics include this error.
+ */
+export function wlanApiErrorMessage(err: unknown): string {
+  return (
+    `Can't read Wi-Fi through the Windows WLAN API (${describeWlanApiError(err)}). ` +
+    "This is a bug in wifi-heatmapper. Please report it with Report a problem in the help menu (?), " +
+    "which includes this error."
+  );
+}
+
+/**
+ * The failures the user can fix themselves, or null for a bug. Access
+ * denied means Windows location permission is off (see
+ * LOCATION_PERMISSION_MESSAGE); no Wi-Fi adapter means nothing to read.
+ */
+function userFixableMessage(err: unknown): string | null {
+  if (err instanceof wlanApi.WlanApiError && err.code === ERROR_ACCESS_DENIED) {
+    return LOCATION_PERMISSION_MESSAGE;
+  }
+  if (err instanceof Error && err.message === wlanApi.NO_WIFI_ADAPTER_MESSAGE) {
+    return wlanApi.NO_WIFI_ADAPTER_MESSAGE;
+  }
+  return null;
+}
+
+/**
+ * wlanApiFailureMessage - what to tell the user when a WLAN API call fails:
+ * what to change, or (koffi not loading, another error code) a bug to report.
+ */
+export function wlanApiFailureMessage(err: unknown): string {
+  return userFixableMessage(err) ?? wlanApiErrorMessage(err);
+}
+
+/**
+ * wlanApiFailure - the result of a failed WLAN API reading. A reportable
+ * failure is kept in the diagnostics: the method stays "Windows WLAN API",
+ * with what failed as its detail. (Also used by the mock's "wlan-api-error"
+ * e2e scenario.)
+ */
+export function wlanApiFailure(what: string, err: unknown): WifiScanResults {
+  if (userFixableMessage(err) === null) {
+    recordWifiMethod(
+      WIFI_METHOD.wlanApi,
+      `${what} failed: ${describeWlanApiError(err)}`,
+    );
+  }
+  return { SSIDs: [], reason: wlanApiFailureMessage(err) };
+}
+
+/**
+ * WindowsWifiActions - reads Wi-Fi details from wlanapi.dll (see wlan-api.ts),
+ * so nothing depends on the display language. There is no fallback: if koffi
+ * cannot be loaded or the API fails, the reading fails with an error that
+ * says what failed and asks for a report.
+ */
+export class WindowsWifiActions implements WifiActions {
+  private logger = getLogger("wifi-Windows");
+  private warned = new Set<string>();
 
   /**
-   * preflightSettings - check whether the Wi-Fi can be read.
    * Windows needs no sudo, so there is nothing to check here; the speed
    * test (iperf3 installed, server address, duration) is checked for every
    * OS in speed-test.ts.
-   *
-   * @returns string - empty, or error message to display
    */
   async preflightSettings(
     _settings: PartialHeatmapSettings,
@@ -47,430 +99,31 @@ export class NetshWifiActions implements WifiActions {
     return { SSIDs: [], reason: "" };
   }
 
-  /**
-   * findWifi() - find the name of the wifi interface
-   * save in an object variable
-   * @returns name of (the first) wifi interface (string)
-   */
-  async findWifi(): Promise<string> {
-    // logger.info(`Called findWifi():`);
-
-    const stdout = await netsh(["wlan", "show", "interfaces"]);
-    const lines = stdout.split("\n");
-    for (const line of lines) {
-      const [, key, val] = splitLine(line);
-      if (key == "name") {
-        this.nameOfWifi = val;
-        return val;
-      }
-    }
-    return "";
-  }
-
-  /**
-   * scanWifi() - return an array of available wifi SSIDs plus a reason string
-   * These are sorted by the strongest RSSI
-   */
-  async scanWifi(_settings: PartialHeatmapSettings): Promise<WifiScanResults> {
-    const response: WifiScanResults = {
-      SSIDs: [],
-      reason: "",
-    };
-
-    // Get information about local SSIDs
-    try {
-      const stdout = await netsh(["wlan", "show", "networks", "mode=bssid"]);
-      response.SSIDs = parseNetshNetworks(stdout);
-      const currSSIDResults = await this.getWifi(_settings);
-      const currSSID = response.SSIDs.filter(
-        (item) => item.bssid == currSSIDResults.SSIDs[0].bssid,
-      );
-      if (currSSID.length > 0) currSSID[0].currentSSID = true;
-    } catch (err) {
-      response.reason = `Cannot get wifi info: ${err}"`;
-    }
-    return response;
-  }
-
-  /**
-   * getWifi - return the WifiResults for the currently-associated SSID
-   * @param _settings (the leading "_" tells Typescript that it is not used)
-   * @returns
-   */
-  async getWifi(_settings: PartialHeatmapSettings): Promise<WifiScanResults> {
-    const response: WifiScanResults = {
-      SSIDs: [],
-      reason: "",
-    };
-    let stdout: string = "";
-    // Wait (up to ~5 s) for the adapter to report its signal. If the
-    // output is in a language we have no localization table for, the
-    // line never matches: fall through and let parseNetshInterfaces()
-    // explain the problem instead of waiting forever.
-    for (let attempt = 0; attempt < 25; attempt++) {
-      stdout = await netsh(["wlan", "show", "interfaces"]);
-      if (netshInterfacesReady(stdout)) break;
-      await delay(200);
-    }
-    const parsed = parseNetshInterfaces(stdout);
-    response.SSIDs.push(parsed);
-    return response;
-  }
-}
-/**
- * END OF WindowsOSWifiActions - the remainder is a set of helper functions
- */
-
-/**
- * Windows 11 24H2 and later only give Wi-Fi details (SSID, BSSID, the scan
- * list) to apps the user lets use their location. netsh.exe is a desktop app
- * in System32, and Windows never shows its one-time location prompt for those,
- * so the user has to switch it on in Settings. That is the same whether
- * wifi-heatmapper runs in a terminal or as the desktop app: either way it is
- * netsh asking.
- *
- * Without permission netsh prints a (localized) explanation that always
- * contains this settings URI, then "Access is denied".
- */
-const LOCATION_SETTINGS_URI = "ms-settings:privacy-location";
-
-export const LOCATION_PERMISSION_MESSAGE =
-  "Windows needs location access to share Wi-Fi details. Open Settings → Privacy & security → Location, turn on Location services and “Let desktop apps access your location”, then try again.";
-
-export function needsLocationPermission(netshOutput: string): boolean {
-  return netshOutput.includes(LOCATION_SETTINGS_URI);
-}
-
-/**
- * Run netsh with these arguments (no cmd.exe in between, so nothing is
- * quoted or interpreted); turn "needs location permission" into a clear
- * error, whether netsh failed or not.
- */
-async function netsh(args: string[]): Promise<string> {
-  let stdout: string;
-  try {
-    ({ stdout } = await execAsync("netsh", args));
-  } catch (err) {
-    // execAsync attaches the output of a failed command
-    const output = (err as { stdout?: string }).stdout ?? "";
-    if (needsLocationPermission(output)) {
-      throw new Error(LOCATION_PERMISSION_MESSAGE);
-    }
-    throw err;
-  }
-  if (needsLocationPermission(stdout)) {
-    throw new Error(LOCATION_PERMISSION_MESSAGE);
-  }
-  return stdout;
-}
-
-function assignWindowsNetworkInfoValue<K extends keyof WifiResults>(
-  networkInfo: WifiResults,
-  label: K,
-  val: string,
-) {
-  const current = networkInfo[label];
-  if (typeof current === "number") {
-    networkInfo[label] = parseInt(val, 10) as any;
-  } else {
-    networkInfo[label] = val as any;
-  }
-}
-
-/**
- * Note: parseNetshNetworks() and parseNetshInterfaces() both rely
- * on splitLine() to handle localized `netsh` output
- *
- * Their structure is rather different because they deal with somewhat
- * different commandline output formats.
- *
- * It seems possible that they could be factored to have a more
- * similar structure, however they DO seem to produce the proper results.
- */
-
-/**
- * parseNetshNetworks() parses the `netsh wlan show networks mode=bssid`
- *
- * Ignore any SSID that is ""
- *
- * @param string Output of the command
- * @returns array of WifiResults, sorted by signalStrength
- */
-export function parseNetshNetworks(text: string): WifiResults[] {
-  if (needsLocationPermission(text)) {
-    throw new Error(LOCATION_PERMISSION_MESSAGE);
-  }
-  const results: WifiResults[] = [];
-
-  let currentSSID = "";
-  let currentBSSID = "";
-  let currentSecurity = "";
-  let wifiResult = getDefaultWifiResults();
-
-  const lines = text.split("\n");
-  for (const line of lines) {
-    const [, key, val] = splitLine(line);
-
-    // If we have accumulated a SSID and BSSID, push out that record
-    // because the new ssid/bssid start a new record
-    if (key == "ssid" || key == "bssid") {
-      if (currentSSID != "" && currentBSSID != "") {
-        results.push(wifiResult);
-        currentBSSID = ""; // reset the parameters
-        wifiResult = getDefaultWifiResults();
-      }
-    }
-
-    // starts a new SSID: just remember its SSID
-    if (key == "ssid") {
-      currentSSID = val;
-      continue;
-    }
-
-    // encountering "BSSID" starts a new WifiResult
-    // record its ssid, bssid, security
-    if (key == "bssid") {
-      currentBSSID = val;
-      wifiResult.ssid = currentSSID;
-      wifiResult.bssid = normalizeMacAddress(currentBSSID);
-      wifiResult.security = currentSecurity;
-      continue;
-    }
-
-    // "security" follows the SSID line: remember it globally
-    if (key == "security") {
-      currentSecurity = val;
-      continue;
-    }
-
-    if (key == "signalStrength") {
-      wifiResult.signalStrength = Number(val.replace("%", "")); // remove any "%"
-      wifiResult.rssi = percentageToRssi(wifiResult.signalStrength);
-      continue;
-    }
-
-    if (key == "phyMode") {
-      wifiResult.phyMode = val;
-      continue;
-    }
-
-    if (key == "channel") {
-      wifiResult.channel = Number(val);
-      wifiResult.band = channelToBand(wifiResult.channel);
-      continue;
-    }
-  }
-
-  // completed the loop - push out final accumulated record
-  results.push(wifiResult);
-
-  const sortedResults = results.sort(bySignalStrength);
-  const nonEmptyResults = sortedResults.filter((item) => item.ssid != "");
-  return nonEmptyResults;
-}
-
-/**
- * splitLines - take a line from `netsh...` and split it into the label and value
- * Look up the label in the localization table to get the "real" label
- * Remove digits and whitespace from a label containing SSID or BSSID
- * Remove '"' from returned value
- * @param line - a "label" separated by a ":" followed by a value
- * @returns array of strings: [label, key, value] may be ["", "",""] if no ":"
- */
-/**
- * netshInterfacesReady() - true once `netsh wlan show interfaces` output can
- * be parsed: it has a signal line (every localization table maps one, while
- * only some map the "State" label), or it is the location-permission notice,
- * which retrying won't change.
- */
-export function netshInterfacesReady(output: string): boolean {
-  if (needsLocationPermission(output)) return true;
-  return output
-    .split("\n")
-    .some((line) => splitLine(line)[1] == "signalStrength");
-}
-
-export function splitLine(line: string): string[] {
-  const pos = line.indexOf(":");
-  if (pos == -1) return ["", "", ""]; // no ":"? return empty values
-  let label = line.slice(0, pos).trim(); // the (trimmed) label up to the ":"
-  let key = "";
-  const val = line
-    .slice(pos + 1)
-    .trim()
-    .replace(/"/g, ""); // use the rest of the line trimming '"' and whitespace
-  // remove trailing digits from BSSID or SSID line
-  label = label.replace(/^(B?SSID)\s*\d*\s*$/, "$1");
-  key = localizer[label];
-  if (!key) key = "";
-  return [label, key, val];
-}
-/**
- * Parse the output of the `netsh wlan show interfaces` command.
- *
- * This code looks up the labels from the netsh... command
- * in a localization map that determines the proper label for the WifiNetwork
- */
-export function parseNetshInterfaces(output: string): WifiResults {
-  if (needsLocationPermission(output)) {
-    throw new Error(LOCATION_PERMISSION_MESSAGE);
-  }
-  const networkInfo = getDefaultWifiResults();
-  const lines = output.split("\n");
-  let matchedLabels = 0;
-  for (const line of lines) {
-    // oxlint-disable-next-line prefer-const
-    let [, key, val] = splitLine(line);
-    if (key == "signalStrength") {
-      val = val.replace(/%/g, ""); // remove all "%"
-    }
-    if (key == "bssid") {
-      val = normalizeMacAddress(val); // remove ":" or "-" to produce "############"
-    }
-    if (key != "") {
-      matchedLabels++;
-      assignWindowsNetworkInfoValue(networkInfo, key as keyof WifiResults, val);
-    }
-  }
-  // Nothing at all matched: the output is in a language we have no
-  // localization table for. (Partial matches are tolerated: some fields
-  // are simply left at their defaults.)
-  if (matchedLabels === 0) {
-    throw new Error(
-      `Could not read Wi-Fi info. Perhaps wifi-heatmapper is not localized for your system. See https://github.com/hnykda/wifi-heatmapper/issues/26 for details.`,
-    );
-  }
-  if (!isValidMacAddress(networkInfo.bssid)) {
-    throw new Error(
-      `Invalid BSSID when parsing netsh output: ${networkInfo.bssid}`,
-    );
-  }
-  //set frequency band and rssi
-  networkInfo.band = channelToBand(networkInfo.channel);
-  networkInfo.rssi = percentageToRssi(networkInfo.signalStrength);
-
-  return networkInfo;
-}
-
-/**
- * parseProfiles() - return the list of profiles from `netsh ... profiles`
- * Valid lines contain "????? : profileName"
- * @param stdout - output of the `netsh ...` command
- * @returns array of profile names (strings) detected in the output
- */
-export function parseProfiles(stdout: string): string[] {
-  const response = [];
-  // break into lines, removing those without ":"
-  const lines = stdout.split("\n").filter((line) => line.includes(":"));
-  for (const line of lines) {
-    const [, , val] = splitLine(line);
-    if (val) {
-      response.push(val);
-    }
-  }
-  return response;
-}
-
-/**
- * findProfilefrom SSID() - find the Profile for the named SSID
- * Parse the output of `netsh wlan show profile name="Profile 2"
- *
- * - The profile name if it contains the passed-in SSID
- * - null if not
- * @param stdout - the output of the `netsh...` command (above)
- * @param theSSID - the SSID we're looking for
- * @returns - the profile (if SSID matches) or null
- */
-export function findProfileFromSSID(
-  stdout: string,
-  theSSID: string,
-): string | null {
-  let profile = "";
-  const profileLines = stdout.split("\n");
-  for (const line of profileLines) {
-    const [, key, val] = splitLine(line);
-    if (key == "name") {
-      profile = val;
-      break;
-    }
-  }
-  if (!profile) {
-    throw new Error("No profile name found");
-  }
-
-  // Now see what SSIDs this file contains
-  const lines = stdout.split("\n");
-  const ssidLines = [];
-  for (const line of lines) {
-    const [, key, value] = splitLine(line);
-    if (key == "ssid") {
-      ssidLines.push(value);
-    }
-  }
-  // no SSIDs at all is an error
-  if (ssidLines.length == 0) {
-    throw new Error(`Can't find an SSID for profile ${profile}`);
-  }
-  for (const ssid of ssidLines) {
-    if (ssid == theSSID) {
-      return profile;
-    }
-  }
-  return null;
-}
-
-/**
- * wlanApiFailureMessage - what to tell the user when a WLAN API call fails,
- * or null if the error should send us to the netsh fallback instead.
- *
- * Windows 11 24H2+ answers ERROR_ACCESS_DENIED for the connection and the
- * network lists until the user lets desktop apps use their location, the
- * same rule that makes netsh print its location notice. netsh would fail
- * too, so say what to do instead of falling back.
- */
-export function wlanApiFailureMessage(err: unknown): string | null {
-  if (err instanceof wlanApi.WlanApiError && err.code === ERROR_ACCESS_DENIED) {
-    return LOCATION_PERMISSION_MESSAGE;
-  }
-  return null;
-}
-
-const NOT_CONNECTED_MESSAGE =
-  "Wi-Fi is not connected. Connect to a Wi-Fi network and try again.";
-
-/**
- * WindowsWifiActions - reads Wi-Fi details from wlanapi.dll (see wlan-api.ts),
- * so nothing depends on the display language. If koffi cannot be loaded or
- * the API fails for another reason, it falls back to the netsh methods.
- */
-export class WindowsWifiActions extends NetshWifiActions {
-  private logger = getLogger("wifi-Windows");
-  private warned = new Set<string>();
-
   /** Log the first failure of each kind, not one per measurement */
-  private fallback(what: string, err: unknown) {
+  private failed(what: string, err: unknown): WifiScanResults {
     const key = `${what}: ${err}`;
-    if (this.warned.has(key)) return;
-    this.warned.add(key);
-    this.logger.warn(`WLAN API ${what} failed, using netsh instead:`, err);
+    if (!this.warned.has(key)) {
+      this.warned.add(key);
+      this.logger.warn(`WLAN API ${what} failed:`, err);
+    }
+    return wlanApiFailure(what, err);
   }
 
-  async scanWifi(settings: PartialHeatmapSettings): Promise<WifiScanResults> {
+  /** nearby networks, strongest first */
+  async scanWifi(_settings: PartialHeatmapSettings): Promise<WifiScanResults> {
     try {
       const SSIDs = await wlanApi.scanNetworks();
       return { SSIDs, reason: "" };
     } catch (err) {
-      const message = wlanApiFailureMessage(err);
-      if (message) return { SSIDs: [], reason: message };
-      this.fallback("scan", err);
-      return super.scanWifi(settings);
+      return this.failed("scan", err);
     }
   }
 
-  async getWifi(settings: PartialHeatmapSettings): Promise<WifiScanResults> {
+  /** the current connection */
+  async getWifi(_settings: PartialHeatmapSettings): Promise<WifiScanResults> {
     try {
       // Right after (re)association the connection can briefly be missing:
-      // give it a few seconds, as the netsh path does
+      // give it a few seconds
       for (let attempt = 0; attempt < 10; attempt++) {
         const current = await wlanApi.getCurrentConnection();
         if (current) {
@@ -481,17 +134,7 @@ export class WindowsWifiActions extends NetshWifiActions {
       }
       return { SSIDs: [], reason: NOT_CONNECTED_MESSAGE };
     } catch (err) {
-      const message = wlanApiFailureMessage(err);
-      if (message) return { SSIDs: [], reason: message };
-      this.fallback("connection query", err);
-      const result = await super.getWifi(settings);
-      if (result.SSIDs.length > 0) {
-        recordWifiMethod(
-          WIFI_METHOD.netshFallback,
-          `the WLAN API failed: ${err instanceof Error ? err.message : String(err)}`,
-        );
-      }
-      return result;
+      return this.failed("connection query", err);
     }
   }
 }

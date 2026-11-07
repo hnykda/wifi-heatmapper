@@ -31,9 +31,6 @@ export type SurveyPoint = z.output<typeof surveyPointSchema>;
  */
 export type SurveyFileMeta = z.output<typeof surveyFileMetaSchema>;
 
-// Used for localization map
-export type LocalizerMap = Record<string, any>;
-
 type IperfTestProperties = {
   [K in keyof IperfTestProperty]: K;
 };

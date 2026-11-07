@@ -10,7 +10,6 @@
  *   ├── node_modules/         only what server.js needs (traced by Next)
  *   ├── .next/                server build + .next/static
  *   ├── public/, assets/      favicon, bundled floor plans
- *   ├── data/localization/    netsh label tables (Windows)
  *   └── helpers/              macOS only: WiFiHeatmapperHelper.app
  *
  * Nothing in here is written at runtime: user data goes to
@@ -204,11 +203,6 @@ cpSync(join(distDir, "static"), join(outDir, distDirName, "static"), {
 });
 cpSync(join(repoRoot, "public"), join(outDir, "public"), { recursive: true });
 cpSync(join(repoRoot, "assets"), join(outDir, "assets"), { recursive: true });
-cpSync(
-  join(repoRoot, "data", "localization"),
-  join(outDir, "data", "localization"),
-  { recursive: true },
-);
 // Uploads from versions < 0.5.0; never part of a release.
 rmSync(join(outDir, "public", "media"), { recursive: true, force: true });
 // sharp is Next's optional image optimizer (next/image), which the app does

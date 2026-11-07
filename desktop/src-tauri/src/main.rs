@@ -381,7 +381,7 @@ fn stop(mut child: Child) {
         // the group may outlive its leader (an iperf3 still finishing)
         unsafe { libc::kill(group, libc::SIGKILL) };
     }
-    // node.exe and whatever it is running (iperf3, netsh); there is nothing
+    // node.exe and whatever it is running (iperf3); there is nothing
     // like SIGTERM for a windowless console process, and nothing to flush.
     #[cfg(windows)]
     windows_job::kill_all();

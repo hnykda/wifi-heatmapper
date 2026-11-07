@@ -1,5 +1,5 @@
 /**
- * The API runs shell commands (iw, netsh, iperf3) on this machine, so it
+ * The API runs shell commands (iw, wdutil, iperf3) on this machine, so it
  * must only answer the app's own pages and local tools such as the MCP
  * server. Two attacks to stop:
  *

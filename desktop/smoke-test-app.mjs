@@ -11,7 +11,7 @@
  * To check the process tree, NODE_OPTIONS (inherited by the server, see the
  * contract in src-tauri/src/main.rs) preloads a script into the server that
  * starts a long-running, detached grandchild (`ping -n 600`), standing in for
- * an iperf3 or netsh that is mid-run, and writes both PIDs to a file. Then:
+ * an iperf3 that is mid-run, and writes both PIDs to a file. Then:
  *
  * 1. close the window (taskkill without /F, i.e. WM_CLOSE): the app's normal
  *    quit path must end node.exe and the grandchild;

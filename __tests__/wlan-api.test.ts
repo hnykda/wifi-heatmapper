@@ -24,7 +24,12 @@ import {
   frequencyToChannel,
   interfaceListSize,
 } from "../src/lib/wlan-api-parse";
-import { WlanApiError, loadWlanApi } from "../src/lib/wlan-api";
+import {
+  NO_WIFI_ADAPTER_MESSAGE,
+  WlanApiError,
+  WlanLoadError,
+  loadWlanApi,
+} from "../src/lib/wlan-api";
 import {
   LOCATION_PERMISSION_MESSAGE,
   wlanApiFailureMessage,
@@ -373,13 +378,33 @@ describe("errors", () => {
     ).toBe(LOCATION_PERMISSION_MESSAGE);
   });
 
-  it("other failures go to the netsh fallback", () => {
-    expect(wlanApiFailureMessage(new WlanApiError("WlanScan", 1062))).toBe(
-      null,
+  it("the location message tells the user where to go", () => {
+    expect(LOCATION_PERMISSION_MESSAGE).toContain("Privacy & security");
+    expect(LOCATION_PERMISSION_MESSAGE).toContain(
+      "Let desktop apps access your location",
     );
-    expect(wlanApiFailureMessage(new Error("Cannot find module 'koffi'"))).toBe(
-      null,
+  });
+
+  it("no adapter is not a bug", () => {
+    expect(wlanApiFailureMessage(new Error(NO_WIFI_ADAPTER_MESSAGE))).toBe(
+      NO_WIFI_ADAPTER_MESSAGE,
     );
+  });
+
+  it("other failures say what failed and ask for a report", () => {
+    const apiError = wlanApiFailureMessage(new WlanApiError("WlanScan", 1062));
+    expect(apiError).toContain(
+      "Can't read Wi-Fi through the Windows WLAN API (WlanScan failed with error 1062)",
+    );
+    expect(apiError).toContain("Report a problem");
+
+    const loadError = wlanApiFailureMessage(
+      new WlanLoadError(new Error("Cannot find module 'koffi'")),
+    );
+    expect(loadError).toContain(
+      "(koffi could not load wlanapi.dll: Cannot find module 'koffi')",
+    );
+    expect(loadError).toContain("Report a problem");
   });
 
   it.skipIf(process.platform === "win32")(

@@ -30,7 +30,7 @@ iperf3 options you type reach iperf3 as plain arguments, never as a command.
 | System | Wi-Fi signal | Notes |
 |---|---|---|
 | macOS | CoreWLAN, through the app's small Wi-Fi helper | No password. The helper needs Location access to see the network name. From source without the helper: `wdutil` (needs sudo), `ioreg` and `system_profiler`. |
-| Windows | Native Wifi API (`wlanapi.dll`) | Part of Windows, works in any display language. `netsh` is the fallback. On Windows 11 24H2 and later, Location services must be on. |
+| Windows | Native Wifi API (`wlanapi.dll`) | Part of Windows, works in any display language. It is the only way the app reads Wi-Fi on Windows: if it fails, the app says so and asks you to report it. On Windows 11 24H2 and later, Location services must be on. |
 | Linux | `iw` | `nmcli` is optional and only lists nearby networks. Uses the first connected managed Wi-Fi interface. |
 | All | `iperf3` | Only for speed tests. See [measuring speed](throughput.md). |
 

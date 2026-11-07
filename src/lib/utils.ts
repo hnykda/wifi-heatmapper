@@ -12,7 +12,6 @@ import {
   WifiResults,
   IperfResults,
 } from "./types";
-import { LocalizerMap } from "./types";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -44,9 +43,8 @@ export const percentageToRssi = (percentage: number): number => {
  */
 /**
  * averageRssi - the RSSI to store for a measurement: the average of the dBm
- * readings taken during it. Every backend reports an RSSI (netsh only a
- * percentage, which it converts). Falls back to converting the average
- * percentage if any reading has no RSSI (0).
+ * readings taken during it. Every backend reports an RSSI. Falls back to
+ * converting the average percentage if any reading has no RSSI (0).
  * @param rssis - dBm readings
  * @param strength - the average signal strength (%)
  */
@@ -298,35 +296,6 @@ export function bySignalStrength(a: any, b: any): number {
 
   // Descending: stronger (less negative) signal first
   return signalB - signalA;
-}
-
-/**
- * splitLine - split a line from command output into the label and value
- * Look up the label in the (optional) localization table to get the "real" label
- * Remove digits and whitespace from a label containing SSID or BSSID
- * Remove '"' from returned value
- * @param line - a "label" separated by a ":" followed by a value
- * @returns array of strings: [label, key, value] may be ["", "",""] if no ":"
- */
-export function splitLine(line: string, localizer: LocalizerMap): string[] {
-  const pos = line.indexOf(":");
-  if (pos == -1) return ["", "", ""]; // no ":"? return empty values
-  let label = line.slice(0, pos).trim(); // the (trimmed) label up to the ":"
-  const val = line
-    .slice(pos + 1)
-    .trim()
-    .replace(/"/g, ""); // use the rest of the line trimming '"' and whitespace
-
-  // remove trailing digits from BSSID or SSID line
-  label = label.replace(/^(B?SSID)\s*\d*\s*$/, "$1");
-
-  // localize the label to produce the key
-  let key = label;
-  if (localizer) {
-    key = localizer[label];
-    if (!key) key = "";
-  }
-  return [label, key, val];
 }
 
 /**

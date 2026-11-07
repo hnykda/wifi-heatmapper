@@ -3,7 +3,6 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   getBundledFloorplansDir,
   getDataDir,
-  getLocalizationDir,
   getMediaDir,
   getSurveysDir,
 } from "../src/lib/server-paths";
@@ -21,7 +20,6 @@ describe("server paths", () => {
     expect(getBundledFloorplansDir()).toBe(
       path.join(cwd, "assets", "floorplans"),
     );
-    expect(getLocalizationDir()).toBe(path.join(cwd, "data", "localization"));
   });
 
   it("keeps user data and shipped files apart in the desktop app", () => {
@@ -33,9 +31,6 @@ describe("server paths", () => {
     expect(getMediaDir()).toBe(path.join(data, "media"));
     expect(getBundledFloorplansDir()).toBe(
       path.join(resources, "assets", "floorplans"),
-    );
-    expect(getLocalizationDir()).toBe(
-      path.join(resources, "data", "localization"),
     );
   });
 });

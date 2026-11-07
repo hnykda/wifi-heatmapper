@@ -7,7 +7,6 @@ import os from "os";
 import { promises as fs } from "fs";
 import path from "path";
 import { getLogger } from "./logger";
-import { initLocalization } from "./localization";
 import { getAppStatus } from "./app-info";
 import { reportAppStart } from "./telemetry";
 import {
@@ -100,7 +99,6 @@ let initPromise: Promise<void> | null = null;
  * - create the data directories
  * - seed the bundled floor plans and the demo survey
  * - migrate floor plans uploaded by versions < 0.5.0 (public/media)
- * - load Windows localization tables
  * - send the anonymous usage counts, if on (telemetry.ts, in the background)
  */
 export function initServer(): Promise<void> {
@@ -123,11 +121,6 @@ async function doInit(): Promise<void> {
       logger.info(
         `Migrated ${migrated} floor plan(s) from public/media to ${mediaDir}`,
       );
-    }
-
-    // only load the localization tables when running on Windows
-    if (os.platform() == "win32") {
-      await initLocalization();
     }
   } catch (error) {
     logger.error("Server initialization failed:", error);
