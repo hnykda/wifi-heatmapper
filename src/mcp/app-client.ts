@@ -28,6 +28,8 @@ export interface MeasurementSettings {
   iperfServerAdrs: string;
   testDuration: number;
   udpTests: boolean;
+  // also scan for nearby networks (works without a Wi-Fi connection)
+  scanNearby?: boolean;
   iperfCommands: Record<string, string[]>;
 }
 

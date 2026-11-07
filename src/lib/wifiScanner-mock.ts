@@ -72,6 +72,51 @@ function currentWifi(strength: number, noise: number | null): WifiResults {
   };
 }
 
+/** One access point of the mock neighbourhood, heard at `strength` percent. */
+function nearbyAp(
+  ssid: string,
+  bssid: string,
+  channel: number,
+  band: number,
+  strength: number,
+): WifiResults {
+  const s = Math.round(Math.min(100, strength));
+  return {
+    ...getDefaultWifiResults(),
+    ssid,
+    bssid,
+    signalStrength: s,
+    rssi: percentageToRssi(s),
+    channel,
+    band,
+    channelWidth: band === 2.4 ? 20 : band === 6 ? 160 : 80,
+    security: ssid ? "WPA3 Personal" : "WPA2 Personal",
+    currentSSID: bssid === DEMO_BSSID,
+  };
+}
+
+/**
+ * What a scan hears where the demo network's main access point is heard at
+ * `strength`: that access point on 2.4, 5 and 6 GHz, a second one that is
+ * strong where the first is weak, two neighbours and a hidden network.
+ * Too weak to hear (under 5%) is left out. Strongest first.
+ */
+export function mockNearbyNetworks(strength: number): WifiResults[] {
+  const second = 100 - strength + 15;
+  return [
+    nearbyAp(DEMO_SSID, "9e05d696e831", 6, 2.4, strength + 10),
+    nearbyAp(DEMO_SSID, DEMO_BSSID, 44, 5, strength),
+    nearbyAp(DEMO_SSID, "9e05d696e832", 37, 6, strength - 22),
+    nearbyAp(DEMO_SSID, "9e05d6970a11", 1, 2.4, second + 10),
+    nearbyAp(DEMO_SSID, "9e05d6970a10", 149, 5, second),
+    nearbyAp("Neighbour", "a1b2c3d4e5f0", 11, 2.4, strength - 25),
+    nearbyAp("Neighbour 5G", "a1b2c3d4e5f6", 100, 5, strength - 35),
+    nearbyAp("", "c0ffee000001", 36, 5, 22),
+  ]
+    .filter((n) => n.signalStrength >= 5)
+    .sort((a, b) => b.signalStrength - a.signalStrength);
+}
+
 /** Record the reading the way the scenario's real scanner would. */
 function recordMethod(method: MockScenario["wifiMethod"]) {
   switch (method) {
@@ -123,22 +168,24 @@ export class MockWifiActions implements WifiActions {
     return { SSIDs: [], reason };
   }
 
-  async scanWifi(_settings: PartialHeatmapSettings): Promise<WifiScanResults> {
-    await delay(mockDelayMs());
-    const strength = mockReadings().strength;
-    const mine = currentWifi(strength, null);
-    const neighbour: WifiResults = {
-      ...getDefaultWifiResults(),
-      ssid: "Neighbour 5G",
-      bssid: "a1b2c3d4e5f6",
-      signalStrength: Math.max(5, strength - 30),
-      rssi: percentageToRssi(Math.max(5, strength - 30)),
-      channel: 100,
-      band: 5,
-      channelWidth: 80,
-      security: "WPA2 Personal",
-    };
-    return { SSIDs: [mine, neighbour], reason: "" };
+  async scanWifi(
+    _settings: PartialHeatmapSettings,
+    { fresh = false }: { fresh?: boolean } = {},
+  ): Promise<WifiScanResults> {
+    await delay(mockDelayMs() * (fresh ? 2 : 1));
+    const scenario = mockScenario();
+    if (fresh && scenario.scan === "fails") {
+      return {
+        SSIDs: [],
+        reason: "Cannot scan for nearby networks: the mock scan failed",
+      };
+    }
+    // Not connected, nothing else moves the signal: walk it here
+    const strength =
+      fresh && scenario.wifi === "not-connected"
+        ? nextStrength()
+        : mockReadings().strength;
+    return { SSIDs: mockNearbyNetworks(strength), reason: "" };
   }
 
   async getWifi(_settings: PartialHeatmapSettings): Promise<WifiScanResults> {

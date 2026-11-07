@@ -28,7 +28,7 @@ interface MeasurementPanelProps {
 }
 
 const DONE_AUTOCLOSE_MS = 2500;
-const NO_FIELDS = { strength: "-", tcp: "-", udp: "-" };
+const NO_FIELDS: MeasurementFields = { strength: "-", tcp: "-", udp: "-" };
 
 /**
  * Progress of one measurement, anchored to the bottom-right corner.
@@ -163,7 +163,27 @@ export default function MeasurementPanel({
         <>
           <dl className="tabular grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 px-4 py-3 text-sm">
             <dt className="text-muted-foreground">Signal</dt>
-            <dd className="text-right font-medium">{fields.strength}</dd>
+            {fields.scanOnly ? (
+              <dd
+                className="text-right text-muted-foreground"
+                data-testid="measurement-not-connected"
+              >
+                Not connected
+              </dd>
+            ) : (
+              <dd className="text-right font-medium">{fields.strength}</dd>
+            )}
+            {fields.nearby && fields.nearby !== "Off" && (
+              <>
+                <dt className="text-muted-foreground">Nearby networks</dt>
+                <dd
+                  className="text-right font-medium"
+                  data-testid="measurement-nearby"
+                >
+                  {fields.nearby}
+                </dd>
+              </>
+            )}
             {mode === "signal" ? (
               <>
                 <dt className="text-muted-foreground">Speed</dt>

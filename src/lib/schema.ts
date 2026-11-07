@@ -54,6 +54,7 @@ import {
   cleanAccessPointNote,
 } from "./access-points";
 import { COPY_PART_NAMES, type CopyPart } from "./survey-ops";
+import { NEARBY_SPLITS } from "./nearby-networks";
 import type { Gradient, HeatmapKey, HeatmapRanges } from "./types";
 
 const logger = getLogger("schema");
@@ -168,6 +169,45 @@ export const wifiResultsSchema: z.ZodType<WifiResults> = z.lazy(() =>
   }),
 );
 
+/**
+ * One access point heard by a scan of nearby networks (nearby-networks.ts).
+ * ssid is "" for a hidden network, or when the OS hides names (macOS
+ * without Location access); bssid is "" when the OS hides it.
+ */
+export const nearbyNetworkSchema = z.object({
+  ssid: z.string().catch(""),
+  bssid: z.string().catch(""),
+  rssi: finite.catch(0), // dBm
+  signalStrength: finite.catch(0), // percent
+  channel: finite.catch(0),
+  band: finite.catch(0), // GHz: 2.4, 5 or 6
+  channelWidth: finite.catch(0), // MHz, 0 if not reported
+  security: z.string().catch(""),
+});
+
+/** One band's nearby-network report (nearby-networks.ts), read leniently. */
+const nearbyReportLenient = z.object({
+  shown: z.boolean().catch(false),
+  hidden: z.array(z.string()).catch([]),
+  split: z.enum(NEARBY_SPLITS).catch("combined"),
+});
+
+const nearbyReportStrict = z.strictObject({
+  shown: z.boolean(),
+  /** access points left out (accessPointKey) */
+  hidden: z.array(z.string()),
+  split: z.enum(NEARBY_SPLITS),
+});
+
+/** The reports by band in GHz; a band without one uses the defaults. */
+const nearbyReportsLenient = z
+  .object({
+    "2.4": nearbyReportLenient.optional().catch(undefined),
+    "5": nearbyReportLenient.optional().catch(undefined),
+    "6": nearbyReportLenient.optional().catch(undefined),
+  })
+  .catch({});
+
 /* ---------- survey points ---------- */
 
 /**
@@ -195,6 +235,8 @@ const pointFields = {
   isEnabled: z.boolean(),
   /** optional name shown instead of the id ("Kitchen"); display only */
   label: pointLabelStrict.optional(),
+  /** every access point a scan heard here; missing: no scan */
+  nearby: z.array(nearbyNetworkSchema).optional(),
 };
 
 /**
@@ -216,6 +258,7 @@ export const surveyPointSchema = z.preprocess(
     timestamp: pointFields.timestamp.catch(0),
     isEnabled: pointFields.isEnabled.catch(true),
     label: pointLabelLenient,
+    nearby: lenientArray(nearbyNetworkSchema).optional(),
   }),
 );
 
@@ -475,6 +518,11 @@ export const surveyFileSchema = z.object({
   // The fixed-rate (UDP) tests. Older files ran them on every point,
   // so a missing value is true; new surveys start without them.
   udpTests: z.boolean().catch(true),
+  // also scan for nearby networks at each spot (nearby-networks.ts); a
+  // spot measured while not connected to Wi-Fi then saves the scan alone
+  scanNearby: z.boolean().catch(false),
+  // the Heat maps tab's nearby-network report for each band
+  nearbyReports: nearbyReportsLenient,
   apMapping: lenientArray(apMappingSchema),
   accessPoints: lenientArray(accessPointSchema),
   nextPointNum: z.int().catch(1),
@@ -566,6 +614,15 @@ export const settingsPatchSchema = z
     iperfServerAdrs: z.string().trim(),
     testDuration: z.int().min(1).max(60),
     udpTests: z.boolean(),
+    scanNearby: z.boolean(),
+    /** Replaces all three. */
+    nearbyReports: z
+      .strictObject({
+        "2.4": nearbyReportStrict,
+        "5": nearbyReportStrict,
+        "6": nearbyReportStrict,
+      })
+      .partial(),
     /** Replaces the whole list. */
     apMapping: z.array(z.strictObject(apMappingSchema.shape)),
     /** Replaces the whole list. */
@@ -689,6 +746,8 @@ export const startTaskSchema = z.strictObject({
     testDuration: finite,
     // missing: run them (older clients always did)
     udpTests: z.boolean().optional(),
+    // missing: no scan of nearby networks
+    scanNearby: z.boolean().optional(),
     // left out or "": the server uses the password it holds, if any
     // (sudo-session.ts; how MCP-started measurements get one)
     sudoerPassword: z.string().default(""),
@@ -772,6 +831,8 @@ export const mockScenarioSchema = z.strictObject({
   iperf: z.enum(["ok", "missing", "unreachable", "fails-midway"]).optional(),
   /** iperf3's "error" for fails-midway */
   iperfError: z.string().min(1).max(500).optional(),
+  /** ok; fails: the scan of nearby networks fails */
+  scan: z.enum(["ok", "fails"]).optional(),
   /** how long each step takes, in ms (default 150) */
   delayMs: z.number().int().min(0).max(30_000).optional(),
 });

@@ -16,6 +16,11 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { AlertDialogModal } from "@/components/AlertDialogModal";
 import { getColorAt, objectToRGBAString } from "@/lib/utils-gradient";
+import {
+  isScanOnly,
+  networkName,
+  strongestNearby,
+} from "@/lib/nearby-networks";
 
 interface PopupDetailsProps {
   point: SurveyPoint | null;
@@ -38,8 +43,11 @@ const PopupDetails: React.FC<PopupDetailsProps> = ({
 
   const wifi = point.wifiData;
   const apName = apNameFor(wifi?.bssid, settings.apMapping);
+  // measured while not connected: only the scan of nearby networks
+  const scanOnly = isScanOnly(point);
+  const strength = scanOnly ? strongestNearby(point) : wifi.signalStrength;
   const color = objectToRGBAString({
-    ...getColorAt(wifi.signalStrength / 100, settings.gradient),
+    ...getColorAt(strength / 100, settings.gradient),
     a: 1,
   });
 
@@ -50,7 +58,7 @@ const PopupDetails: React.FC<PopupDetailsProps> = ({
   const snr = snrOf(wifi);
   const hasIperf = hasSpeedData(point);
 
-  const rows: [string, React.ReactNode][] = [
+  const connectionRows: [string, React.ReactNode][] = [
     ["Signal", `${wifi.signalStrength}% (${wifi.rssi} dBm)`],
     ["Noise", noise === null ? "—" : `${noise} dBm`],
     ["Signal-to-noise", snr === null ? "—" : `${snr} dB`],
@@ -77,6 +85,9 @@ const PopupDetails: React.FC<PopupDetailsProps> = ({
       wifi.channel ? `${wifi.channel} (${wifi.band} GHz)` : "not available",
     ],
   ];
+  const rows: [string, React.ReactNode][] = scanOnly
+    ? [["Wi-Fi", "not connected"]]
+    : connectionRows;
   if (hasIperf) {
     const { tcpDownload, tcpUpload, udpDownload, udpUpload } = point.iperfData;
     rows.push([
@@ -132,6 +143,24 @@ const PopupDetails: React.FC<PopupDetailsProps> = ({
           </div>
         ))}
       </dl>
+      {point.nearby && (
+        <div className="border-t px-3 py-2" data-testid="point-nearby">
+          <p className="mb-1 text-xs text-muted-foreground">
+            Nearby networks: {point.nearby.length} access point
+            {point.nearby.length === 1 ? "" : "s"}
+          </p>
+          <ul className="tabular grid max-h-36 gap-0.5 overflow-y-auto text-xs">
+            {point.nearby.map((n, i) => (
+              <li key={n.bssid || i} className="flex justify-between gap-2">
+                <span className="truncate">{networkName(n.ssid)}</span>
+                <span className="shrink-0 text-muted-foreground">
+                  {n.band} GHz · ch {n.channel} · {n.signalStrength}%
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
       <div className="flex items-center justify-between border-t bg-muted/40 px-3 py-2">
         <label className="flex items-center gap-2 text-xs">
           <Switch

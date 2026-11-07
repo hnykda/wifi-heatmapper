@@ -72,6 +72,7 @@ import { AlertDialogModal } from "./AlertDialogModal";
 import { PointLabel } from "./PointLabel";
 import { useSettings } from "./GlobalSettings";
 import { cn } from "@/lib/utils";
+import { isScanOnly } from "@/lib/nearby-networks";
 
 // TanStack Table v9 only includes the features a table registers. These are
 // the ones v8 bundled and this table uses, with the built-in functions the
@@ -182,7 +183,7 @@ const SurveyPointsTable: React.FC<SurveyPointsTableProps> = ({
     label: point.label || point.id,
     x: point.x,
     y: point.y,
-    ssid: point.wifiData.ssid,
+    ssid: isScanOnly(point) ? "Not connected" : point.wifiData.ssid,
     bssid: point.wifiData.bssid,
     accessPoint: apNameFor(point.wifiData.bssid, apMapping) ?? "",
     rssi: point.wifiData.rssi,
@@ -269,7 +270,7 @@ const SurveyPointsTable: React.FC<SurveyPointsTableProps> = ({
               background: signalColor(getValue<number>(), settings.gradient),
             }}
           />
-          {getValue<number>()}
+          {isScanOnly(row.original.origPoint) ? "—" : getValue<number>()}
           {!row.original.isEnabled && (
             <span className="sr-only"> (ignored)</span>
           )}

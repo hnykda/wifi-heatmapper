@@ -81,9 +81,10 @@ export class NetshWifiActions implements WifiActions {
     try {
       const stdout = await netsh(["wlan", "show", "networks", "mode=bssid"]);
       response.SSIDs = parseNetshNetworks(stdout);
-      const currSSIDResults = await this.getWifi(_settings);
+      // not connected: there is no current network to mark
+      const current = (await this.getWifi(_settings)).SSIDs[0];
       const currSSID = response.SSIDs.filter(
-        (item) => item.bssid == currSSIDResults.SSIDs[0].bssid,
+        (item) => current?.bssid && item.bssid == current.bssid,
       );
       if (currSSID.length > 0) currSSID[0].currentSSID = true;
     } catch (err) {
@@ -455,9 +456,12 @@ export class WindowsWifiActions extends NetshWifiActions {
     this.logger.warn(`WLAN API ${what} failed, using netsh instead:`, err);
   }
 
-  async scanWifi(settings: PartialHeatmapSettings): Promise<WifiScanResults> {
+  async scanWifi(
+    settings: PartialHeatmapSettings,
+    options: { fresh?: boolean } = {},
+  ): Promise<WifiScanResults> {
     try {
-      const SSIDs = await wlanApi.scanNetworks();
+      const SSIDs = await wlanApi.scanNetworks(options);
       return { SSIDs, reason: "" };
     } catch (err) {
       const message = wlanApiFailureMessage(err);

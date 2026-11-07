@@ -6,6 +6,7 @@ import {
   IperfCommands,
   MeasurementEvent,
   MeasurementFields,
+  NearbyNetwork,
   WifiResults,
 } from "./types";
 import { execAsync, delay } from "./server-utils";
@@ -25,6 +26,9 @@ import { mockIperf3 } from "./wifiScanner-mock";
 import { parseServerAddress } from "./measurement-mode";
 import { planSpeedTest, speedTestFailedWarning } from "./speed-test";
 import { rememberNetworks } from "./diagnostics-state";
+import { toNearbyNetworks } from "./nearby-networks";
+import { emptyWifiResults } from "./survey-defaults";
+import { measuresSpeed } from "./measurement-mode";
 const logger = getLogger("iperfRunner");
 
 type TestType = "TCP" | "UDP";
@@ -70,6 +74,8 @@ type Display = {
   tcp: string;
   udp: string;
   mode: "signal" | "speed";
+  nearby: string; // the scan of nearby networks
+  scanOnly?: boolean; // not connected: the scan is all there is
   warning: string;
 };
 
@@ -81,11 +87,13 @@ function progressEvent(d: Display): MeasurementEvent {
     tcp: d.tcp,
     udp: d.udp,
     mode: d.mode,
+    nearby: d.nearby,
+    ...(d.scanOnly ? { scanOnly: true } : {}),
   };
   return {
     type: "update",
     header: d.header,
-    status: `Signal strength: ${strength}\nSpeed: ${d.tcp}\nUDP: ${d.udp}`,
+    status: `Signal strength: ${strength}\nSpeed: ${d.tcp}\nUDP: ${d.udp}\nNearby networks: ${d.nearby}`,
     fields,
     ...(d.warning ? { warning: d.warning } : {}),
   };
@@ -107,6 +115,79 @@ export interface MeasureResult {
   warning?: string;
   /** the last progress shown (for the final "done" event) */
   fields?: MeasurementFields;
+  /** the scan of nearby networks, if the survey asks for one and it worked */
+  nearby?: NearbyNetwork[];
+}
+
+/** "12 access points" */
+function accessPointCount(n: number): string {
+  return `${n} access point${n === 1 ? "" : "s"}`;
+}
+
+/**
+ * Scan for nearby networks: the entries to save, or why there are none.
+ * A fresh scan takes a few seconds and works without a connection.
+ */
+async function scanNearby(
+  settings: PartialHeatmapSettings,
+  signal?: AbortSignal,
+): Promise<{ nearby: NearbyNetwork[] } | { reason: string }> {
+  const scan = await wifiActions.scanWifi(settings, { fresh: true });
+  throwIfAborted(signal);
+  if (scan.reason) return { reason: scan.reason };
+  rememberNetworks(scan.SSIDs);
+  const nearby = toNearbyNetworks(scan.SSIDs);
+  return nearby.length
+    ? { nearby }
+    : { reason: "The scan found no networks nearby." };
+}
+
+/**
+ * Not connected to Wi-Fi (or the connection can't be read): save what a
+ * scan of nearby networks hears, with no signal or speed of its own.
+ * `notConnected` is why there is no connection reading.
+ */
+async function measureNearbyOnly(
+  settings: PartialHeatmapSettings,
+  notConnected: string,
+  { signal, emit = () => {} }: MeasureOptions,
+): Promise<MeasureResult> {
+  const display: Display = {
+    header: "Not connected: scanning nearby networks",
+    strength: "-",
+    tcp: OFF,
+    udp: OFF,
+    mode: "signal",
+    nearby: "Scanning",
+    scanOnly: true,
+    warning: "",
+  };
+  emit(progressEvent(display));
+  const scan = await scanNearby(settings, signal);
+  if ("reason" in scan) {
+    display.nearby = "Failed";
+    const status = [notConnected, scan.reason].filter(Boolean).join("\n");
+    return {
+      iperfData: null,
+      wifiData: null,
+      status,
+      fields: progressEvent(display).fields,
+    };
+  }
+  display.nearby = accessPointCount(scan.nearby.length);
+  display.header = "Saving";
+  emit(progressEvent(display));
+  const warning = measuresSpeed(settings)
+    ? "Not connected to Wi-Fi: only the nearby networks were saved."
+    : "";
+  return {
+    iperfData: getDefaultIperfResults(),
+    wifiData: emptyWifiResults(),
+    nearby: scan.nearby,
+    status: "",
+    fields: progressEvent(display).fields,
+    ...(warning ? { warning } : {}),
+  };
 }
 
 /**
@@ -127,9 +208,22 @@ export async function runSurveyTests(
   // first check the settings and return a cogent error if not good
   const preResults = await wifiActions.preflightSettings(settings);
   throwIfAborted(signal);
+  const withScan = settings.scanNearby === true;
   if (preResults.reason != "") {
     logger.debug(`preflightSettings returned: ${JSON.stringify(preResults)}`);
+    // a scan of nearby networks doesn't need the connection
+    if (withScan) {
+      return measureNearbyOnly(settings, preResults.reason, { signal, emit });
+    }
     return { iperfData: null, wifiData: null, status: preResults.reason };
+  }
+  if (withScan) {
+    const connection = await wifiActions.getWifi(settings);
+    throwIfAborted(signal);
+    if (connection.reason || connection.SSIDs.length === 0) {
+      logger.debug(`Not connected (${connection.reason}): scan only`);
+      return measureNearbyOnly(settings, connection.reason, { signal, emit });
+    }
   }
 
   // Speed test or not? The same on every OS: a missing iperf3 or an
@@ -149,6 +243,7 @@ export async function runSurveyTests(
     udp:
       mode === "signal" || !udpTests ? OFF : plan.warning ? SKIPPED : PENDING,
     mode,
+    nearby: withScan ? "-" : OFF,
     warning: plan.warning,
   };
   const send = () => emit(progressEvent(display));
@@ -219,6 +314,26 @@ export async function runSurveyTests(
       return `${toMbps(down.bitsPerSecond)} / ${toMbps(up.bitsPerSecond)} Mbps`;
     };
 
+    // The scan first: it takes the radio off channel for a few seconds,
+    // which would slow the speed tests down. A failed scan doesn't stop
+    // the measurement.
+    let nearby: NearbyNetwork[] | undefined;
+    if (withScan) {
+      display.header = "Scanning nearby networks";
+      display.nearby = "Scanning";
+      send();
+      const scan = await scanNearby(settings, signal);
+      if ("reason" in scan) {
+        logger.warn(`Scan of nearby networks failed: ${scan.reason}`);
+        display.nearby = "Failed";
+      } else {
+        nearby = scan.nearby;
+        display.nearby = accessPointCount(nearby.length);
+      }
+      display.header = measuringHeader;
+      send();
+    }
+
     const wifiDataBefore = await readWifi();
     logger.debug(`getWifi() returned: ${JSON.stringify(wifiDataBefore)}`);
     logger.debug(`Elapsed time for scan: ${Date.now() - startTime} ms`);
@@ -266,6 +381,7 @@ export async function runSurveyTests(
       wifiData: newWifiData,
       status: "",
       fields: progressEvent(display).fields,
+      ...(nearby ? { nearby } : {}),
       ...(display.warning ? { warning: display.warning } : {}),
     };
   } catch (error: unknown) {

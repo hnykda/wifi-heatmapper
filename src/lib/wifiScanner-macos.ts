@@ -133,11 +133,31 @@ export class MacOSWifiActions implements WifiActions {
    * scanWifi() - return an array of available wifi SSIDs plus a reason string
    * These are sorted by the strongest RSSI
    */
-  async scanWifi(_settings: PartialHeatmapSettings): Promise<WifiScanResults> {
+  async scanWifi(
+    _settings: PartialHeatmapSettings,
+    { fresh = false }: { fresh?: boolean } = {},
+  ): Promise<WifiScanResults> {
     const response: WifiScanResults = {
       SSIDs: [],
       reason: "",
     };
+
+    // A fresh scan (~5 s) for the nearby networks of a measurement. Only
+    // CoreWLAN, through the helper, can scan; wdutil can't.
+    if (fresh) {
+      if (!this.useHelper && !(await this.tryHelper())) {
+        response.reason =
+          "Scanning nearby networks on macOS needs the Wi-Fi helper (see Settings).";
+        return response;
+      }
+      try {
+        const scan = parseHelperScan(await runMacosHelper("scan"));
+        response.SSIDs = scan.networks;
+      } catch (err) {
+        response.reason = `Cannot scan for nearby networks: ${err instanceof Error ? err.message : String(err)}`;
+      }
+      return response;
+    }
 
     // The helper's last scan results are instant (a fresh scan takes ~5 s
     // and would disturb the throughput test).

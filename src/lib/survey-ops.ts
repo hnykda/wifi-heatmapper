@@ -19,6 +19,8 @@ export const SETTINGS_PATCH_KEYS = [
   "iperfServerAdrs",
   "testDuration",
   "udpTests",
+  "scanNearby",
+  "nearbyReports",
   "apMapping",
   "accessPoints",
   "dimensions",
@@ -46,11 +48,12 @@ export const COPY_PARTS = {
     "iperfServerAdrs",
     "testDuration",
     "udpTests",
+    "scanNearby",
     "iperfCommands",
   ],
   /** Access point names */
   apNames: ["apMapping"],
-  /** Heat spot radius, opacity, labels, colours and fixed colour scales */
+  /** Heat spot radius, opacity, labels, colours, fixed colour scales and nearby-network reports */
   heatmapLook: [
     "radiusDivider",
     "maxOpacity",
@@ -62,6 +65,7 @@ export const COPY_PARTS = {
     "pointValueColor",
     "gradient",
     "heatmapRanges",
+    "nearbyReports",
   ],
 } as const satisfies Record<string, readonly (keyof SurveyDocument)[]>;
 

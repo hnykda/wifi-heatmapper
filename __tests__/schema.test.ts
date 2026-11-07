@@ -67,6 +67,76 @@ describe("reading survey files (lenient)", () => {
     );
   });
 
+  it("reads nearby networks leniently; a point without a scan has none", () => {
+    const survey = parseSurveyFile(
+      {
+        scanNearby: true,
+        nearbyReports: {
+          "5": { shown: true, hidden: ["aa"], split: "network" },
+          "2.4": { shown: "yes", split: "sideways" },
+          "7": { shown: true },
+        },
+        surveyPoints: [
+          { id: "Point_1", x: 1, y: 2 },
+          {
+            id: "Point_2",
+            x: 3,
+            y: 4,
+            nearby: [
+              { ssid: "Home", bssid: "aa", signalStrength: 70, band: 5 },
+              "not a network",
+              { ssid: 7, signalStrength: "strong" },
+            ],
+          },
+          { id: "Point_3", x: 5, y: 6, nearby: "broken" },
+        ],
+      },
+      "Plan.png",
+    );
+    expect(survey.scanNearby).toBe(true);
+    expect(survey.nearbyReports).toEqual({
+      "5": { shown: true, hidden: ["aa"], split: "network" },
+      "2.4": { shown: false, hidden: [], split: "combined" },
+    });
+    const [none, two, broken] = survey.surveyPoints;
+    expect(none.nearby).toBeUndefined();
+    expect(two.nearby).toEqual([
+      {
+        ssid: "Home",
+        bssid: "aa",
+        rssi: 0,
+        signalStrength: 70,
+        channel: 0,
+        band: 5,
+        channelWidth: 0,
+        security: "",
+      },
+      {
+        ssid: "",
+        bssid: "",
+        rssi: 0,
+        signalStrength: 0,
+        channel: 0,
+        band: 0,
+        channelWidth: 0,
+        security: "",
+      },
+    ]);
+    expect(broken.nearby).toEqual([]);
+    expect(
+      settingsPatchSchema.parse({
+        scanNearby: true,
+        nearbyReports: { "5": { shown: true, hidden: [], split: "combined" } },
+      }),
+    ).toEqual({
+      scanNearby: true,
+      nearbyReports: { "5": { shown: true, hidden: [], split: "combined" } },
+    });
+    expect(
+      settingsPatchSchema.safeParse({ nearbyReports: { "7": {} } }).success,
+    ).toBe(false);
+  });
+
   it("reads a current file back unchanged", () => {
     const current = {
       ...defaultSurvey("Plan.png"),

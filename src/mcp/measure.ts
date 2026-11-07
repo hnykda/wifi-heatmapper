@@ -65,6 +65,7 @@ export function measurementSettings(survey: StoredSurvey): MeasurementSettings {
     iperfServerAdrs: s.iperfServerAdrs,
     testDuration: s.testDuration,
     udpTests: s.udpTests,
+    ...(survey.scanNearby ? { scanNearby: true } : {}),
     iperfCommands: s.iperfCommands,
   };
 }

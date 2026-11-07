@@ -304,6 +304,94 @@ describe("signal and speed", () => {
   });
 });
 
+const neighbourhood: WifiResults[] = [
+  { ...wifi, currentSSID: true },
+  { ...wifi, bssid: "021122334456", channel: 6, band: 2.4, signalStrength: 80 },
+  // listed twice by the OS: the stronger entry is kept
+  { ...wifi, bssid: "021122334456", channel: 6, band: 2.4, signalStrength: 60 },
+  { ...wifi, ssid: "Neighbour", bssid: "aabbccddeeff", signalStrength: 30 },
+];
+
+describe("nearby networks", () => {
+  const scan = { ...base, scanNearby: true };
+
+  beforeEach(() => {
+    scanner.scanWifi.mockResolvedValue({ SSIDs: neighbourhood, reason: "" });
+  });
+
+  test("off: no scan", async () => {
+    const result = await runSurveyTests(base);
+    expect(scanner.scanWifi).not.toHaveBeenCalled();
+    expect(result.nearby).toBeUndefined();
+    expect(done().fields?.nearby).toBe("Off");
+  });
+
+  test("connected: a fresh scan is saved with the signal", async () => {
+    const result = await runSurveyTests(scan);
+    expect(scanner.scanWifi).toHaveBeenCalledWith(scan, { fresh: true });
+    expect(result.status).toBe("");
+    expect(result.wifiData?.signalStrength).toBe(70);
+    expect(result.nearby?.map((n) => [n.bssid, n.signalStrength])).toEqual([
+      ["021122334456", 80],
+      ["021122334455", 70],
+      ["aabbccddeeff", 30],
+    ]);
+    expect(result.nearby?.[0]).not.toHaveProperty("txRate");
+    expect(done().fields).toMatchObject({ nearby: "3 access points" });
+  });
+
+  test("connected, the scan fails: the signal is still saved", async () => {
+    scanner.scanWifi.mockResolvedValue({ SSIDs: [], reason: "no helper" });
+    const result = await runSurveyTests(scan);
+    expect(result.status).toBe("");
+    expect(result.wifiData?.signalStrength).toBe(70);
+    expect(result.nearby).toBeUndefined();
+    expect(done().fields?.nearby).toBe("Failed");
+  });
+
+  test("not connected: the scan alone is saved, nothing else runs", async () => {
+    scanner.getWifi.mockResolvedValue({
+      SSIDs: [],
+      reason: "Wi-Fi is not connected.",
+    });
+    const result = await runSurveyTests({ ...scan, ...speed("10.0.0.2") });
+    expect(result.status).toBe("");
+    expect(result.wifiData).toMatchObject({ signalStrength: 0, rssi: 0 });
+    expect(result.iperfData?.tcpDownload).toBeNull();
+    expect(result.nearby).toHaveLength(3);
+    expect(result.warning).toMatch(/Not connected/);
+    expect(commands).toEqual([]);
+    expect(done().fields).toMatchObject({
+      scanOnly: true,
+      nearby: "3 access points",
+    });
+  });
+
+  test("a preflight error (not connected on Linux) also scans", async () => {
+    scanner.preflightSettings.mockResolvedValue({
+      SSIDs: [],
+      reason: "No connected Wi-Fi interface found.",
+    });
+    const result = await runSurveyTests(scan);
+    expect(result.status).toBe("");
+    expect(result.nearby).toHaveLength(3);
+    expect(scanner.getWifi).not.toHaveBeenCalled();
+  });
+
+  test("not connected and the scan fails: both reasons, nothing saved", async () => {
+    scanner.preflightSettings.mockResolvedValue({
+      SSIDs: [],
+      reason: "Please set sudo password.",
+    });
+    scanner.scanWifi.mockResolvedValue({ SSIDs: [], reason: "no helper" });
+    const result = await runSurveyTests(scan);
+    expect(result).toMatchObject({
+      wifiData: null,
+      status: "Please set sudo password.\nno helper",
+    });
+  });
+});
+
 /**
  * Before, macOS and Linux refused to measure when iperf3 was missing and
  * every OS refused an empty server. Now the per-OS preflight only checks

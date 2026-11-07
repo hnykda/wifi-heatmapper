@@ -31,6 +31,7 @@ import {
   SurveyPoint,
 } from "./types";
 import { snrOf } from "./utils";
+import { isScanOnly } from "./nearby-networks";
 
 /** The shader's weight falloff exponent (heatmapLayerRenderer.ts, u_power). */
 export const IDW_POWER = 3;
@@ -103,6 +104,8 @@ export function heatmapValue(
   metric: MeasurementTestType,
   property: HeatmapProperty,
 ): number | null {
+  // measured while not connected: only nearby networks, no reading of its own
+  if (isScanOnly(point)) return null;
   if (metric === "signalStrength") {
     const v = point.wifiData?.signalStrength;
     return typeof v === "number" && Number.isFinite(v) ? v : null;

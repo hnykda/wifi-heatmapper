@@ -51,10 +51,11 @@ are on the [Heat maps](#heat-maps) tab.
   of another floor plan's survey into this one. Pick the survey, then tick
   what to copy:
   * **Speed settings** (ticked to start with) – what to measure, the speed
-    test server, the test duration and extra iperf3 options;
+    test server, the test duration, extra iperf3 options and whether to
+    scan nearby networks;
   * **Access point names**;
-  * **Heat map look** – spot size, opacity, colours and the fixed colour
-    scales set on the Heat maps tab. The spot size is in floor-plan pixels,
+  * **Heat map look** – spot size, opacity, colours, the fixed colour
+    scales and the nearby-network reports, all set on the Heat maps tab. The spot size is in floor-plan pixels,
     so it fits best between images of a similar size.
 
   The points, the floor plan image and its size are never copied, and
@@ -85,6 +86,23 @@ are on the [Heat maps](#heat-maps) tab.
     field shows the whole command. Surveys from before 0.8 stored whole
     commands; their extra options are kept, and a command with shell syntax
     (pipes, `;`, redirects) is replaced by the defaults.
+* **Nearby networks** – also scans for every network in range at each spot,
+  on every band (2.4, 5 and 6 GHz), and keeps the list with the point: the
+  network name, access point, band, channel and signal of each one. It adds
+  about 5 seconds per spot. Off for new surveys. The Heat maps tab then
+  has a [report per band](#nearby-networks).
+
+  The scan doesn't need a Wi-Fi connection. A spot measured while this
+  computer is not connected to Wi-Fi saves the scan alone, with no signal or
+  speed of its own: the panel says **Not connected**, and the floor plan
+  labels the dot "Scan" with the strongest signal it heard. To survey every
+  access point and band without your computer roaming between them, forget
+  or disconnect from the network and measure with this switched on.
+
+  On macOS the scan needs the Wi-Fi helper (it is part of the desktop app),
+  and network names need Location access for it; without that the networks
+  are listed as "(no name)". On Linux it uses NetworkManager (`nmcli`). If a
+  scan fails while connected, the point is still saved, without the scan.
 * **sudo password** – needed only where reading the signal needs it: on
   macOS without the Wi-Fi helper (running from source) and on Linux when
   `iw` is refused. You don't have to set it up front: when a measurement
@@ -135,7 +153,8 @@ panel says **Saved without speed**, gives the reason and stays open until you
 dismiss it. See [when the speed test can't run](throughput.md#when-the-speed-test-cant-run).
 
 Click a dot to see its details (signal, noise and signal-to-noise ratio
-where measured, network, access point and speed), switch it off (it is then ignored by the heat
+where measured, network, access point, speed and, if the spot was scanned,
+every nearby network it heard), switch it off (it is then ignored by the heat
 maps) or delete it.
 
 **Name a point** to find it again: click its name at the top of the
@@ -248,6 +267,37 @@ Hover a map to enlarge or download it. Downloaded PNGs include the legend and
 a caption with the floor plan name, point count and date. An enlarged map
 zooms and pans like the floor plan: the buttons in its corner, Ctrl (⌘) +
 wheel or a pinch, dragging, and **+** / **-** / **0**.
+
+### Nearby networks
+
+If the survey [scans nearby networks](#settings), **Nearby networks** has a
+report for each band the scans heard: **2.4 GHz report**, **5 GHz report**
+and, if any, **6 GHz report**. Each report is independent: tick the ones you
+want and set each up on its own. Each report you tick gets its own section
+under the other maps, with **Download all** for its maps.
+
+For each report:
+
+* **One map**, **Per network** or **Per access point** – one map that
+  combines everything the report includes, one map per network name, or one
+  map per access point. Per access point, the radios that share a name under
+  **Access point names** (Settings) are one map, so a router that serves two
+  networks on a band is one map. Radios without a name get one map each,
+  labelled with network and MAC address.
+* **Access points** (folded away) – every access point heard on that band,
+  grouped by network, with the strongest signal any spot got from it. Tick
+  or untick a whole network or single access points; **Tick all** and
+  **Untick all** do every one. Hover an access point for its channel.
+
+At each spot, a map shows the strongest signal from the access points it
+includes. A spot whose scan heard none of them counts as 0%; a spot that
+wasn't scanned is left out. With nothing ticked the report says so instead
+of drawing a map. The maps use the signal strength colour scale, and the
+caption of each downloaded map names its band and what it shows. The reports
+are saved with the survey.
+
+Spots measured while not connected appear only in these maps, not in signal
+strength, signal-to-noise or speed.
 
 ## Survey points
 

@@ -93,15 +93,25 @@ export class LinuxWifiActions implements WifiActions {
    * scanWifi() - return an array of available wifi SSIDs plus a reason string
    * These are sorted by the strongest RSSI
    */
-  async scanWifi(_settings: PartialHeatmapSettings): Promise<WifiScanResults> {
+  async scanWifi(
+    _settings: PartialHeatmapSettings,
+    { fresh = false }: { fresh?: boolean } = {},
+  ): Promise<WifiScanResults> {
     const response: WifiScanResults = {
       SSIDs: [],
       reason: "",
     };
 
     try {
-      // Get the Wifi information from system_profiler
-      const result = await execAsync("nmcli", ["-t", "dev", "wifi", "list"]);
+      // NetworkManager scans as a normal user, connected or not. --rescan
+      // yes waits for a new scan instead of returning the last one.
+      const result = await execAsync("nmcli", [
+        "-t",
+        "dev",
+        "wifi",
+        "list",
+        ...(fresh ? ["--rescan", "yes"] : []),
+      ]);
 
       response.SSIDs = getCandidateSSIDs(result.stdout);
       logger.debug(`Local SSIDs: ${response.SSIDs.length}`);

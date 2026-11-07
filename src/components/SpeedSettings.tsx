@@ -144,6 +144,27 @@ export function SpeedSettings({ status }: { status: AppStatus | null }) {
         </div>
       </div>
 
+      <FormRow
+        id="scanNearby"
+        label="Nearby networks"
+        help="Also scan for every network in range at each spot, on every band (2.4, 5 and 6 GHz), and keep the list with the point. Adds about 5 seconds per spot. Works without a Wi-Fi connection: a spot measured while not connected saves the scan alone. The Heat maps tab then draws a map per band."
+        hint={
+          settings.scanNearby && status?.platform === "darwin"
+            ? "On a Mac this needs the Wi-Fi helper, with Location allowed to see network names."
+            : undefined
+        }
+      >
+        <label className="flex items-center gap-2.5 text-sm">
+          <Switch
+            id="scanNearby"
+            checked={settings.scanNearby}
+            onCheckedChange={(on) => updateSettings({ scanNearby: on })}
+            data-testid="scan-nearby"
+          />
+          {settings.scanNearby ? "Scanned at each spot" : "Not scanned"}
+        </label>
+      </FormRow>
+
       {speed && (
         <>
           <FormRow

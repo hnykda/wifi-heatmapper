@@ -48,6 +48,21 @@ import HeatmapModal from "./HeatmapModal";
 import { hasSpeedData } from "@/lib/measurement-mode";
 import { labelFontSize, pointValueText } from "@/lib/heatmap-label";
 import { accessPointName, drawAccessPointMarker } from "@/lib/access-points";
+import {
+  defaultNearbyReport,
+  isScanOnly,
+  NearbyBand,
+  nearbyAccessPoints,
+  nearbyBandsHeard,
+  nearbyMapSpecs,
+  NearbyReportSettings as NearbyReport,
+  nearbyValue,
+} from "@/lib/nearby-networks";
+import { apNameFor } from "@/lib/apName";
+import downloadImage from "@/lib/downloadImage";
+import { Download } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { bandId, NearbyReportSettings } from "./NearbyReportSettings";
 
 const logger = getLogger("Heatmaps");
 
@@ -116,6 +131,31 @@ const singleMapTitles: Partial<Record<HeatmapProperty, string>> = {
   snr: "Signal-to-noise ratio (dB)",
 };
 
+/** One map the gallery shows. */
+type WantedMap = {
+  /** unique per map: a HeatmapKey, or nearby-<band>-<map> */
+  key: string;
+  /** the colour scale it uses (nearby maps share signal strength's) */
+  scaleKey: HeatmapKey;
+  /** changes whenever the map's data does (the access points it shows) */
+  cacheKey: string;
+  metric: MeasurementTestType;
+  property: HeatmapProperty;
+  title: string;
+  /** set for a map of a band's nearby-network report */
+  band?: NearbyBand;
+  /** the access points (accessPointKey) a nearby-network map combines */
+  include?: Set<string>;
+};
+
+/** A band's report as saved, with the defaults for what isn't. */
+function reportOf(
+  reports: Partial<Record<string, NearbyReport>>,
+  band: NearbyBand,
+): NearbyReport {
+  return { ...defaultNearbyReport(), ...reports[String(band)] };
+}
+
 type HeatmapDatum = {
   x: number;
   y: number;
@@ -182,10 +222,22 @@ export function Heatmaps() {
   const hasNoise = points.some((p) => snrOf(p.wifiData) !== null);
   // Speed maps only make sense once a point has a speed reading
   const hasSpeed = points.some(hasSpeedData);
+  // Nearby-network reports: one per band the scans heard
+  const bandsHeard = useMemo(() => nearbyBandsHeard(points), [points]);
+  const accessPointsByBand = useMemo(
+    () => new Map(bandsHeard.map((b) => [b, nearbyAccessPoints(points, b)])),
+    [points, bandsHeard],
+  );
+  const apMapping = settings.apMapping;
+  const nearbyReports = settings.nearbyReports;
+  const apName = useCallback(
+    (bssid: string) => apNameFor(bssid, apMapping),
+    [apMapping],
+  );
 
-  const [heatmaps, setHeatmaps] = useState<
-    Partial<Record<HeatmapKey, Rendered>>
-  >({});
+  const [heatmaps, setHeatmaps] = useState<Partial<Record<string, Rendered>>>(
+    {},
+  );
   const [rendering, setRendering] = useState(false);
   const [enlarged, setEnlarged] = useState<{ src: string; alt: string } | null>(
     null,
@@ -210,6 +262,8 @@ export function Heatmaps() {
       metric: MeasurementTestType,
       property?: HeatmapProperty,
     ): number | null => {
+      // a point measured while not connected has only nearby networks
+      if (isScanOnly(point)) return null;
       if (metric === "signalStrength") {
         // the map is always drawn in %, the legend may show dBm
         return point.wifiData.signalStrength;
@@ -243,6 +297,24 @@ export function Heatmaps() {
         })
         .filter((v): v is HeatmapDatum => v !== null),
     [enabledPoints, getMetricValue],
+  );
+
+  /** A map's points: its measurement, or the nearby networks on its band. */
+  const dataFor = useCallback(
+    (w: WantedMap): HeatmapDatum[] => {
+      if (w.band === undefined || !w.include) {
+        return generateHeatmapData(w.metric, w.property);
+      }
+      const { band, include } = w;
+      if (include.size === 0) return []; // nothing ticked: not "0% everywhere"
+      return enabledPoints.flatMap((p) => {
+        const value = nearbyValue(p, band, include);
+        return value === null
+          ? []
+          : [{ x: p.x, y: p.y, value, signalStrength: value }];
+      });
+    },
+    [enabledPoints, generateHeatmapData],
   );
 
   /* ---------- drawing ---------- */
@@ -304,16 +376,18 @@ export function Heatmaps() {
 
   const renderHeatmap = useCallback(
     async (
-      metric: MeasurementTestType,
-      property: HeatmapProperty,
+      w: WantedMap,
+      data: HeatmapDatum[],
       valueRange: HeatmapRange,
     ): Promise<Rendered> => {
+      const { metric, property } = w;
       const W = settings.dimensions.width;
       const H = settings.dimensions.height;
       if (W <= 1 || H <= 1) return { src: null, count: 0 };
 
-      const data = generateHeatmapData(metric, property);
-      if (metric !== "signalStrength" && data.length === 0) {
+      // the connected signal map shows the floor plan even without points
+      const alwaysDrawn = metric === "signalStrength" && w.band === undefined;
+      if (!alwaysDrawn && data.length === 0) {
         return { src: null, count: 0 };
       }
 
@@ -422,12 +496,15 @@ export function Heatmaps() {
       );
 
       // caption so a downloaded image explains itself
+      const unit = asPercentage ? "%" : "dBm";
       const title =
-        metric === "signalStrength"
-          ? `Signal strength (${asPercentage ? "%" : "dBm"})`
-          : property === "snr"
-            ? "Signal-to-noise ratio (dB)"
-            : speedMapTitle(metric, property);
+        w.band !== undefined
+          ? `${w.band} GHz: ${w.title} (${unit})`
+          : metric === "signalStrength"
+            ? `Signal strength (${unit})`
+            : property === "snr"
+              ? "Signal-to-noise ratio (dB)"
+              : speedMapTitle(metric, property);
       ctx.fillStyle = "#14181f";
       ctx.font = `600 ${fontPx}px ui-sans-serif, system-ui, sans-serif`;
       ctx.textAlign = "left";
@@ -461,7 +538,6 @@ export function Heatmaps() {
       settings.floorplanImagePath,
       settings.floorplanImageName,
       settings.accessPoints,
-      generateHeatmapData,
       drawLegend,
       radius,
       asPercentage,
@@ -470,48 +546,69 @@ export function Heatmaps() {
   );
 
   const wanted = useMemo(() => {
-    const list: {
-      key: HeatmapKey;
-      metric: MeasurementTestType;
-      property: HeatmapProperty;
-      title: string;
-    }[] = [];
+    const list: WantedMap[] = [];
+    const add = (
+      key: HeatmapKey,
+      metric: MeasurementTestType,
+      property: HeatmapProperty,
+      title: string,
+    ) =>
+      list.push({ key, scaleKey: key, cacheKey: key, metric, property, title });
     for (const metric of selectedMetrics) {
       const single = singleMapProperty[metric];
       if (single) {
         if (single === "snr" && !hasNoise) continue;
-        list.push({
-          key: heatmapKey(metric, single),
-          metric,
-          property: single,
-          title: metricTitles[metric],
-        });
+        add(heatmapKey(metric, single), metric, single, metricTitles[metric]);
       } else {
         if (!hasSpeed) continue;
         for (const property of selectedProperties) {
           if (getAvailableProperties(metric).includes(property)) {
-            list.push({
-              key: heatmapKey(metric, property),
+            add(
+              heatmapKey(metric, property),
               metric,
               property,
-              title: speedMapTitle(metric, property),
-            });
+              speedMapTitle(metric, property),
+            );
           }
         }
       }
     }
+    for (const band of bandsHeard) {
+      const report = reportOf(nearbyReports, band);
+      if (!report.shown) continue;
+      const groups = accessPointsByBand.get(band) ?? [];
+      for (const spec of nearbyMapSpecs(groups, report, apName)) {
+        const key = `nearby-${bandId(band)}-${spec.id}`;
+        list.push({
+          key,
+          scaleKey: "signalStrength",
+          cacheKey: `${key}|${[...spec.include].sort().join()}`,
+          metric: "signalStrength",
+          property: "signalStrength",
+          title: spec.label,
+          band,
+          include: spec.include,
+        });
+      }
+    }
     return list;
-  }, [selectedMetrics, selectedProperties, hasNoise, hasSpeed]);
+  }, [
+    selectedMetrics,
+    selectedProperties,
+    bandsHeard,
+    accessPointsByBand,
+    nearbyReports,
+    apName,
+    hasNoise,
+    hasSpeed,
+  ]);
 
   // Keep in-flight results as well as completed maps, so editing one scale
   // doesn't restart unchanged maps while their background images load.
   const renderCache = useRef<{
     renderer: typeof renderHeatmap;
     maps: Partial<
-      Record<
-        HeatmapKey,
-        { min: number; max: number; result: Promise<Rendered> }
-      >
+      Record<string, { min: number; max: number; result: Promise<Rendered> }>
     >;
   }>({ renderer: renderHeatmap, maps: {} });
 
@@ -525,18 +622,16 @@ export function Heatmaps() {
       setRendering(true);
       const next: Record<string, Rendered> = {};
       for (const w of wanted) {
+        const data = dataFor(w);
         const range = resolveHeatmapRange(
           w.property,
-          generateHeatmapData(w.metric, w.property).map((p) => p.value),
-          settings.heatmapRanges?.[w.key],
+          data.map((p) => p.value),
+          settings.heatmapRanges?.[w.scaleKey],
         );
-        let entry = cache[w.key];
+        let entry = cache[w.cacheKey];
         if (!entry || entry.min !== range.min || entry.max !== range.max) {
-          entry = {
-            ...range,
-            result: renderHeatmap(w.metric, w.property, range),
-          };
-          cache[w.key] = entry;
+          entry = { ...range, result: renderHeatmap(w, data, range) };
+          cache[w.cacheKey] = entry;
         }
         next[w.key] = await entry.result;
         if (cancelled) return;
@@ -547,7 +642,7 @@ export function Heatmaps() {
     return () => {
       cancelled = true;
     };
-  }, [wanted, renderHeatmap, generateHeatmapData, settings.heatmapRanges]);
+  }, [wanted, renderHeatmap, dataFor, settings.heatmapRanges]);
 
   const updateScale = (key: HeatmapKey, scale: HeatmapScale) => {
     updateSettings((previous) => ({
@@ -579,6 +674,17 @@ export function Heatmaps() {
           Object.keys(testProperties).indexOf(b),
       ),
     );
+
+  /** Change one band's report; the others stay as they are. */
+  const updateReport = (band: NearbyBand, patch: Partial<NearbyReport>) => {
+    const key = String(band); // "2.4", "5", "6"
+    updateSettings((previous) => ({
+      nearbyReports: {
+        ...previous.nearbyReports,
+        [key]: { ...reportOf(previous.nearbyReports, band), ...patch },
+      },
+    }));
+  };
 
   const anyIperfSelected =
     hasSpeed && selectedMetrics.some((m) => !singleMapProperty[m]);
@@ -615,6 +721,59 @@ export function Heatmaps() {
   );
 
   /* ---------- render ---------- */
+
+  // the gallery: the measurement maps, then a section per band's report
+  const mainMaps = wanted.filter((w) => w.band === undefined);
+  const reportBands = bandsHeard
+    .filter((band) => reportOf(nearbyReports, band).shown)
+    .map((band) => ({
+      band,
+      maps: wanted.filter((w) => w.band === band),
+    }));
+
+  const tile = (w: WantedMap) => {
+    const r = heatmaps[w.key];
+    const alt = w.band === undefined ? w.title : `${w.band} GHz: ${w.title}`;
+    if (!r) return <SkeletonTile key={w.key} title={w.title} />;
+    if (!r.src) {
+      return (
+        <EmptyTile
+          key={w.key}
+          title={w.title}
+          body={
+            w.band !== undefined
+              ? w.include?.size
+                ? "None of the points in use has a scan of nearby networks."
+                : "No access points are ticked for this report."
+              : w.metric === "signalStrength"
+                ? "Could not render this map."
+                : w.metric === "snr"
+                  ? "None of the points in use has a noise reading."
+                  : "None of the points in use has this measurement."
+          }
+        />
+      );
+    }
+    return (
+      <figure
+        key={w.key}
+        className="space-y-1.5"
+        data-testid={`heatmap-${w.key}`}
+      >
+        <HeatmapImage
+          src={r.src}
+          alt={alt}
+          onClick={() => setEnlarged({ src: r.src!, alt })}
+        />
+        <figcaption className="flex items-baseline justify-between gap-2 text-sm">
+          <span className="truncate font-medium">{w.title}</span>
+          <span className="tabular shrink-0 text-xs text-muted-foreground">
+            {r.count} point{r.count === 1 ? "" : "s"}
+          </span>
+        </figcaption>
+      </figure>
+    );
+  };
 
   return (
     <div className="space-y-4">
@@ -686,6 +845,26 @@ export function Heatmaps() {
             )}
           </div>
 
+          {bandsHeard.length > 0 && (
+            <div data-testid="nearby-networks">
+              <h2 className="mb-1 text-sm font-medium">Nearby networks</h2>
+              <p className="mb-1.5 text-xs text-muted-foreground">
+                A report per band, from the access points you tick: the
+                strongest of them at each spot.
+              </p>
+              {bandsHeard.map((band) => (
+                <NearbyReportSettings
+                  key={band}
+                  band={band}
+                  report={reportOf(nearbyReports, band)}
+                  groups={accessPointsByBand.get(band) ?? []}
+                  apName={apName}
+                  onChange={(patch) => updateReport(band, patch)}
+                />
+              ))}
+            </div>
+          )}
+
           {anyIperfSelected && (
             <div>
               <h2 className="mb-1.5 text-sm font-medium">Speed detail</h2>
@@ -716,7 +895,9 @@ export function Heatmaps() {
                 aria-label="Colour scale settings"
               >
                 {selectedMetrics.map((metric) => {
-                  const maps = wanted.filter((w) => w.metric === metric);
+                  const maps = wanted.filter(
+                    (w) => w.metric === metric && w.band === undefined,
+                  );
                   if (!maps.length) return null;
                   return (
                     <div key={metric} className="space-y-3">
@@ -726,7 +907,7 @@ export function Heatmaps() {
                       {maps.map((w) => (
                         <HeatmapScaleControl
                           key={`${settings.floorplanImageName}-${w.key}`}
-                          mapKey={w.key}
+                          mapKey={w.scaleKey}
                           property={w.property}
                           title={
                             singleMapTitles[w.property] ??
@@ -735,14 +916,12 @@ export function Heatmaps() {
                             ]
                           }
                           label={singleMapTitles[w.property] ?? w.title}
-                          scale={settings.heatmapRanges?.[w.key]}
+                          scale={settings.heatmapRanges?.[w.scaleKey]}
                           automaticRange={toDisplayRange(
                             w.property,
                             resolveHeatmapRange(
                               w.property,
-                              generateHeatmapData(metric, w.property).map(
-                                (p) => p.value,
-                              ),
+                              dataFor(w).map((p) => p.value),
                             ),
                           )}
                           onChange={updateScale}
@@ -766,7 +945,8 @@ export function Heatmaps() {
             onReset={() => updateSettings({ radiusDivider: null })}
           />
 
-          {selectedMetrics.includes("signalStrength") && (
+          {(selectedMetrics.includes("signalStrength") ||
+            wanted.some((w) => w.band !== undefined)) && (
             <label className="flex items-center gap-2.5 text-sm">
               <Switch
                 id="signal-strength-percentage"
@@ -784,60 +964,80 @@ export function Heatmaps() {
           </p>
         </aside>
 
-        <div
-          className={cn(
-            "grid gap-5",
-            wanted.length <= 1
-              ? "grid-cols-1"
-              : "md:grid-cols-2 2xl:grid-cols-3",
-          )}
-          data-testid="heatmap-gallery"
-        >
-          {points.length === 0 && (
-            <EmptyTile
-              title="No measurements yet"
-              body="Take a few measurements on the Floor plan tab and the heat maps appear here."
-            />
-          )}
-          {wanted.map((w) => {
-            const r = heatmaps[w.key];
-            if (points.length === 0) return null;
-            if (!r) return <SkeletonTile key={w.key} title={w.title} />;
-            if (!r.src) {
+        <div className="space-y-8">
+          <div
+            className={cn(
+              "grid gap-5",
+              mainMaps.length <= 1
+                ? "grid-cols-1"
+                : "md:grid-cols-2 2xl:grid-cols-3",
+            )}
+            data-testid="heatmap-gallery"
+          >
+            {points.length === 0 && (
+              <EmptyTile
+                title="No measurements yet"
+                body="Take a few measurements on the Floor plan tab and the heat maps appear here."
+              />
+            )}
+            {points.length > 0 && mainMaps.map(tile)}
+          </div>
+
+          {points.length > 0 &&
+            reportBands.map(({ band, maps }) => {
+              const ready = maps.flatMap((w) => {
+                const src = heatmaps[w.key]?.src;
+                return src ? [{ src, title: w.title }] : [];
+              });
               return (
-                <EmptyTile
-                  key={w.key}
-                  title={w.title}
-                  body={
-                    w.metric === "signalStrength"
-                      ? "Could not render this map."
-                      : w.metric === "snr"
-                        ? "None of the points in use has a noise reading."
-                        : "None of the points in use has this measurement."
-                  }
-                />
+                <section
+                  key={band}
+                  className="space-y-3"
+                  aria-label={`${band} GHz report`}
+                  data-testid={`nearby-report-${bandId(band)}`}
+                >
+                  <div className="flex flex-wrap items-baseline justify-between gap-2 border-b pb-2">
+                    <h2 className="text-base font-semibold">
+                      {band} GHz report
+                    </h2>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={ready.length === 0}
+                      onClick={() =>
+                        ready.forEach((m) =>
+                          downloadImage(
+                            m.src,
+                            `${band}GHz_${m.title.replace(/[^\w]+/g, "_")}.png`,
+                          ),
+                        )
+                      }
+                      data-testid={`nearby-report-download-${bandId(band)}`}
+                    >
+                      <Download className="h-3.5 w-3.5" />
+                      Download all ({ready.length})
+                    </Button>
+                  </div>
+                  {maps.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">
+                      No access points are ticked for this report.
+                    </p>
+                  ) : (
+                    <div
+                      className={cn(
+                        "grid gap-5",
+                        maps.length <= 1
+                          ? "grid-cols-1"
+                          : "md:grid-cols-2 2xl:grid-cols-3",
+                      )}
+                    >
+                      {maps.map(tile)}
+                    </div>
+                  )}
+                </section>
               );
-            }
-            return (
-              <figure
-                key={w.key}
-                className="space-y-1.5"
-                data-testid={`heatmap-${w.key}`}
-              >
-                <HeatmapImage
-                  src={r.src}
-                  alt={w.title}
-                  onClick={() => setEnlarged({ src: r.src!, alt: w.title })}
-                />
-                <figcaption className="flex items-baseline justify-between text-sm">
-                  <span className="font-medium">{w.title}</span>
-                  <span className="tabular text-xs text-muted-foreground">
-                    {r.count} point{r.count === 1 ? "" : "s"}
-                  </span>
-                </figcaption>
-              </figure>
-            );
-          })}
+            })}
         </div>
       </div>
 
