@@ -47,6 +47,7 @@ import HeatmapImage from "./HeatmapImage";
 import HeatmapModal from "./HeatmapModal";
 import { hasSpeedData } from "@/lib/measurement-mode";
 import { labelFontSize, pointValueText } from "@/lib/heatmap-label";
+import { accessPointName, drawAccessPointMarker } from "@/lib/access-points";
 
 const logger = getLogger("Heatmaps");
 
@@ -398,6 +399,15 @@ export function Heatmaps() {
         );
       }
 
+      // where the access points are, for reference (not measurements)
+      const apSize = fontPx * 1.7;
+      for (const ap of settings.accessPoints) {
+        drawAccessPointMarker(ctx, margin + ap.x, margin + ap.y, apSize, {
+          label: accessPointName(ap),
+          font: Math.round(fontPx * 0.8),
+        });
+      }
+
       drawLegend(
         ctx,
         margin + W + margin,
@@ -450,6 +460,7 @@ export function Heatmaps() {
       settings.pointValueColor,
       settings.floorplanImagePath,
       settings.floorplanImageName,
+      settings.accessPoints,
       generateHeatmapData,
       drawLegend,
       radius,

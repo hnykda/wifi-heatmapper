@@ -113,6 +113,22 @@ describe("/api/settings", () => {
     expect(survey.surveyPoints).toHaveLength(1);
   });
 
+  it("PATCH saves access point markers and leaves the points alone", async () => {
+    await add(1);
+    const accessPoints = [
+      { id: "AP_1", x: 40, y: 50, name: "Hall", note: "on the shelf" },
+    ];
+    const res = await settingsRoute.PATCH(
+      req(`/api/settings${q}`, "PATCH", { accessPoints }),
+    );
+    expect(res.status).toBe(200);
+    const survey = await res.json();
+    expect(survey.accessPoints).toEqual(accessPoints);
+    expect(survey.surveyPoints).toHaveLength(1);
+    const read = await settingsRoute.GET(req(`/api/settings${q}`));
+    expect((await read.json()).accessPoints).toEqual(accessPoints);
+  });
+
   it("PATCH refuses bad bodies and writes nothing", async () => {
     for (const body of [
       { sudoerPassword: "x" },

@@ -2,6 +2,18 @@
 
 _This section follows the precepts of [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) so that future readers can understand the state and evolution of the project._
 
+## Unreleased
+
+### Added
+
+* **Access point markers** ([#154](https://github.com/hnykda/wifi-heatmapper/issues/154)).
+  **Add access point** on the Floor plan tab places a router marker with
+  the next click. Click it to name it and add a note (model, height,
+  antenna direction); drag it to move it. Markers are saved with the
+  survey and drawn on the floor plan and every heat map, including
+  downloaded PNGs. They are pins only: they take no measurement and don't
+  change the heat maps.
+
 ## Version 0.10.0 - 2026-11-05
 
 ### Added

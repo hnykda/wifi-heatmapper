@@ -106,6 +106,7 @@ export function defaultSurvey(floorPlan: string): SurveyDocument {
     measureSpeed: false, // new surveys measure signal only
     iperfServerAdrs: "",
     apMapping: [],
+    accessPoints: [],
     testDuration: 5,
     udpTests: false, // TCP only: half the time per spot
     nextPointNum: 1,

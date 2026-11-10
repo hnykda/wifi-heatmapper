@@ -146,6 +146,17 @@ shown instead of the id in the details, the points table and the CSV; the
 id stays as it is. The measured values can't be edited: a point shows what
 was measured.
 
+**Mark your access points.** Click **Add access point**, then click
+where the router or mesh node is. A dark square with a router icon marks
+it, here and on every heat map, so you can compare where the access
+points are with the coverage you measured. Click the marker to name it
+("Living room", "Upstairs") and add a note, such as the model, how high
+it hangs or which way the antennas point; both save when you click
+elsewhere. Drag a marker to move it, or click **Remove** in its details.
+Escape cancels placing one. A marker is only a pin: it takes no
+measurement and doesn't change the heat maps, so if you move or add an
+access point, measure the spots around it again.
+
 On Linux, measurements use the first connected managed Wi-Fi interface,
 ignoring monitor, AP and P2P devices. If the link is disconnected or its
 signal information is incomplete, the measurement reports an error instead
@@ -162,7 +173,8 @@ closer:
   or touch screen, to zoom in or out where the pointer is. The wheel alone
   scrolls the page as usual;
 * drag the plan to move around it. A drag never measures or selects a
-  point; only a click that stays put does;
+  point; only a click that stays put does. Dragging an access point
+  marker moves the marker instead;
 * after clicking the plan (or tabbing to it), **+** and **-** zoom, **0**
   fits and the arrow keys move around.
 
