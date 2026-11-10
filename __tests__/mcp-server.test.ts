@@ -182,6 +182,9 @@ beforeAll(async () => {
       testDuration: 1,
       sudoerPassword: "hunter2", // an old file; must never come out
       apMapping: [{ apName: "Hall", macAddress: "aabbccddee*" }],
+      accessPoints: [
+        { id: "AP_1", x: 50, y: 60, name: "Hall", note: "on the shelf" },
+      ],
       nextPointNum: 3,
       dimensions: { width: 400, height: 200 },
       radiusDivider: 150,
@@ -507,6 +510,16 @@ describe("MCP server over stdio against a fake app", () => {
       apName: "Hall",
       points: 2,
     });
+    expect(r.accessPointLocations).toEqual([
+      {
+        name: "Hall",
+        x: 50,
+        y: 60,
+        note: "on the shelf",
+        icon: "router",
+        bssids: ["AA-BB-CC-DD-EE-*"],
+      },
+    ]);
 
     const missing = (await client.callTool({
       name: "get_survey",
