@@ -8,9 +8,21 @@ import type { Page } from "@playwright/test";
 import { test, expect } from "./fixtures";
 import { gotoTab, readSurvey, uploadFloorplan } from "./helpers";
 
-/** A spot on the canvas, as a fraction of its size, in page coords. */
+/** Click a spot of the canvas, as a fraction of its size. */
+async function clickAt(page: Page, fx: number, fy: number) {
+  const canvas = page.getByTestId("floorplan-canvas");
+  const box = (await canvas.boundingBox())!;
+  await canvas.click({ position: { x: box.width * fx, y: box.height * fy } });
+}
+
+/**
+ * A spot of the canvas in page coords, read just before it is used: the
+ * page may scroll (a focused field is scrolled into view).
+ */
 async function at(page: Page, fx: number, fy: number) {
-  const box = (await page.getByTestId("floorplan-canvas").boundingBox())!;
+  const canvas = page.getByTestId("floorplan-canvas");
+  await canvas.scrollIntoViewIfNeeded();
+  const box = (await canvas.boundingBox())!;
   return { x: box.x + box.width * fx, y: box.y + box.height * fy };
 }
 
@@ -25,8 +37,7 @@ test("an access point can be placed, named, noted, moved and removed", async ({
   // the next click places a marker, not a measurement
   await page.getByTestId("add-access-point").click();
   await expect(page.getByTestId("placing-access-point-hint")).toBeVisible();
-  const spot = await at(page, 0.3, 0.4);
-  await page.mouse.click(spot.x, spot.y);
+  await clickAt(page, 0.3, 0.4);
   await expect(page.getByTestId("placing-access-point-hint")).toHaveCount(0);
   await expect(page.getByTestId("measurement-panel")).toHaveCount(0);
 
@@ -57,25 +68,25 @@ test("an access point can be placed, named, noted, moved and removed", async ({
   const before = survey.accessPoints[0];
 
   // click away closes it (and measures nothing); the next click measures
-  const away = await at(page, 0.8, 0.8);
-  await page.mouse.click(away.x, away.y);
+  await clickAt(page, 0.8, 0.8);
   await expect(details).toHaveCount(0);
   await expect(page.getByTestId("measurement-panel")).toHaveCount(0);
-  await page.mouse.click(away.x, away.y);
+  await clickAt(page, 0.8, 0.8);
   await expect(page.getByTestId("measurement-panel")).toHaveAttribute(
     "data-phase",
     "done",
     { timeout: 30_000 },
   );
-  await page.mouse.click(spot.x, spot.y);
+  await clickAt(page, 0.3, 0.4);
   await expect(details).toBeVisible();
   await expect(details.getByTestId("access-point-name")).toHaveValue(
     "Living room",
   );
-  await page.mouse.click(spot.x, spot.y);
+  await clickAt(page, 0.3, 0.4);
   await expect(details).toHaveCount(0);
 
   // dragging the marker moves it (and doesn't pan the plan or measure)
+  const spot = await at(page, 0.3, 0.4);
   const to = await at(page, 0.6, 0.3);
   await page.mouse.move(spot.x, spot.y);
   await page.mouse.down();
@@ -105,7 +116,7 @@ test("an access point can be placed, named, noted, moved and removed", async ({
   await expect(page.getByTestId("placing-access-point-hint")).toHaveCount(0);
 
   // Remove deletes it
-  await page.mouse.click(to.x, to.y);
+  await clickAt(page, 0.6, 0.3);
   await expect(details).toBeVisible();
   await details.getByTestId("access-point-delete").click();
   await expect(details).toHaveCount(0);
