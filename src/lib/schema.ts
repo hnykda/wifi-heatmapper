@@ -47,6 +47,12 @@ import {
 import { mediaUrlFor } from "./media-url";
 import { migrateMeasurementMode } from "./measurement-mode";
 import { cleanPointLabel, POINT_LABEL_MAX } from "./point-label";
+import {
+  ACCESS_POINT_NAME_MAX,
+  ACCESS_POINT_NOTE_MAX,
+  ACCESS_POINTS_MAX,
+  cleanAccessPointNote,
+} from "./access-points";
 import { COPY_PART_NAMES, type CopyPart } from "./survey-ops";
 import type { Gradient, HeatmapKey, HeatmapRanges } from "./types";
 
@@ -212,6 +218,73 @@ export const surveyPointSchema = z.preprocess(
     label: pointLabelLenient,
   }),
 );
+
+/* ---------- access points on the plan ---------- */
+
+/**
+ * Where an access point (router, mesh node) is on the floor plan, drawn
+ * as a marker for reference (issue #154). Not a measurement: it never
+ * feeds a heat map. Saved with the survey; PATCH /api/settings replaces
+ * the whole list.
+ */
+const accessPointFields = {
+  id: z.string().trim().min(1).max(40),
+  x: finite,
+  y: finite,
+  name: z
+    .string()
+    .trim()
+    .max(
+      ACCESS_POINT_NAME_MAX,
+      `a name is at most ${ACCESS_POINT_NAME_MAX} characters`,
+    ),
+  /** optional free text: model, height, which way the antennas point */
+  note: z
+    .string()
+    .trim()
+    .max(
+      ACCESS_POINT_NOTE_MAX,
+      `a note is at most ${ACCESS_POINT_NOTE_MAX} characters`,
+    )
+    .optional(),
+};
+
+/** A stored marker. Without an id and a position it is dropped. */
+export const accessPointSchema = z.object({
+  id: z.string().min(1),
+  x: finite,
+  y: finite,
+  name: z
+    .string()
+    .transform((v) => v.trim().slice(0, ACCESS_POINT_NAME_MAX))
+    .catch(""),
+  note: z
+    .string()
+    .transform((v) => cleanAccessPointNote(v))
+    .optional()
+    .catch(undefined),
+});
+
+/** The list in a request: ids must be unique. */
+const accessPointsStrict = z
+  .array(z.strictObject(accessPointFields))
+  .max(ACCESS_POINTS_MAX)
+  .superRefine((aps, ctx) => {
+    const seen = new Set<string>();
+    aps.forEach((ap, i) => {
+      if (seen.has(ap.id)) {
+        ctx.addIssue({
+          code: "custom",
+          path: [i, "id"],
+          message: `"${ap.id}" is used twice`,
+        });
+      }
+      seen.add(ap.id);
+    });
+  })
+  .transform((aps) =>
+    aps.map(({ note, ...ap }) => (note ? { ...ap, note } : ap)),
+  );
 
 /* ---------- settings ---------- */
 
@@ -403,6 +476,7 @@ export const surveyFileSchema = z.object({
   // so a missing value is true; new surveys start without them.
   udpTests: z.boolean().catch(true),
   apMapping: lenientArray(apMappingSchema),
+  accessPoints: lenientArray(accessPointSchema),
   nextPointNum: z.int().catch(1),
   dimensions: z
     .object({ width: finite, height: finite })
@@ -494,6 +568,8 @@ export const settingsPatchSchema = z
     udpTests: z.boolean(),
     /** Replaces the whole list. */
     apMapping: z.array(z.strictObject(apMappingSchema.shape)),
+    /** Replaces the whole list. */
+    accessPoints: accessPointsStrict,
     dimensions: z.strictObject({
       width: finite.positive(),
       height: finite.positive(),

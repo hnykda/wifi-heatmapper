@@ -5,6 +5,7 @@ import {
   FlaskConical,
   Footprints,
   MousePointerClick,
+  Router,
 } from "lucide-react";
 
 import { useSettings } from "./GlobalSettings";
@@ -13,6 +14,7 @@ import { useMacosHelper } from "@/hooks/useMacosHelper";
 import { LocationBanner } from "@/components/MacosHelperNotice";
 import MeasurementPanel from "@/components/MeasurementPanel";
 import PopupDetails from "@/components/PopupDetails";
+import AccessPointDetails from "@/components/AccessPointDetails";
 import { ZoomPanViewport } from "@/components/ZoomPanViewport";
 import { Button } from "@/components/ui/button";
 import { getColorAt, objectToRGBAString } from "@/lib/utils-gradient";
@@ -22,13 +24,41 @@ import {
   iperfTestResult,
   percentageToRssi,
 } from "@/lib/utils";
-import { Gradient, SurveyPoint } from "@/lib/types";
+import { AccessPoint, Gradient, SurveyPoint } from "@/lib/types";
+import {
+  accessPointName,
+  drawAccessPointMarker,
+  newAccessPoint,
+} from "@/lib/access-points";
 import { useMeasurement } from "@/hooks/useMeasurement";
 import { useZoomPan } from "@/hooks/useZoomPan";
 import { cn } from "@/lib/utils";
 
 type XY = { x: number; y: number };
 type MarkerSizes = ReturnType<typeof markerSizes>;
+
+/** What is selected on the plan: a measurement or an access point marker. */
+type Selected = { kind: "point" | "ap"; id: string };
+
+/** An access point marker being dragged, in image coords. */
+type ApDrag = {
+  id: string;
+  pointerId: number;
+  /** where the press started, in CSS px */
+  startX: number;
+  startY: number;
+  /** marker centre minus the press, so it doesn't jump under the cursor */
+  dx: number;
+  dy: number;
+  /** null until it has moved past the click threshold */
+  at: XY | null;
+};
+
+/** Movement (CSS px) after which pressing a marker drags it (useZoomPan's). */
+const AP_DRAG_THRESHOLD = { mouse: 4, touch: 8 };
+
+/** An access point marker's width, from the measurement dot's radius. */
+const apSize = (sizes: MarkerSizes) => sizes.R * 2.8;
 
 /**
  * Marker sizes in image pixels. At fit they grow with the image so dots are
@@ -133,15 +163,26 @@ export default function ClickableFloorplan() {
   const [loaded, setLoaded] = useState<LoadedImage | null>(null);
   const image = loaded?.path === path ? loaded.img : null;
   const imageError = loaded?.path === path ? loaded.error : null;
-  const [selection, setSelection] = useState<{
-    path: string;
-    id: string;
-  } | null>(null);
-  const selectedId = selection?.path === path ? selection.id : null;
-  const setSelectedId = (id: string | null) =>
-    setSelection(id === null ? null : { path, id });
+  const [selection, setSelection] = useState<
+    (Selected & { path: string }) | null
+  >(null);
+  const selected: Selected | null = selection?.path === path ? selection : null;
+  const select = (next: Selected | null) =>
+    setSelection(next === null ? null : { ...next, path });
+  const selectedId = selected?.kind === "point" ? selected.id : null;
   const selectedPoint =
     settings.surveyPoints.find((p) => p.id === selectedId) ?? null;
+  const accessPoints = settings.accessPoints;
+  const selectedAp =
+    (selected?.kind === "ap" &&
+      accessPoints.find((ap) => ap.id === selected.id)) ||
+    null;
+  // the next click on the plan places an access point (for this plan)
+  const [placingOn, setPlacingOn] = useState<string | null>(null);
+  const placing = placingOn !== null && placingOn === path;
+  const [apDrag, setApDrag] = useState<ApDrag | null>(null);
+  // a marker was just dragged: the click that follows is not a click
+  const swallowClick = useRef(false);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   // Zoom and pan; back to fit for another floor plan. The frame fits the
@@ -156,7 +197,7 @@ export default function ClickableFloorplan() {
   });
   const { frame, scale, offsetX, offsetY, fit, zoom } = zp;
   const imageWidth = image?.naturalWidth ?? 0;
-  const [hoveringPoint, setHoveringPoint] = useState(false);
+  const [hovering, setHovering] = useState<"point" | "ap" | null>(null);
 
   // The server measures and saves the point; reload the survey to show it
   const measurement = useMeasurement(
@@ -207,6 +248,8 @@ export default function ClickableFloorplan() {
 
   /* ---------- drawing ---------- */
 
+  const selectedApId = selectedAp?.id ?? null;
+
   // The canvas is the frame, i.e. what is on screen, drawn at the device
   // pixel ratio for the current zoom and pan. Markers and labels stay sharp
   // at any zoom (the image itself is as sharp as its own pixels allow), and
@@ -237,9 +280,21 @@ export default function ClickableFloorplan() {
     for (const p of settings.surveyPoints) {
       drawPoint(ctx, p, sizes, p.id === selectedId, settings.gradient);
     }
+    // access points on top: there are few, and they are what you look for
+    for (const ap of settings.accessPoints) {
+      const at = apDrag?.id === ap.id && apDrag.at ? apDrag.at : ap;
+      drawAccessPointMarker(ctx, at.x, at.y, apSize(sizes), {
+        label: accessPointName(ap),
+        font: sizes.font,
+        selected: selectedApId === ap.id,
+      });
+    }
   }, [
     image,
     settings.surveyPoints,
+    settings.accessPoints,
+    apDrag,
+    selectedApId,
     frame.width,
     frame.height,
     scale,
@@ -256,6 +311,22 @@ export default function ClickableFloorplan() {
   const toImageCoords = (e: React.MouseEvent<HTMLCanvasElement>): XY => {
     const rect = e.currentTarget.getBoundingClientRect();
     return zp.toImage({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+  };
+
+  /** The access point marker under `pt`, if any (they are drawn on top). */
+  const hitTestAp = (pt: XY): AccessPoint | undefined => {
+    const half = apSize(markerSizes(imageWidth, fit, zoom)) / 2;
+    const tolerance = Math.max(half * 1.15, 14 / scale);
+    let best: AccessPoint | undefined;
+    let bestD = Infinity;
+    for (const ap of accessPoints) {
+      const d = Math.max(Math.abs(ap.x - pt.x), Math.abs(ap.y - pt.y));
+      if (d < tolerance && d < bestD) {
+        best = ap;
+        bestD = d;
+      }
+    }
+    return best;
   };
 
   const hitTest = (pt: XY): SurveyPoint | undefined => {
@@ -276,26 +347,139 @@ export default function ClickableFloorplan() {
 
   /* ---------- interaction ---------- */
 
+  const onPlan = (pt: XY) =>
+    !!image &&
+    pt.x >= 0 &&
+    pt.y >= 0 &&
+    pt.x <= image.naturalWidth &&
+    pt.y <= image.naturalHeight;
+
   const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!image) return;
-    const pt = toImageCoords(e);
-    const hit = hitTest(pt);
-    if (hit) {
-      setSelectedId(selectedId === hit.id ? null : hit.id);
+    if (swallowClick.current) {
+      swallowClick.current = false;
       return;
     }
-    if (selectedPoint) {
-      setSelectedId(null); // click away closes the details
+    const pt = toImageCoords(e);
+    if (placing) {
+      if (!onPlan(pt)) return;
+      const ap = newAccessPoint(accessPoints, pt.x, pt.y);
+      updateSettings((prev) => ({
+        accessPoints: [...prev.accessPoints, ap],
+      }));
+      setPlacingOn(null);
+      select({ kind: "ap", id: ap.id });
+      return;
+    }
+    const ap = hitTestAp(pt);
+    if (ap) {
+      select(selectedAp?.id === ap.id ? null : { kind: "ap", id: ap.id });
+      return;
+    }
+    const hit = hitTest(pt);
+    if (hit) {
+      select(selectedId === hit.id ? null : { kind: "point", id: hit.id });
+      return;
+    }
+    if (selectedPoint || selectedAp) {
+      select(null); // click away closes the details
       return;
     }
     if (measuring) return; // one at a time
+    if (!onPlan(pt)) return;
     const x = Math.round(pt.x);
     const y = Math.round(pt.y);
-    if (x < 0 || y < 0 || x > image.naturalWidth || y > image.naturalHeight) {
-      return;
-    }
     void measurement.start(x, y, measureOptions(settings.sudoerPassword));
   };
+
+  /* ---------- access points ---------- */
+
+  const changeAccessPoint = (
+    id: string,
+    patch: Partial<Omit<AccessPoint, "id">>,
+  ) =>
+    updateSettings((prev) => ({
+      accessPoints: prev.accessPoints.map((ap) =>
+        ap.id === id ? { ...ap, ...patch } : ap,
+      ),
+    }));
+
+  const removeAccessPoint = (id: string) => {
+    updateSettings((prev) => ({
+      accessPoints: prev.accessPoints.filter((ap) => ap.id !== id),
+    }));
+    select(null);
+  };
+
+  // Pressing a marker drags it instead of panning the plan
+  const handlePointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    // a click only follows the press it belongs to
+    swallowClick.current = false;
+    if (!image || placing || apDrag) return;
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    const pt = toImageCoords(e);
+    const ap = hitTestAp(pt);
+    if (!ap) return; // the viewport pans
+    e.stopPropagation();
+    setApDrag({
+      id: ap.id,
+      pointerId: e.pointerId,
+      startX: e.clientX,
+      startY: e.clientY,
+      dx: ap.x - pt.x,
+      dy: ap.y - pt.y,
+      at: null,
+    });
+  };
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (apDrag && apDrag.pointerId === e.pointerId) {
+      e.stopPropagation();
+      if (!apDrag.at) {
+        const threshold =
+          e.pointerType === "mouse"
+            ? AP_DRAG_THRESHOLD.mouse
+            : AP_DRAG_THRESHOLD.touch;
+        const moved = Math.hypot(
+          e.clientX - apDrag.startX,
+          e.clientY - apDrag.startY,
+        );
+        if (moved < threshold) return;
+        e.currentTarget.setPointerCapture?.(e.pointerId);
+      }
+      const pt = toImageCoords(e);
+      setApDrag({
+        ...apDrag,
+        at: {
+          x: Math.min(imageWidth, Math.max(0, Math.round(pt.x + apDrag.dx))),
+          y: Math.min(
+            image?.naturalHeight ?? 0,
+            Math.max(0, Math.round(pt.y + apDrag.dy)),
+          ),
+        },
+      });
+    }
+  };
+
+  const handlePointerEnd = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (!apDrag || apDrag.pointerId !== e.pointerId) return;
+    e.stopPropagation();
+    if (apDrag.at) {
+      swallowClick.current = true;
+      if (e.type === "pointerup") changeAccessPoint(apDrag.id, apDrag.at);
+    }
+    setApDrag(null);
+  };
+
+  // Escape stops placing an access point
+  useEffect(() => {
+    if (!placing) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setPlacingOn(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [placing]);
 
   const measureOptions = (sudoerPassword: string) => ({
     measureSpeed: settings.measureSpeed,
@@ -315,8 +499,9 @@ export default function ClickableFloorplan() {
   };
 
   const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!image) return;
-    setHoveringPoint(!!hitTest(toImageCoords(e)));
+    if (!image || placing) return;
+    const pt = toImageCoords(e);
+    setHovering(hitTestAp(pt) ? "ap" : hitTest(pt) ? "point" : null);
   };
 
   /* ---------- sample data (mock mode only) ---------- */
@@ -372,11 +557,12 @@ export default function ClickableFloorplan() {
   /* ---------- popup placement ---------- */
 
   const popupStyle = ((): React.CSSProperties => {
-    if (!selectedPoint) return {};
+    const anchor = selectedAp ?? selectedPoint;
+    if (!anchor) return {};
     // next to the point; at the frame's edge when it is panned out of view
     const cw = frame.width;
     const ch = frame.height;
-    const at = zp.toFrame(selectedPoint);
+    const at = zp.toFrame(anchor);
     const px = Math.min(cw, Math.max(0, at.x));
     const py = Math.min(ch, Math.max(0, at.y));
     const POPUP_W = 288; // w-72
@@ -404,19 +590,36 @@ export default function ClickableFloorplan() {
             Click a dot to see its details. Drag to move around a zoomed plan.
           </p>
         </div>
-        {status?.mockMode && (
+        <div className="flex flex-wrap items-center gap-2">
+          {status?.mockMode && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={addSamplePoints}
+              disabled={!image || measuring}
+              data-testid="add-sample-points"
+              title="Mock mode only: fills the plan with synthetic points"
+            >
+              <FlaskConical className="h-3.5 w-3.5" />
+              Add sample points
+            </Button>
+          )}
           <Button
-            variant="outline"
+            variant={placing ? "secondary" : "outline"}
             size="sm"
-            onClick={addSamplePoints}
-            disabled={!image || measuring}
-            data-testid="add-sample-points"
-            title="Mock mode only: fills the plan with synthetic points"
+            onClick={() => {
+              select(null);
+              setPlacingOn(placing ? null : path);
+            }}
+            disabled={!image}
+            aria-pressed={placing}
+            data-testid="add-access-point"
+            title="Mark where a router or access point is. It does not change the heat maps."
           >
-            <FlaskConical className="h-3.5 w-3.5" />
-            Add sample points
+            <Router className="h-3.5 w-3.5" />
+            {placing ? "Cancel" : "Add access point"}
           </Button>
-        )}
+        </div>
       </div>
 
       {macHelper.helper && (
@@ -438,7 +641,10 @@ export default function ClickableFloorplan() {
       )}
 
       <div className="survey-plate relative rounded-lg border p-3 sm:p-5">
-        {image && !measuring && <NextStepHint points={points.length} />}
+        {image && placing && <PlacingHint />}
+        {image && !measuring && !placing && (
+          <NextStepHint points={points.length} />
+        )}
 
         {!image && !imageError && (
           <div className="flex aspect-2/1 items-center justify-center text-sm text-muted-foreground">
@@ -452,14 +658,26 @@ export default function ClickableFloorplan() {
           testId="floorplan-viewport"
           className="rounded-md bg-white shadow-xs"
           overlay={
-            selectedPoint && (
+            (selectedPoint || selectedAp) && (
               <div className="absolute z-20" style={popupStyle}>
-                <PopupDetails
-                  point={selectedPoint}
-                  settings={settings}
-                  surveyPointActions={surveyPointActions}
-                  onClose={() => setSelectedId(null)}
-                />
+                {selectedAp ? (
+                  <AccessPointDetails
+                    key={selectedAp.id}
+                    ap={selectedAp}
+                    onChange={(patch) =>
+                      changeAccessPoint(selectedAp.id, patch)
+                    }
+                    onDelete={() => removeAccessPoint(selectedAp.id)}
+                    onClose={() => select(null)}
+                  />
+                ) : (
+                  <PopupDetails
+                    point={selectedPoint}
+                    settings={settings}
+                    surveyPointActions={surveyPointActions}
+                    onClose={() => select(null)}
+                  />
+                )}
               </div>
             )
           }
@@ -468,17 +686,26 @@ export default function ClickableFloorplan() {
             ref={canvasRef}
             onClick={handleCanvasClick}
             onMouseMove={handleMouseMove}
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerEnd}
+            onPointerCancel={handlePointerEnd}
             data-testid="floorplan-canvas"
+            data-placing={placing ? "true" : undefined}
             className={cn(
               "absolute inset-0 block h-full w-full",
               !image && "hidden",
-              zp.dragging
+              zp.dragging || apDrag?.at
                 ? "cursor-grabbing"
-                : hoveringPoint
-                  ? "cursor-pointer"
-                  : measuring
-                    ? "cursor-progress"
-                    : "cursor-crosshair",
+                : placing
+                  ? "cursor-crosshair"
+                  : hovering === "ap"
+                    ? "cursor-grab"
+                    : hovering === "point"
+                      ? "cursor-pointer"
+                      : measuring
+                        ? "cursor-progress"
+                        : "cursor-crosshair",
             )}
           />
 
@@ -505,6 +732,21 @@ export default function ClickableFloorplan() {
           onRetryWithPassword={retryWithPassword}
         />
       )}
+    </div>
+  );
+}
+
+/** Shown while the next click places an access point. */
+function PlacingHint() {
+  return (
+    <div className="pointer-events-none absolute inset-x-0 top-6 z-10 flex justify-center px-4">
+      <div
+        className="flex items-center gap-2 rounded-full border bg-popover/95 px-3.5 py-1.5 text-sm shadow-float"
+        data-testid="placing-access-point-hint"
+      >
+        <Router className="h-4 w-4 shrink-0 text-brand" />
+        Click where the access point is. Esc cancels.
+      </div>
     </div>
   );
 }

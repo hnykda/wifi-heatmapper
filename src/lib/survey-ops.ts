@@ -20,6 +20,7 @@ export const SETTINGS_PATCH_KEYS = [
   "testDuration",
   "udpTests",
   "apMapping",
+  "accessPoints",
   "dimensions",
   "radiusDivider",
   "maxOpacity",

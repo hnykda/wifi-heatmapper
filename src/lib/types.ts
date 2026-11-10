@@ -1,5 +1,6 @@
 import type { z } from "zod";
 import type {
+  accessPointSchema,
   apMappingSchema,
   iperfCommandsSchema,
   iperfResultsSchema,
@@ -22,6 +23,8 @@ export type IperfTestProperty = z.output<typeof iperfTestPropertySchema>;
 /** IperfResults - results from an iperf3 test */
 export type IperfResults = z.output<typeof iperfResultsSchema>;
 export type ApMapping = z.output<typeof apMappingSchema>;
+/** An access point marker on the floor plan (not a measurement) */
+export type AccessPoint = z.output<typeof accessPointSchema>;
 export type IperfCommands = z.output<typeof iperfCommandsSchema>;
 /** SurveyPoint - all the information we have about a particular point */
 export type SurveyPoint = z.output<typeof surveyPointSchema>;
