@@ -23,7 +23,7 @@ Key facts:
 
 - [CONTRIBUTING](https://raw.githubusercontent.com/hnykda/wifi-heatmapper/main/CONTRIBUTING.md): setup, test suites (`npm run verify`, `npm run e2e`), code layout, what a pull request needs
 - [CLAUDE.md](https://raw.githubusercontent.com/hnykda/wifi-heatmapper/main/CLAUDE.md): short orientation for coding agents working in the repository
-- [Architecture](https://raw.githubusercontent.com/hnykda/wifi-heatmapper/main/docs/dev/architecture.md): code layout, platform `WifiActions`, routes, how the UI and server talk, Windows localization, heat map rendering
+- [Architecture](https://raw.githubusercontent.com/hnykda/wifi-heatmapper/main/docs/dev/architecture.md): code layout, platform `WifiActions`, routes, how the UI and server talk, the Windows Native Wifi API, heat map rendering
 - [Changelog](https://raw.githubusercontent.com/hnykda/wifi-heatmapper/main/CHANGELOG.md)
 
 ## Optional

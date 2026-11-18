@@ -14,9 +14,9 @@ import {
 import fs from "fs";
 import path from "path";
 
-test("parsing netsh output", () => {
+test("parsing iw link output", () => {
   const linkOutput = fs.readFileSync(
-    path.join(__dirname, "../data/linux-netsh-output.txt"),
+    path.join(__dirname, "../data/linux-iw-link-output.txt"),
     "utf-8",
   );
 

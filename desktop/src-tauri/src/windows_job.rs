@@ -1,7 +1,7 @@
 //! Windows: keep the server and everything it starts tied to this app.
 //!
 //! Windows has no process groups to signal, and killing node.exe leaves its
-//! children (an iperf3 mid-test, a netsh, the cmd.exe around them) running.
+//! children (an iperf3 mid-test) running.
 //! So the server goes into a Job Object created with KILL_ON_JOB_CLOSE:
 //! processes it starts join the job automatically (also "detached" ones), and
 //!

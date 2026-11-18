@@ -6,9 +6,9 @@
  */
 
 export interface WifiMethodRecord {
-  /** e.g. "macOS Wi-Fi helper (CoreWLAN)", "iw", "netsh" */
+  /** e.g. "macOS Wi-Fi helper (CoreWLAN)", "iw", "Windows WLAN API" */
   method: string;
-  /** e.g. why the WLAN API fell back to netsh */
+  /** e.g. why the Wi-Fi helper fell back to wdutil, or the WLAN API error */
   detail?: string;
   at: string; // ISO time
 }
@@ -51,7 +51,6 @@ export const WIFI_METHOD = {
   macosHelper: "macOS Wi-Fi helper (CoreWLAN)",
   wdutil: "wdutil with sudo",
   wlanApi: "Windows WLAN API",
-  netshFallback: "netsh (fallback)",
   iw: "iw",
   iwSudo: "iw with sudo",
 } as const;

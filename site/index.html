@@ -274,7 +274,7 @@
     <h3>Under the hood</h3>
     <p>
       The app uses what your system already has: CoreWLAN on macOS (through a small helper, no password),
-      the Native Wifi API on Windows (with <code>netsh</code> as a fallback), and <code>iw</code> on Linux.
+      the Native Wifi API on Windows (in any display language), and <code>iw</code> on Linux.
       Speed (throughput, technically) comes from <code>iperf3</code>. The app’s server runs each measurement
       and saves the point, so closing the tab doesn’t lose it, and nothing runs through a shell.
       The heat map is inverse-distance weighting drawn with WebGL.

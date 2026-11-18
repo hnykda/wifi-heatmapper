@@ -1,8 +1,8 @@
 /**
  * wifiScanner-mock.ts - a fake measurement backend.
  *
- * Enabled with WIFI_HEATMAPPER_MOCK=1. It never runs sudo, wdutil, netsh,
- * iw or iperf3, so the whole app can be exercised on any machine: for
+ * Enabled with WIFI_HEATMAPPER_MOCK=1. It never runs sudo, wdutil, the WLAN
+ * API, iw or iperf3, so the whole app can be exercised on any machine: for
  * development, screenshots and the Playwright e2e tests.
  *
  * Signal strength follows a slow random walk so consecutive points look
@@ -23,6 +23,8 @@ import { getDefaultWifiResults, percentageToRssi } from "./utils";
 import { delay, showCommand, type CommandError } from "./server-utils";
 import { recordWifiMethod, WIFI_METHOD } from "./diagnostics-state";
 import { SUDO_PASSWORD_INVALID, sudoPasswordMissing } from "./sudo";
+import { WlanLoadError } from "./wlan-api";
+import { wlanApiFailure } from "./wifiScanner-windows";
 import type { MockScenario } from "./schema";
 import {
   mockDelayMs,
@@ -72,6 +74,9 @@ function currentWifi(strength: number, noise: number | null): WifiResults {
   };
 }
 
+/** What koffi says in the "wlan-api-error" scenario */
+const MOCK_KOFFI_ERROR = "Cannot find module 'koffi'";
+
 /** Record the reading the way the scenario's real scanner would. */
 function recordMethod(method: MockScenario["wifiMethod"]) {
   switch (method) {
@@ -84,11 +89,6 @@ function recordMethod(method: MockScenario["wifiMethod"]) {
       );
     case "wlan-api":
       return recordWifiMethod(WIFI_METHOD.wlanApi);
-    case "netsh-fallback":
-      return recordWifiMethod(
-        WIFI_METHOD.netshFallback,
-        "the WLAN API failed: koffi could not load wlanapi.dll",
-      );
     case "iw":
       return recordWifiMethod(WIFI_METHOD.iw, "iw dev wlan0 link");
     case "iw-sudo":
@@ -156,6 +156,12 @@ export class MockWifiActions implements WifiActions {
         SSIDs: [],
         reason: `Can't getWifi: ${scenario.wifiError ?? "the mock Wi-Fi reader failed"}`,
       };
+    }
+    if (scenario.wifiMethod === "wlan-api-error") {
+      return wlanApiFailure(
+        "connection query",
+        new WlanLoadError(new Error(MOCK_KOFFI_ERROR)),
+      );
     }
     mockReadings().measurements++;
     recordMethod(scenario.wifiMethod);

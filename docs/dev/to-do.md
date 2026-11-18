@@ -163,7 +163,7 @@ Ideas for making the program better - in no particular order:
   option, since blinking the Wi-Fi frequently adds 10-12 seconds to each measurement.
 * Update the NewToast to display the current SSID name
 * Fix display of dBm in the heatmap scale when not showing as %. Currently, it shows 100dBm (positive number) as green, with 0 dBm as red. The scale should use the limits of the rssiToPercentage() function.
-* Only load the localization code if running on Windows
+* ~~Only load the localization code if running on Windows~~ The localization code is gone: Windows reads Wi-Fi only through the WLAN API
 * A click on the `Floorplan` pane should immediately display an
   empty dot (no color) to indicate that's where the click was.
   (Improves behavior on a touch-screen - you can see where you clicked.)

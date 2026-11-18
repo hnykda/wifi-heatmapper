@@ -29,7 +29,7 @@ and draws heat maps on a floor plan. Runs on macOS, Windows, Linux (+Docker).
 
 ## Conventions
 
-- Parsers of command output are pure functions with fixtures in `__tests__/data`; add a fixture + test for every new OS/locale case.
+- Parsers of command output are pure functions with fixtures in `__tests__/data`; add a fixture + test for every new OS or OS version case.
 - `sudoerPassword` is never written and never returned: the server holds it in memory for the session (`src/lib/sudo-session.ts`, `PUT /api/sudo-password`), and the settings API strips it from anything it reads or writes.
 - Route handlers export only HTTP methods and `dynamic`; put constants elsewhere (Next's type check rejects other exports).
 - UI copy: sentence case, plain verbs, no jargon. Tokens live in `globals.css`; use `brand` for interactive accents, never raw colors. The heat map gradient is the only loud color.

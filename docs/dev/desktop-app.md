@@ -17,7 +17,7 @@ WiFi Heatmapper.app / .exe / .AppImage
     ├── mcp-server.mjs        optional MCP server for AI agents (docs/guide/mcp.md)
     ├── server.js, .next-desktop/, node_modules/
     │                         Next's `output: "standalone"` build (webpack, see build-server.mjs)
-    ├── public/, assets/, data/localization/
+    ├── public/, assets/
     └── helpers/              macOS: WiFiHeatmapperHelper.app (the Wi-Fi reader)
 ```
 
@@ -168,17 +168,14 @@ Done in part 3. Where it differs from the shape above:
 - **Process lifetime:** node.exe runs with `CREATE_NO_WINDOW` inside a Job
   Object with `KILL_ON_JOB_CLOSE`. Quitting terminates the job; if the app is
   killed, Windows closes the job handle and ends node.exe and anything it
-  started (iperf3, netsh, the `cmd.exe` around them). The stdin fallback still
+  started (iperf3). The stdin fallback still
   applies. The server also starts its commands with `windowsHide`.
 - **Location permission:** Windows 11 24H2+ only lets apps with location
-  access read SSID/BSSID through the WLAN API, and netsh is such an app.
-  Windows shows its one-time location prompt only for programs outside
-  System32, so netsh never gets one: the user must turn on Location services
-  and "Let desktop apps access your location". It makes no difference that
-  the desktop app is a packaged GUI app: the check is on netsh.exe, an
-  unpackaged desktop app either way. The scanner recognizes netsh's refusal
-  (its output always contains `ms-settings:privacy-location`, in any language)
-  and shows those steps instead of the "not localized" error.
+  access read SSID/BSSID through the WLAN API. Windows does not show its
+  one-time location prompt for an unpackaged desktop app like this one, so
+  the user must turn on Location services and "Let desktop apps access your
+  location". The WLAN API answers `ERROR_ACCESS_DENIED` until then, and the
+  scanner shows those steps.
 - **iperf3** must be on PATH; the app adds the winget, Scoop and Chocolatey
   folders in case Explorer has not picked up a fresh install yet.
 - **CI:** the server bundle smoke test runs on `windows-latest` as well, and
