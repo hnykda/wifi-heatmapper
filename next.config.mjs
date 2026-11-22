@@ -44,6 +44,10 @@ const nextConfig = {
   ],
   // The e2e scripts build into .next-e2e so they can run next to `npm run dev`.
   distDir: process.env.NEXT_DIST_DIR || ".next",
+  experimental: {
+    // Agent-driven Next.js upgrades stay on security releases.
+    agentUpgrade: "security",
+  },
 };
 
 export default nextConfig;
