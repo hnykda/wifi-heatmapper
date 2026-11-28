@@ -44,7 +44,12 @@ import {
   SettingsPatchError,
   toSettingsPatch,
 } from "./settings-allowlist";
-import { DEFAULT_THRESHOLDS, describePoint, summarizeSurvey } from "./survey";
+import {
+  DEFAULT_THRESHOLDS,
+  describeAccessPoints,
+  describePoint,
+  summarizeSurvey,
+} from "./survey";
 import { registerPrompts } from "./prompts";
 import {
   describeJob,
@@ -229,7 +234,8 @@ export function createMcpServer(client: AppClient, version: string): McpServer {
       description:
         "All points of a survey (id and the name the person gave it, if any, position in floor-plan pixels, signal %, RSSI dBm, SSID/BSSID, access point name, " +
         "iperf3 results, enabled or not) and a summary: min/median/max per metric over enabled points, " +
-        "dead-zone, weak and slow points, and the access points seen. Throughput is in Mbps; null means the test did not run.",
+        "dead-zone, weak and slow points, and the access points seen. Throughput is in Mbps; null means the test did not run. " +
+        "accessPointLocations are where the person marked their routers and access points on the plan (name, position, note, the BSSIDs it broadcasts); they are not measurements.",
       inputSchema: {
         name: nameArg,
         weakSignalPercent: z
@@ -291,6 +297,10 @@ export function createMcpServer(client: AppClient, version: string): McpServer {
             ? { appVersion: survey.meta.appVersion, os: survey.meta.osName }
             : null,
           summary,
+          accessPointLocations: describeAccessPoints(
+            survey.accessPoints ?? [],
+            survey.apMapping ?? [],
+          ),
           ...(args.includePoints === false ? {} : { points }),
         });
       }),

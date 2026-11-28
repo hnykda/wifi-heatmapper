@@ -13,6 +13,17 @@ _This section follows the precepts of [Keep a Changelog](https://keepachangelog.
   survey and drawn on the floor plan and every heat map, including
   downloaded PNGs. They are pins only: they take no measurement and don't
   change the heat maps.
+* **Which access point a marker is**
+  ([#156](https://github.com/hnykda/wifi-heatmapper/issues/156),
+  [#148](https://github.com/hnykda/wifi-heatmapper/issues/148)). A
+  marker's details list the BSSIDs the survey measured, nearest first;
+  tick the ones it broadcasts and their points show the marker's name
+  instead of a MAC address (they are added to Access point names, and
+  renaming the marker renames them). While a marker is selected, points
+  from other access points fade. Markers can have a router, mesh node or
+  outdoor icon.
+* **MCP:** `get_survey` returns `accessPointLocations`: the markers with
+  their position, note, icon and BSSIDs.
 
 ## Version 0.10.0 - 2026-11-05
 

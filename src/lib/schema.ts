@@ -51,6 +51,7 @@ import {
   ACCESS_POINT_NAME_MAX,
   ACCESS_POINT_NOTE_MAX,
   ACCESS_POINTS_MAX,
+  ACCESS_POINT_ICON_NAMES,
   cleanAccessPointNote,
 } from "./access-points";
 import { COPY_PART_NAMES, type CopyPart } from "./survey-ops";
@@ -247,6 +248,8 @@ const accessPointFields = {
       `a note is at most ${ACCESS_POINT_NOTE_MAX} characters`,
     )
     .optional(),
+  /** the marker's icon; router when left out */
+  icon: z.enum(ACCESS_POINT_ICON_NAMES).optional(),
 };
 
 /** A stored marker. Without an id and a position it is dropped. */
@@ -263,6 +266,7 @@ export const accessPointSchema = z.object({
     .transform((v) => cleanAccessPointNote(v))
     .optional()
     .catch(undefined),
+  icon: z.enum(ACCESS_POINT_ICON_NAMES).optional().catch(undefined),
 });
 
 /** The list in a request: ids must be unique. */
@@ -283,7 +287,12 @@ const accessPointsStrict = z
     });
   })
   .transform((aps) =>
-    aps.map(({ note, ...ap }) => (note ? { ...ap, note } : ap)),
+    // an empty note and the default icon are left out
+    aps.map(({ note, icon, ...ap }) => ({
+      ...ap,
+      ...(note ? { note } : {}),
+      ...(icon && icon !== "router" ? { icon } : {}),
+    })),
   );
 
 /* ---------- settings ---------- */

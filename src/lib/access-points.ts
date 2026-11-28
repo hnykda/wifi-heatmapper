@@ -1,10 +1,19 @@
 /**
- * access-points.ts - access point markers on the floor plan (issue #154):
- * where a router or mesh node is, with a name and an optional note. They
- * are for reference only and never feed a heat map. No Zod here, so the
- * browser can use it (the schemas are in schema.ts).
+ * access-points.ts - access point markers on the floor plan (issues #154,
+ * #156): where a router or mesh node is, with a name, an optional note and
+ * an icon. They are for reference only and never feed a heat map. No Zod
+ * here, so the browser can use it (the schemas are in schema.ts).
+ *
+ * A marker's name is an access point name: the BSSIDs it broadcasts are
+ * the rows of the survey's access point names (apMapping) under that name.
+ * So linking a BSSID to a marker names every point measured on it, in the
+ * details, the points table, the CSV and MCP, and renaming the marker
+ * renames them. Names without a marker, and prefixes ("9E-05-D6-96-E8-*"),
+ * are still edited in Settings.
  */
-import type { AccessPoint } from "./types";
+import { apNameFor } from "./apName";
+import type { AccessPoint, ApMapping, SurveyPoint } from "./types";
+import { normalizeMacAddress } from "./utils";
 
 /** Longest name, in characters, after trimming. */
 export const ACCESS_POINT_NAME_MAX = 60;
@@ -44,29 +53,195 @@ export function newAccessPoint(
   };
 }
 
-/* ---------- drawing ---------- */
+/* ---------- the BSSIDs a marker broadcasts ---------- */
+
+/** One BSSID measured in the survey, as the marker's popup lists it. */
+export interface MeasuredBssid {
+  /** normalized: 12 lowercase hex digits */
+  bssid: string;
+  /** the network name of its latest point ("" if not known) */
+  ssid: string;
+  /** bands it was measured on, in GHz, ascending */
+  bands: number[];
+  /** points measured on it */
+  points: number;
+  /** from the marker to its nearest point, in image pixels */
+  distance: number;
+  /** the name it has now (from a marker or Settings), if any */
+  name?: string;
+  /** named only by a prefix row ("…-*"), which only Settings can change */
+  byPrefix: boolean;
+}
+
+/** The exact (not prefix) access point name row for a BSSID, if any. */
+function exactRow(
+  apMapping: readonly ApMapping[],
+  bssid: string,
+): ApMapping | undefined {
+  return apMapping.find(
+    (row) => normalizeMacAddress(row.macAddress.trim()) === bssid,
+  );
+}
 
 /**
- * Lucide's "router" icon (ISC licence, as in lucide-react), on its 24 x 24
- * grid, so canvas markers match the icon the app shows in buttons.
+ * Every BSSID measured in the survey, for the marker `ap`: the ones named
+ * after it first, then the rest, nearest first. The nearest are most
+ * likely the ones it broadcasts.
  */
-const ROUTER_ICON = {
-  rect: { x: 2, y: 14, width: 20, height: 8, r: 2 },
-  paths: [
-    "M6.01 18H6",
-    "M10.01 18H10",
-    "M15 10v4",
-    "M17.84 7.17a4 4 0 0 0-5.66 0",
-    "M20.66 4.34a8 8 0 0 0-11.31 0",
-  ],
-};
+export function measuredBssids(
+  ap: AccessPoint,
+  points: readonly SurveyPoint[],
+  apMapping: readonly ApMapping[],
+): MeasuredBssid[] {
+  const byBssid = new Map<
+    string,
+    MeasuredBssid & { bandSet: Set<number>; latest: number }
+  >();
+  for (const point of points) {
+    const raw = point.wifiData.bssid;
+    if (!raw) continue;
+    const bssid = normalizeMacAddress(raw);
+    const distance = Math.hypot(point.x - ap.x, point.y - ap.y);
+    let entry = byBssid.get(bssid);
+    if (!entry) {
+      const name = apNameFor(bssid, apMapping as ApMapping[]);
+      entry = {
+        bssid,
+        ssid: "",
+        bands: [],
+        points: 0,
+        distance,
+        name,
+        byPrefix: name !== undefined && !exactRow(apMapping, bssid),
+        bandSet: new Set(),
+        latest: -Infinity,
+      };
+      byBssid.set(bssid, entry);
+    }
+    entry.points++;
+    entry.distance = Math.min(entry.distance, distance);
+    if (point.wifiData.band) entry.bandSet.add(point.wifiData.band);
+    if (point.timestamp >= entry.latest && point.wifiData.ssid) {
+      entry.latest = point.timestamp;
+      entry.ssid = point.wifiData.ssid;
+    }
+  }
+  const own = accessPointName(ap);
+  return [...byBssid.values()]
+    .map(({ bandSet, latest: _latest, ...entry }) => ({
+      ...entry,
+      bands: [...bandSet].sort((a, b) => a - b),
+    }))
+    .sort(
+      (a, b) =>
+        Number(b.name === own) - Number(a.name === own) ||
+        a.distance - b.distance ||
+        a.bssid.localeCompare(b.bssid),
+    );
+}
 
-let routerPaths: Path2D[] | null = null;
+/**
+ * The access point names with `bssid` named `name` (linked = true) or not
+ * (false). Linking replaces the BSSID's own row if it has one, so it moves
+ * from another access point; unlinking removes that row. Prefix rows are
+ * left alone.
+ */
+export function linkBssid(
+  apMapping: readonly ApMapping[],
+  name: string,
+  bssid: string,
+  linked: boolean,
+): ApMapping[] {
+  const target = normalizeMacAddress(bssid);
+  const rest = apMapping.filter(
+    (row) => normalizeMacAddress(row.macAddress.trim()) !== target,
+  );
+  return linked ? [...rest, { apName: name, macAddress: target }] : rest;
+}
+
+/**
+ * The access point names after a marker is renamed from `from` to `to`:
+ * its exact BSSID rows follow it. Prefix rows, and rows another marker
+ * with the old name still uses, stay as they are.
+ */
+export function renameInApMapping(
+  apMapping: readonly ApMapping[],
+  from: string,
+  to: string,
+  othersWithOldName: boolean,
+): ApMapping[] {
+  if (from === to || othersWithOldName) return [...apMapping];
+  return apMapping.map((row) =>
+    row.apName === from && !row.macAddress.trim().endsWith("*")
+      ? { ...row, apName: to }
+      : row,
+  );
+}
+
+/** Was `point` measured on a BSSID named `name`? */
+export function servedBy(
+  name: string,
+  point: SurveyPoint,
+  apMapping: readonly ApMapping[],
+): boolean {
+  return apNameFor(point.wifiData.bssid, apMapping as ApMapping[]) === name;
+}
+
+/* ---------- icons ---------- */
+
+/**
+ * The icons a marker can have, from Lucide (ISC licence, as in
+ * lucide-react) on its 24 x 24 grid, so canvas markers match the icons
+ * the app shows in buttons. Shapes are written as paths.
+ */
+export const ACCESS_POINT_ICONS = {
+  router: {
+    label: "Router",
+    paths: [
+      "M4 14h16a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2z",
+      "M6.01 18H6",
+      "M10.01 18H10",
+      "M15 10v4",
+      "M17.84 7.17a4 4 0 0 0-5.66 0",
+      "M20.66 4.34a8 8 0 0 0-11.31 0",
+    ],
+  },
+  wifi: {
+    label: "Mesh node or extender",
+    paths: [
+      "M12 20h.01",
+      "M2 8.82a15 15 0 0 1 20 0",
+      "M5 12.859a10 10 0 0 1 14 0",
+      "M8.5 16.429a5 5 0 0 1 7 0",
+    ],
+  },
+  tower: {
+    label: "Outdoor access point",
+    paths: [
+      "M4.9 16.1C1 12.2 1 5.8 4.9 1.9",
+      "M7.8 4.7a6.14 6.14 0 0 0-.8 7.5",
+      "M10 9a2 2 0 1 0 4 0a2 2 0 1 0-4 0",
+      "M16.2 4.8c2 2 2.26 5.11.8 7.47",
+      "M19.1 1.9a9.96 9.96 0 0 1 0 14.1",
+      "M9.5 18h5",
+      "m8 22 4-11 4 11",
+    ],
+  },
+} as const;
+
+export type AccessPointIcon = keyof typeof ACCESS_POINT_ICONS;
+export const ACCESS_POINT_ICON_NAMES = Object.keys(
+  ACCESS_POINT_ICONS,
+) as AccessPointIcon[];
+
+/* ---------- drawing ---------- */
+
+const iconPaths = new Map<AccessPointIcon, Path2D[]>();
 
 /**
  * Draw one access point marker centred on (x, y): a rounded square badge
- * with a router icon, `size` across, and its name below when `label` is
- * given. Squares, so they never read as a measurement's round dot.
+ * with its icon, `size` across, and its name below when `label` is given.
+ * Squares, so they never read as a measurement's round dot.
  */
 export function drawAccessPointMarker(
   ctx: CanvasRenderingContext2D,
@@ -74,12 +249,22 @@ export function drawAccessPointMarker(
   y: number,
   size: number,
   {
+    icon = "router",
     label,
     font,
     selected = false,
-  }: { label?: string; font?: number; selected?: boolean } = {},
+  }: {
+    icon?: AccessPointIcon;
+    label?: string;
+    font?: number;
+    selected?: boolean;
+  } = {},
 ) {
-  routerPaths ??= ROUTER_ICON.paths.map((d) => new Path2D(d));
+  let paths = iconPaths.get(icon);
+  if (!paths) {
+    paths = ACCESS_POINT_ICONS[icon].paths.map((d) => new Path2D(d));
+    iconPaths.set(icon, paths);
+  }
   const half = size / 2;
   ctx.save();
 
@@ -107,20 +292,16 @@ export function drawAccessPointMarker(
   ctx.stroke();
 
   // icon, on the 24-unit grid, in white
-  const icon = size * 0.72;
-  const k = icon / 24;
+  const box = size * 0.68;
+  const k = box / 24;
   ctx.save();
-  ctx.translate(x - icon / 2, y - icon / 2 - k * 1); // the icon sits low
+  ctx.translate(x - box / 2, y - box / 2);
   ctx.scale(k, k);
   ctx.strokeStyle = "#ffffff";
   ctx.lineWidth = 2;
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
-  const { rect } = ROUTER_ICON;
-  ctx.beginPath();
-  ctx.roundRect(rect.x, rect.y, rect.width, rect.height, rect.r);
-  ctx.stroke();
-  for (const path of routerPaths) ctx.stroke(path);
+  for (const path of paths) ctx.stroke(path);
   ctx.restore();
 
   // name

@@ -100,6 +100,8 @@ are on the [Heat maps](#heat-maps) tab.
   address with `*` (for example `aa:bb:cc:dd:ee:*`) to name every BSSID that
   starts with it, such as the per-band BSSIDs of one access point. An exact
   MAC address wins over a prefix, and a longer prefix wins over a shorter one.
+  Ticking a BSSID in an access point marker's details on the Floor plan
+  tab adds it here under the marker's name.
 * **Usage counts** – turns the anonymous usage counts (installs, app starts,
   number of measurements) on or off for this computer, shows the exact event
   that is sent and when the last one went out, and says why they are off if
@@ -147,15 +149,32 @@ id stays as it is. The measured values can't be edited: a point shows what
 was measured.
 
 **Mark your access points.** Click **Add access point**, then click
-where the router or mesh node is. A dark square with a router icon marks
-it, here and on every heat map, so you can compare where the access
-points are with the coverage you measured. Click the marker to name it
-("Living room", "Upstairs") and add a note, such as the model, how high
-it hangs or which way the antennas point; both save when you click
-elsewhere. Drag a marker to move it, or click **Remove** in its details.
-Escape cancels placing one. A marker is only a pin: it takes no
-measurement and doesn't change the heat maps, so if you move or add an
-access point, measure the spots around it again.
+where the router or mesh node is. A dark square with an icon marks it,
+here and on every heat map, so you can compare where the access points
+are with the coverage you measured. Click the marker to:
+
+* name it ("Living room", "Upstairs") and add a note, such as the model,
+  how high it hangs or which way the antennas point. Both save when you
+  click elsewhere;
+* pick its icon: router, mesh node or extender, or outdoor access point;
+* tick what was **measured from this access point**. The list shows the
+  access points (BSSIDs) your measurements connected to, nearest to the
+  marker first, with their band, network and number of points. A router
+  often has one per band, so in a home with one router you tick the one
+  or two listed. The points measured on them then show the marker's
+  name instead of a MAC address, in their details, the points table and
+  the CSV, and while the marker is selected, points from other access
+  points fade, so you see what it covers.
+
+Ticking a BSSID adds it to [Access point names](#settings) under the
+marker's name, and renaming the marker renames those. Removing a marker
+keeps the names. A BSSID named by a prefix (ending in `*`) is shown but
+changed only in Settings.
+
+Drag a marker to move it, or click **Remove** in its details. Escape
+cancels placing one. A marker is only a pin: it takes no measurement and
+doesn't change the heat maps, so if you move or add an access point,
+measure the spots around it again.
 
 On Linux, measurements use the first connected managed Wi-Fi interface,
 ignoring monitor, AP and P2P devices. If the link is disconnected or its

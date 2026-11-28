@@ -28,7 +28,11 @@ import { AccessPoint, Gradient, SurveyPoint } from "@/lib/types";
 import {
   accessPointName,
   drawAccessPointMarker,
+  linkBssid,
+  measuredBssids,
   newAccessPoint,
+  renameInApMapping,
+  servedBy,
 } from "@/lib/access-points";
 import { useMeasurement } from "@/hooks/useMeasurement";
 import { useZoomPan } from "@/hooks/useZoomPan";
@@ -86,12 +90,15 @@ function drawPoint(
   sizes: MarkerSizes,
   selected: boolean,
   gradient: Gradient,
+  faded = false,
 ) {
   const { R, font, labelOffset, pad } = sizes;
   const wifi = point.wifiData;
   if (!wifi) return;
 
   ctx.save();
+  // another access point's point, while one is selected
+  if (faded) ctx.globalAlpha = 0.3;
   // marker
   ctx.beginPath();
   ctx.arc(point.x, point.y, R, 0, Math.PI * 2);
@@ -249,6 +256,7 @@ export default function ClickableFloorplan() {
   /* ---------- drawing ---------- */
 
   const selectedApId = selectedAp?.id ?? null;
+  const selectedApName = selectedAp ? accessPointName(selectedAp) : null;
 
   // The canvas is the frame, i.e. what is on screen, drawn at the device
   // pixel ratio for the current zoom and pan. Markers and labels stay sharp
@@ -277,13 +285,29 @@ export default function ClickableFloorplan() {
     ctx.imageSmoothingQuality = "high";
     ctx.drawImage(image, 0, 0);
     const sizes = markerSizes(image.naturalWidth, fit, zoom);
+    // A selected access point that broadcasts measured BSSIDs: the points
+    // measured on others fade, so you see what it covers
+    const coverOf = selectedApName;
+    const fades =
+      coverOf !== null &&
+      settings.surveyPoints.some((p) =>
+        servedBy(coverOf, p, settings.apMapping),
+      );
     for (const p of settings.surveyPoints) {
-      drawPoint(ctx, p, sizes, p.id === selectedId, settings.gradient);
+      drawPoint(
+        ctx,
+        p,
+        sizes,
+        p.id === selectedId,
+        settings.gradient,
+        fades && !servedBy(coverOf, p, settings.apMapping),
+      );
     }
     // access points on top: there are few, and they are what you look for
     for (const ap of settings.accessPoints) {
       const at = apDrag?.id === ap.id && apDrag.at ? apDrag.at : ap;
       drawAccessPointMarker(ctx, at.x, at.y, apSize(sizes), {
+        icon: ap.icon,
         label: accessPointName(ap),
         font: sizes.font,
         selected: selectedApId === ap.id,
@@ -295,6 +319,8 @@ export default function ClickableFloorplan() {
     settings.accessPoints,
     apDrag,
     selectedApId,
+    selectedApName,
+    settings.apMapping,
     frame.width,
     frame.height,
     scale,
@@ -394,15 +420,47 @@ export default function ClickableFloorplan() {
 
   /* ---------- access points ---------- */
 
+  /** Change a marker; a new name takes its BSSIDs' names with it. */
   const changeAccessPoint = (
     id: string,
     patch: Partial<Omit<AccessPoint, "id">>,
   ) =>
-    updateSettings((prev) => ({
-      accessPoints: prev.accessPoints.map((ap) =>
+    updateSettings((prev) => {
+      const old = prev.accessPoints.find((ap) => ap.id === id);
+      if (!old) return {};
+      const accessPoints = prev.accessPoints.map((ap) =>
         ap.id === id ? { ...ap, ...patch } : ap,
-      ),
-    }));
+      );
+      if (patch.name === undefined) return { accessPoints };
+      const from = accessPointName(old);
+      const othersWithOldName = prev.accessPoints.some(
+        (ap) => ap.id !== id && accessPointName(ap) === from,
+      );
+      return {
+        accessPoints,
+        apMapping: renameInApMapping(
+          prev.apMapping,
+          from,
+          accessPointName({ name: patch.name }),
+          othersWithOldName,
+        ),
+      };
+    });
+
+  /** Tick or untick a BSSID the marker broadcasts (its name in apMapping). */
+  const linkAccessPointBssid = (id: string, bssid: string, linked: boolean) =>
+    updateSettings((prev) => {
+      const ap = prev.accessPoints.find((a) => a.id === id);
+      if (!ap) return {};
+      return {
+        apMapping: linkBssid(
+          prev.apMapping,
+          accessPointName(ap),
+          bssid,
+          linked,
+        ),
+      };
+    });
 
   const removeAccessPoint = (id: string) => {
     updateSettings((prev) => ({
@@ -565,10 +623,11 @@ export default function ClickableFloorplan() {
     const at = zp.toFrame(anchor);
     const px = Math.min(cw, Math.max(0, at.x));
     const py = Math.min(ch, Math.max(0, at.y));
-    const POPUP_W = 288; // w-72
-    const GAP = 14;
+    const POPUP_W = selectedAp ? 320 : 288; // w-80, w-72
+    const POPUP_H = selectedAp ? 470 : 260;
+    const GAP = selectedAp ? 30 : 14; // clear of the marker and its name
     const flipX = px + GAP + POPUP_W > cw && px - GAP - POPUP_W >= 0;
-    const top = Math.min(Math.max(8, py - 40), Math.max(8, ch - 260));
+    const top = Math.min(Math.max(8, py - 40), Math.max(8, ch - POPUP_H));
     return {
       left: flipX ? px - GAP - POPUP_W : px + GAP,
       top,
@@ -664,8 +723,16 @@ export default function ClickableFloorplan() {
                   <AccessPointDetails
                     key={selectedAp.id}
                     ap={selectedAp}
+                    measured={measuredBssids(
+                      selectedAp,
+                      settings.surveyPoints,
+                      settings.apMapping,
+                    )}
                     onChange={(patch) =>
                       changeAccessPoint(selectedAp.id, patch)
+                    }
+                    onLinkBssid={(bssid, linked) =>
+                      linkAccessPointBssid(selectedAp.id, bssid, linked)
                     }
                     onDelete={() => removeAccessPoint(selectedAp.id)}
                     onClose={() => select(null)}

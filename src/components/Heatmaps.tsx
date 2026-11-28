@@ -403,6 +403,7 @@ export function Heatmaps() {
       const apSize = fontPx * 1.7;
       for (const ap of settings.accessPoints) {
         drawAccessPointMarker(ctx, margin + ap.x, margin + ap.y, apSize, {
+          icon: ap.icon,
           label: accessPointName(ap),
           font: Math.round(fontPx * 0.8),
         });

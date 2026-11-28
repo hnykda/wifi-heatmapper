@@ -410,6 +410,11 @@ through is `{ "mbps": 0 }`, a dead spot. `channel`, `bandGHz`,
 report them. UDP
 results have `mbps`, `jitterMs`, `lostPackets` and `packetsReceived`.
 
+`accessPointLocations` lists the access points the person marked on the
+plan: `name`, `x`, `y`, `note` (or `null`), `icon` (`router`, `wifi` for a
+mesh node or extender, `tower` for an outdoor one) and the `bssids`
+named after it. They are pins, not measurements.
+
 The summary only uses points that are switched on, like the heat maps:
 
 ```json

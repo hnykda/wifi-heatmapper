@@ -8,8 +8,14 @@ import {
   ACCESS_POINT_NAME_MAX,
   ACCESS_POINT_NOTE_MAX,
   accessPointName,
+  linkBssid,
+  measuredBssids,
   newAccessPoint,
+  renameInApMapping,
+  servedBy,
 } from "@/lib/access-points";
+import type { SurveyPoint } from "@/lib/types";
+import { getDefaultIperfResults, getDefaultWifiResults } from "@/lib/utils";
 import { defaultSurvey } from "@/lib/survey-defaults";
 import { applySettingsPatch } from "@/lib/survey-ops";
 
@@ -117,5 +123,132 @@ describe("newAccessPoint()", () => {
   it("names a marker without a name 'Access point'", () => {
     expect(accessPointName({ name: " " })).toBe("Access point");
     expect(accessPointName({ name: "Hall" })).toBe("Hall");
+  });
+});
+
+const measured = (
+  id: string,
+  x: number,
+  y: number,
+  bssid: string,
+  extra = {},
+) =>
+  ({
+    id,
+    x,
+    y,
+    timestamp: 1,
+    isEnabled: true,
+    wifiData: {
+      ...getDefaultWifiResults(),
+      bssid,
+      ssid: "Home",
+      band: 5,
+      ...extra,
+    },
+    iperfData: getDefaultIperfResults(),
+  }) as SurveyPoint;
+
+describe("the BSSIDs a marker broadcasts", () => {
+  const ap = { id: "AP_1", x: 0, y: 0, name: "Hall" };
+  const points = [
+    measured("Point_1", 300, 0, "aa:bb:cc:dd:ee:01"),
+    measured("Point_2", 10, 0, "AA-BB-CC-DD-EE-02", { band: 2.4 }),
+    measured("Point_3", 50, 0, "aabbccddee02", { band: 5, ssid: "Home 5G" }),
+    measured("Point_4", 20, 0, ""),
+  ];
+
+  it("lists each measured BSSID once, nearest first, with bands and counts", () => {
+    expect(measuredBssids(ap, points, [])).toEqual([
+      {
+        bssid: "aabbccddee02",
+        ssid: "Home 5G",
+        bands: [2.4, 5],
+        points: 2,
+        distance: 10,
+        name: undefined,
+        byPrefix: false,
+      },
+      {
+        bssid: "aabbccddee01",
+        ssid: "Home",
+        bands: [5],
+        points: 1,
+        distance: 300,
+        name: undefined,
+        byPrefix: false,
+      },
+    ]);
+  });
+
+  it("puts the marker's own BSSIDs first, and marks prefix names", () => {
+    const apMapping = [
+      { apName: "Hall", macAddress: "aabbccddee01" },
+      { apName: "Garden", macAddress: "aabbccddee*" },
+    ];
+    const list = measuredBssids(ap, points, apMapping);
+    expect(list.map((m) => [m.bssid, m.name, m.byPrefix])).toEqual([
+      ["aabbccddee01", "Hall", false],
+      ["aabbccddee02", "Garden", true],
+    ]);
+  });
+
+  it("ticking names a BSSID after the marker; unticking removes that row", () => {
+    const start = [
+      { apName: "Garden", macAddress: "aabbccddee02" },
+      { apName: "Garden", macAddress: "aabbccddee*" },
+    ];
+    const linked = linkBssid(start, "Hall", "AA:BB:CC:DD:EE:02", true);
+    expect(linked).toEqual([
+      { apName: "Garden", macAddress: "aabbccddee*" },
+      { apName: "Hall", macAddress: "aabbccddee02" },
+    ]);
+    expect(linkBssid(linked, "Hall", "aabbccddee02", false)).toEqual([
+      { apName: "Garden", macAddress: "aabbccddee*" },
+    ]);
+    expect(servedBy("Hall", points[1], linked)).toBe(true);
+    expect(servedBy("Hall", points[0], linked)).toBe(false);
+  });
+
+  it("renaming a marker renames its BSSIDs, not prefixes or shared names", () => {
+    const apMapping = [
+      { apName: "Hall", macAddress: "aabbccddee01" },
+      { apName: "Hall", macAddress: "aabbcc*" },
+      { apName: "Garden", macAddress: "aabbccddee03" },
+    ];
+    expect(renameInApMapping(apMapping, "Hall", "Lobby", false)).toEqual([
+      { apName: "Lobby", macAddress: "aabbccddee01" },
+      { apName: "Hall", macAddress: "aabbcc*" },
+      { apName: "Garden", macAddress: "aabbccddee03" },
+    ]);
+    expect(renameInApMapping(apMapping, "Hall", "Lobby", true)).toEqual(
+      apMapping,
+    );
+  });
+});
+
+describe("marker icons", () => {
+  it("are read leniently and left out when they are the default", () => {
+    expect(
+      load([
+        { id: "AP_1", x: 0, y: 0, name: "", icon: "wifi" },
+        { id: "AP_2", x: 0, y: 0, name: "", icon: "toaster" },
+      ]).map((ap) => ap.icon),
+    ).toEqual(["wifi", undefined]);
+    const patch = settingsPatchSchema.parse({
+      accessPoints: [
+        { id: "AP_1", x: 0, y: 0, name: "a", icon: "router" },
+        { id: "AP_2", x: 0, y: 0, name: "b", icon: "tower" },
+      ],
+    });
+    expect(patch.accessPoints).toEqual([
+      { id: "AP_1", x: 0, y: 0, name: "a" },
+      { id: "AP_2", x: 0, y: 0, name: "b", icon: "tower" },
+    ]);
+    expect(
+      settingsPatchSchema.safeParse({
+        accessPoints: [{ id: "AP_1", x: 0, y: 0, name: "a", icon: "toaster" }],
+      }).success,
+    ).toBe(false);
   });
 });

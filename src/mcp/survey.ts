@@ -4,12 +4,14 @@
  * weak points, access points seen). Pure functions.
  */
 import type {
+  AccessPoint,
   ApMapping,
   IperfResults,
   IperfTestProperty,
   SurveyPoint,
 } from "../lib/types";
-import { apNameFor } from "../lib/apName";
+import { apNameFor, formatApPattern } from "../lib/apName";
+import { accessPointName } from "../lib/access-points";
 import { snrOf, validNoise } from "../lib/utils";
 
 const round = (value: number, digits = 1) => {
@@ -80,6 +82,37 @@ function describeTest(
     out.packetsReceived = test.packetsReceived;
   }
   return out;
+}
+
+/** An access point marker, as get_survey reports it. */
+export interface AccessPointLocation {
+  name: string;
+  x: number;
+  y: number;
+  note: string | null;
+  /** router, wifi (mesh node or extender) or tower (outdoor) */
+  icon: string;
+  /** the BSSIDs named after it, as MAC addresses or "…-*" prefixes */
+  bssids: string[];
+}
+
+export function describeAccessPoints(
+  accessPoints: AccessPoint[],
+  apMapping: ApMapping[],
+): AccessPointLocation[] {
+  return accessPoints.map((ap) => {
+    const name = accessPointName(ap);
+    return {
+      name,
+      x: round(ap.x),
+      y: round(ap.y),
+      note: ap.note ?? null,
+      icon: ap.icon ?? "router",
+      bssids: apMapping
+        .filter((row) => row.apName === name)
+        .map((row) => formatApPattern(row.macAddress)),
+    };
+  });
 }
 
 export function describePoint(
