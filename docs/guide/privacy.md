@@ -11,7 +11,10 @@ actually use it. Anonymous counts of installs, app starts and measurements
 tell me that, and honestly keep me motivated. Nothing identifies you, and
 you can turn it off any time.
 
-Your surveys, floor plans and results stay on your computer. The only
+Your surveys, floor plans and results stay on your computer. With **Scan
+all access points** on, a survey also holds the names and addresses of the
+networks in range, your neighbours' included; they stay in the survey file
+like everything else, so keep that in mind when you share one. The only
 thing the app sends on its own is the small usage counts described here.
 They are on by default. **Settings > Usage counts** has the switch, why
 the app counts, and the exact event it sends.

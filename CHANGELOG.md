@@ -6,6 +6,16 @@ _This section follows the precepts of [Keep a Changelog](https://keepachangelog.
 
 ### Added
 
+* **Scan all access points** ([#161](https://github.com/hnykda/wifi-heatmapper/pull/161),
+  thanks @spicyFajitas). A new switch in Settings, off by default: each
+  spot also records every access point in range, on every band (about
+  5 seconds more per spot). The Heat maps tab then has **Scanned signal**:
+  for a network, the best signal of its access points, a map per band or a
+  map per access point, so you see what each one covers and not only the
+  one your computer was connected to. A point's details list what was in
+  range, an access point marker also offers the radios no point was
+  connected to, and AI agents get the scans through MCP (`scanNearby`,
+  `get_survey`, `get_heatmap_grid`). With the switch off nothing changes.
 * **Access point markers** ([#154](https://github.com/hnykda/wifi-heatmapper/issues/154)).
   **Add access point** on the Floor plan tab places a router marker with
   the next click. Click it to name it and add a note (model, height,

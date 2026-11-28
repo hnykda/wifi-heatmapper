@@ -307,7 +307,7 @@ async function run(job: Job, settings: PartialHeatmapSettings, runner: Runner) {
     else finish(job, "cancelled");
     return;
   }
-  const { wifiData, iperfData, status, warning, fields } = result;
+  const { wifiData, iperfData, nearby, status, warning, fields } = result;
   if (status) return fail(status, fields);
   if (!wifiData || !iperfData) {
     return fail("The measurement returned no data.", fields);
@@ -325,6 +325,7 @@ async function run(job: Job, settings: PartialHeatmapSettings, runner: Runner) {
         iperfData,
         timestamp: Date.now(),
         isEnabled: true,
+        ...(nearby ? { nearby } : {}),
       });
       pointId = next.surveyPoints[next.surveyPoints.length - 1].id;
       return next;

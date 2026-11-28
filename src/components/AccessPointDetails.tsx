@@ -210,7 +210,9 @@ function BssidList({
               const details = [
                 m.bands.length ? `${m.bands.join(" / ")} GHz` : null,
                 m.ssid || null,
-                `${m.points} point${m.points === 1 ? "" : "s"}`,
+                m.points || !m.heard
+                  ? `${m.points} point${m.points === 1 ? "" : "s"}`
+                  : `in range at ${m.heard} point${m.heard === 1 ? "" : "s"}`,
               ].filter(Boolean);
               return (
                 <li key={m.bssid}>

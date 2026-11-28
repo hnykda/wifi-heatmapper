@@ -144,6 +144,27 @@ export function SpeedSettings({ status }: { status: AppStatus | null }) {
         </div>
       </div>
 
+      <FormRow
+        id="scanNearby"
+        label="Scan all access points"
+        help="The signal reading is from the one access point this computer is connected to. With this on, each spot also records every access point in range, on every band, so the Heat maps tab can show what each of them covers. Adds about 5 seconds per spot. Leave it off for a home with one router."
+        hint={
+          settings.scanNearby && status?.platform === "darwin"
+            ? "On a Mac this needs the desktop app's Wi-Fi helper with Location access allowed."
+            : undefined
+        }
+      >
+        <label className="flex items-center gap-2.5 text-sm">
+          <Switch
+            id="scanNearby"
+            checked={settings.scanNearby}
+            onCheckedChange={(on) => updateSettings({ scanNearby: on })}
+            data-testid="scan-nearby"
+          />
+          {settings.scanNearby ? "Scanned at each spot" : "Not scanned"}
+        </label>
+      </FormRow>
+
       {speed && (
         <>
           <FormRow

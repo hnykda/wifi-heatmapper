@@ -69,6 +69,30 @@ function surveyPoint(
   };
 }
 
+/** A scan: the Hall access point, the Attic one and a neighbour's. */
+function scanAt(hall: number, attic: number) {
+  const heard = (
+    ssid: string,
+    bssid: string,
+    signalStrength: number,
+    band: number,
+    channel: number,
+  ) => ({
+    ssid,
+    bssid,
+    signalStrength,
+    rssi: -100 + signalStrength * 0.6,
+    channel,
+    band,
+    channelWidth: 80,
+  });
+  return [
+    heard("Home", "aabbccddee01", hall, 5, 36),
+    heard("Home", "112233445501", attic, 5, 100),
+    heard("Next door", "ffeeddccbb01", 30, 2.4, 1),
+  ].sort((a, b) => b.signalStrength - a.signalStrength);
+}
+
 let files: Record<string, Record<string, unknown>>;
 const patches: SettingsPatch[] = [];
 const copies: URLSearchParams[] = [];
@@ -105,7 +129,7 @@ let url: string;
  * time, "Starting" until the preflight has passed, the point saved by the
  * server. `outcome` decides how the next job ends.
  */
-type Outcome = "done" | "noSpeed" | "sudo" | "slow";
+type Outcome = "done" | "noSpeed" | "sudo" | "slow" | "scan" | "scanFails";
 let outcome: Outcome = "done";
 const jobs = new Map<string, MeasurementJobStatus>();
 let current: MeasurementJobStatus | null = null;
@@ -147,9 +171,24 @@ function startJob(survey: string, x: number, y: number) {
     const id = `Point_${f.nextPointNum++}`;
     f.surveyPoints.push({
       ...surveyPoint(id, x, y, 64, how === "noSpeed" ? null : 250),
+      ...(how === "scan" ? { nearby: scanAt(64, 80) } : {}),
     });
     job.state = "done";
     job.pointId = id;
+    if (how === "scanFails") {
+      job.progress = {
+        type: "done",
+        header: "",
+        status: "",
+        fields: {
+          strength: "64%",
+          tcp: "-",
+          udp: "-",
+          nearby: "Failed",
+          nearbyNote: "The scan found no networks.",
+        },
+      };
+    }
     if (how === "noSpeed") {
       job.warning =
         "Can't reach the speed test server at 192.168.1.10:5201. Check that iperf3 -s is running there.";
@@ -894,6 +933,214 @@ describe("measuring over MCP against a fake app", () => {
       expect(r.isError, name).toBe(true);
       expect(text(r)).toMatch(/doesn't know measurement "nope"/);
     }
+  });
+});
+
+describe("scans of all access points over MCP", () => {
+  let client: Client;
+  beforeAll(async () => {
+    client = await connect({ WIFI_HEATMAPPER_URL: url });
+    files["Scan.png"] = {
+      ...files["Home.png"],
+      floorplanImageName: "Scan.png",
+      scanNearby: true,
+      heatmapRanges: {},
+      surveyPoints: [
+        {
+          ...surveyPoint("Point_1", 100, 100, 90, null),
+          nearby: scanAt(90, 10),
+        },
+        {
+          ...surveyPoint("Point_2", 300, 100, 20, null),
+          nearby: scanAt(20, 85),
+        },
+        surveyPoint("Point_3", 200, 150, 50, null), // measured without a scan
+      ],
+      nextPointNum: 4,
+    };
+  }, 30_000);
+  afterAll(async () => {
+    delete files["Scan.png"];
+    await client?.close();
+  });
+
+  const call = (name: string, args: Record<string, unknown>) =>
+    client.callTool({ name, arguments: args }) as Promise<CallToolResult>;
+  const text = (r: CallToolResult) =>
+    r.content[0].type === "text" ? r.content[0].text : "";
+
+  it("get_survey summarises the scans, and gives the lists only when asked", async () => {
+    const r = json(await call("get_survey", { name: "Scan.png" }));
+    expect(
+      r.points.map(
+        (p: { accessPointsInRange: number }) => p.accessPointsInRange,
+      ),
+    ).toEqual([3, 3, null]);
+    expect(r.points[0]).not.toHaveProperty("scan");
+    expect(r.summary.scannedPoints).toBe(2);
+    expect(r.summary.scannedAccessPoints).toEqual([
+      {
+        bssid: "aabbccddee01",
+        ssid: "Home",
+        apName: "Hall",
+        bandGHz: 5,
+        channels: [36],
+        pointsHeard: 2,
+        strongestSignalPercent: 90,
+        strongestAtPointId: "Point_1",
+        own: true,
+      },
+      {
+        bssid: "112233445501",
+        ssid: "Home",
+        apName: null,
+        bandGHz: 5,
+        channels: [100],
+        pointsHeard: 2,
+        strongestSignalPercent: 85,
+        strongestAtPointId: "Point_2",
+        own: true,
+      },
+      {
+        bssid: "ffeeddccbb01",
+        ssid: "Next door",
+        apName: null,
+        bandGHz: 2.4,
+        channels: [1],
+        pointsHeard: 2,
+        strongestSignalPercent: 30,
+        strongestAtPointId: "Point_1",
+        own: false,
+      },
+    ]);
+
+    const full = json(
+      await call("get_survey", { name: "Scan.png", includeScans: true }),
+    );
+    expect(full.points[1].scan[0]).toEqual({
+      ssid: "Home",
+      bssid: "112233445501",
+      apName: null,
+      signalPercent: 85,
+      rssiDbm: -49,
+      channel: 100,
+      bandGHz: 5,
+      channelWidthMHz: 80,
+    });
+    expect(full.points[2]).not.toHaveProperty("scan");
+
+    // a survey without scans says nothing about them
+    const plain = json(await call("get_survey", { name: "Home.png" }));
+    expect(plain.summary).not.toHaveProperty("scannedAccessPoints");
+    expect(plain.points[0].accessPointsInRange).toBeNull();
+  });
+
+  it("get_heatmap_grid maps the scanned signal of the chosen access points", async () => {
+    const grid = (args: Record<string, unknown>) =>
+      call("get_heatmap_grid", { name: "Scan.png", cells: 4, ...args });
+    const best = json(await grid({ scan: "best" }));
+    expect(best).toMatchObject({
+      metric: "signalStrength",
+      title: "Scanned signal: Home",
+      unit: "%",
+      pointsUsed: 2, // Point_3 has no scan
+      scanned: {
+        network: "Home",
+        bssids: ["aabbccddee01", "112233445501"],
+      },
+    });
+    // the best access point is strong at both ends; the connection is not
+    expect(best.values[0][0]).toBeGreaterThan(85);
+    expect(best.values[0][3]).toBeGreaterThan(80);
+
+    const hall = json(await grid({ scan: "Hall" }));
+    expect(hall.title).toBe("Scanned signal: Hall");
+    expect(hall.scanned.accessPoints).toEqual([
+      { bssid: "aabbccddee01", apName: "Hall", bandGHz: 5, channels: [36] },
+    ]);
+    expect(hall.values[0][3]).toBeLessThan(30);
+
+    // a band nobody is on at a point counts as 0 there, not as a gap
+    const neighbour = json(await grid({ network: "Next door" }));
+    expect(neighbour.scanned.bssids).toEqual(["ffeeddccbb01"]);
+    expect(neighbour.values[0][0]).toBe(30);
+
+    // without scan or network: the connection's own signal, as before
+    const connected = json(await grid({}));
+    expect(connected).not.toHaveProperty("scanned");
+    expect(connected.pointsUsed).toBe(3);
+  });
+
+  it("get_heatmap_grid says what is wrong with a scanned grid", async () => {
+    const speed = await call("get_heatmap_grid", {
+      name: "Scan.png",
+      metric: "tcpDownload-bitsPerSecond",
+      scan: "best",
+    });
+    expect(speed.isError).toBe(true);
+    expect(text(speed)).toMatch(/only work with metric signalStrength/);
+
+    const none = await call("get_heatmap_grid", {
+      name: "Home.png",
+      scan: "best",
+    });
+    expect(none.isError).toBe(true);
+    expect(text(none)).toMatch(/no scans.*scanNearby/);
+
+    const unknown = await call("get_heatmap_grid", {
+      name: "Scan.png",
+      scan: "Garage",
+    });
+    expect(unknown.isError).toBe(true);
+    expect(text(unknown)).toMatch(
+      /matches scan "Garage".*"Hall".*Networks the scans heard: "Home", "Next door"/,
+    );
+  });
+
+  it("settings: scanNearby is read, changed and sent with a measurement", async () => {
+    const got = json(await call("get_settings", { name: "Scan.png" }));
+    expect(got.settings.scanNearby).toBe(true);
+    expect(got.notes.scanNearby).toMatch(/5 seconds/);
+
+    outcome = "scan";
+    const started = json(
+      await call("start_measurement", { survey: "Scan.png", x: 50, y: 50 }),
+    );
+    expect(started.scanAccessPoints).toMatch(/^on/);
+    expect(startBodies.at(-1)!.settings).toMatchObject({ scanNearby: true });
+    const done = json(
+      await call("wait_for_measurement", { jobId: started.jobId }),
+    );
+    expect(done.point.accessPointsInRange).toBe(3);
+    expect(done).toMatchObject({
+      accessPointsInRange: 3,
+      strongestAccessPoints: [
+        { ssid: "Home", apName: null, bandGHz: 5, signalPercent: 80 },
+        { ssid: "Home", apName: "Hall", bandGHz: 5, signalPercent: 64 },
+        { ssid: "Next door", apName: null, bandGHz: 2.4, signalPercent: 30 },
+      ],
+    });
+    expect(done).not.toHaveProperty("scanFailed");
+
+    outcome = "scanFails";
+    const second = json(
+      await call("start_measurement", { survey: "Scan.png", x: 350, y: 150 }),
+    );
+    const failed = json(
+      await call("wait_for_measurement", { jobId: second.jobId }),
+    );
+    expect(failed.state).toBe("done");
+    expect(failed.scanFailed).toBe("The scan found no networks.");
+    expect(failed.point.accessPointsInRange).toBeNull();
+    expect(failed).not.toHaveProperty("strongestAccessPoints");
+    outcome = "done";
+
+    const off = json(
+      await call("update_settings", { name: "Scan.png", scanNearby: false }),
+    );
+    expect(off.changed).toEqual(["scanNearby"]);
+    expect(patches.at(-1)).toEqual({ scanNearby: false });
+    expect(off.settings.scanNearby).toBe(false);
   });
 });
 

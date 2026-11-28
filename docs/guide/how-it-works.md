@@ -31,7 +31,7 @@ iperf3 options you type reach iperf3 as plain arguments, never as a command.
 |---|---|---|
 | macOS | CoreWLAN, through the app's small Wi-Fi helper | No password. The helper needs Location access to see the network name. From source without the helper: `wdutil` (needs sudo), `ioreg` and `system_profiler`. |
 | Windows | Native Wifi API (`wlanapi.dll`) | Part of Windows, works in any display language. `netsh` is the fallback. On Windows 11 24H2 and later, Location services must be on. |
-| Linux | `iw` | `nmcli` is optional and only lists nearby networks. Uses the first connected managed Wi-Fi interface. |
+| Linux | `iw` | `nmcli` is optional: only **Scan all access points** needs it. Uses the first connected managed Wi-Fi interface. |
 | All | `iperf3` | Only for speed tests. See [measuring speed](throughput.md). |
 
 Where the system reports it, each point also stores the **noise** level in
@@ -41,6 +41,30 @@ doesn't. The signal-to-noise ratio is the signal minus the noise, in dB:
 the higher the better. As a rule of thumb, 25 dB and more is good, and
 below about 15 dB a connection struggles even when the signal looks strong. The **Signal-to-noise ratio** heat map uses
 only the points that have it.
+
+## Connected signal and scanned signal
+
+A point's signal is what your computer hears from the access point it is
+connected to. That is what your computer gets, but it says nothing about the
+other access points: with two of them, a laptop that stays on the far one
+makes the near one's room look weak.
+
+With **Scan all access points** on (Settings), each measurement first asks
+the Wi-Fi card for every access point in range, on every band, and keeps
+the list with the point: network name, address (BSSID), band, channel and
+signal. The **Scanned signal** heat maps are drawn from these lists. A scan
+takes about 5 seconds and briefly takes the card off its channel, so it
+runs before the speed test, not during it.
+
+| System | The scan uses |
+|---|---|
+| macOS | CoreWLAN through the Wi-Fi helper. It needs Location access: without it macOS hides the addresses, and the point is saved without the scan. |
+| Windows | Native Wifi API (`WlanScan`, then the list of access points after 4 seconds, as Microsoft documents it). If Windows can't start a scan, the point is saved without one rather than with an old list. |
+| Linux | NetworkManager: `nmcli device wifi list --rescan yes`, which waits for a new scan. |
+
+A scanned value can differ from the connected reading at the same spot by
+a few percent: the connected one is an average of three readings, the scan
+is one.
 
 ## Signal strength in percent and dBm
 

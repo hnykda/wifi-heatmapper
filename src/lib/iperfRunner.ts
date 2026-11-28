@@ -6,6 +6,7 @@ import {
   IperfCommands,
   MeasurementEvent,
   MeasurementFields,
+  NearbyNetwork,
   WifiResults,
 } from "./types";
 import { execAsync, delay } from "./server-utils";
@@ -25,6 +26,7 @@ import { mockIperf3 } from "./wifiScanner-mock";
 import { parseServerAddress } from "./measurement-mode";
 import { planSpeedTest, speedTestFailedWarning } from "./speed-test";
 import { rememberNetworks } from "./diagnostics-state";
+import { toNearbyNetworks } from "./nearby-networks";
 const logger = getLogger("iperfRunner");
 
 type TestType = "TCP" | "UDP";
@@ -70,6 +72,8 @@ type Display = {
   tcp: string;
   udp: string;
   mode: "signal" | "speed";
+  nearby?: string; // the scan of access points in range, if the survey scans
+  nearbyNote?: string; // why the scan failed
   warning: string;
 };
 
@@ -81,11 +85,15 @@ function progressEvent(d: Display): MeasurementEvent {
     tcp: d.tcp,
     udp: d.udp,
     mode: d.mode,
+    ...(d.nearby ? { nearby: d.nearby } : {}),
+    ...(d.nearbyNote ? { nearbyNote: d.nearbyNote } : {}),
   };
   return {
     type: "update",
     header: d.header,
-    status: `Signal strength: ${strength}\nSpeed: ${d.tcp}\nUDP: ${d.udp}`,
+    status:
+      `Signal strength: ${strength}\nSpeed: ${d.tcp}\nUDP: ${d.udp}` +
+      (d.nearby ? `\nAccess points in range: ${d.nearby}` : ""),
     fields,
     ...(d.warning ? { warning: d.warning } : {}),
   };
@@ -107,6 +115,29 @@ export interface MeasureResult {
   warning?: string;
   /** the last progress shown (for the final "done" event) */
   fields?: MeasurementFields;
+  /** every access point in range, if the survey scans and the scan worked */
+  nearby?: NearbyNetwork[];
+}
+
+/**
+ * Scan for every access point in range (a few seconds): the entries to
+ * save, or why there are none.
+ */
+async function scanNearby(
+  settings: PartialHeatmapSettings,
+  signal?: AbortSignal,
+): Promise<{ nearby: NearbyNetwork[] } | { reason: string }> {
+  const scan = await wifiActions.scanWifi(settings, { fresh: true });
+  throwIfAborted(signal);
+  if (scan.reason) return { reason: scan.reason };
+  rememberNetworks(scan.SSIDs);
+  const nearby = toNearbyNetworks(scan.SSIDs);
+  if (nearby.length) return { nearby };
+  return {
+    reason: scan.SSIDs.length
+      ? "The scan found networks, but the system hides their addresses (on macOS, allow Location access for the Wi-Fi helper)."
+      : "The scan found no networks.",
+  };
 }
 
 /**
@@ -219,6 +250,27 @@ export async function runSurveyTests(
       return `${toMbps(down.bitsPerSecond)} / ${toMbps(up.bitsPerSecond)} Mbps`;
     };
 
+    // The scan first: it takes the radio off its channel for a few seconds,
+    // which would slow a speed test down. A failed scan is a warning; the
+    // point is still saved, without the scan.
+    let nearby: NearbyNetwork[] | undefined;
+    if (settings.scanNearby === true) {
+      display.header = "Scanning access points";
+      display.nearby = "Scanning";
+      send();
+      const scan = await scanNearby(settings, signal);
+      if ("reason" in scan) {
+        logger.warn(`Scan of access points failed: ${scan.reason}`);
+        display.nearby = "Failed";
+        display.nearbyNote = scan.reason;
+      } else {
+        nearby = scan.nearby;
+        display.nearby = `${nearby.length} access point${nearby.length === 1 ? "" : "s"}`;
+      }
+      display.header = measuringHeader;
+      send();
+    }
+
     const wifiDataBefore = await readWifi();
     logger.debug(`getWifi() returned: ${JSON.stringify(wifiDataBefore)}`);
     logger.debug(`Elapsed time for scan: ${Date.now() - startTime} ms`);
@@ -266,6 +318,7 @@ export async function runSurveyTests(
       wifiData: newWifiData,
       status: "",
       fields: progressEvent(display).fields,
+      ...(nearby ? { nearby } : {}),
       ...(display.warning ? { warning: display.warning } : {}),
     };
   } catch (error: unknown) {

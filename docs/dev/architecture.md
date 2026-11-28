@@ -37,7 +37,10 @@ else a human-readable message for the UI.
   measurement reads it three times; the network name in the progress
   header comes from it too.
 * `scanWifi()` Nearby networks, sorted by signal strength, the current one
-  marked `currentSSID: true`. Not used while measuring.
+  marked `currentSSID: true`. With `{ fresh: true }` it scans now instead of
+  returning what the OS last saw: a measurement does that once, before the
+  speed test, when the survey has `scanNearby` on, and saves the result
+  with the point as `nearby` (_lib/nearby-networks.ts_).
 
 The speed test is not part of `WifiActions`: whether it runs is decided the
 same way on every OS by _lib/speed-test.ts_ (`planSpeedTest()`), and

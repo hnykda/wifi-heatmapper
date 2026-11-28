@@ -6,6 +6,7 @@ import {
 import {
   splitColonDelimited,
   getCandidateSSIDs,
+  NMCLI_SCAN_FIELDS,
   iwLinkCommands,
   iwDevCommands,
   parseIwSurveyNoise,
@@ -110,6 +111,39 @@ test("Parsing 'nmlcli -t' output with non-empty first column and no security", (
     "87",
     "▂▄▆█",
     "",
+  ]);
+});
+
+test("nmcli scan with the FREQ column: 6 GHz is told from 2.4 and 5 GHz", () => {
+  const output = fs.readFileSync(
+    path.join(__dirname, "../data/linux-nmcli-dev-wifi-list-freq.txt"),
+    "utf-8",
+  );
+  const found = getCandidateSSIDs(output);
+  expect(
+    found.map((n) => [n.bssid, n.channel, n.band, n.signalStrength]),
+  ).toEqual([
+    ["AA:BB:CC:00:00:02", 6, 2.4, 90],
+    ["AA:BB:CC:00:00:01", 44, 5, 82],
+    ["AA:BB:CC:00:00:03", 37, 6, 55],
+    ["AA:BB:CC:00:00:04", 5, 6, 40],
+    ["AA:BB:CC:00:00:05", 149, 5, 30],
+  ]);
+  expect(found[1].currentSSID).toBe(true);
+  // an open network has an empty SECURITY column
+  expect(found[4]).toMatchObject({ ssid: "Open cafe", security: "" });
+  // the app asks for exactly these columns, in this order
+  expect(NMCLI_SCAN_FIELDS.split(",")).toEqual([
+    "IN-USE",
+    "BSSID",
+    "SSID",
+    "MODE",
+    "CHAN",
+    "RATE",
+    "SIGNAL",
+    "BARS",
+    "SECURITY",
+    "FREQ",
   ]);
 });
 

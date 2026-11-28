@@ -28,7 +28,7 @@ interface MeasurementPanelProps {
 }
 
 const DONE_AUTOCLOSE_MS = 2500;
-const NO_FIELDS = { strength: "-", tcp: "-", udp: "-" };
+const NO_FIELDS: MeasurementFields = { strength: "-", tcp: "-", udp: "-" };
 
 /**
  * Progress of one measurement, anchored to the bottom-right corner.
@@ -48,13 +48,15 @@ export default function MeasurementPanel({
   const [password, setPassword] = useState("");
   const fields = shown ?? NO_FIELDS;
   const mode = shown?.mode ?? (measureSpeed ? "speed" : "signal");
+  // why the scan of access points failed; the point is saved without it
+  const scanNote = fields.nearbyNote ?? "";
 
   // Success closes itself; a warning stays until it is dismissed
   useEffect(() => {
-    if (phase !== "done" || warning) return;
+    if (phase !== "done" || warning || scanNote) return;
     const t = setTimeout(onClose, DONE_AUTOCLOSE_MS);
     return () => clearTimeout(t);
-  }, [phase, warning, onClose]);
+  }, [phase, warning, scanNote, onClose]);
 
   const cancel = onCancel;
 
@@ -190,7 +192,26 @@ export default function MeasurementPanel({
                 )}
               </>
             )}
+            {fields.nearby && (
+              <>
+                <dt className="text-muted-foreground">In range</dt>
+                <dd
+                  className="text-right font-medium"
+                  data-testid="measurement-nearby"
+                >
+                  {fields.nearby}
+                </dd>
+              </>
+            )}
           </dl>
+          {scanNote && (
+            <p
+              className="border-t px-4 py-3 text-sm text-muted-foreground"
+              data-testid="measurement-scan-note"
+            >
+              Saved without the scan of access points. {scanNote}
+            </p>
+          )}
           {warning && (
             <p
               className="border-t bg-warning/10 px-4 py-3 text-sm"

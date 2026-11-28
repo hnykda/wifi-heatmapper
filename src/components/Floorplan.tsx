@@ -544,6 +544,7 @@ export default function ClickableFloorplan() {
     iperfServerAdrs: settings.iperfServerAdrs,
     testDuration: settings.testDuration,
     udpTests: settings.udpTests,
+    scanNearby: settings.scanNearby,
     sudoerPassword,
     iperfCommands: settings.iperfCommands,
   });

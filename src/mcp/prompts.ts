@@ -16,8 +16,9 @@ export function analyseSurveyPrompt(name: string): string {
 2. Report, citing point ids and floor-plan coordinates (pixels, origin top left):
    - dead zones and weak areas (from the summary and the null or low cells of the grid);
    - which access point (apName or BSSID, band, channel) serves which part of the plan;
+   - if the summary has scannedAccessPoints (the survey scanned all access points): what each of the person's own access points and bands covers (get_heatmap_grid with scan "best", a band, or an access point name). The point's own signal is only the access point the computer was connected to: where it is much weaker than the best scanned signal of the same network, the computer was holding on to a far access point (a roaming problem, not a coverage one). Neighbours' networks (own: false) matter only for choosing a channel;
    - throughput bottlenecks: points with good signal but low throughput point at the AP, its uplink, interference or the iperf3 server, not coverage;
-   - concrete suggestions: where to move an AP or add one, band or channel changes, where more points are needed.
+   - concrete suggestions: where to move an AP or add one, band or channel changes, where more points are needed. Without scans, and with more than one access point or complaints about roaming, suggest measuring again with scanNearby on (Scan all access points; about 5 seconds more per spot).
 3. Say clearly what the data can't show: walls and materials, other floors, interference sources, client-specific behaviour, anything between points or outside the radius, and that one reading per point is a snapshot.
 4. Watch for readings that point at a bug in the app rather than the Wi-Fi: 0% signal or -100 dBm at many points, channel 0, the same reading everywhere, noise missing on macOS (it should be there), or errors. If you see one, say so and offer to call report_problem, which prepares a redacted bug report and a prefilled GitHub issue link (it posts nothing).
 Keep it short. Use the app's units (%, dBm, Mbps).`;
@@ -41,8 +42,9 @@ export function planSurveyPrompt(name?: string): string {
 1. Call check_setup${name ? ` with name "${name}"` : ""} and list_surveys, and fix any problems first.
 2. Suggest how many points and how far apart: roughly one point every 2 to 3 metres (or one or two per room), denser near walls, doorways and where coverage is expected to drop, plus a point near each access point. Use get_survey on an existing survey to see its floor plan size in pixels.
 3. Where to stand: at the marked spot, holding the laptop as it is normally used, the same height each time, not blocking it with your body; wait for each measurement to finish before moving.
-4. Throughput: run \`iperf3 -s\` on a computer that is wired to the router (not on Wi-Fi), and set its address with update_settings (iperfServerAdrs, measureSpeed true). Keep test duration short (1 to 3 s) for a survey. measureSpeed false measures signal only.
-5. Measuring: the person carries the laptop. They can click each spot on the floor plan in the app, or you can guide them spot by spot and start each measurement (the survey_walkthrough prompt).
+4. Scanning all access points (update_settings scanNearby true; about 5 seconds more per spot) is worth it with more than one access point or a mesh, when devices hold on to a far access point, to see which access point covers which room, or to choose a channel. With a single router, leave it off.
+5. Throughput: run \`iperf3 -s\` on a computer that is wired to the router (not on Wi-Fi), and set its address with update_settings (iperfServerAdrs, measureSpeed true). Keep test duration short (1 to 3 s) for a survey. measureSpeed false measures signal only.
+6. Measuring: the person carries the laptop. They can click each spot on the floor plan in the app, or you can guide them spot by spot and start each measurement (the survey_walkthrough prompt).
 Keep it short and practical.`;
 }
 
@@ -52,7 +54,7 @@ export function surveyWalkthroughPrompt(name: string, rooms?: string): string {
 
 1. Call check_setup with name "${name}" and get_survey for "${name}". Fix problems first. If a sudo password is needed, tell me to type it in the app's Settings; never ask for it here.
 2. Plan the spots in floor-plan pixels (origin top left, inside the plan's width and height): a rough grid about 2 to 3 m apart, or one or two per room, skipping spots that already have a point. With existing points, call get_heatmap_grid (signalStrength) and add spots where cells are null (unmeasured) or weak. I can't see pixels: describe each spot by room or landmark and ask me to correct you; I may also pick the spots.
-3. For each spot: say where to go ("Go to the kitchen, put the laptop where you'd use it, tell me when you're there"). Wait for me to confirm before every start_measurement; never start one I haven't confirmed. Then wait_for_measurement and tell me the result in plain words (signal %, and speed if measured; mention "Saved without speed" and its reason). If it fails, say why and what to do; don't retry on your own.
+3. For each spot: say where to go ("Go to the kitchen, put the laptop where you'd use it, tell me when you're there"). Wait for me to confirm before every start_measurement; never start one I haven't confirmed. Then wait_for_measurement and tell me the result in plain words (signal %, and speed if measured; mention "Saved without speed" and its reason; if it says scanFailed, the point was saved without its scan of access points: say why). If it fails, say why and what to do; don't retry on your own.
 4. One at a time. If I say stop, call cancel_measurement. If the app tab is open on this floor plan, I can watch the map fill in.
 5. At the end, summarise weak areas briefly and offer analyse_survey.
 Keep each message short.`;

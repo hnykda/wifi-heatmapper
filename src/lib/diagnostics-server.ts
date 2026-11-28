@@ -84,9 +84,16 @@ async function readSurvey(name: string): Promise<SurveyFacts | null> {
         testDuration: data.testDuration,
         udpTests: data.udpTests,
       },
-      ssids: points.map((p) => p.wifiData.ssid),
+      // scans too: a report must not name the neighbours' networks either
+      ssids: points.flatMap((p) => [
+        p.wifiData.ssid,
+        ...(p.nearby ?? []).map((n) => n.ssid),
+      ]),
       bssids: [
-        ...points.map((p) => p.wifiData.bssid),
+        ...points.flatMap((p) => [
+          p.wifiData.bssid,
+          ...(p.nearby ?? []).map((n) => n.bssid),
+        ]),
         ...data.apMapping.map((m) => m.macAddress),
       ],
       hosts: data.iperfServerAdrs ? [data.iperfServerAdrs] : [],

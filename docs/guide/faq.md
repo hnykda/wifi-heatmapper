@@ -22,6 +22,15 @@ One or two per room, more in big rooms, and a few near the outer walls and
 in the places you actually use Wi-Fi (desk, sofa, garden). Gaps between points
 are filled in by the heat map, so even coverage matters more than many points.
 
+## How do I see what each access point or band covers?
+
+Turn on **Scan all access points** in Settings before you measure, then tick
+**Scanned signal** on the Heat maps tab. See
+[Scanned signal](using-the-app.md#scanned-signal). You stay connected to
+your Wi-Fi as usual; the scan hears the other access points and bands
+anyway. Points measured before you turned it on have no scan and are left
+out of those maps.
+
 ## Why do I see `<redacted>` instead of a network name?
 
 macOS 15 and later only give apps the network name (SSID) and access point

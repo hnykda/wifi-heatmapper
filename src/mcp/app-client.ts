@@ -22,12 +22,14 @@ import type { CopyPart } from "../lib/survey-ops";
 export const DEFAULT_APP_URL = "http://localhost:3000";
 export const ALLOW_REMOTE_ENV = "WIFI_HEATMAPPER_MCP_ALLOW_REMOTE";
 
-/** The speed settings a measurement is started with (never a password). */
+/** The settings a measurement is started with (never a password). */
 export interface MeasurementSettings {
   measureSpeed: boolean;
   iperfServerAdrs: string;
   testDuration: number;
   udpTests: boolean;
+  /** also scan for every access point in range */
+  scanNearby: boolean;
   iperfCommands: Record<string, string[]>;
 }
 

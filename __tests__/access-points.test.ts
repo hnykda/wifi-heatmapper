@@ -181,6 +181,48 @@ describe("the BSSIDs a marker broadcasts", () => {
     ]);
   });
 
+  it("with scans, lists the own networks' radios by where they were heard best", () => {
+    const heard = (ssid: string, bssid: string, signalStrength: number) => ({
+      ssid,
+      bssid,
+      rssi: -60,
+      signalStrength,
+      channel: 44,
+      band: 5,
+      channelWidth: 80,
+    });
+    const scanned = [
+      {
+        ...measured("Point_1", 300, 0, "aabbccddee01"),
+        nearby: [
+          heard("Home", "aabbccddee01", 90),
+          heard("Home", "aabbccddee09", 20),
+          heard("Neighbour", "ffffffffff01", 80),
+        ],
+      },
+      {
+        ...measured("Point_2", 10, 0, "aabbccddee01"),
+        nearby: [
+          heard("Home", "aabbccddee01", 30),
+          heard("Home", "aabbccddee09", 95),
+        ],
+      },
+    ];
+    expect(
+      measuredBssids(ap, scanned, []).map((m) => [
+        m.bssid,
+        m.points,
+        m.heard,
+        m.distance,
+      ]),
+    ).toEqual([
+      // never connected to, but in range: heard best 10 px from the marker
+      ["aabbccddee09", 0, 2, 10],
+      // connected at both points, heard best at the far one
+      ["aabbccddee01", 2, 2, 300],
+    ]);
+  });
+
   it("puts the marker's own BSSIDs first, and marks prefix names", () => {
     const apMapping = [
       { apName: "Hall", macAddress: "aabbccddee01" },

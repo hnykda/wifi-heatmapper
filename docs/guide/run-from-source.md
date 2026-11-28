@@ -39,7 +39,7 @@ What else each system needs:
 - **Windows:** nothing; the app uses the Native Wifi API that is part of
   Windows.
 - **Linux:** `iw` installed and on `PATH`. `nmcli` (NetworkManager) is
-  optional and only lists nearby networks. If reading the signal needs root,
+  optional and only needed for **Scan all access points**. If reading the signal needs root,
   Settings asks for your sudo password, which is kept in memory only.
 
 For speed tests, see [measuring speed](throughput.md).

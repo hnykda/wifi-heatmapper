@@ -85,6 +85,14 @@ are on the [Heat maps](#heat-maps) tab.
     field shows the whole command. Surveys from before 0.8 stored whole
     commands; their extra options are kept, and a command with shell syntax
     (pipes, `;`, redirects) is replaced by the defaults.
+* **Scan all access points** – the signal reading comes from the one
+  access point your computer is connected to. With this on, each spot also
+  records every access point in range, on every band, so the Heat maps tab
+  can show [what each of them covers](#scanned-signal). It adds about
+  5 seconds per spot. Off for new surveys; a home with one router doesn't
+  need it. On macOS it needs the desktop app's Wi-Fi helper with Location
+  access allowed. If a scan fails, the point is still saved, without the
+  scan, and the panel says why.
 * **sudo password** – needed only where reading the signal needs it: on
   macOS without the Wi-Fi helper (running from source) and on Linux when
   `iw` is refused. You don't have to set it up front: when a measurement
@@ -137,7 +145,9 @@ panel says **Saved without speed**, gives the reason and stays open until you
 dismiss it. See [when the speed test can't run](throughput.md#when-the-speed-test-cant-run).
 
 Click a dot to see its details (signal, noise and signal-to-noise ratio
-where measured, network, access point and speed), switch it off (it is then ignored by the heat
+where measured, network, access point, speed and, in a survey that
+[scans all access points](#settings), the folded list of access points in
+range), switch it off (it is then ignored by the heat
 maps) or delete it.
 
 **Name a point** to find it again: click its name at the top of the
@@ -164,7 +174,10 @@ are with the coverage you measured. Click the marker to:
   or two listed. The points measured on them then show the marker's
   name instead of a MAC address, in their details, the points table and
   the CSV, and while the marker is selected, points from other access
-  points fade, so you see what it covers.
+  points fade, so you see what it covers. In a survey that
+  [scans all access points](#settings), the list also has the radios of
+  your network that no point was connected to, ordered by where each was
+  heard best.
 
 Ticking a BSSID adds it to [Access point names](#settings) under the
 marker's name, and renaming the marker renames those. Removing a marker
@@ -221,6 +234,30 @@ jitter (variation in delay), lost or received packets, or resent data
 default, higher is better) uses only points with a noise reading. macOS and
 Linux drivers that report noise in `iw dev <interface> survey dump` record it;
 Windows does not, so the option is greyed out for surveys without noise.
+
+### Scanned signal
+
+**Signal strength** shows the access point your computer was connected to
+at each spot, and a computer often holds on to a far access point while a
+nearer one is in range. If the survey
+[scans all access points](#settings), tick **Scanned signal** to see what
+each access point reaches:
+
+* **Network** – the network to show. It starts on the one your survey was
+  connected to; the other networks in range (your neighbours') are in the
+  list too.
+* **Best signal** – one map: at each spot, the strongest access point of
+  that network. Where it is much greener than the Signal strength map, your
+  devices are staying on the wrong access point.
+* **Per band** – one map each for 2.4, 5 and 6 GHz.
+* **Per access point** – one map per access point. The radios that share a
+  name (a marker's, or one from **Access point names** in Settings) are one
+  map; a radio without a name gets its own, labelled with band and address.
+
+A spot whose scan heard none of a map's access points counts as 0%. A spot
+measured without a scan is left out. These maps use the Signal strength
+colour scale. Until you tick **Scanned signal**, the tab looks the same as
+without scans.
 
 Under **Colour scales** (folded away until you open it), turn on a fixed scale for a map and edit its
 **Lower** and **Upper** values. Each map has independent bounds: download,

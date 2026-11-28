@@ -270,23 +270,29 @@ export async function getCurrentConnection(): Promise<WifiResults | null> {
 
 /**
  * Nearby networks, one entry per BSS, strongest first. Asks the driver for a
- * fresh scan (unless one ran in the last 30 s) and waits for it to finish.
+ * fresh scan (unless one ran in the last 30 s and `fresh` is not set) and
+ * waits for it to finish. Works without a connection.
  * The connected BSS, if any, has currentSSID set.
  */
-export async function scanNetworks(): Promise<WifiResults[]> {
+export async function scanNetworks({
+  fresh = false,
+}: { fresh?: boolean } = {}): Promise<WifiResults[]> {
   return withHandle(async (api, handle) => {
     const interfaces = connectedFirst(enumInterfaces(api, handle));
     const iface = interfaces[0];
     if (!iface) throw new Error("No Wi-Fi adapter found.");
 
-    if (Date.now() - lastScanAt > RESCAN_AFTER_MS) {
-      // If the scan cannot start (radio busy, say), use the cached list
-      if (
-        api.WlanScan(handle, iface.guid, null, null, null) === ERROR_SUCCESS
-      ) {
+    if (fresh || Date.now() - lastScanAt > RESCAN_AFTER_MS) {
+      const code = api.WlanScan(handle, iface.guid, null, null, null);
+      if (code === ERROR_SUCCESS) {
         await delay(SCAN_WAIT_MS);
         lastScanAt = Date.now();
+      } else if (fresh) {
+        // the cached list may be from where the computer stood before
+        throw new WlanApiError("WlanScan", code);
       }
+      // not fresh: the scan cannot start (radio busy, say), the cached
+      // list will do
     }
 
     const entries = bssList(api, handle, iface);
