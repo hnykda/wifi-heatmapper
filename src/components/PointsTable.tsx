@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   useTable,
   tableFeatures,
@@ -175,34 +175,42 @@ const SurveyPointsTable: React.FC<SurveyPointsTableProps> = ({
     apMapping,
   );
 
-  const rows: Row[] = data.map((point) => ({
-    origPoint: point,
-    id: point.id,
-    // sorts and filters by what the Name column shows
-    label: point.label || point.id,
-    x: point.x,
-    y: point.y,
-    ssid: point.wifiData.ssid,
-    bssid: point.wifiData.bssid,
-    accessPoint: apNameFor(point.wifiData.bssid, apMapping) ?? "",
-    rssi: point.wifiData.rssi,
-    noise: validNoise(point.wifiData.noise),
-    snr: snrOf(point.wifiData),
-    signalQuality:
-      point.wifiData.signalStrength || rssiToPercentage(point.wifiData.rssi),
-    channel: point.wifiData.channel,
-    security: point.wifiData.security,
-    txRate: point.wifiData.txRate,
-    phyMode: point.wifiData.phyMode,
-    channelWidth: point.wifiData.channelWidth,
-    band: point.wifiData.band ? `${point.wifiData.band} GHz` : "",
-    tcpDownloadMbps: toMbps(point.iperfData.tcpDownload),
-    tcpUploadMbps: toMbps(point.iperfData.tcpUpload),
-    udpDownloadMbps: toMbps(point.iperfData.udpDownload),
-    udpUploadMbps: toMbps(point.iperfData.udpUpload),
-    timestamp: point.timestamp,
-    isEnabled: point.isEnabled,
-  }));
+  // useMemo for identity, not speed: TanStack Table goes back to page 1
+  // whenever `data` is a new array. Without it every render made new rows,
+  // so Next and Previous snapped straight back to page 1.
+  const rows: Row[] = useMemo(
+    () =>
+      data.map((point) => ({
+        origPoint: point,
+        id: point.id,
+        // sorts and filters by what the Name column shows
+        label: point.label || point.id,
+        x: point.x,
+        y: point.y,
+        ssid: point.wifiData.ssid,
+        bssid: point.wifiData.bssid,
+        accessPoint: apNameFor(point.wifiData.bssid, apMapping) ?? "",
+        rssi: point.wifiData.rssi,
+        noise: validNoise(point.wifiData.noise),
+        snr: snrOf(point.wifiData),
+        signalQuality:
+          point.wifiData.signalStrength ||
+          rssiToPercentage(point.wifiData.rssi),
+        channel: point.wifiData.channel,
+        security: point.wifiData.security,
+        txRate: point.wifiData.txRate,
+        phyMode: point.wifiData.phyMode,
+        channelWidth: point.wifiData.channelWidth,
+        band: point.wifiData.band ? `${point.wifiData.band} GHz` : "",
+        tcpDownloadMbps: toMbps(point.iperfData.tcpDownload),
+        tcpUploadMbps: toMbps(point.iperfData.tcpUpload),
+        udpDownloadMbps: toMbps(point.iperfData.udpDownload),
+        udpUploadMbps: toMbps(point.iperfData.udpUpload),
+        timestamp: point.timestamp,
+        isEnabled: point.isEnabled,
+      })),
+    [data, apMapping],
+  );
 
   const update = surveyPointActions.update;
   const allColumns: ColumnDef<typeof features, Row>[] = [

@@ -128,7 +128,7 @@ export default function AppShell() {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-[1440px] flex-1 px-4 py-6 sm:px-6">
+      <main className="mx-auto w-full max-w-[1440px] flex-1 px-4 pt-6 pb-16 sm:px-6">
         <SurveyBar onNavigate={setTab} />
         <Tabs.Content value="settings" className="outline-hidden">
           <SettingsEditor />
