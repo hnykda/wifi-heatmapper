@@ -485,7 +485,11 @@ export const getCandidateSSIDs = (nmcliData: string): WifiResults[] => {
     const cols = splitColonDelimited(line);
     if (cols.length == 0) continue;
 
-    // now do something with the columns
+    // A row that isn't in the columns we asked for (terse output has no
+    // header to check) is skipped rather than read as something else.
+    if (!isValidMacAddress(cols[1] ?? "")) continue;
+    if (!/^\d+$/.test(cols[4] ?? "") || !/^\d+$/.test(cols[6] ?? "")) continue;
+
     const candidate = getDefaultWifiResults();
     candidate.currentSSID = cols[0] == "*";
     candidate.bssid = cols[1];

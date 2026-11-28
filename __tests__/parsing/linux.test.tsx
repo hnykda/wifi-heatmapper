@@ -147,6 +147,16 @@ test("nmcli scan with the FREQ column: 6 GHz is told from 2.4 and 5 GHz", () => 
   ]);
 });
 
+test("nmcli rows in another column order are skipped, not misread", () => {
+  // newer nmcli's default columns: BAND sits where the app expects CHAN
+  const shifted =
+    " :AA\\:BB\\:CC\\:00\\:00\\:01:Home:Infra:5 GHz:44:540 Mbit/s:82:▂▄▆█:WPA2";
+  expect(getCandidateSSIDs(shifted)).toEqual([]);
+  expect(getCandidateSSIDs("Error: NetworkManager is not running.")).toEqual(
+    [],
+  );
+});
+
 test("Handling 'nmcli dev wifi list'", () => {
   const nmcliOutput = fs.readFileSync(
     path.join(__dirname, "../data/linux-nmcli-dev-wifi-list.txt"),
