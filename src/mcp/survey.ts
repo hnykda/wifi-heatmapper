@@ -8,11 +8,26 @@ import type {
   ApMapping,
   IperfResults,
   IperfTestProperty,
+  NearbyNetwork,
   SurveyPoint,
 } from "../lib/types";
 import { apNameFor, formatApPattern } from "../lib/apName";
 import { accessPointName } from "../lib/access-points";
-import { snrOf, validNoise } from "../lib/utils";
+import {
+  hasScans,
+  networkName,
+  ownNetwork,
+  radioLabel,
+  scanMapSpecs,
+  scannedNetworks,
+  type ScannedNetwork,
+} from "../lib/nearby-networks";
+import {
+  isValidMacAddress,
+  normalizeMacAddress,
+  snrOf,
+  validNoise,
+} from "../lib/utils";
 
 const round = (value: number, digits = 1) => {
   const f = 10 ** digits;
@@ -29,6 +44,35 @@ export interface PointTest {
   lostPackets?: number | null;
   packetsReceived?: number | null;
   retransmits?: number;
+}
+
+/** One access point radio a point's scan heard (includeScans). */
+export interface ScanEntry {
+  /** "" for a network that hides its name */
+  ssid: string;
+  bssid: string;
+  apName: string | null;
+  signalPercent: number;
+  rssiDbm: number;
+  channel: number | null;
+  bandGHz: number | null;
+  channelWidthMHz: number | null;
+}
+
+export function describeScanEntry(
+  n: NearbyNetwork,
+  apMapping: ApMapping[] | undefined,
+): ScanEntry {
+  return {
+    ssid: n.ssid,
+    bssid: n.bssid,
+    apName: apNameFor(n.bssid, apMapping) ?? null,
+    signalPercent: n.signalStrength,
+    rssiDbm: n.rssi,
+    channel: known(n.channel),
+    bandGHz: known(n.band),
+    channelWidthMHz: known(n.channelWidth),
+  };
 }
 
 export interface PointRecord {
@@ -63,6 +107,13 @@ export interface PointRecord {
   tcpUpload: PointTest | null;
   udpDownload: PointTest | null;
   udpUpload: PointTest | null;
+  /**
+   * how many access point radios (BSSIDs) the scan at this point heard, of
+   * any network; null when the point was measured without a scan
+   */
+  accessPointsInRange: number | null;
+  /** the scan itself, strongest first; only with includeScans */
+  scan?: ScanEntry[];
 }
 
 function describeTest(
@@ -118,6 +169,7 @@ export function describeAccessPoints(
 export function describePoint(
   point: SurveyPoint,
   apMapping: ApMapping[] | undefined,
+  options: { includeScans?: boolean } = {},
 ): PointRecord {
   const w = point.wifiData ?? ({} as SurveyPoint["wifiData"]);
   const iperf = point.iperfData ?? ({} as IperfResults);
@@ -148,6 +200,14 @@ export function describePoint(
     tcpUpload: describeTest(iperf.tcpUpload, "tcp"),
     udpDownload: describeTest(iperf.udpDownload, "udp"),
     udpUpload: describeTest(iperf.udpUpload, "udp"),
+    accessPointsInRange: point.nearby ? point.nearby.length : null,
+    ...(options.includeScans && point.nearby
+      ? {
+          scan: [...point.nearby]
+            .sort((a, b) => b.signalStrength - a.signalStrength)
+            .map((n) => describeScanEntry(n, apMapping)),
+        }
+      : {}),
   };
 }
 
@@ -359,4 +419,185 @@ export function summarizeSurvey(
     firstMeasuredAt: times[0] ?? null,
     lastMeasuredAt: times[times.length - 1] ?? null,
   };
+}
+
+/* ---------- scans of every access point in range ---------- */
+
+/** One access point radio over all of a survey's scans. */
+export interface ScannedAccessPointSeen {
+  bssid: string;
+  /** "" for a network that hides its name */
+  ssid: string;
+  apName: string | null;
+  bandGHz: number | null;
+  channels: number[];
+  /** how many points' scans heard it */
+  pointsHeard: number;
+  strongestSignalPercent: number;
+  /** the point that heard it best: the closest we know to where it is */
+  strongestAtPointId: string;
+  /** its network is one the survey's points were connected to */
+  own: boolean;
+}
+
+/**
+ * Every access point radio the survey's scans heard: the person's own
+ * first, then strongest first. Empty when no point has a scan. Disabled
+ * points count, like the app's list (scannedNetworks).
+ */
+export function describeScannedAccessPoints(
+  points: readonly SurveyPoint[],
+  apMapping: ApMapping[] | undefined,
+): ScannedAccessPointSeen[] {
+  const connected = new Set(
+    points.map((p) => p.wifiData?.ssid).filter((ssid) => !!ssid),
+  );
+  return scannedNetworks(points)
+    .flatMap((network) =>
+      network.accessPoints.map((ap) => ({
+        bssid: ap.bssid,
+        ssid: ap.ssid,
+        apName: apNameFor(ap.bssid, apMapping) ?? null,
+        bandGHz: known(ap.band),
+        channels: ap.channels,
+        pointsHeard: ap.heardAt,
+        strongestSignalPercent: ap.strongest,
+        strongestAtPointId: ap.strongestPointId,
+        own: connected.has(ap.ssid),
+      })),
+    )
+    .sort(
+      (a, b) =>
+        Number(b.own) - Number(a.own) ||
+        b.strongestSignalPercent - a.strongestSignalPercent ||
+        a.bssid.localeCompare(b.bssid),
+    );
+}
+
+/** What a scanned-signal grid shows. */
+export interface ScanSelection {
+  /** the network (SSID); "" for one that hides its name */
+  network: string;
+  /** "Home", "Home, 5 GHz", "Living room": as the app labels the map */
+  label: string;
+  /** the access point radios it takes the strongest of */
+  include: Set<string>;
+}
+
+const sameText = (a: string, b: string) =>
+  a.trim().toLowerCase() === b.trim().toLowerCase();
+
+const quoted = (items: string[]) => items.map((i) => `"${i}"`).join(", ");
+
+/** What `scan` can be for this network, for an error message. */
+function scanChoices(
+  network: ScannedNetwork,
+  apName: (bssid: string) => string | undefined,
+): string {
+  const bands = [
+    ...new Set(network.accessPoints.map((ap) => ap.band).filter(Boolean)),
+  ].sort((a, b) => a - b);
+  const names = [
+    ...new Set(
+      network.accessPoints
+        .map((ap) => apName(ap.bssid))
+        .filter((n): n is string => !!n),
+    ),
+  ];
+  return [
+    '"best"',
+    ...(bands.length ? [`a band (${quoted(bands.map(String))})`] : []),
+    ...(names.length ? [`an access point name (${quoted(names)})`] : []),
+    `a BSSID (${network.accessPoints.map((ap) => `${ap.bssid}, ${radioLabel(ap)}`).join("; ")})`,
+  ].join(", ");
+}
+
+/**
+ * selectScan() - which access point radios a scanned-signal grid uses.
+ *
+ * network: an SSID ("(no name)" or "" for a hidden one); left out, the
+ * survey's own network (ownNetwork). scan: "best" (the default; every
+ * access point of the network), a band ("2.4", "5", "6", with or without
+ * "GHz"), an access point name (all radios with that name) or one BSSID.
+ * Without `network`, a name or BSSID is also looked up in the other
+ * networks. Throws with what is available when nothing matches.
+ */
+export function selectScan(
+  points: readonly SurveyPoint[],
+  apMapping: ApMapping[] | undefined,
+  wanted: { network?: string; scan?: string } = {},
+): ScanSelection {
+  if (!hasScans(points)) {
+    throw new Error(
+      "This survey has no scans of the access points in range, so there is no scanned signal to map. " +
+        "Turn on scanNearby with update_settings (Scan all access points in the app's Settings; about 5 seconds more per spot) and measure again: only points measured with it on have a scan.",
+    );
+  }
+  const networks = scannedNetworks(points);
+  if (networks.length === 0) {
+    throw new Error("The scans in this survey heard no access points.");
+  }
+  const apName = (bssid: string) => apNameFor(bssid, apMapping);
+  // the person's own network first
+  const own = ownNetwork(points, networks);
+  const first = networks.find((n) => n.ssid === own) ?? networks[0];
+  const ordered = [first, ...networks.filter((n) => n !== first)];
+  const available = `Networks the scans heard: ${quoted(ordered.map((n) => networkName(n.ssid)))}.`;
+
+  let candidates = ordered;
+  if (wanted.network !== undefined) {
+    const name = wanted.network.trim();
+    const found =
+      networks.find((n) => n.ssid === name) ??
+      networks.find((n) => sameText(networkName(n.ssid), name));
+    if (!found) {
+      throw new Error(`No scan heard a network "${name}". ${available}`);
+    }
+    candidates = [found];
+  }
+  const main = candidates[0];
+  const scan = (wanted.scan ?? "best").trim();
+
+  if (scan === "" || sameText(scan, "best")) {
+    const [spec] = scanMapSpecs(main, "best");
+    return { network: main.ssid, label: spec.label, include: spec.include };
+  }
+
+  const band = /^(\d+(?:\.\d+)?)\s*(?:ghz)?$/i.exec(scan);
+  if (band) {
+    const spec = scanMapSpecs(main, "band").find(
+      (s) => s.id === `band-${Number(band[1])}`,
+    );
+    if (spec) {
+      return { network: main.ssid, label: spec.label, include: spec.include };
+    }
+  }
+
+  for (const network of candidates) {
+    const named = scanMapSpecs(network, "accessPoint", apName).find(
+      (s) => s.id.startsWith("name-") && sameText(s.label, scan),
+    );
+    if (named) {
+      return {
+        network: network.ssid,
+        label: named.label,
+        include: named.include,
+      };
+    }
+    if (isValidMacAddress(scan)) {
+      const bssid = normalizeMacAddress(scan);
+      const ap = network.accessPoints.find((a) => a.bssid === bssid);
+      if (ap) {
+        const name = apName(bssid);
+        return {
+          network: network.ssid,
+          label: name ? `${name}, ${radioLabel(ap)}` : radioLabel(ap),
+          include: new Set([bssid]),
+        };
+      }
+    }
+  }
+  throw new Error(
+    `Nothing in the scans of "${networkName(main.ssid)}" matches scan "${scan}". Use ${scanChoices(main, apName)}. ${available}`,
+  );
 }

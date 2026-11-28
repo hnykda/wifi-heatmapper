@@ -169,6 +169,20 @@ export const wifiResultsSchema: z.ZodType<WifiResults> = z.lazy(() =>
   }),
 );
 
+/**
+ * One access point radio heard by a scan (nearby-networks.ts). ssid is ""
+ * for a network that hides its name; bssid is 12 hex digits, lower case.
+ */
+export const nearbyNetworkSchema = z.object({
+  ssid: z.string().catch(""),
+  bssid: z.string().min(1),
+  rssi: finite.catch(0), // dBm
+  signalStrength: finite.catch(0), // percent
+  channel: finite.catch(0),
+  band: finite.catch(0), // GHz: 2.4, 5 or 6
+  channelWidth: finite.catch(0), // MHz, 0 if not reported
+});
+
 /* ---------- survey points ---------- */
 
 /**
@@ -196,6 +210,8 @@ const pointFields = {
   isEnabled: z.boolean(),
   /** optional name shown instead of the id ("Kitchen"); display only */
   label: pointLabelStrict.optional(),
+  /** every access point a scan heard here; missing: measured without a scan */
+  nearby: z.array(nearbyNetworkSchema).optional(),
 };
 
 /**
@@ -217,6 +233,7 @@ export const surveyPointSchema = z.preprocess(
     timestamp: pointFields.timestamp.catch(0),
     isEnabled: pointFields.isEnabled.catch(true),
     label: pointLabelLenient,
+    nearby: lenientArray(nearbyNetworkSchema).optional(),
   }),
 );
 
@@ -484,6 +501,9 @@ export const surveyFileSchema = z.object({
   // The fixed-rate (UDP) tests. Older files ran them on every point,
   // so a missing value is true; new surveys start without them.
   udpTests: z.boolean().catch(true),
+  // also scan for every access point in range at each spot
+  // (nearby-networks.ts)
+  scanNearby: z.boolean().catch(false),
   apMapping: lenientArray(apMappingSchema),
   accessPoints: lenientArray(accessPointSchema),
   nextPointNum: z.int().catch(1),
@@ -575,6 +595,7 @@ export const settingsPatchSchema = z
     iperfServerAdrs: z.string().trim(),
     testDuration: z.int().min(1).max(60),
     udpTests: z.boolean(),
+    scanNearby: z.boolean(),
     /** Replaces the whole list. */
     apMapping: z.array(z.strictObject(apMappingSchema.shape)),
     /** Replaces the whole list. */
@@ -698,6 +719,8 @@ export const startTaskSchema = z.strictObject({
     testDuration: finite,
     // missing: run them (older clients always did)
     udpTests: z.boolean().optional(),
+    // missing: no scan of the access points in range
+    scanNearby: z.boolean().optional(),
     // left out or "": the server uses the password it holds, if any
     // (sudo-session.ts; how MCP-started measurements get one)
     sudoerPassword: z.string().default(""),
@@ -781,6 +804,8 @@ export const mockScenarioSchema = z.strictObject({
   iperf: z.enum(["ok", "missing", "unreachable", "fails-midway"]).optional(),
   /** iperf3's "error" for fails-midway */
   iperfError: z.string().min(1).max(500).optional(),
+  /** ok; fails: the scan of access points in range fails */
+  scan: z.enum(["ok", "fails"]).optional(),
   /** how long each step takes, in ms (default 150) */
   delayMs: z.number().int().min(0).max(30_000).optional(),
 });

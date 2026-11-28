@@ -48,6 +48,16 @@ import HeatmapModal from "./HeatmapModal";
 import { hasSpeedData } from "@/lib/measurement-mode";
 import { labelFontSize, pointValueText } from "@/lib/heatmap-label";
 import { accessPointName, drawAccessPointMarker } from "@/lib/access-points";
+import { apNameFor } from "@/lib/apName";
+import {
+  hasScans,
+  networkName,
+  ownNetwork,
+  scanMapSpecs,
+  scannedNetworks,
+  ScanSplit,
+  scanValue,
+} from "@/lib/nearby-networks";
 
 const logger = getLogger("Heatmaps");
 
@@ -116,6 +126,27 @@ const singleMapTitles: Partial<Record<HeatmapProperty, string>> = {
   snr: "Signal-to-noise ratio (dB)",
 };
 
+/** One map the gallery shows. */
+type WantedMap = {
+  /** unique per map: a HeatmapKey, or scan-<id> for a scanned map */
+  key: string;
+  /** the colour scale it uses (scanned maps share signal strength's) */
+  scaleKey: HeatmapKey;
+  /** changes whenever the map's data does (the access points it shows) */
+  cacheKey: string;
+  metric: MeasurementTestType;
+  property: HeatmapProperty;
+  title: string;
+  /** a scanned map: the access points (BSSIDs) it takes the strongest of */
+  include?: Set<string>;
+};
+
+const scanSplits: { value: ScanSplit; label: string }[] = [
+  { value: "best", label: "Best signal" },
+  { value: "band", label: "Per band" },
+  { value: "accessPoint", label: "Per access point" },
+];
+
 type HeatmapDatum = {
   x: number;
   y: number;
@@ -183,9 +214,14 @@ export function Heatmaps() {
   // Speed maps only make sense once a point has a speed reading
   const hasSpeed = points.some(hasSpeedData);
 
-  const [heatmaps, setHeatmaps] = useState<
-    Partial<Record<HeatmapKey, Rendered>>
-  >({});
+  // Scans of every access point in range, if the survey made any
+  const anyScans = hasScans(points);
+  const networks = useMemo(() => scannedNetworks(points), [points]);
+  const apMapping = settings.apMapping;
+
+  const [heatmaps, setHeatmaps] = useState<Partial<Record<string, Rendered>>>(
+    {},
+  );
   const [rendering, setRendering] = useState(false);
   const [enlarged, setEnlarged] = useState<{ src: string; alt: string } | null>(
     null,
@@ -198,6 +234,13 @@ export function Heatmaps() {
     (keyof IperfTestProperty)[]
   >(["bitsPerSecond"]);
   const [asPercentage, setAsPercentage] = useState(true);
+  // Scanned signal: off until ticked; the survey's own network to start with
+  const [showScanned, setShowScanned] = useState(false);
+  const [pickedNetwork, setPickedNetwork] = useState<string | null>(null);
+  const [scanSplit, setScanSplit] = useState<ScanSplit>("best");
+  const scanNetwork =
+    networks.find((n) => n.ssid === pickedNetwork) ??
+    networks.find((n) => n.ssid === ownNetwork(points, networks));
 
   const autoRadius = Math.round(calculateRadiusByBoundingBox(enabledPoints));
   const radius = settings.radiusDivider ?? autoRadius;
@@ -243,6 +286,21 @@ export function Heatmaps() {
         })
         .filter((v): v is HeatmapDatum => v !== null),
     [enabledPoints, getMetricValue],
+  );
+
+  /** A map's points: its measurement, or the scan of its access points. */
+  const dataFor = useCallback(
+    (w: WantedMap): HeatmapDatum[] => {
+      const include = w.include;
+      if (!include) return generateHeatmapData(w.metric, w.property);
+      return enabledPoints.flatMap((p) => {
+        const value = scanValue(p, include);
+        return value === null
+          ? []
+          : [{ x: p.x, y: p.y, value, signalStrength: value }];
+      });
+    },
+    [enabledPoints, generateHeatmapData],
   );
 
   /* ---------- drawing ---------- */
@@ -304,16 +362,18 @@ export function Heatmaps() {
 
   const renderHeatmap = useCallback(
     async (
-      metric: MeasurementTestType,
-      property: HeatmapProperty,
+      w: WantedMap,
+      data: HeatmapDatum[],
       valueRange: HeatmapRange,
     ): Promise<Rendered> => {
+      const { metric, property } = w;
       const W = settings.dimensions.width;
       const H = settings.dimensions.height;
       if (W <= 1 || H <= 1) return { src: null, count: 0 };
 
-      const data = generateHeatmapData(metric, property);
-      if (metric !== "signalStrength" && data.length === 0) {
+      // the connection's signal map shows the floor plan even without points
+      const alwaysDrawn = metric === "signalStrength" && !w.include;
+      if (!alwaysDrawn && data.length === 0) {
         return { src: null, count: 0 };
       }
 
@@ -423,9 +483,11 @@ export function Heatmaps() {
       );
 
       // caption so a downloaded image explains itself
-      const title =
-        metric === "signalStrength"
-          ? `Signal strength (${asPercentage ? "%" : "dBm"})`
+      const unit = asPercentage ? "%" : "dBm";
+      const title = w.include
+        ? `Scanned signal: ${w.title} (${unit})`
+        : metric === "signalStrength"
+          ? `Signal strength (${unit})`
           : property === "snr"
             ? "Signal-to-noise ratio (dB)"
             : speedMapTitle(metric, property);
@@ -462,7 +524,6 @@ export function Heatmaps() {
       settings.floorplanImagePath,
       settings.floorplanImageName,
       settings.accessPoints,
-      generateHeatmapData,
       drawLegend,
       radius,
       asPercentage,
@@ -471,48 +532,68 @@ export function Heatmaps() {
   );
 
   const wanted = useMemo(() => {
-    const list: {
-      key: HeatmapKey;
-      metric: MeasurementTestType;
-      property: HeatmapProperty;
-      title: string;
-    }[] = [];
+    const list: WantedMap[] = [];
+    const add = (
+      key: HeatmapKey,
+      metric: MeasurementTestType,
+      property: HeatmapProperty,
+      title: string,
+    ) =>
+      list.push({ key, scaleKey: key, cacheKey: key, metric, property, title });
     for (const metric of selectedMetrics) {
       const single = singleMapProperty[metric];
       if (single) {
         if (single === "snr" && !hasNoise) continue;
-        list.push({
-          key: heatmapKey(metric, single),
-          metric,
-          property: single,
-          title: metricTitles[metric],
-        });
+        add(heatmapKey(metric, single), metric, single, metricTitles[metric]);
       } else {
         if (!hasSpeed) continue;
         for (const property of selectedProperties) {
           if (getAvailableProperties(metric).includes(property)) {
-            list.push({
-              key: heatmapKey(metric, property),
+            add(
+              heatmapKey(metric, property),
               metric,
               property,
-              title: speedMapTitle(metric, property),
-            });
+              speedMapTitle(metric, property),
+            );
           }
         }
       }
     }
+    if (showScanned) {
+      const specs = scanMapSpecs(scanNetwork, scanSplit, (bssid) =>
+        apNameFor(bssid, apMapping),
+      );
+      for (const spec of specs) {
+        const key = `scan-${spec.id}`;
+        list.push({
+          key,
+          scaleKey: "signalStrength",
+          cacheKey: `${key}|${[...spec.include].sort().join()}`,
+          metric: "signalStrength",
+          property: "signalStrength",
+          title: spec.label,
+          include: spec.include,
+        });
+      }
+    }
     return list;
-  }, [selectedMetrics, selectedProperties, hasNoise, hasSpeed]);
+  }, [
+    selectedMetrics,
+    selectedProperties,
+    hasNoise,
+    hasSpeed,
+    showScanned,
+    scanNetwork,
+    scanSplit,
+    apMapping,
+  ]);
 
   // Keep in-flight results as well as completed maps, so editing one scale
   // doesn't restart unchanged maps while their background images load.
   const renderCache = useRef<{
     renderer: typeof renderHeatmap;
     maps: Partial<
-      Record<
-        HeatmapKey,
-        { min: number; max: number; result: Promise<Rendered> }
-      >
+      Record<string, { min: number; max: number; result: Promise<Rendered> }>
     >;
   }>({ renderer: renderHeatmap, maps: {} });
 
@@ -526,18 +607,16 @@ export function Heatmaps() {
       setRendering(true);
       const next: Record<string, Rendered> = {};
       for (const w of wanted) {
+        const data = dataFor(w);
         const range = resolveHeatmapRange(
           w.property,
-          generateHeatmapData(w.metric, w.property).map((p) => p.value),
-          settings.heatmapRanges?.[w.key],
+          data.map((p) => p.value),
+          settings.heatmapRanges?.[w.scaleKey],
         );
-        let entry = cache[w.key];
+        let entry = cache[w.cacheKey];
         if (!entry || entry.min !== range.min || entry.max !== range.max) {
-          entry = {
-            ...range,
-            result: renderHeatmap(w.metric, w.property, range),
-          };
-          cache[w.key] = entry;
+          entry = { ...range, result: renderHeatmap(w, data, range) };
+          cache[w.cacheKey] = entry;
         }
         next[w.key] = await entry.result;
         if (cancelled) return;
@@ -548,7 +627,7 @@ export function Heatmaps() {
     return () => {
       cancelled = true;
     };
-  }, [wanted, renderHeatmap, generateHeatmapData, settings.heatmapRanges]);
+  }, [wanted, renderHeatmap, dataFor, settings.heatmapRanges]);
 
   const updateScale = (key: HeatmapKey, scale: HeatmapScale) => {
     updateSettings((previous) => ({
@@ -653,6 +732,10 @@ export function Heatmaps() {
                 Wi-Fi drivers report them; Windows does not.
               </p>
             )}
+            {anyScans &&
+              checkboxRow("metric-scanned", "Scanned signal", showScanned, () =>
+                setShowScanned((on) => !on),
+              )}
             {hasSpeed ? (
               <>
                 <h3 className="mb-1 mt-3 text-xs font-medium text-muted-foreground">
@@ -687,6 +770,55 @@ export function Heatmaps() {
             )}
           </div>
 
+          {anyScans && showScanned && (
+            <div className="space-y-2" data-testid="scanned-signal">
+              <h2 className="text-sm font-medium">Scanned signal</h2>
+              <p className="text-xs text-muted-foreground">
+                What every access point reaches, not only the one this computer
+                was connected to.
+              </p>
+              <label className="grid gap-1 text-xs text-muted-foreground">
+                Network
+                <select
+                  className="h-8 rounded-md border border-input bg-surface px-2 text-sm text-foreground"
+                  value={scanNetwork?.ssid ?? ""}
+                  onChange={(e) => setPickedNetwork(e.target.value)}
+                  data-testid="scan-network"
+                >
+                  {networks.map((n) => (
+                    <option key={n.ssid} value={n.ssid}>
+                      {networkName(n.ssid)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <div
+                role="radiogroup"
+                aria-label="Scanned signal maps"
+                className="flex flex-wrap gap-1"
+              >
+                {scanSplits.map((split) => (
+                  <button
+                    key={split.value}
+                    type="button"
+                    role="radio"
+                    aria-checked={scanSplit === split.value}
+                    onClick={() => setScanSplit(split.value)}
+                    data-testid={`scan-split-${split.value}`}
+                    className={cn(
+                      "rounded-md border px-2 py-0.5 text-xs transition-colors",
+                      scanSplit === split.value
+                        ? "border-brand bg-brand-soft/60 font-medium"
+                        : "bg-surface hover:border-brand/50",
+                    )}
+                  >
+                    {split.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {anyIperfSelected && (
             <div>
               <h2 className="mb-1.5 text-sm font-medium">Speed detail</h2>
@@ -717,7 +849,9 @@ export function Heatmaps() {
                 aria-label="Colour scale settings"
               >
                 {selectedMetrics.map((metric) => {
-                  const maps = wanted.filter((w) => w.metric === metric);
+                  const maps = wanted.filter(
+                    (w) => w.metric === metric && !w.include,
+                  );
                   if (!maps.length) return null;
                   return (
                     <div key={metric} className="space-y-3">
@@ -727,7 +861,7 @@ export function Heatmaps() {
                       {maps.map((w) => (
                         <HeatmapScaleControl
                           key={`${settings.floorplanImageName}-${w.key}`}
-                          mapKey={w.key}
+                          mapKey={w.scaleKey}
                           property={w.property}
                           title={
                             singleMapTitles[w.property] ??
@@ -736,14 +870,12 @@ export function Heatmaps() {
                             ]
                           }
                           label={singleMapTitles[w.property] ?? w.title}
-                          scale={settings.heatmapRanges?.[w.key]}
+                          scale={settings.heatmapRanges?.[w.scaleKey]}
                           automaticRange={toDisplayRange(
                             w.property,
                             resolveHeatmapRange(
                               w.property,
-                              generateHeatmapData(metric, w.property).map(
-                                (p) => p.value,
-                              ),
+                              dataFor(w).map((p) => p.value),
                             ),
                           )}
                           onChange={updateScale}
@@ -767,7 +899,8 @@ export function Heatmaps() {
             onReset={() => updateSettings({ radiusDivider: null })}
           />
 
-          {selectedMetrics.includes("signalStrength") && (
+          {(selectedMetrics.includes("signalStrength") ||
+            wanted.some((w) => w.include)) && (
             <label className="flex items-center gap-2.5 text-sm">
               <Switch
                 id="signal-strength-percentage"
@@ -802,19 +935,22 @@ export function Heatmaps() {
           )}
           {wanted.map((w) => {
             const r = heatmaps[w.key];
+            const title = w.include ? `Scanned: ${w.title}` : w.title;
             if (points.length === 0) return null;
-            if (!r) return <SkeletonTile key={w.key} title={w.title} />;
+            if (!r) return <SkeletonTile key={w.key} title={title} />;
             if (!r.src) {
               return (
                 <EmptyTile
                   key={w.key}
-                  title={w.title}
+                  title={title}
                   body={
-                    w.metric === "signalStrength"
-                      ? "Could not render this map."
-                      : w.metric === "snr"
-                        ? "None of the points in use has a noise reading."
-                        : "None of the points in use has this measurement."
+                    w.include
+                      ? "None of the points in use has a scan."
+                      : w.metric === "signalStrength"
+                        ? "Could not render this map."
+                        : w.metric === "snr"
+                          ? "None of the points in use has a noise reading."
+                          : "None of the points in use has this measurement."
                   }
                 />
               );
@@ -827,12 +963,12 @@ export function Heatmaps() {
               >
                 <HeatmapImage
                   src={r.src}
-                  alt={w.title}
-                  onClick={() => setEnlarged({ src: r.src!, alt: w.title })}
+                  alt={title}
+                  onClick={() => setEnlarged({ src: r.src!, alt: title })}
                 />
-                <figcaption className="flex items-baseline justify-between text-sm">
-                  <span className="font-medium">{w.title}</span>
-                  <span className="tabular text-xs text-muted-foreground">
+                <figcaption className="flex items-baseline justify-between gap-2 text-sm">
+                  <span className="truncate font-medium">{title}</span>
+                  <span className="tabular shrink-0 text-xs text-muted-foreground">
                     {r.count} point{r.count === 1 ? "" : "s"}
                   </span>
                 </figcaption>

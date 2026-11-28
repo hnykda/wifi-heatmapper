@@ -19,6 +19,7 @@ export const SETTINGS_PATCH_KEYS = [
   "iperfServerAdrs",
   "testDuration",
   "udpTests",
+  "scanNearby",
   "apMapping",
   "accessPoints",
   "dimensions",
@@ -46,6 +47,7 @@ export const COPY_PARTS = {
     "iperfServerAdrs",
     "testDuration",
     "udpTests",
+    "scanNearby",
     "iperfCommands",
   ],
   /** Access point names */

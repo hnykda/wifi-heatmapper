@@ -67,6 +67,53 @@ describe("reading survey files (lenient)", () => {
     );
   });
 
+  it("reads scans leniently; a point without a scan has none", () => {
+    const survey = parseSurveyFile(
+      {
+        scanNearby: true,
+        surveyPoints: [
+          { id: "Point_1", x: 1, y: 2 },
+          {
+            id: "Point_2",
+            x: 3,
+            y: 4,
+            nearby: [
+              {
+                ssid: "Home",
+                bssid: "aa0000000001",
+                signalStrength: 70,
+                band: 5,
+              },
+              "not a network",
+              { ssid: "No address", signalStrength: 50 },
+            ],
+          },
+          { id: "Point_3", x: 5, y: 6, nearby: "broken" },
+        ],
+      },
+      "Plan.png",
+    );
+    expect(survey.scanNearby).toBe(true);
+    const [none, one, broken] = survey.surveyPoints;
+    expect(none.nearby).toBeUndefined();
+    expect(one.nearby).toEqual([
+      {
+        ssid: "Home",
+        bssid: "aa0000000001",
+        rssi: 0,
+        signalStrength: 70,
+        channel: 0,
+        band: 5,
+        channelWidth: 0,
+      },
+    ]);
+    expect(broken.nearby).toEqual([]);
+    expect(parseSurveyFile({}, "Plan.png").scanNearby).toBe(false);
+    expect(settingsPatchSchema.parse({ scanNearby: true })).toEqual({
+      scanNearby: true,
+    });
+  });
+
   it("reads a current file back unchanged", () => {
     const current = {
       ...defaultSurvey("Plan.png"),

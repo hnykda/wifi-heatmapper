@@ -65,8 +65,13 @@ export interface MeasuredBssid {
   bands: number[];
   /** points measured on it */
   points: number;
-  /** from the marker to its nearest point, in image pixels */
+  /**
+   * from the marker, in image pixels, to its nearest point; with scans, to
+   * the point that heard it best (the closest we know to where it is)
+   */
   distance: number;
+  /** points whose scan heard it (only when the survey scans) */
+  heard?: number;
   /** the name it has now (from a marker or Settings), if any */
   name?: string;
   /** named only by a prefix row ("…-*"), which only Settings can change */
@@ -87,6 +92,10 @@ function exactRow(
  * Every BSSID measured in the survey, for the marker `ap`: the ones named
  * after it first, then the rest, nearest first. The nearest are most
  * likely the ones it broadcasts.
+ *
+ * With scans (nearby-networks.ts), the radios of the networks the survey
+ * connected to are listed too, even if no point was connected to them, and
+ * "nearest" is where each was heard best. Neighbours' networks are left out.
  */
 export function measuredBssids(
   ap: AccessPoint,
@@ -95,13 +104,17 @@ export function measuredBssids(
 ): MeasuredBssid[] {
   const byBssid = new Map<
     string,
-    MeasuredBssid & { bandSet: Set<number>; latest: number }
+    MeasuredBssid & {
+      bandSet: Set<number>;
+      latest: number;
+      /** the strongest scan of it: signal (percent) and how far that was */
+      best?: { strength: number; distance: number };
+    }
   >();
-  for (const point of points) {
-    const raw = point.wifiData.bssid;
-    if (!raw) continue;
-    const bssid = normalizeMacAddress(raw);
-    const distance = Math.hypot(point.x - ap.x, point.y - ap.y);
+  const ownNetworks = new Set(
+    points.map((p) => p.wifiData.ssid).filter(Boolean),
+  );
+  const entryFor = (bssid: string, distance: number) => {
     let entry = byBssid.get(bssid);
     if (!entry) {
       const name = apNameFor(bssid, apMapping as ApMapping[]);
@@ -118,18 +131,37 @@ export function measuredBssids(
       };
       byBssid.set(bssid, entry);
     }
-    entry.points++;
-    entry.distance = Math.min(entry.distance, distance);
-    if (point.wifiData.band) entry.bandSet.add(point.wifiData.band);
-    if (point.timestamp >= entry.latest && point.wifiData.ssid) {
-      entry.latest = point.timestamp;
-      entry.ssid = point.wifiData.ssid;
+    return entry;
+  };
+  for (const point of points) {
+    const distance = Math.hypot(point.x - ap.x, point.y - ap.y);
+    const raw = point.wifiData.bssid;
+    if (raw) {
+      const entry = entryFor(normalizeMacAddress(raw), distance);
+      entry.points++;
+      entry.distance = Math.min(entry.distance, distance);
+      if (point.wifiData.band) entry.bandSet.add(point.wifiData.band);
+      if (point.timestamp >= entry.latest && point.wifiData.ssid) {
+        entry.latest = point.timestamp;
+        entry.ssid = point.wifiData.ssid;
+      }
+    }
+    for (const n of point.nearby ?? []) {
+      if (!ownNetworks.has(n.ssid) && !byBssid.has(n.bssid)) continue;
+      const entry = entryFor(n.bssid, distance);
+      entry.heard = (entry.heard ?? 0) + 1;
+      if (n.band) entry.bandSet.add(n.band);
+      if (!entry.ssid) entry.ssid = n.ssid;
+      if (!entry.best || n.signalStrength > entry.best.strength) {
+        entry.best = { strength: n.signalStrength, distance };
+      }
     }
   }
   const own = accessPointName(ap);
   return [...byBssid.values()]
-    .map(({ bandSet, latest: _latest, ...entry }) => ({
+    .map(({ bandSet, latest: _latest, best, ...entry }) => ({
       ...entry,
+      distance: best ? best.distance : entry.distance,
       bands: [...bandSet].sort((a, b) => a - b),
     }))
     .sort(

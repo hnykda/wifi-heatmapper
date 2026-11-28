@@ -30,6 +30,7 @@ import { sanitizeFilename } from "../lib/utils";
 import { POINT_LABEL_MAX } from "../lib/point-label";
 import { COPY_PART_NAMES, type CopyPart } from "../lib/survey-ops";
 import { measuresSpeed } from "../lib/measurement-mode";
+import { hasScans, scanValue } from "../lib/nearby-networks";
 import { buildIssueUrl, PASTE_HINT } from "../lib/diagnostics";
 import {
   AppClient,
@@ -48,6 +49,8 @@ import {
   DEFAULT_THRESHOLDS,
   describeAccessPoints,
   describePoint,
+  describeScannedAccessPoints,
+  selectScan,
   summarizeSurvey,
 } from "./survey";
 import { registerPrompts } from "./prompts";
@@ -140,6 +143,8 @@ export function createMcpServer(client: AppClient, version: string): McpServer {
         "signal strength and iperf3 throughput measured at points on a floor plan. " +
         "Start with list_surveys, then get_survey for the numbers and get_heatmap_grid " +
         "for a coarse map. Coordinates are floor-plan image pixels, origin top left. " +
+        "A point's signal is from the one access point the computer was connected to. With scanNearby on (Scan all access points, about 5 seconds more per spot) " +
+        "each point also keeps a scan of every access point in range: get_survey's scannedAccessPoints, and get_heatmap_grid with scan, show what each access point and band covers. " +
         'Points have an id ("Point_3") and may have a label the person gave them ("Kitchen"): call points by their label when they have one. ' +
         "It can take measurements with a person carrying the laptop: agree on the spot with them, ask them to go there and " +
         "confirm before every start_measurement, then wait_for_measurement; one at a time (survey_walkthrough guides this). " +
@@ -235,7 +240,10 @@ export function createMcpServer(client: AppClient, version: string): McpServer {
         "All points of a survey (id and the name the person gave it, if any, position in floor-plan pixels, signal %, RSSI dBm, SSID/BSSID, access point name, " +
         "iperf3 results, enabled or not) and a summary: min/median/max per metric over enabled points, " +
         "dead-zone, weak and slow points, and the access points seen. Throughput is in Mbps; null means the test did not run. " +
-        "accessPointLocations are where the person marked their routers and access points on the plan (name, position, note, the BSSIDs it broadcasts); they are not measurements.",
+        "accessPointLocations are where the person marked their routers and access points on the plan (name, position, note, the BSSIDs it broadcasts); they are not measurements. " +
+        "If the survey scanned all access points (scanNearby), each point has accessPointsInRange (null: measured without a scan) and the summary has scannedAccessPoints: " +
+        "every access point radio heard, with its band, channels, how many points heard it, its strongest signal and where; own marks the person's network, the rest are neighbours (useful for choosing a channel). " +
+        "Where a point's connected signal is much weaker than the best scanned signal of its own network, the computer was holding on to a far access point.",
       inputSchema: {
         name: nameArg,
         weakSignalPercent: z
@@ -265,14 +273,23 @@ export function createMcpServer(client: AppClient, version: string): McpServer {
           .boolean()
           .optional()
           .describe("Set false to get only the summary (default true)"),
+        includeScans: z
+          .boolean()
+          .optional()
+          .describe(
+            "Set true to add each point's full scan: every access point it heard, strongest first (default false; long, so ask only when you need one spot's detail)",
+          ),
       },
       annotations: { readOnlyHint: true, openWorldHint: false },
     },
     (args) =>
       guarded(async () => {
         const survey = await loadSurvey(client, args.name);
-        const points = (survey.surveyPoints ?? []).map((p) =>
-          describePoint(p, survey.apMapping),
+        const surveyPoints: SurveyPoint[] = survey.surveyPoints ?? [];
+        const points = surveyPoints.map((p) =>
+          describePoint(p, survey.apMapping, {
+            includeScans: args.includeScans === true,
+          }),
         );
         const summary = summarizeSurvey(points, {
           weakSignalPercent:
@@ -296,7 +313,18 @@ export function createMcpServer(client: AppClient, version: string): McpServer {
           measuredWith: survey.meta
             ? { appVersion: survey.meta.appVersion, os: survey.meta.osName }
             : null,
-          summary,
+          summary: {
+            ...summary,
+            ...(hasScans(surveyPoints)
+              ? {
+                  scannedPoints: surveyPoints.filter((p) => p.nearby).length,
+                  scannedAccessPoints: describeScannedAccessPoints(
+                    surveyPoints,
+                    survey.apMapping,
+                  ),
+                }
+              : {}),
+          },
           accessPointLocations: describeAccessPoints(
             survey.accessPoints ?? [],
             survey.apMapping ?? [],
@@ -311,7 +339,7 @@ export function createMcpServer(client: AppClient, version: string): McpServer {
     {
       title: "Get settings",
       description:
-        "The settings of a survey that update_settings can change: iperf3 server, test duration, extra iperf3 options, " +
+        "The settings of a survey that update_settings can change: iperf3 server, test duration, extra iperf3 options, scanning all access points, " +
         "access point names, heat spot radius, opacity and fixed colour scales. The sudo password is never included.",
       inputSchema: { name: nameArg },
       annotations: { readOnlyHint: true, openWorldHint: false },
@@ -333,6 +361,8 @@ export function createMcpServer(client: AppClient, version: string): McpServer {
               "The speed test (iperf3) server, used when measureSpeed is true.",
             udpTests:
               "true: each point also runs the fixed-rate (UDP) tests for jitter and lost packets; false: TCP download and upload only.",
+            scanNearby:
+              "true: each point also scans every access point in range (about 5 seconds more per spot), for what each access point and band covers; false: only the connection's own signal. On macOS it needs the Wi-Fi helper with Location access.",
             radiusDivider: `Heat spot radius in floor-plan pixels; null is automatic (currently ${radius}px${automatic ? ", automatic" : ""}).`,
             heatmapRanges:
               "Fixed colour scales per map, in display units (signal %, Mbps, ms, counts). Maps without one scale automatically.",
@@ -381,6 +411,12 @@ export function createMcpServer(client: AppClient, version: string): McpServer {
           .optional()
           .describe(
             "true: also run the fixed-rate (UDP) download and upload tests, for jitter and lost packets (doubles the time per point); false: TCP download and upload only",
+          ),
+        scanNearby: z
+          .boolean()
+          .optional()
+          .describe(
+            "true: also scan every access point in range at each spot (adds about 5 seconds per spot; on macOS needs the Wi-Fi helper with Location access). Worth it with more than one access point or a mesh, for roaming complaints, to see which access point covers which room, or to choose a channel; false: only the connection's own signal",
           ),
         iperfCommands: z
           .object({
@@ -464,7 +500,7 @@ export function createMcpServer(client: AppClient, version: string): McpServer {
       title: "Copy settings",
       description:
         "Copy settings from one survey to another and save the target survey, e.g. to set up a second floor plan like the first. " +
-        "parts: speed (measure signal only or signal and speed, iperf3 server, test duration, extra iperf3 options), " +
+        "parts: speed (measure signal only or signal and speed, iperf3 server, test duration, extra iperf3 options, scanning all access points), " +
         "apNames (access point names), heatmapLook (heat spot radius, opacity, blur, reading labels, colours, fixed colour scales). " +
         "Points, the floor plan, its size and the sudo password are never copied. Changes are real.",
       inputSchema: {
@@ -532,7 +568,9 @@ export function createMcpServer(client: AppClient, version: string): McpServer {
         "A coarse numeric heat map, computed the way the app draws it (inverse-distance weighting, power 3, " +
         "the app's influence radius) because the image itself is drawn in the browser. " +
         "values[row][column] in the map's units; null where no point is within the radius (blank on the map). " +
-        "x and y are cell centres in floor-plan pixels.",
+        "x and y are cell centres in floor-plan pixels. " +
+        "With scan (or network), metric signalStrength gives the scanned signal instead of the connection's: at each point that has a scan, " +
+        "the strongest signal of the chosen access points (0 where the scan heard none of them). Needs points measured with scanNearby on.",
       inputSchema: {
         name: nameArg,
         metric: z
@@ -546,6 +584,19 @@ export function createMcpServer(client: AppClient, version: string): McpServer {
           .max(60)
           .default(20)
           .describe("Cells along the longer side of the floor plan (2 to 60)"),
+        scan: z
+          .string()
+          .optional()
+          .describe(
+            'Scanned signal, only with metric signalStrength: "best" (the strongest of all the network\'s access points), a band ("2.4", "5" or "6"), ' +
+              "or one access point by name or BSSID (get_survey's scannedAccessPoints lists them). Left out: the connection's own signal, or \"best\" if network is given",
+          ),
+        network: z
+          .string()
+          .optional()
+          .describe(
+            "Scanned signal: the network (SSID) to map. Left out: the person's own network, the one most points were connected to",
+          ),
       },
       annotations: { readOnlyHint: true, openWorldHint: false },
     },
@@ -566,7 +617,28 @@ export function createMcpServer(client: AppClient, version: string): McpServer {
         }
         const surveyPoints: SurveyPoint[] = survey.surveyPoints ?? [];
         const { metric: test, property } = parseHeatmapKey(metric);
-        const raw = heatmapPoints(surveyPoints, metric);
+        const scanned = args.scan !== undefined || args.network !== undefined;
+        if (scanned && metric !== "signalStrength") {
+          return fail(
+            `scan and network only work with metric signalStrength, not "${metric}": a scan hears signal, not speed.`,
+          );
+        }
+        // Scanned signal, by the app's rule: the enabled points that have a
+        // scan, each with the strongest of the included access points.
+        const selection = scanned
+          ? selectScan(surveyPoints, survey.apMapping, {
+              scan: args.scan,
+              network: args.network,
+            })
+          : null;
+        const raw = selection
+          ? surveyPoints.flatMap((p) => {
+              const value = p.isEnabled
+                ? scanValue(p, selection.include)
+                : null;
+              return value === null ? [] : [{ x: p.x, y: p.y, value }];
+            })
+          : heatmapPoints(surveyPoints, metric);
         const unit = displayUnit(property);
         const points = raw.map((p) => ({
           ...p,
@@ -597,10 +669,32 @@ export function createMcpServer(client: AppClient, version: string): McpServer {
         return ok({
           name: args.name,
           metric,
-          title:
-            test === "signalStrength"
+          title: selection
+            ? `Scanned signal: ${selection.label}`
+            : test === "signalStrength"
               ? "Signal strength"
               : `${metricTitles[test]}, ${property}`,
+          ...(selection
+            ? {
+                scanned: {
+                  network: selection.network,
+                  shows: selection.label,
+                  bssids: [...selection.include],
+                  accessPoints: describeScannedAccessPoints(
+                    surveyPoints,
+                    survey.apMapping,
+                  )
+                    .filter((ap) => selection.include.has(ap.bssid))
+                    .map(({ bssid, apName, bandGHz, channels }) => ({
+                      bssid,
+                      apName,
+                      bandGHz,
+                      channels,
+                    })),
+                  note: "At each point with a scan: the strongest signal of these access points, 0 where the scan heard none of them. Points measured without a scan are left out.",
+                },
+              }
+            : {}),
           unit,
           pointsUsed: points.length,
           radius: { pixels: radius, automatic },
@@ -683,7 +777,7 @@ export function createMcpServer(client: AppClient, version: string): McpServer {
     {
       title: "Start a measurement",
       description:
-        "Measure Wi-Fi (and speed, if the survey has it on) at a spot on the floor plan, where the person is holding the laptop now, " +
+        "Measure Wi-Fi (speed, and every access point in range, if the survey has them on) at a spot on the floor plan, where the person is holding the laptop now, " +
         "and save it as a new point. Runs commands on this computer (Wi-Fi tools, iperf3). " +
         "Only after the person has confirmed they are at that spot and ready. One at a time. " +
         "Returns the job id; then call wait_for_measurement.",
@@ -745,6 +839,9 @@ export function createMcpServer(client: AppClient, version: string): McpServer {
           y,
           state: job.state,
           speedTest: measuresSpeed(survey) ? "on" : "off (signal only)",
+          ...(survey.scanNearby === true
+            ? { scanAccessPoints: "on (about 5 seconds more)" }
+            : {}),
           ...(near
             ? {
                 note: `${near.name} is ${near.distancePixels} px away; this adds another point next to it.`,
@@ -762,6 +859,7 @@ export function createMcpServer(client: AppClient, version: string): McpServer {
       description:
         "Wait (up to timeoutSeconds) for a measurement to finish, and return the saved point described like get_survey's points, " +
         "with a one-line summary, 'Saved without speed: <reason>' if the speed test was skipped, or why it failed. " +
+        "If the survey scans all access points: accessPointsInRange and the three strongest (strongestAccessPoints), or scanFailed with the reason (the point is saved without a scan; tell the person). " +
         "timeoutSeconds 0 only checks. If it is still running when the time is up, call it again.",
       inputSchema: {
         jobId: z.string().min(1).describe("From start_measurement"),

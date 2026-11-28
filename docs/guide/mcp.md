@@ -20,10 +20,14 @@ measuring it while you carry the laptop.
   point and speed results;
 - **analyse** them: dead zones, weak rooms, which access point covers which
   rooms, and whether slow speed comes from weak signal or something else;
+- **read the scans** of a survey measured with **Scan all access points**
+  on: what each of your access points and bands covers, where the computer
+  held on to a far access point although a closer one was stronger, and
+  which channels your neighbours use;
 - **plan** a survey: how many spots, how far apart, where to fill gaps;
 - **set up** a survey: signal only or signal and speed, the speed test
-  server, test duration, extra iperf3 options, access point names and the
-  heat map look;
+  server, test duration, scanning all access points, extra iperf3 options,
+  access point names and the heat map look;
 - **copy settings** from one survey to another, for example to set up the
   second floor like the first;
 - **name points** ("Kitchen", "Desk upstairs"), so it and you can talk
@@ -247,8 +251,9 @@ started by the agent at a position it names in floor-plan pixels.
    the spots yourself.
 2. You say you're there. Your MCP client asks you to allow
    `start_measurement` (keep that on).
-3. The app measures, exactly as for a click: signal, and speed if the
-   survey has speed tests on. Keep the laptop still.
+3. The app measures, exactly as for a click: signal, speed if the survey
+   has speed tests on, and every access point in range if it has **Scan
+   all access points** on (about 5 seconds more). Keep the laptop still.
 4. The server saves the point. The agent reads it back with
    `wait_for_measurement` and tells you the result in plain words, then
    moves on.
@@ -282,7 +287,7 @@ the measurement the server is running.
 
 `start_measurement(survey, x, y)`: `x` and `y` are floor-plan pixels
 (origin top left), checked against the floor plan's size (a spot off the
-plan is refused). It sends the survey's own speed settings, never a
+plan is refused). It sends the survey's own measurement settings, never a
 password, and waits a few seconds for the first step (can Wi-Fi be read,
 is a sudo password needed) so a problem there is reported at once.
 Otherwise it returns the job id:
@@ -311,6 +316,12 @@ without speed: <reason>"`. If the measurement failed, it says why
 running when the time is up, it answers `"state": "running"` with the
 current step, and the agent calls it again. Many clients give up on a tool
 call after 60 seconds, hence the default of 45.
+
+If the survey has **Scan all access points** on, the answer also has
+`accessPointsInRange` (how many the scan heard) and `strongestAccessPoints`
+(the three strongest, each with `ssid`, `apName`, `bandGHz` and
+`signalPercent`). If the scan failed, the point is saved without it and the
+answer says `"scanFailed": "<reason>"`, so the agent can tell you.
 
 `cancel_measurement(jobId)` stops that job. If it had already finished,
 the answer says so (and which point was saved).
@@ -372,12 +383,12 @@ pixels, with the origin at the top left. Throughput is in Mbps.
 | Tool | What it does |
 | --- | --- |
 | `list_surveys` | Floor plans, and for each survey its point count, whether throughput tests are on, and when it was last saved. A survey file that cannot be read is listed with `unreadable: true`. |
-| `get_survey(name)` | All points and a summary. Optional thresholds: `weakSignalPercent` (default 55, -67 dBm, where the heat map turns green), `deadSignalPercent` (25, about -85 dBm), `slowDownloadMbps` (25). `includePoints: false` returns the summary only. |
+| `get_survey(name)` | All points and a summary. Optional thresholds: `weakSignalPercent` (default 55, -67 dBm, where the heat map turns green), `deadSignalPercent` (25, about -85 dBm), `slowDownloadMbps` (25). `includePoints: false` returns the summary only; `includeScans: true` adds each point's full scan. |
 | `get_settings(name)` | The settings `update_settings` can change. |
 | `update_settings(name, ...)` | Change some of them and save the survey. |
 | `copy_settings(from, to, parts?)` | Copy settings from one survey to another and save it. |
 | `check_setup(name?)` | What the app can tell without measuring, plus problems and notes. |
-| `get_heatmap_grid(name, metric, cells)` | A numeric heat map. |
+| `get_heatmap_grid(name, metric, cells, scan?, network?)` | A numeric heat map. With `scan`, the scanned signal of the access points you choose. |
 | `report_problem(name?, problem?, includeNetwork?)` | A bug report for the developers and a prefilled GitHub issue link. Posts nothing. |
 | `start_measurement(survey, x, y)` | Measure at that spot (you are holding the laptop there) and save a point. Returns a job id. |
 | `wait_for_measurement(jobId, timeoutSeconds?)` | Wait for it and return the saved point, or why it failed. |
@@ -415,6 +426,10 @@ plan: `name`, `x`, `y`, `note` (or `null`), `icon` (`router`, `wifi` for a
 mesh node or extender, `tower` for an outdoor one) and the `bssids`
 named after it. They are pins, not measurements.
 
+`accessPointsInRange` is how many access points the scan at that point
+heard, or `null` when the point was measured without a scan (see
+[Scans of all access points](#scans-of-all-access-points)).
+
 The summary only uses points that are switched on, like the heat maps:
 
 ```json
@@ -432,6 +447,43 @@ The summary only uses points that are switched on, like the heat maps:
   ]
 }
 ```
+
+#### Scans of all access points
+
+A point's `signalPercent` is the signal of the one access point the
+computer was connected to. With **Scan all access points** on
+(`scanNearby`, about 5 seconds more per spot), each point also keeps
+what it heard from every access point in range. The summary then has
+`scannedPoints` (how many points have a scan) and `scannedAccessPoints`,
+one entry per access point radio (BSSID), yours first, then strongest
+first:
+
+```json
+"scannedAccessPoints": [
+  { "bssid": "9e05d696e830", "ssid": "Demo Network", "apName": "Living room",
+    "bandGHz": 5, "channels": [44], "pointsHeard": 25,
+    "strongestSignalPercent": 93, "strongestAtPointId": "Point_3", "own": true },
+  { "bssid": "c4411e5b7a02", "ssid": "Next door", "apName": null,
+    "bandGHz": 2.4, "channels": [6], "pointsHeard": 9,
+    "strongestSignalPercent": 41, "strongestAtPointId": "Point_12", "own": false }
+]
+```
+
+`own` is `true` for networks the survey's points were connected to; the
+rest are neighbours, useful for choosing a channel. `strongestAtPointId`
+is the point that heard the access point best, the closest the survey
+knows to where it stands. `ssid` is `""` for a network that hides its
+name. Unlike the rest of the summary, the list also counts points that
+are switched off, like the list in the app.
+
+The lists themselves are long, so points only carry them when asked:
+`includeScans: true` adds `scan` to each point that has one, strongest
+first, each entry with `ssid`, `bssid`, `apName`, `signalPercent`,
+`rssiDbm`, `channel`, `bandGHz` and `channelWidthMHz`.
+
+Where a point's own signal is much weaker than the best scanned signal of
+the same network, the computer was holding on to a far access point: a
+roaming problem, not a coverage one.
 
 ### get_heatmap_grid
 
@@ -461,6 +513,33 @@ separately.
 
 `values[row][column]` is the value at (`x[column]`, `y[row]`).
 
+**Scanned signal.** With metric `signalStrength`, `scan` gives the
+**Scanned signal** map instead of the connection's own signal. It needs
+points measured with **Scan all access points** on.
+
+| Input | Value |
+| --- | --- |
+| `scan` | `"best"`: the strongest of all the network's access points. A band, `"2.4"`, `"5"` or `"6"`: only that band. An access point name (all its radios) or one BSSID: only that access point |
+| `network` | the network (SSID) to map. Left out: your own network, the one most points were connected to. Given without `scan`, it means `"best"` |
+
+The grid follows the app's rule: it uses the points that are switched on
+and have a scan, each with the strongest signal of the chosen access
+points, and 0% where the scan heard none of them. Points measured without
+a scan are left out. The result's `scanned` says which network and which
+access points (`bssids`, and `accessPoints` with name, band and channels)
+were included:
+
+```
+> get_heatmap_grid {"name":"Demo flat.png","scan":"Living room","cells":8}
+{"metric":"signalStrength","title":"Scanned signal: Living room",
+ "scanned":{"network":"Demo Network","shows":"Living room","bssids":["9e05d696e830"], ...},
+ "unit":"%","pointsUsed":25, ...}
+```
+
+If the survey has no scans, or nothing matches, the answer is an error
+that lists the networks, bands, access point names and BSSIDs you can
+ask for. The colour scale is the one of the signal strength map.
+
 ### update_settings
 
 Only the fields you give change. The rest of the survey, including all
@@ -472,6 +551,7 @@ points, is kept as it is.
 | `iperfServerAdrs` | the speed test server, `"192.168.1.10"` or `"nas.local:5201"`. Set without `measureSpeed`, `"localhost"` also turns speed off and any other server turns it on, as before |
 | `testDuration` | seconds per iperf3 test, 1 to 60 |
 | `udpTests` | `true` also runs the fixed-rate (UDP) tests for jitter and lost packets (doubles the time per point); `false` (new surveys) TCP download and upload only |
+| `scanNearby` | `true` also scans every access point in range at each spot (**Scan all access points** in Settings; about 5 seconds more per spot; on macOS it needs the Wi-Fi helper with Location access); `false` (new surveys) measures only the connection's own signal. Worth turning on with more than one access point or a mesh, when devices hold on to a far access point, to see which access point covers which room, or to choose a channel |
 | `iperfCommands` | extra iperf3 options for any of `tcpDownload`, `tcpUpload`, `udpDownload`, `udpUpload`, one argument per item, e.g. `{ "udpUpload": ["-b", "500M"] }`; the others are kept |
 | `apMapping` | the whole list of `{ "apName", "macAddress" }`; a MAC address may end in `*` to match every BSSID that starts with it |
 | `radiusDivider` | heat spot radius in floor-plan pixels, or `null` for automatic |
@@ -504,7 +584,7 @@ Copies settings from the survey `from` into the survey `to`, as
 
 | Part | What is copied |
 | --- | --- |
-| `speed` (the default) | signal only or signal and speed, the iperf3 server, test duration and extra iperf3 options |
+| `speed` (the default) | signal only or signal and speed, the iperf3 server, test duration, extra iperf3 options and whether to scan all access points |
 | `apNames` | access point names |
 | `heatmapLook` | heat spot radius, opacity, blur, reading labels, colour gradient and fixed colour scales |
 
@@ -553,9 +633,9 @@ Prompts are ready-made requests your MCP client offers (in Claude Code, type
 
 | Prompt | Arguments | What it asks for |
 | --- | --- | --- |
-| `analyse_survey` | `name` | Dead zones, weak areas, which access point serves where, throughput bottlenecks compared with signal, concrete suggestions (move or add an access point), and what the data can't show. |
+| `analyse_survey` | `name` | Dead zones, weak areas, which access point serves where, what each access point and band covers when the survey has scans, throughput bottlenecks compared with signal, concrete suggestions (move or add an access point), and what the data can't show. |
 | `compare_surveys` | `before`, `after` | A before and after comparison with the same metrics, cell by cell when the floor plans match, and fixed colour scales for side-by-side maps. |
-| `plan_survey` | `name` (optional) | How many points and how far apart, where to stand, and how to set up the iperf3 server. |
+| `plan_survey` | `name` (optional) | How many points and how far apart, where to stand, when to scan all access points, and how to set up the iperf3 server. |
 | `survey_walkthrough` | `name`, `rooms` (optional) | The agent guides you spot by spot while you carry the laptop: it plans the spots (filling gaps and weak areas from `get_heatmap_grid`), asks you to go to each, waits for you to confirm, measures and tells you the result. |
 
 ## Safety model
@@ -649,6 +729,9 @@ measurements are synthetic.
   The MCP SDK is a devDependency used only by that bundle, never by the
   Next.js app. `desktop/build-server.mjs` writes the same bundle to
   `desktop/server/mcp-server.mjs`, and `desktop/smoke-test.mjs` checks it.
+- Scans of all access points use the pure `src/lib/nearby-networks.ts`
+  (the same lists and map rule as the app); `selectScan` in
+  `src/mcp/survey.ts` turns `scan` and `network` into the BSSIDs to map.
 - Tests: `__tests__/heatmap-grid.test.ts`, `__tests__/mcp-*.test.ts`,
   `__tests__/sudo-session.test.ts`. `mcp-server.test.ts` builds the bundle
   and drives it with the SDK's client against a fake app (measuring

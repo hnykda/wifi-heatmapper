@@ -16,6 +16,7 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { AlertDialogModal } from "@/components/AlertDialogModal";
 import { getColorAt, objectToRGBAString } from "@/lib/utils-gradient";
+import { networkName } from "@/lib/nearby-networks";
 
 interface PopupDetailsProps {
   point: SurveyPoint | null;
@@ -132,6 +133,31 @@ const PopupDetails: React.FC<PopupDetailsProps> = ({
           </div>
         ))}
       </dl>
+      {point.nearby && (
+        <details
+          className="border-t px-3 py-2 text-xs"
+          data-testid="point-nearby"
+        >
+          <summary className="cursor-pointer text-muted-foreground">
+            {point.nearby.length} access point
+            {point.nearby.length === 1 ? "" : "s"} in range
+          </summary>
+          <ul className="tabular mt-1.5 grid max-h-36 gap-0.5 overflow-y-auto">
+            {point.nearby.map((n) => (
+              <li key={n.bssid} className="flex justify-between gap-2">
+                <span className="truncate">
+                  {apNameFor(n.bssid, settings.apMapping) ??
+                    networkName(n.ssid)}
+                </span>
+                <span className="shrink-0 text-muted-foreground">
+                  {n.band ? `${n.band} GHz · ` : ""}
+                  {n.signalStrength}%
+                </span>
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
       <div className="flex items-center justify-between border-t bg-muted/40 px-3 py-2">
         <label className="flex items-center gap-2 text-xs">
           <Switch

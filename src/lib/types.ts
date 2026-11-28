@@ -3,6 +3,7 @@ import type {
   accessPointSchema,
   apMappingSchema,
   iperfCommandsSchema,
+  nearbyNetworkSchema,
   iperfResultsSchema,
   iperfTestPropertySchema,
   SurveyDocument,
@@ -25,6 +26,8 @@ export type IperfResults = z.output<typeof iperfResultsSchema>;
 export type ApMapping = z.output<typeof apMappingSchema>;
 /** An access point marker on the floor plan (not a measurement) */
 export type AccessPoint = z.output<typeof accessPointSchema>;
+/** One access point radio heard by a scan of the access points in range */
+export type NearbyNetwork = z.output<typeof nearbyNetworkSchema>;
 export type IperfCommands = z.output<typeof iperfCommandsSchema>;
 /** SurveyPoint - all the information we have about a particular point */
 export type SurveyPoint = z.output<typeof surveyPointSchema>;
@@ -103,6 +106,8 @@ export interface PartialHeatmapSettings {
   testDuration: number;
   // missing: run the fixed-rate (UDP) tests too
   udpTests?: boolean;
+  // missing: don't scan for the access points in range
+  scanNearby?: boolean;
   sudoerPassword: string;
   iperfCommands: IperfCommands;
 }
@@ -149,6 +154,11 @@ export interface MeasurementFields {
   udp: string;
   // "signal": the survey measures signal only; "speed": signal and speed
   mode?: "signal" | "speed";
+  // the scan of access points in range: "12 access points", "Failed";
+  // missing when the survey doesn't scan
+  nearby?: string;
+  // why the scan failed (the point is saved without it)
+  nearbyNote?: string;
 }
 
 /**
@@ -217,8 +227,14 @@ export interface WifiScanResults {
 export interface WifiActions {
   /** can the Wi-Fi be read? "" or a reason to show */
   preflightSettings(settings: PartialHeatmapSettings): Promise<WifiScanResults>;
-  /** nearby networks, sorted by signal strength (not used while measuring) */
-  scanWifi(settings: PartialHeatmapSettings): Promise<WifiScanResults>;
+  /**
+   * nearby networks, sorted by signal strength. `fresh`: scan now (takes a
+   * few seconds) instead of returning what the OS last saw.
+   */
+  scanWifi(
+    settings: PartialHeatmapSettings,
+    options?: { fresh?: boolean },
+  ): Promise<WifiScanResults>;
   /** the current connection, as one WifiResults */
   getWifi(settings: PartialHeatmapSettings): Promise<WifiScanResults>;
 }

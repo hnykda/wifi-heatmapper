@@ -12,7 +12,6 @@
  * needs one and the app doesn't have it, the job fails in its first step
  * (the preflight) and sudoProblem() turns that into SUDO_NEEDED.
  */
-import type { MeasurementJobStatus } from "../lib/types";
 import { measuresSpeed } from "../lib/measurement-mode";
 import type {
   AppClient,
@@ -20,7 +19,12 @@ import type {
   StoredSurvey,
 } from "./app-client";
 import { pickSafeSettings } from "./settings-allowlist";
-import { describePoint, type PointRecord } from "./survey";
+import type {
+  ApMapping,
+  MeasurementJobStatus,
+  SurveyPoint,
+} from "../lib/types";
+import { describePoint, describeScanEntry, type PointRecord } from "./survey";
 
 export const SUDO_NEEDED =
   "This computer needs the sudo password to read Wi-Fi. Enter it once in the app's Settings (it stays in memory), then try again.";
@@ -57,7 +61,7 @@ export function positionProblem(
   return null;
 }
 
-/** The survey's speed settings, as the app's own page sends them. */
+/** The survey's measurement settings, as the app's own page sends them. */
 export function measurementSettings(survey: StoredSurvey): MeasurementSettings {
   const s = pickSafeSettings(survey);
   return {
@@ -65,6 +69,7 @@ export function measurementSettings(survey: StoredSurvey): MeasurementSettings {
     iperfServerAdrs: s.iperfServerAdrs,
     testDuration: s.testDuration,
     udpTests: s.udpTests,
+    scanNearby: s.scanNearby,
     iperfCommands: s.iperfCommands,
   };
 }
@@ -157,6 +162,35 @@ export function plainResult(point: PointRecord): string {
   return `${parts.join("; ")}.`;
 }
 
+/**
+ * What a finished measurement says about its scan of the access points in
+ * range: how many it heard and the three strongest, or why the scan failed
+ * (the point is then saved without one). Empty when the survey doesn't scan.
+ */
+export function describeScan(
+  point: Pick<SurveyPoint, "nearby"> | undefined,
+  job: Pick<MeasurementJobStatus, "progress">,
+  apMapping: ApMapping[] | undefined,
+): Record<string, unknown> {
+  if (point?.nearby) {
+    return {
+      accessPointsInRange: point.nearby.length,
+      strongestAccessPoints: [...point.nearby]
+        .sort((a, b) => b.signalStrength - a.signalStrength)
+        .slice(0, 3)
+        .map((n) => {
+          const { ssid, apName, bandGHz, signalPercent } = describeScanEntry(
+            n,
+            apMapping,
+          );
+          return { ssid, apName, bandGHz, signalPercent };
+        }),
+    };
+  }
+  const reason = job.progress?.fields?.nearbyNote;
+  return reason ? { scanFailed: reason } : {};
+}
+
 /** What wait_for_measurement (and start_measurement) answer for a job. */
 export async function describeJob(
   client: AppClient,
@@ -222,6 +256,7 @@ export async function describeJob(
         ? { speed: "not measured: this survey measures signal only" }
         : {}),
       ...(record ? { summary: plainResult(record), point: record } : {}),
+      ...describeScan(point, job, survey?.apMapping),
       ...(!record
         ? { note: "Saved, but the point could not be read back." }
         : {}),
