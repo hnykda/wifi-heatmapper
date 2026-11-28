@@ -466,6 +466,14 @@ export class WindowsWifiActions extends NetshWifiActions {
     } catch (err) {
       const message = wlanApiFailureMessage(err);
       if (message) return { SSIDs: [], reason: message };
+      if (options.fresh) {
+        // netsh only lists what Windows last saw, which may be from
+        // another spot: no scan is better than a stale one
+        return {
+          SSIDs: [],
+          reason: `Windows could not scan for access points: ${err instanceof Error ? err.message : String(err)}`,
+        };
+      }
       this.fallback("scan", err);
       return super.scanWifi(settings);
     }

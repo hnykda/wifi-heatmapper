@@ -1,0 +1,8 @@
+// nmcli -t -f IN-USE,BSSID,SSID,MODE,CHAN,RATE,SIGNAL,BARS,SECURITY,FREQ dev wifi list --rescan yes
+// Columns in the order the app asks for them. 6 GHz channel numbers (37, 5)
+// overlap 5 and 2.4 GHz ones, so the band has to come from FREQ.
+*:AA\:BB\:CC\:00\:00\:01:Home:Infra:44:540 Mbit/s:82:▂▄▆█:WPA2 WPA3:5220 MHz
+ :AA\:BB\:CC\:00\:00\:02:Home:Infra:6:130 Mbit/s:90:▂▄▆█:WPA2 WPA3:2437 MHz
+ :AA\:BB\:CC\:00\:00\:03:Home:Infra:37:540 Mbit/s:55:▂▄__:WPA3:6135 MHz
+ :AA\:BB\:CC\:00\:00\:04:Home:Infra:5:540 Mbit/s:40:▂▄__:WPA3:5975 MHz
+ :AA\:BB\:CC\:00\:00\:05:Open cafe:Infra:149:270 Mbit/s:30:▂___::5745 MHz

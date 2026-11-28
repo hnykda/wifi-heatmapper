@@ -103,10 +103,14 @@ export class LinuxWifiActions implements WifiActions {
     };
 
     try {
-      // NetworkManager scans as a normal user, connected or not. --rescan
-      // yes waits for a new scan instead of returning the last one.
+      // NetworkManager scans as a normal user. --rescan yes asks for a new
+      // scan and waits for it (nmcli retries while NetworkManager refuses
+      // one right after another, and gives up after 15 s, when it prints
+      // the list it has).
       const result = await execAsync("nmcli", [
         "-t",
+        "-f",
+        NMCLI_SCAN_FIELDS,
         "dev",
         "wifi",
         "list",
@@ -450,6 +454,29 @@ export function splitColonDelimited(line: string) {
  * @param - Object that contains output of system_profiler for Wifi
  * @returns WifiResults[] sorted by signalStrength
  */
+/**
+ * The columns asked of `nmcli dev wifi list`, in the order getCandidateSSIDs
+ * reads them. Named, because nmcli's default set changed (newer versions put
+ * BAND before CHAN). FREQ is last: the band comes from it, since 6 GHz
+ * channel numbers overlap those of 2.4 and 5 GHz.
+ */
+export const NMCLI_SCAN_FIELDS =
+  "IN-USE,BSSID,SSID,MODE,CHAN,RATE,SIGNAL,BARS,SECURITY,FREQ";
+
+/** "5180 MHz" -> 5; 0 when it is not a Wi-Fi frequency */
+function frequencyTextToBand(text: string | undefined): number {
+  const mhz = parseInt(text ?? "");
+  if (mhz >= 2400 && mhz < 2500) return 2.4;
+  if (mhz >= 4900 && mhz < 5925) return 5;
+  if (mhz >= 5925 && mhz < 7125) return 6;
+  return 0;
+}
+
+/**
+ * getCandidateSSIDs - parse `nmcli -t -f NMCLI_SCAN_FIELDS dev wifi list`.
+ * Output without the FREQ column (older captures) still parses: the band is
+ * then guessed from the channel.
+ */
 export const getCandidateSSIDs = (nmcliData: string): WifiResults[] => {
   const candidates = [];
   const lines = nmcliData.split("\n");
@@ -467,8 +494,9 @@ export const getCandidateSSIDs = (nmcliData: string): WifiResults[] => {
     candidate.txRate = stripMbps(cols[5]);
     candidate.signalStrength = parseInt(cols[6]);
     candidate.rssi = percentageToRssi(candidate.signalStrength);
-    candidate.band = channelToBand(candidate.channel);
-    candidate.security = cols[8];
+    candidate.band =
+      frequencyTextToBand(cols[9]) || channelToBand(candidate.channel);
+    candidate.security = cols[8] ?? "";
     // skip phymode, channelWidth
 
     candidates.push(candidate);

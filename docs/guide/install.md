@@ -141,8 +141,8 @@ chmod +x WiFi.Heatmapper_*.AppImage
 AppImages need FUSE 2. On Ubuntu 24.04 and later install it with
 `sudo apt install libfuse2t64` (older Ubuntu: `libfuse2`).
 
-The app reads the signal with `iw`; `nmcli` is optional and only lists nearby
-networks (the `.deb` suggests both).
+The app reads the signal with `iw`; `nmcli` (NetworkManager) is optional and
+only needed for **Scan all access points** (the `.deb` suggests both).
 On most systems that works without a password; if it doesn't, Settings asks
 for your sudo password, which is kept in memory only.
 
