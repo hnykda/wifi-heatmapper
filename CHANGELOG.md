@@ -14,6 +14,12 @@ _This section follows the precepts of [Keep a Changelog](https://keepachangelog.
   downloaded PNGs. They are pins only: they take no measurement and don't
   change the heat maps.
 
+### Fixed
+
+* **Survey points: pages after the first can be opened.** With more than 25
+  points, **Next** went straight back to page 1, and at the bottom of the
+  page the help button covered the pager.
+
 ## Version 0.10.0 - 2026-11-05
 
 ### Added
